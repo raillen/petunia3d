@@ -69,3 +69,49 @@ O componente `tool_button(ui, id, label, selected, compact)` respeita estados ha
 `assets/themes/dark.toml` é a fonte de configuração do tema, com defaults tipados em `crates/config/src/theme.rs`. As cores são semânticas: fundo, painel, superfície de controle, hover, seleção, texto, texto secundário, destaque e borda. A tipografia padrão é proporcional, com corpo e botões de 14 pontos, texto secundário de 12 e títulos de 18. A escala é em pontos egui e acompanha o DPI.
 
 Os testes verificam contraste mínimo de 4,5:1 nos pares de texto efetivamente usados, estado/foco e ativação de botão por teclado. A validação visual com captura OpenGL continua necessária; esses testes não comprovam suporte a leitor de tela nem equivalência visual entre drivers.
+
+---
+
+## 6. Referência Visual Premium Canônica (`Blender.svg`)
+
+A interface final de produção do Petunia3D adota formalmente como **Golden Reference** o mockup de alta fidelidade especificado em [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (e seu raster de visualização [`docs/image-references/Blender.png`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.png)).
+A composição espacial, dimensões nominais (1920 × 1080), painéis sanfonados, hierarquia e catálogo de ícones do Petunia3D convergem para este padrão de produção.
+
+### Especificação dos Painéis e Elementos
+1. **Top Application Header (y: 0–30px)**:
+   - Menus globais de sistema: `File`, `Edit`, `Render`, `Window`, `Help`.
+   - Barra de abas de Workspaces: `Layout`, `Modeling`, `Sculpting`, `UV Editing`, `Texture Paint`, `Shading`, `Animation`, `Rendering`, `Compositing`, `Geometry Nodes`, `Scripting`.
+   - Seletor de Cena e View Layer ativos.
+2. **Viewport Context & Shading Bar (y: 30–60px)**:
+   - Seletor de Modo de Operação: `Object Mode`, `Edit Mode`, `Sculpt Mode`, `Vertex Paint`, `Weight Paint`, `Texture Paint`.
+   - Menus de contexto do Viewport: `View`, `Select`, `Add`, `Mesh`.
+   - Seleção de Sub-elementos: Vértice (1), Aresta (2), Face (3).
+   - Orientação de Transformação (`Global`, `Local`, `Normal`, `Gimbal`, `View`, `Cursor`).
+   - Ponto de Pivô (`Bounding Box Center`, `3D Cursor`, `Individual Origins`, `Median Point`, `Active Element`).
+   - Snapping magnético e alvos de snap (Increment, Vertex, Edge, Face, Volume).
+   - Proportional Editing (ligado/desligado com curvas Smooth, Sphere, Root, Sharp, Linear, Constant, Random).
+   - Controles de Visibilidade e Shading: Toggles de Gizmos, Overlays e os 4 modos fundamentais de sombreamento (`Wireframe`, `Solid`, `Material Preview`, `Rendered`).
+3. **Left Toolbar (x: 0–45px)**:
+   - Coluna de ferramentas com alvos de clique ergonômicos de 40 × 40 px e sub-ferramentas integradas: Select Box/Circle/Lasso, Cursor 3D, Move, Rotate, Scale, Transform, Annotate, Measure, Add Primitive, Extrude Region, Inset Faces, Bevel, Loop Cut, Poly Build, Spin, Smooth, Edge Slide, Shrink/Fatten, Shear, Rip Region.
+4. **Central 3D Viewport**:
+   - Canvas isolado renderizado via [`PhysicalViewport`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/core/src/viewport.rs) com suporte a DPI e clipping exato.
+   - **Gizmo de Navegação de Eixos** interativo no canto superior direito: esfera de rotação com eixos ortogonais X/Y/Z clicáveis, botões de zoom interativo, pan e alternância de câmera orto/perspectiva.
+   - **3D Cursor**: Indicador de mira tridimensional para inserção de primitivas e definição de pivô.
+   - Grade tridimensional infinita com eixos coloridos (X vermelho, Y verde, Z azul).
+5. **Right Outliner (x: 1580–1920px, y: 30–450px)**:
+   - Árvore de coleções e nós de cena (`Scene Collection` → `Collection` → Objetos, Câmeras, Fontes de Luz).
+   - Busca instantânea e filtros por nome e tipo.
+   - Toggles contextuais por item: Ativo, Selecionável, Visível no Viewport (ícone do olho), Visível na Renderização (ícone de câmera).
+6. **Right Properties Panel (x: 1580–1920px, y: 450–1050px)**:
+   - Coluna vertical esquerda de navegação com 14 abas com ícones vetoriais dedicados: `Tool`, `Render`, `Output`, `View Layer`, `Scene`, `World`, `Collection`, `Object`, `Modifiers`, `Particles`, `Physics`, `Constraints`, `Data/Mesh`, `Material`, `Texture`.
+   - Painéis de parâmetros sanfonados e campos numéricos com arrasto horizontal (`tool_fields.rs`).
+7. **Bottom Timeline / Animation Bar (y: 850–1050px)**:
+   - Controles de transporte (Play, Pause, Step Next/Prev, Jump Start/End).
+   - Régua de quadros e marcadores de keyframe.
+8. **Bottom Status Bar (y: 1050–1080px)**:
+   - Dicas contextuais dinâmicas de mouse: `LMB: Select`, `MMB: Rotate View`, `RMB: Object Context Menu`.
+   - Telemetria de geometria em tempo real: contagem de Vértices, Faces, Triângulos, Objetos ativos, Consumo de Memória RAM/VRAM e versão da aplicação.
+
+### Extração de Assets Vetoriais
+A suíte completa com os 268 elementos vetoriais individuais de `Blender.svg` foi extraída de forma limpa pelo script [`scripts/extract_svg_elements.py`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/scripts/extract_svg_elements.py) e está catalogada com previews e documentação em [`docs/image-references/extracted/README.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/README.md) e galeria visual interativa em [`docs/image-references/extracted/index.html`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/index.html).
+

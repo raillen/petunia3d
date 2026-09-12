@@ -3,28 +3,33 @@
 - Project: **Petunia3D**
 - Prumo: **0.5.1**
 - Current phase: **P01 — Premium viewport interaction**
+- Canonical UI Golden Reference: [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (component catalog in [`docs/image-references/extracted/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/))
 - Historical goal: **P01-G01**, recorded DONE before the premium specification.
-- Current implementation and acceptance map: [premium interaction plan](docs/development/premium-interaction-plan.md).
+- Current implementation and acceptance map: [premium interaction plan](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/development/premium-interaction-plan.md).
 - Context methodology: **Lean Progressive Context (LPC)**
 - Last updated: `2026-09-12`
 
 ## Current status
 
 The premium audit supersedes the previous claim that all required operations were
-complete. The first implementation round delivers transactional modal transforms,
+complete. The visual target for final production is formalised as the 1920×1080
+layout of [`Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg),
+with 268 component SVGs cataloged and verified in [`docs/image-references/extracted/index.html`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/index.html).
+
+The first implementation round delivers transactional modal transforms,
 extrusion/inset/bevel previews, gizmos, component hover, quad loop cut, segmented
 knife input, planar slicing, atomic paint strokes and corrected camera navigation.
-The second implementation round delivers the native vector icon engine (`crates/ui/src/icons.rs`),
+The second implementation round delivers the native vector icon engine ([`crates/ui/src/icons.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/icons.rs)),
 accessible `tool_button` with compact/expanded layouts, explicit orthographic camera
-controls with 6 orthogonal presets, numeric tool property fields (`crates/ui/src/tool_fields.rs`),
+controls with 6 orthogonal presets, numeric tool property fields ([`crates/ui/src/tool_fields.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/tool_fields.rs)),
 and responsive panel refactoring.
 Final gates: 130 tests passed; fmt, strict Clippy (-D warnings) and headless smoke test passed.
-Evidence is preserved in `.prumo/history/premium/` and `docs/GAUNTLET_HANDOFF.md`.
+Evidence is preserved in `.prumo/history/premium/` and [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md).
 
 Premium convergence is **not established**. The human golden path and final GPU
 performance targets remain unmeasured. Complex bevel, metric inset, inter-asset
 occlusion, UV texture painting in the viewport and full GPU failure handling
-remain acceptance gaps. See the plan and `docs/GAUNTLET.md` for evidence and
+remain acceptance gaps. See the plan and [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md) for evidence and
 limitations; do not reuse historical scores as proof of this specification.
 
 ## Next action
