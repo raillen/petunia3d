@@ -17,6 +17,7 @@ pub mod icons;
 #[cfg(test)]
 mod modal_tests;
 mod modal_viewport;
+pub mod nav_gizmo;
 mod tool_fields;
 mod viewport_interaction;
 
@@ -219,6 +220,30 @@ fn top_bar(ctx: &egui::Context, state: &mut AppState, action: &mut UiAction) {
             });
             ui.separator();
             camera_controls::draw(ui, state);
+            ui.separator();
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(2.0, 2.0);
+                for (shading, label, hint) in [
+                    (petunia_render::Shading::Wireframe, "Wire", "Wireframe"),
+                    (petunia_render::Shading::Solid, "Solid", "Solid Shading"),
+                    (
+                        petunia_render::Shading::Smooth,
+                        "Material",
+                        "Material Preview / Smooth",
+                    ),
+                    (petunia_render::Shading::Unlit, "Render", "Rendered / Unlit"),
+                ] {
+                    let selected = state.shading == shading;
+                    if ui
+                        .selectable_label(selected, label)
+                        .on_hover_text(hint)
+                        .clicked()
+                    {
+                        state.shading = shading;
+                        state.mark_dirty();
+                    }
+                }
+            });
         });
     });
 }

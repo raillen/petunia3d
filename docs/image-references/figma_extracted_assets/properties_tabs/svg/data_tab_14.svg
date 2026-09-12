@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" width="22" height="22" viewBox="4 349 22 22" overflow="hidden"><mask id="path-1-inside-1_242_6715" fill="white">
+<path d="M0 0H30V646H0V0Z"/>
+</mask>
+<defs id="asset_root_0035">
+<clipPath id="clip0_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 10)"/>
+</clipPath>
+<clipPath id="clip1_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 34)"/>
+</clipPath>
+<clipPath id="clip2_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 93)"/>
+</clipPath>
+<clipPath id="clip3_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 117)"/>
+</clipPath>
+<clipPath id="clip4_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 141)"/>
+</clipPath>
+<clipPath id="clip5_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 165)"/>
+</clipPath>
+<clipPath id="clip6_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 235)"/>
+</clipPath>
+<clipPath id="clip7_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 259)"/>
+</clipPath>
+<clipPath id="clip8_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 283)"/>
+</clipPath>
+<clipPath id="clip9_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 307)"/>
+</clipPath>
+<clipPath id="clip10_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 331)"/>
+</clipPath>
+<clipPath id="clip11_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 355)"/>
+</clipPath>
+<clipPath id="clip12_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 379)"/>
+</clipPath>
+</defs>
+<path d="M5 354C5 351.791 6.79086 350 9 350H21C23.2091 350 25 351.791 25 354V366C25 368.209 23.2091 370 21 370H9C6.79086 370 5 368.209 5 366V354Z" fill="#121212" id="asset_root_0031"/>
+<g clip-path="url(#clip11_242_6715)" id="asset_root_0032">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M10.9375 355.625C10.8546 355.625 10.7751 355.658 10.7165 355.717C10.6579 355.775 10.625 355.855 10.625 355.938V357.812C10.625 357.895 10.6579 357.975 10.7165 358.033C10.7751 358.092 10.8546 358.125 10.9375 358.125H11.5308L13.75 362.267V364.062C13.75 364.145 13.7829 364.225 13.8415 364.283C13.9001 364.342 13.9796 364.375 14.0625 364.375H15.9375C16.0204 364.375 16.0999 364.342 16.1585 364.283C16.2171 364.225 16.25 364.145 16.25 364.062V362.267L18.4692 358.125H19.0625C19.1454 358.125 19.2249 358.092 19.2835 358.033C19.3421 357.975 19.375 357.895 19.375 357.812V355.938C19.375 355.855 19.3421 355.775 19.2835 355.717C19.2249 355.658 19.1454 355.625 19.0625 355.625H17.1875C17.1046 355.625 17.0251 355.658 16.9665 355.717C16.9079 355.775 16.875 355.855 16.875 355.938V356.25H13.125V355.938C13.125 355.855 13.0921 355.775 13.0335 355.717C12.9749 355.658 12.8954 355.625 12.8125 355.625H10.9375ZM11.25 356.25H12.5V357.5H11.25V356.25ZM17.5 356.25H18.75V357.5H17.5V356.25ZM13.125 356.875H16.875V357.812C16.875 357.895 16.9079 357.975 16.9665 358.033C17.0251 358.092 17.1046 358.125 17.1875 358.125H17.7588L15.7495 361.875H14.2505L12.2412 358.125H12.8125C12.8954 358.125 12.9749 358.092 13.0335 358.033C13.0921 357.975 13.125 357.895 13.125 357.812V356.875ZM14.375 362.5H15.625V363.75H14.375V362.5Z" fill="#0DB68F"/>
+</g>
+</svg>

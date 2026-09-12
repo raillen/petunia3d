@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" width="22" height="22" viewBox="4 301 22 22" overflow="hidden"><mask id="path-1-inside-1_242_6715" fill="white">
+<path d="M0 0H30V646H0V0Z"/>
+</mask>
+<defs id="asset_root_0035">
+<clipPath id="clip0_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 10)"/>
+</clipPath>
+<clipPath id="clip1_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 34)"/>
+</clipPath>
+<clipPath id="clip2_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 93)"/>
+</clipPath>
+<clipPath id="clip3_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 117)"/>
+</clipPath>
+<clipPath id="clip4_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 141)"/>
+</clipPath>
+<clipPath id="clip5_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 165)"/>
+</clipPath>
+<clipPath id="clip6_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 235)"/>
+</clipPath>
+<clipPath id="clip7_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 259)"/>
+</clipPath>
+<clipPath id="clip8_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 283)"/>
+</clipPath>
+<clipPath id="clip9_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 307)"/>
+</clipPath>
+<clipPath id="clip10_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 331)"/>
+</clipPath>
+<clipPath id="clip11_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 355)"/>
+</clipPath>
+<clipPath id="clip12_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 379)"/>
+</clipPath>
+</defs>
+<path d="M0 0H30V646H0V0Z" fill="#202020" id="asset_root_0001"/>
+<path d="M5 306C5 303.791 6.79086 302 9 302H21C23.2091 302 25 303.791 25 306V318C25 320.209 23.2091 322 21 322H9C6.79086 322 5 320.209 5 318V306Z" fill="#121212" id="asset_root_0027"/>
+<g clip-path="url(#clip9_242_6715)" id="asset_root_0028">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M15.0002 310.126C13.9684 310.126 13.1252 310.969 13.1252 312.001C13.1252 313.032 13.9684 313.876 15.0002 313.876C16.0321 313.876 16.8752 313.032 16.8752 312.001C16.8752 310.969 16.0321 310.126 15.0002 310.126Z" fill="#5283E8"/>
+<path opacity="0.7" fill-rule="evenodd" clip-rule="evenodd" d="M14.9526 307.626C14.8185 307.628 14.6846 307.635 14.5522 307.649C12.9638 307.814 11.5335 308.845 10.923 310.413C10.1091 312.502 11.012 314.875 13.0092 315.896C15.0064 316.916 17.4592 316.258 18.6757 314.374C18.6984 314.339 18.714 314.301 18.7216 314.26C18.7293 314.22 18.7288 314.178 18.7203 314.138C18.7118 314.097 18.6954 314.059 18.672 314.025C18.6487 313.991 18.6188 313.962 18.5842 313.94C18.5496 313.917 18.5109 313.902 18.4703 313.895C18.4297 313.887 18.3881 313.888 18.3478 313.897C18.3075 313.906 18.2694 313.922 18.2356 313.946C18.2018 313.969 18.173 314 18.1508 314.034C17.1054 315.654 15.01 316.217 13.2937 315.34C11.5773 314.464 10.8059 312.436 11.5053 310.64C12.2048 308.844 14.1451 307.872 16.0024 308.387C16.042 308.398 16.0833 308.401 16.1241 308.396C16.1649 308.391 16.2042 308.378 16.2399 308.358C16.2756 308.337 16.307 308.31 16.3322 308.278C16.3574 308.246 16.376 308.208 16.3869 308.169C16.3978 308.129 16.4008 308.088 16.3958 308.047C16.3907 308.006 16.3776 307.967 16.3573 307.931C16.337 307.896 16.3099 307.864 16.2775 307.839C16.2451 307.814 16.208 307.795 16.1684 307.784C15.7632 307.672 15.355 307.621 14.9526 307.626ZM18.1252 307.626C17.4385 307.626 16.8752 308.189 16.8752 308.876C16.8752 309.562 17.4385 310.126 18.1252 310.126C18.8118 310.126 19.3752 309.562 19.3752 308.876C19.3752 308.189 18.8118 307.626 18.1252 307.626Z" fill="#5283E8"/>
+</g>
+</svg>

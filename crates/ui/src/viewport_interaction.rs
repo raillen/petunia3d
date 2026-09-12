@@ -57,6 +57,25 @@ pub fn draw(
             state.mark_dirty();
         }
     }
+
+    // Overlays 3D e controles de navegação do viewport (Blender.svg Golden Reference)
+    crate::nav_gizmo::draw_3d_cursor(state, rect, painter);
+    if crate::nav_gizmo::handle_3d_cursor_placement(ctx, state, rect) {
+        return true;
+    }
+    if crate::nav_gizmo::draw_nav_gizmo(ctx, state, rect, painter) {
+        return true;
+    }
+    crate::nav_gizmo::draw_context_menu(ctx, state);
+    if pointer.is_some()
+        && ctx.input(|i| !i.modifiers.shift && i.pointer.button_clicked(PointerButton::Secondary))
+    {
+        if let Some(pos) = pointer {
+            state.context_menu_pos = Some([pos.x, pos.y]);
+            return true;
+        }
+    }
+
     let paint = state.workspace == Workspace::Paint
         || state.mode == EditMode::TexturePaint
         || state.active_tool == "paint";

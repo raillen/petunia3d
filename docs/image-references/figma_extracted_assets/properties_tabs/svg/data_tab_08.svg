@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" width="22" height="22" viewBox="4 194 22 22" overflow="hidden"><mask id="path-1-inside-1_242_6715" fill="white">
+<path d="M0 0H30V646H0V0Z"/>
+</mask>
+<defs id="asset_root_0035">
+<clipPath id="clip0_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 10)"/>
+</clipPath>
+<clipPath id="clip1_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 34)"/>
+</clipPath>
+<clipPath id="clip2_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 93)"/>
+</clipPath>
+<clipPath id="clip3_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 117)"/>
+</clipPath>
+<clipPath id="clip4_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 141)"/>
+</clipPath>
+<clipPath id="clip5_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 165)"/>
+</clipPath>
+<clipPath id="clip6_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 235)"/>
+</clipPath>
+<clipPath id="clip7_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 259)"/>
+</clipPath>
+<clipPath id="clip8_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 283)"/>
+</clipPath>
+<clipPath id="clip9_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 307)"/>
+</clipPath>
+<clipPath id="clip10_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 331)"/>
+</clipPath>
+<clipPath id="clip11_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 355)"/>
+</clipPath>
+<clipPath id="clip12_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 379)"/>
+</clipPath>
+</defs>
+<path d="M5 199C5 196.791 6.79086 195 9 195H21C23.2091 195 25 196.791 25 199V211C25 213.209 23.2091 215 21 215H9C6.79086 215 5 213.209 5 211V199Z" fill="#121212" id="asset_root_0019"/>
+<path d="M14.3125 204.667C13.3828 204.654 13.3828 206.013 14.3125 206H15.6875C16.6172 206.013 16.6172 204.654 15.6875 204.667H14.3125ZM10.875 204V209C10.875 209.184 11.0289 209.333 11.2188 209.333H18.7812C18.9711 209.333 19.125 209.184 19.125 209V204H18.4375V208.667H11.5625V204H10.875ZM19.4688 203.333C19.6586 203.333 19.8125 203.184 19.8125 203V201C19.8125 200.816 19.6586 200.667 19.4688 200.667H10.5312C10.3414 200.667 10.1875 200.816 10.1875 201V203C10.1875 203.184 10.3414 203.333 10.5312 203.333H19.4688ZM10.875 201.333H19.125V202.667H10.875V201.333Z" fill="#BCBCBC" id="asset_root_0020"/>
+</svg>

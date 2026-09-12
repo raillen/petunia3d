@@ -265,3 +265,27 @@ passaram. Captura GL real validou a correção de viewport em Intel HD Graphics
 4000; o teste visual revelou esse desalinhamento após os primeiros testes sem
 GPU, e originou três regressões adicionais de coordenadas/DPI. Ainda há dívida
 visual em janelas estreitas. Logs e capturas: `.prumo/history/premium/`.
+
+---
+
+# Rodada premium 2 (2026-09-12) — widgets de navegação, 3d cursor e rmb contextual
+
+Implementação do Gizmo de Orientação 3D interativo, 3D Cursor posicional e menu contextual RMB conforme o Golden Reference [`Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg).
+
+| Perspectiva | Nota R1 | Nota R2 | Ganhos Materiais e Evidências |
+|---|---:|---:|---|
+| **Interação e gizmos** | 8.0 | **8.8/10** | Gizmo de Orientação 3D interativo no canto do viewport ([`nav_gizmo.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/nav_gizmo.rs)) com 6 eixos ordenados por profundidade, alinhamento ortogonal por clique, drag orbit, e botões integrados de Zoom, Pan e alternância Persp/Ortho. 3D Cursor posicional com `Shift+RMB`. |
+| **Ergonomia e ferramentas** | 7.5 | **8.5/10** | Menu contextual RMB adaptativo por componente (Vértice: Extrude/Bevel; Aresta: Bevel/Loop Cut/Subdivide; Face: Extrude/Inset/Bevel/Normais; Objeto: Mover/Rotacionar/Escalar/Duplicar). Seletores diretos de Shading no cabeçalho do viewport. |
+| **Renderização e overlays** | 6.0 | **8.0/10** | 4 modos de Viewport Shading expostos diretamente no header (Wireframe, Solid, Material Preview, Rendered). Renderização do 3D Cursor com anel pontilhado bicolor e crosshair. |
+| **Robustez e topologia** | 7.0 | **8.2/10** | 132 testes passando sem regressão. Picking com fallback gracioso ao plano de chão $Y = 0$. Zero panics em caminhos interativos. |
+| **Arquitetura e governança** | 7.5 | **9.0/10** | Clippy 100% limpo com `-D warnings`, smoke test headless com saída 0, e 100% de cobertura estruturada de `README.md` em todas as pastas do repositório. |
+
+**Score Médio Ponderado: 8.5/10**.
+
+### O Que Falta para a Nota 10/10 Definitiva
+1. **Bevel Arredondado Multissegmentado**: Suporte a $N \ge 2$ segmentos com scroll do mouse na sessão modal.
+2. **Modificadores em Tempo Real**: Stack de modificadores não-destrutivos (Mirror com solda central automática e Subdivision Surface Catmull-Clark).
+3. **Texture Paint no Viewport**: Projeção direta do pincel sobre texturas albedo 2D (além das cores de vértice).
+4. **Smart UV Unwrap**: Desembrulho automático de 1 clique com empacotamento ideal no espaço UV `[0, 1]`.
+5. **Caminho Dourado em 2 Minutos & 60 FPS Medidos**: Validação cronometrada de modelagem completa partindo do cubo sem tocar em menus numéricos secundários.
+

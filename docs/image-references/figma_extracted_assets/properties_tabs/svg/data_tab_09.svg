@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" width="22" height="22" viewBox="4 229 22 22" overflow="hidden"><mask id="path-1-inside-1_242_6715" fill="white">
+<path d="M0 0H30V646H0V0Z"/>
+</mask>
+<defs id="asset_root_0035">
+<clipPath id="clip0_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 10)"/>
+</clipPath>
+<clipPath id="clip1_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 34)"/>
+</clipPath>
+<clipPath id="clip2_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 93)"/>
+</clipPath>
+<clipPath id="clip3_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 117)"/>
+</clipPath>
+<clipPath id="clip4_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 141)"/>
+</clipPath>
+<clipPath id="clip5_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 165)"/>
+</clipPath>
+<clipPath id="clip6_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 235)"/>
+</clipPath>
+<clipPath id="clip7_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 259)"/>
+</clipPath>
+<clipPath id="clip8_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 283)"/>
+</clipPath>
+<clipPath id="clip9_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 307)"/>
+</clipPath>
+<clipPath id="clip10_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 331)"/>
+</clipPath>
+<clipPath id="clip11_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 355)"/>
+</clipPath>
+<clipPath id="clip12_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 379)"/>
+</clipPath>
+</defs>
+<path d="M5 234C5 231.791 6.79086 230 9 230H21C23.2091 230 25 231.791 25 234V246C25 248.209 23.2091 250 21 250H9C6.79086 250 5 248.209 5 246V234Z" fill="#121212" id="asset_root_0021"/>
+<g clip-path="url(#clip6_242_6715)" id="asset_root_0022">
+<path opacity="0.6" d="M10.9375 235.625C10.8546 235.625 10.7751 235.658 10.7165 235.717C10.6579 235.775 10.625 235.855 10.625 235.938V238.125H11.25V236.25H13.125V235.625H10.9375ZM16.875 235.625V236.25H18.75V238.125H19.375V235.938C19.375 235.855 19.3421 235.775 19.2835 235.717C19.2249 235.658 19.1454 235.625 19.0625 235.625H16.875ZM10.625 241.875V244.062C10.625 244.145 10.6579 244.225 10.7165 244.283C10.7751 244.342 10.8546 244.375 10.9375 244.375H13.125V243.75H11.25V241.875H10.625ZM18.75 241.875V243.75H16.875V244.375H19.0625C19.1454 244.375 19.2249 244.342 19.2835 244.283C19.3421 244.225 19.375 244.145 19.375 244.062V241.875H18.75Z" fill="#E19658"/>
+<path d="M12.8125 237.5C12.6399 237.5 12.5 237.64 12.5 237.812V242.188C12.5 242.36 12.6399 242.5 12.8125 242.5H17.1875C17.3601 242.5 17.5 242.36 17.5 242.188V237.812C17.5 237.64 17.3601 237.5 17.1875 237.5H12.8125Z" fill="#E19658"/>
+</g>
+</svg>

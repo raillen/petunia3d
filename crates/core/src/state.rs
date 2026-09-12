@@ -200,6 +200,10 @@ pub struct AppState {
     pub canvas_dirty: bool,
     /// Seleção múltipla p/ export em lote (índices de assets).
     pub export_selected: Vec<usize>,
+    /// Posição do 3D Cursor no espaço de mundo.
+    pub cursor_3d: [f32; 3],
+    /// Posição de abertura do menu contextual (RMB) no viewport.
+    pub context_menu_pos: Option<[f32; 2]>,
     /// Formato do export: false = OBJ (pasta), true = GLB (arquivo).
     pub export_gltf: bool,
 }
@@ -265,6 +269,8 @@ impl AppState {
             canvas_tex: None,
             canvas_dirty: true,
             export_selected: Vec::new(),
+            cursor_3d: [0.0, 0.0, 0.0],
+            context_menu_pos: None,
             export_gltf: true,
         }
     }

@@ -23,8 +23,12 @@ The second implementation round delivers the native vector icon engine ([`crates
 accessible `tool_button` with compact/expanded layouts, explicit orthographic camera
 controls with 6 orthogonal presets, numeric tool property fields ([`crates/ui/src/tool_fields.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/tool_fields.rs)),
 and responsive panel refactoring.
-Final gates: 130 tests passed; fmt, strict Clippy (-D warnings) and headless smoke test passed.
-Evidence is preserved in `.prumo/history/premium/` and [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md).
+The third implementation round (Gauntlet Loop R2) delivers the interactive Navigation
+Orientation Gizmo ([`crates/ui/src/nav_gizmo.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/nav_gizmo.rs)) with 6 depth-sorted world axes,
+zoom/pan/perspective action handles, 3D Cursor overlay with `Shift+RMB` placement,
+contextual RMB menus for sub-elements and objects, and direct Viewport Shading mode selectors.
+Final gates: 132 tests passed; fmt, strict Clippy (-D warnings) and headless smoke test passed.
+Evidence is preserved in `.prumo/history/premium/`, [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md) and [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md).
 
 Premium convergence is **not established**. The human golden path and final GPU
 performance targets remain unmeasured. Complex bevel, metric inset, inter-asset

@@ -1,0 +1,798 @@
+{
+  "regions": [
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_01",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_01.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_01.png",
+      "bbox": [
+        20.5,
+        20.5,
+        77.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_02",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_02.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_02.png",
+      "bbox": [
+        118.5,
+        20.5,
+        77.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_03",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_03.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_03.png",
+      "bbox": [
+        216.5,
+        20.5,
+        90.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_04",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_04.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_04.png",
+      "bbox": [
+        327.5,
+        20.5,
+        90.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_05",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_05.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_05.png",
+      "bbox": [
+        438.5,
+        20.5,
+        59.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_06",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_06.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_06.png",
+      "bbox": [
+        518.5,
+        20.5,
+        137.0,
+        167.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_07",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_07.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_07.png",
+      "bbox": [
+        20.5,
+        134.5,
+        77.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_08",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_08.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_08.png",
+      "bbox": [
+        118.5,
+        134.5,
+        49.0,
+        79.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_09",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_09.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_09.png",
+      "bbox": [
+        216.5,
+        134.5,
+        97.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_10",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_10.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_10.png",
+      "bbox": [
+        327.5,
+        134.5,
+        77.0,
+        93.0
+      ]
+    },
+    {
+      "source": "UI Buttons.svg",
+      "name": "component_set_11",
+      "classification": "",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Buttons/svg/component_set_11.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Buttons/preview/component_set_11.png",
+      "bbox": [
+        676.5,
+        20.5,
+        139.0,
+        204.0
+      ]
+    },
+    {
+      "source": "UI Elements.svg",
+      "name": "avatar_small_variants",
+      "classification": "small circular image/avatar variants",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Elements/svg/avatar_small_variants.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Elements/preview/avatar_small_variants.png",
+      "bbox": [
+        20.5,
+        20.5,
+        139.0,
+        59.0
+      ]
+    },
+    {
+      "source": "UI Elements.svg",
+      "name": "avatar_large_variants",
+      "classification": "large circular image/avatar variants",
+      "svg": "/mnt/data/figma_extracted_assets/components/UI_Elements/svg/avatar_large_variants.svg",
+      "preview": "/mnt/data/figma_extracted_assets/components/UI_Elements/preview/avatar_large_variants.png",
+      "bbox": [
+        20.5,
+        100.5,
+        139.0,
+        79.0
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "select_box",
+      "classification": "Box Select",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/select_box.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/select_box.png",
+      "bbox": [
+        80,
+        20,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "cursor_3d",
+      "classification": "3D Cursor",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/cursor_3d.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/cursor_3d.png",
+      "bbox": [
+        80,
+        62,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "move",
+      "classification": "Move / Translate",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/move.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/move.png",
+      "bbox": [
+        80,
+        104,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "rotate",
+      "classification": "Rotate",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/rotate.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/rotate.png",
+      "bbox": [
+        80,
+        146,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "scale",
+      "classification": "Scale",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/scale.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/scale.png",
+      "bbox": [
+        80,
+        188,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "transform",
+      "classification": "Combined Transform",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/transform.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/transform.png",
+      "bbox": [
+        80,
+        230,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "annotate",
+      "classification": "Annotate / Draw",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/annotate.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/annotate.png",
+      "bbox": [
+        80,
+        272,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "measure",
+      "classification": "Measure",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/measure.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/measure.png",
+      "bbox": [
+        80,
+        314,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "toolbar.svg",
+      "name": "add_primitive",
+      "classification": "Add primitive / custom add tool",
+      "svg": "/mnt/data/figma_extracted_assets/toolbar/buttons/svg/add_primitive.svg",
+      "preview": "/mnt/data/figma_extracted_assets/toolbar/buttons/preview/add_primitive.png",
+      "bbox": [
+        80,
+        356,
+        40,
+        40
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_01",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_01.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_01.png",
+      "bbox": [
+        4,
+        4,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_02",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_02.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_02.png",
+      "bbox": [
+        4,
+        28,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_03",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_03.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_03.png",
+      "bbox": [
+        4,
+        63,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_04",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_04.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_04.png",
+      "bbox": [
+        4,
+        87,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_05",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_05.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_05.png",
+      "bbox": [
+        4,
+        111,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_06",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_06.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_06.png",
+      "bbox": [
+        4,
+        135,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_07",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_07.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_07.png",
+      "bbox": [
+        4,
+        159,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_08",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_08.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_08.png",
+      "bbox": [
+        4,
+        194,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_09",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_09.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_09.png",
+      "bbox": [
+        4,
+        229,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_10",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_10.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_10.png",
+      "bbox": [
+        4,
+        253,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_11",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_11.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_11.png",
+      "bbox": [
+        4,
+        277,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_12",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_12.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_12.png",
+      "bbox": [
+        4,
+        301,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_13",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_13.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_13.png",
+      "bbox": [
+        4,
+        325,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_14",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_14.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_14.png",
+      "bbox": [
+        4,
+        349,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "data_panel_vertical_menu.svg",
+      "name": "data_tab_15",
+      "classification": "vertical Properties/Data tab icon button",
+      "svg": "/mnt/data/figma_extracted_assets/properties_tabs/svg/data_tab_15.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_tabs/preview/data_tab_15.png",
+      "bbox": [
+        4,
+        373,
+        22,
+        22
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "metadata",
+      "classification": "Metadata / project information",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/metadata.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/metadata.png",
+      "bbox": [
+        0,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "select_box_tool",
+      "classification": "Active tool / Select Box settings",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/select_box_tool.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/select_box_tool.png",
+      "bbox": [
+        360,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "render",
+      "classification": "Render properties",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/render.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/render.png",
+      "bbox": [
+        720,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "output",
+      "classification": "Output properties",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/output.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/output.png",
+      "bbox": [
+        1080,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "view_layer",
+      "classification": "View Layer properties",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/view_layer.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/view_layer.png",
+      "bbox": [
+        1440,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "scene",
+      "classification": "Scene properties",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/scene.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/scene.png",
+      "bbox": [
+        1800,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "world",
+      "classification": "World properties",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/world.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/world.png",
+      "bbox": [
+        2160,
+        0,
+        340,
+        716
+      ]
+    },
+    {
+      "source": "properties.svg",
+      "name": "collection",
+      "classification": "Collection properties",
+      "svg": "/mnt/data/figma_extracted_assets/properties_panels/svg/collection.svg",
+      "preview": "/mnt/data/figma_extracted_assets/properties_panels/preview/collection.png",
+      "bbox": [
+        2520,
+        0,
+        340,
+        716
+      ]
+    }
+  ],
+  "embedded_images": [
+    {
+      "source": "UI Elements.svg",
+      "id": "image0_202_9",
+      "file": "/mnt/data/figma_extracted_assets/embedded/UI_Elements/image0_202_9.jpg",
+      "mime": "image/jpeg",
+      "svg_width": "736",
+      "svg_height": "736",
+      "bytes": 46185
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image0_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image0_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image1_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image1_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 20000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image2_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image2_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image3_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image3_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image4_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image4_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image5_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image5_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 20000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image6_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image6_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image7_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image7_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "toolbar.svg",
+      "id": "image8_288_791",
+      "file": "/mnt/data/figma_extracted_assets/embedded/toolbar/image8_288_791.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image0_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image0_202_4.png",
+      "mime": "image/png",
+      "svg_width": "1920",
+      "svg_height": "1080",
+      "bytes": 1280000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image1_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image1_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image2_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image2_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 20000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image3_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image3_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image4_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image4_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image5_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image5_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image6_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image6_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 20000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image7_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image7_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image8_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image8_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image9_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image9_202_4.png",
+      "mime": "image/png",
+      "svg_width": "256",
+      "svg_height": "256",
+      "bytes": 10000
+    },
+    {
+      "source": "Blender(1).svg",
+      "id": "image10_202_4",
+      "file": "/mnt/data/figma_extracted_assets/embedded/Blender(1)/image10_202_4.jpg",
+      "mime": "image/jpeg",
+      "svg_width": "736",
+      "svg_height": "736",
+      "bytes": 46185
+    },
+    {
+      "source": "header.svg",
+      "id": "image0_202_10",
+      "file": "/mnt/data/figma_extracted_assets/embedded/header/image0_202_10.jpg",
+      "mime": "image/jpeg",
+      "svg_width": "736",
+      "svg_height": "736",
+      "bytes": 46185
+    },
+    {
+      "source": "properties.svg",
+      "id": "image0_305_947",
+      "file": "/mnt/data/figma_extracted_assets/embedded/properties/image0_305_947.png",
+      "mime": "image/png",
+      "svg_width": "60",
+      "svg_height": "60",
+      "bytes": 1724
+    }
+  ]
+}

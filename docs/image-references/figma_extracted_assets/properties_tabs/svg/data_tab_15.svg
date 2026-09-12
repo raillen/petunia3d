@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" width="22" height="22" viewBox="4 373 22 22" overflow="hidden"><mask id="path-1-inside-1_242_6715" fill="white">
+<path d="M0 0H30V646H0V0Z"/>
+</mask>
+<defs id="asset_root_0035">
+<clipPath id="clip0_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 10)"/>
+</clipPath>
+<clipPath id="clip1_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 34)"/>
+</clipPath>
+<clipPath id="clip2_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 93)"/>
+</clipPath>
+<clipPath id="clip3_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 117)"/>
+</clipPath>
+<clipPath id="clip4_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 141)"/>
+</clipPath>
+<clipPath id="clip5_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 165)"/>
+</clipPath>
+<clipPath id="clip6_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 235)"/>
+</clipPath>
+<clipPath id="clip7_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 259)"/>
+</clipPath>
+<clipPath id="clip8_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 283)"/>
+</clipPath>
+<clipPath id="clip9_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 307)"/>
+</clipPath>
+<clipPath id="clip10_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 331)"/>
+</clipPath>
+<clipPath id="clip11_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 355)"/>
+</clipPath>
+<clipPath id="clip12_242_6715">
+<rect width="10" height="10" fill="white" transform="translate(10 379)"/>
+</clipPath>
+</defs>
+<path d="M5 378C5 375.791 6.79086 374 9 374H21C23.2091 374 25 375.791 25 378V390C25 392.209 23.2091 394 21 394H9C6.79086 394 5 392.209 5 390V378Z" fill="#121212" id="asset_root_0033"/>
+<g clip-path="url(#clip12_242_6715)" id="asset_root_0034">
+<path d="M15 379.625C17.4126 379.625 19.375 381.587 19.375 384C19.375 386.413 17.4126 388.375 15 388.375C12.5875 388.375 10.625 386.413 10.625 384C10.625 381.587 12.5875 379.625 15 379.625ZM15 380.25C12.9339 380.25 11.2651 381.912 11.2513 383.974C11.9459 384.564 13.1279 385.25 15 385.25V387.75C17.0748 387.75 18.75 386.075 18.75 384C18.75 383.991 18.7488 383.982 18.7488 383.973C18.0543 384.563 16.8731 385.25 15 385.25V380.25Z" fill="#AB3C48"/>
+</g>
+</svg>
