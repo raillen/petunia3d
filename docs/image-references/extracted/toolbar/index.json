@@ -7,7 +7,7 @@
     "embedded_images": 9,
     "vector_icons": 0,
     "component_frames": 1,
-    "button_controls": 8
+    "button_controls": 9
   },
   "embedded_images": [
     {
@@ -113,105 +113,118 @@
         415.0
       ],
       "element_count": 54,
-      "file": "components/component_set_01_139x415.svg"
+      "file": "components/component_set_01_139x415.svg",
+      "png_file": "components/component_set_01_139x415.png"
     }
   ],
   "button_controls": [
     {
-      "id": "button_001",
-      "mask_id": "path-22-inside-1_288_791",
+      "id": "tool_01_select_box",
       "type": "button_control",
       "rect": [
-        20.0,
-        60.0,
-        40.0,
-        40.0
+        80,
+        20,
+        40,
+        40
       ],
-      "file": "buttons/button_001_40x40.svg"
+      "file": "buttons/tool_01_select_box_40x40.svg",
+      "png_file": "buttons/tool_01_select_box_40x40.png"
     },
     {
-      "id": "button_002",
-      "mask_id": "path-25-inside-2_288_791",
+      "id": "tool_02_cursor",
       "type": "button_control",
       "rect": [
-        20.0,
-        100.0,
-        40.0,
-        40.0
+        80,
+        62,
+        40,
+        40
       ],
-      "file": "buttons/button_002_40x40.svg"
+      "file": "buttons/tool_02_cursor_40x40.svg",
+      "png_file": "buttons/tool_02_cursor_40x40.png"
     },
     {
-      "id": "button_003",
-      "mask_id": "path-28-inside-3_288_791",
+      "id": "tool_03_move",
       "type": "button_control",
       "rect": [
-        20.0,
-        140.0,
-        40.0,
-        40.0
+        80,
+        104,
+        40,
+        40
       ],
-      "file": "buttons/button_003_40x40.svg"
+      "file": "buttons/tool_03_move_40x40.svg",
+      "png_file": "buttons/tool_03_move_40x40.png"
     },
     {
-      "id": "button_004",
-      "mask_id": "path-31-inside-4_288_791",
+      "id": "tool_04_rotate",
       "type": "button_control",
       "rect": [
-        20.0,
-        180.0,
-        40.0,
-        40.0
+        80,
+        146,
+        40,
+        40
       ],
-      "file": "buttons/button_004_40x40.svg"
+      "file": "buttons/tool_04_rotate_40x40.svg",
+      "png_file": "buttons/tool_04_rotate_40x40.png"
     },
     {
-      "id": "button_005",
-      "mask_id": "path-34-inside-5_288_791",
+      "id": "tool_05_scale",
       "type": "button_control",
       "rect": [
-        20.0,
-        220.0,
-        40.0,
-        40.0
+        80,
+        188,
+        40,
+        40
       ],
-      "file": "buttons/button_005_40x40.svg"
+      "file": "buttons/tool_05_scale_40x40.svg",
+      "png_file": "buttons/tool_05_scale_40x40.png"
     },
     {
-      "id": "button_006",
-      "mask_id": "path-37-inside-6_288_791",
+      "id": "tool_06_transform",
       "type": "button_control",
       "rect": [
-        20.0,
-        260.0,
-        40.0,
-        40.0
+        80,
+        230,
+        40,
+        40
       ],
-      "file": "buttons/button_006_40x40.svg"
+      "file": "buttons/tool_06_transform_40x40.svg",
+      "png_file": "buttons/tool_06_transform_40x40.png"
     },
     {
-      "id": "button_007",
-      "mask_id": "path-40-inside-7_288_791",
+      "id": "tool_07_annotate",
       "type": "button_control",
       "rect": [
-        20.0,
-        300.0,
-        40.0,
-        40.0
+        80,
+        272,
+        40,
+        40
       ],
-      "file": "buttons/button_007_40x40.svg"
+      "file": "buttons/tool_07_annotate_40x40.svg",
+      "png_file": "buttons/tool_07_annotate_40x40.png"
     },
     {
-      "id": "button_008",
-      "mask_id": "path-43-inside-8_288_791",
+      "id": "tool_08_measure",
       "type": "button_control",
       "rect": [
-        20.0,
-        340.0,
-        40.0,
-        40.0
+        80,
+        314,
+        40,
+        40
       ],
-      "file": "buttons/button_008_40x40.svg"
+      "file": "buttons/tool_08_measure_40x40.svg",
+      "png_file": "buttons/tool_08_measure_40x40.png"
+    },
+    {
+      "id": "tool_09_add_primitive",
+      "type": "button_control",
+      "rect": [
+        80,
+        356,
+        40,
+        40
+      ],
+      "file": "buttons/tool_09_add_primitive_40x40.svg",
+      "png_file": "buttons/tool_09_add_primitive_40x40.png"
     }
   ]
 }

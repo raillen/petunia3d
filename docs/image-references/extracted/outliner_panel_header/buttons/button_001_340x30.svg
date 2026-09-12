@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 344.0 34.0" width="344.0" height="34.0" fill="none"><defs><mask id="path-1-inside-1_242_4622" fill="white">
-<path d="M0 0H340V30H0V0Z" />
-</mask>
-</defs><g transform="translate(2.0, 2.0)"><path d="M0 0H340V30H0V0Z" fill="#202020" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 344.0 34.0" width="344" height="34" fill="none"><defs><mask id="path-1-inside-1_242_4622" fill="white"><g transform="translate(2.0, 2.0)"><path d="M0 0H340V30H0V0Z" />
+</g></mask><mask id="path-11-inside-2_242_4622" fill="white"><g transform="translate(2.0, 2.0)"><path d="M150 6H266C268.209 6 270 7.79086 270 10V19C270 21.2091 268.209 23 266 23H150V6Z" />
+</g></mask></defs><g transform="translate(2.0, 2.0)"><path d="M0 0H340V30H0V0Z" fill="#202020" />
 <path d="M340 30V29H0V30V31H340V30Z" fill="#303030" mask="url(#path-1-inside-1_242_4622)" />
 <rect x="10.5" y="6.5" width="29" height="16" rx="3.5" fill="#303030" />
 <rect x="10.5" y="6.5" width="29" height="16" rx="3.5" stroke="#424242" />

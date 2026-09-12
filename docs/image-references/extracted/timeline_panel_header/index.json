@@ -7,7 +7,7 @@
     "embedded_images": 0,
     "vector_icons": 0,
     "component_frames": 0,
-    "button_controls": 16
+    "button_controls": 7
   },
   "embedded_images": [],
   "vector_icons": [],
@@ -15,7 +15,54 @@
   "button_controls": [
     {
       "id": "button_001",
-      "mask_id": "path-11-inside-2_242_5145",
+      "type": "button_control",
+      "rect": [
+        813.0,
+        6.0,
+        38.0,
+        17.0
+      ],
+      "file": "buttons/button_001_38x17.svg",
+      "png_file": "buttons/button_001_38x17.png"
+    },
+    {
+      "id": "button_002",
+      "type": "button_control",
+      "rect": [
+        875.0,
+        6.0,
+        105.0,
+        17.0
+      ],
+      "file": "buttons/button_002_105x17.svg",
+      "png_file": "buttons/button_002_105x17.png"
+    },
+    {
+      "id": "button_003",
+      "type": "button_control",
+      "rect": [
+        985.0,
+        6.0,
+        58.0,
+        17.0
+      ],
+      "file": "buttons/button_003_58x17.svg",
+      "png_file": "buttons/button_003_58x17.png"
+    },
+    {
+      "id": "button_004",
+      "type": "button_control",
+      "rect": [
+        1048.0,
+        6.0,
+        38.0,
+        17.0
+      ],
+      "file": "buttons/button_004_38x17.svg",
+      "png_file": "buttons/button_004_38x17.png"
+    },
+    {
+      "id": "button_005",
       "type": "button_control",
       "rect": [
         1629.0,
@@ -23,187 +70,32 @@
         60.0,
         17.0
       ],
-      "file": "buttons/button_001_60x17.svg"
+      "file": "buttons/button_005_60x17.svg",
+      "png_file": "buttons/button_005_60x17.png"
     },
     {
-      "id": "button_002",
-      "mask_id": "path-14-inside-3_242_5145",
+      "id": "button_006",
       "type": "button_control",
       "rect": [
         1711.0,
         6.0,
-        68.0,
+        136.0,
         17.0
       ],
-      "file": "buttons/button_002_68x17.svg"
+      "file": "buttons/button_006_136x17.svg",
+      "png_file": "buttons/button_006_136x17.png"
     },
     {
-      "id": "button_003",
-      "mask_id": "path-17-inside-4_242_5145",
-      "type": "button_control",
-      "rect": [
-        1779.0,
-        6.0,
-        68.0,
-        17.0
-      ],
-      "file": "buttons/button_003_68x17.svg"
-    },
-    {
-      "id": "button_004",
-      "mask_id": "path-23-inside-5_242_5145",
+      "id": "button_007",
       "type": "button_control",
       "rect": [
         1852.0,
         6.0,
-        20.0,
+        38.0,
         17.0
       ],
-      "file": "buttons/button_004_20x17.svg"
-    },
-    {
-      "id": "button_005",
-      "mask_id": "path-27-inside-6_242_5145",
-      "type": "button_control",
-      "rect": [
-        1872.0,
-        6.0,
-        18.0,
-        17.0
-      ],
-      "file": "buttons/button_005_18x17.svg"
-    },
-    {
-      "id": "button_006",
-      "mask_id": "path-30-inside-7_242_5145",
-      "type": "button_control",
-      "rect": [
-        813.0,
-        6.0,
-        20.0,
-        17.0
-      ],
-      "file": "buttons/button_006_20x17.svg"
-    },
-    {
-      "id": "button_008",
-      "mask_id": "path-38-inside-9_242_5145",
-      "type": "button_control",
-      "rect": [
-        875.0,
-        6.0,
-        24.0,
-        17.0
-      ],
-      "file": "buttons/button_008_24x17.svg"
-    },
-    {
-      "id": "button_009",
-      "mask_id": "path-41-inside-10_242_5145",
-      "type": "button_control",
-      "rect": [
-        899.0,
-        6.0,
-        19.0,
-        17.0
-      ],
-      "file": "buttons/button_009_19x17.svg"
-    },
-    {
-      "id": "button_010",
-      "mask_id": "path-44-inside-11_242_5145",
-      "type": "button_control",
-      "rect": [
-        918.0,
-        6.0,
-        19.0,
-        17.0
-      ],
-      "file": "buttons/button_010_19x17.svg"
-    },
-    {
-      "id": "button_011",
-      "mask_id": "path-47-inside-12_242_5145",
-      "type": "button_control",
-      "rect": [
-        937.0,
-        6.0,
-        24.0,
-        17.0
-      ],
-      "file": "buttons/button_011_24x17.svg"
-    },
-    {
-      "id": "button_012",
-      "mask_id": "path-50-inside-13_242_5145",
-      "type": "button_control",
-      "rect": [
-        961.0,
-        6.0,
-        19.0,
-        17.0
-      ],
-      "file": "buttons/button_012_19x17.svg"
-    },
-    {
-      "id": "button_013",
-      "mask_id": "path-53-inside-14_242_5145",
-      "type": "button_control",
-      "rect": [
-        985.0,
-        6.0,
-        20.0,
-        17.0
-      ],
-      "file": "buttons/button_013_20x17.svg"
-    },
-    {
-      "id": "button_014",
-      "mask_id": "path-56-inside-15_242_5145",
-      "type": "button_control",
-      "rect": [
-        1005.0,
-        6.0,
-        20.0,
-        17.0
-      ],
-      "file": "buttons/button_014_20x17.svg"
-    },
-    {
-      "id": "button_015",
-      "mask_id": "path-59-inside-16_242_5145",
-      "type": "button_control",
-      "rect": [
-        1025.0,
-        6.0,
-        18.0,
-        17.0
-      ],
-      "file": "buttons/button_015_18x17.svg"
-    },
-    {
-      "id": "button_016",
-      "mask_id": "path-62-inside-17_242_5145",
-      "type": "button_control",
-      "rect": [
-        1048.0,
-        6.0,
-        20.0,
-        17.0
-      ],
-      "file": "buttons/button_016_20x17.svg"
-    },
-    {
-      "id": "button_017",
-      "mask_id": "path-66-inside-18_242_5145",
-      "type": "button_control",
-      "rect": [
-        1068.0,
-        6.0,
-        18.0,
-        17.0
-      ],
-      "file": "buttons/button_017_18x17.svg"
+      "file": "buttons/button_007_38x17.svg",
+      "png_file": "buttons/button_007_38x17.png"
     }
   ]
 }

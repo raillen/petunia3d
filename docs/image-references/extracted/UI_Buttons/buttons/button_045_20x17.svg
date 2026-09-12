@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24.0 21.0" width="24.0" height="21.0" fill="none"><defs><mask id="path-182-inside-45_202_9" fill="white">
-<path d="M256 154H276V171H256V154Z" />
-</mask>
-</defs><g transform="translate(-254.0, -152.0)"><path d="M256 154H276V171H256V154Z" fill="#303030" />
-<path d="M276 154H277V153H276V154ZM276 171V172H277V171H276ZM256 154V155H276V154V153H256V154ZM276 154H275V171H276H277V154H276ZM276 171V170H256V171V172H276V171Z" fill="#424242" mask="url(#path-182-inside-45_202_9)" />
-<path fill-rule="evenodd" clip-rule="evenodd" d="M265.588 159.299C265.356 159.299 265.166 159.477 265.166 159.699V165.299C265.166 165.623 265.546 165.814 265.822 165.628L269.989 162.828C270.227 162.668 270.227 162.33 269.989 162.171L265.822 159.371C265.753 159.325 265.672 159.3 265.588 159.299ZM261.833 159.299V165.699H263.499V159.299H261.833Z" fill="white" />
-</g></svg>

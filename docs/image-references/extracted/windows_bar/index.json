@@ -20,7 +20,12 @@
         15.0,
         12.0
       ],
-      "file": "icons/icon_clip0_202_28.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip0_202_28.svg",
+      "png_file": "icons/icon_clip0_202_28.png"
     }
   ],
   "component_frames": [],

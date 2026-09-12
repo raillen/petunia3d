@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 164.0 24.0" width="164.0" height="24.0" fill="none"><defs><mask id="path-1-inside-1_257_8081" fill="white">
-<path d="M0 0H160V20H0V0Z" />
-</mask>
-</defs><g transform="translate(2.0, 2.0)"><path d="M0 0H160V20H0V0Z" fill="#202020" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 164.0 24.0" width="164" height="24" fill="none"><defs><mask id="path-1-inside-1_257_8081" fill="white"><g transform="translate(2.0, 2.0)"><path d="M0 0H160V20H0V0Z" />
+</g></mask><mask id="path-5-inside-2_257_8081" fill="white"><g transform="translate(2.0, 2.0)"><path d="M25 1H135V18H25V1Z" />
+</g></mask><mask id="path-8-inside-3_257_8081" fill="white"><g transform="translate(2.0, 2.0)"><path d="M135 1H148C150.209 1 152 2.79086 152 5V14C152 16.2091 150.209 18 148 18H135V1Z" />
+</g></mask></defs><g transform="translate(2.0, 2.0)"><path d="M0 0H160V20H0V0Z" fill="#202020" />
 <path d="M160 20V19H0V20V21H160V20Z" fill="#303030" mask="url(#path-1-inside-1_257_8081)" />
 <path d="M12 1.5H24.5V17.5H12C10.067 17.5 8.5 15.933 8.5 14V5C8.5 3.067 10.067 1.5 12 1.5Z" fill="#303030" />
 <path d="M12 1.5H24.5V17.5H12C10.067 17.5 8.5 15.933 8.5 14V5C8.5 3.067 10.067 1.5 12 1.5Z" stroke="#424242" />

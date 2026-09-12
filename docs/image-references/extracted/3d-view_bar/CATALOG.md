@@ -4,27 +4,20 @@
 - **Ícones Vetoriais**: 3
 - **Imagens Embutidas**: 0
 - **Conjuntos de Componentes**: 0
-- **Botões/Controles**: 12
+- **Botões/Controles**: 5
 
-## Ícones Vetoriais Isolados (SVG)
-| ID do Clip | Bounding Box | Arquivo SVG |
-| :--- | :---: | :--- |
-| `clip0_202_568` | 10.0×11.0 em (15.0, 9.0) | [`icon_clip0_202_568.svg`](icons/icon_clip0_202_568.svg) |
-| `clip1_202_568` | 10.0×11.0 em (503.0, 9.0) | [`icon_clip1_202_568.svg`](icons/icon_clip1_202_568.svg) |
-| `clip2_202_568` | 10.0×11.0 em (564.0, 9.0) | [`icon_clip2_202_568.svg`](icons/icon_clip2_202_568.svg) |
+## Ícones Vetoriais Isolados (SVG / PNG)
+| ID do Clip | Bounding Box | Arquivo SVG | Preview PNG |
+| :--- | :---: | :--- | :--- |
+| `clip0_202_568` | 10×11 em (15, 9) | [`icon_clip0_202_568.svg`](icons/icon_clip0_202_568.svg) | [`icon_clip0_202_568.png`](icons/icon_clip0_202_568.png) |
+| `clip1_202_568` | 10×11 em (503, 9) | [`icon_clip1_202_568.svg`](icons/icon_clip1_202_568.svg) | [`icon_clip1_202_568.png`](icons/icon_clip1_202_568.png) |
+| `clip2_202_568` | 10×11 em (564, 9) | [`icon_clip2_202_568.svg`](icons/icon_clip2_202_568.svg) | [`icon_clip2_202_568.png`](icons/icon_clip2_202_568.png) |
 
-## Botões e Controles Interativos (SVG)
-| ID | Bounding Box | Arquivo SVG |
-| :--- | :---: | :--- |
-| `button_001` | 20.0×17.0 | [`button_001_20x17.svg`](buttons/button_001_20x17.svg) |
-| `button_002` | 31.0×17.0 | [`button_002_31x17.svg`](buttons/button_002_31x17.svg) |
-| `button_003` | 20.0×17.0 | [`button_003_20x17.svg`](buttons/button_003_20x17.svg) |
-| `button_005` | 20.0×17.0 | [`button_005_20x17.svg`](buttons/button_005_20x17.svg) |
-| `button_006` | 18.0×17.0 | [`button_006_18x17.svg`](buttons/button_006_18x17.svg) |
-| `button_007` | 20.0×17.0 | [`button_007_20x17.svg`](buttons/button_007_20x17.svg) |
-| `button_008` | 18.0×17.0 | [`button_008_18x17.svg`](buttons/button_008_18x17.svg) |
-| `button_009` | 20.0×17.0 | [`button_009_20x17.svg`](buttons/button_009_20x17.svg) |
-| `button_010` | 20.0×17.0 | [`button_010_20x17.svg`](buttons/button_010_20x17.svg) |
-| `button_011` | 20.0×17.0 | [`button_011_20x17.svg`](buttons/button_011_20x17.svg) |
-| `button_012` | 20.0×17.0 | [`button_012_20x17.svg`](buttons/button_012_20x17.svg) |
-| `button_013` | 18.0×17.0 | [`button_013_18x17.svg`](buttons/button_013_18x17.svg) |
+## Botões e Controles Interativos (SVG / PNG)
+| ID | Bounding Box | Arquivo SVG | Preview PNG |
+| :--- | :---: | :--- | :--- |
+| `button_001` | 51×17 | [`button_001_51x17.svg`](buttons/button_001_51x17.svg) | [`button_001_51x17.png`](buttons/button_001_51x17.png) |
+| `button_002` | 51×17 | [`button_002_51x17.svg`](buttons/button_002_51x17.svg) | [`button_002_51x17.png`](buttons/button_002_51x17.png) |
+| `button_003` | 38×17 | [`button_003_38x17.svg`](buttons/button_003_38x17.svg) | [`button_003_38x17.png`](buttons/button_003_38x17.png) |
+| `button_004` | 38×17 | [`button_004_38x17.svg`](buttons/button_004_38x17.svg) | [`button_004_38x17.png`](buttons/button_004_38x17.png) |
+| `button_005` | 98×17 | [`button_005_98x17.svg`](buttons/button_005_98x17.svg) | [`button_005_98x17.png`](buttons/button_005_98x17.png) |

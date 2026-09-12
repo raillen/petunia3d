@@ -6,7 +6,7 @@
 - **Conjuntos de Componentes**: 0
 - **Botões/Controles**: 0
 
-## Ícones Vetoriais Isolados (SVG)
-| ID do Clip | Bounding Box | Arquivo SVG |
-| :--- | :---: | :--- |
-| `clip0_202_28` | 15.0×12.0 em (17.0, 14.0) | [`icon_clip0_202_28.svg`](icons/icon_clip0_202_28.svg) |
+## Ícones Vetoriais Isolados (SVG / PNG)
+| ID do Clip | Bounding Box | Arquivo SVG | Preview PNG |
+| :--- | :---: | :--- | :--- |
+| `clip0_202_28` | 15×12 em (17, 14) | [`icon_clip0_202_28.svg`](icons/icon_clip0_202_28.svg) | [`icon_clip0_202_28.png`](icons/icon_clip0_202_28.png) |

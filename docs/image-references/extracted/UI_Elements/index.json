@@ -33,7 +33,8 @@
         59.0
       ],
       "element_count": 6,
-      "file": "components/component_set_01_139x59.svg"
+      "file": "components/component_set_01_139x59.svg",
+      "png_file": "components/component_set_01_139x59.png"
     },
     {
       "id": "component_set_02",
@@ -45,7 +46,8 @@
         79.0
       ],
       "element_count": 4,
-      "file": "components/component_set_02_139x79.svg"
+      "file": "components/component_set_02_139x79.svg",
+      "png_file": "components/component_set_02_139x79.png"
     }
   ],
   "button_controls": []

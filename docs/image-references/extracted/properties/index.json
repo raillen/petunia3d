@@ -6,8 +6,8 @@
   "counts": {
     "embedded_images": 1,
     "vector_icons": 110,
-    "component_frames": 0,
-    "button_controls": 0
+    "component_frames": 1,
+    "button_controls": 2
   },
   "embedded_images": [
     {
@@ -31,7 +31,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip1_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip1_305_947.svg",
+      "png_file": "icons/icon_clip1_305_947.png"
     },
     {
       "id": "clip2_305_947",
@@ -42,7 +47,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip2_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip2_305_947.svg",
+      "png_file": "icons/icon_clip2_305_947.png"
     },
     {
       "id": "clip3_305_947",
@@ -53,7 +63,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip3_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip3_305_947.svg",
+      "png_file": "icons/icon_clip3_305_947.png"
     },
     {
       "id": "clip4_305_947",
@@ -64,7 +79,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip4_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip4_305_947.svg",
+      "png_file": "icons/icon_clip4_305_947.png"
     },
     {
       "id": "clip5_305_947",
@@ -75,7 +95,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip5_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip5_305_947.svg",
+      "png_file": "icons/icon_clip5_305_947.png"
     },
     {
       "id": "clip6_305_947",
@@ -86,7 +111,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip6_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip6_305_947.svg",
+      "png_file": "icons/icon_clip6_305_947.png"
     },
     {
       "id": "clip7_305_947",
@@ -97,7 +127,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip7_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip7_305_947.svg",
+      "png_file": "icons/icon_clip7_305_947.png"
     },
     {
       "id": "clip8_305_947",
@@ -108,7 +143,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip8_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip8_305_947.svg",
+      "png_file": "icons/icon_clip8_305_947.png"
     },
     {
       "id": "clip9_305_947",
@@ -119,7 +159,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip9_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip9_305_947.svg",
+      "png_file": "icons/icon_clip9_305_947.png"
     },
     {
       "id": "clip10_305_947",
@@ -130,7 +175,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip10_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip10_305_947.svg",
+      "png_file": "icons/icon_clip10_305_947.png"
     },
     {
       "id": "clip11_305_947",
@@ -141,7 +191,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip11_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip11_305_947.svg",
+      "png_file": "icons/icon_clip11_305_947.png"
     },
     {
       "id": "clip12_305_947",
@@ -152,7 +207,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip12_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip12_305_947.svg",
+      "png_file": "icons/icon_clip12_305_947.png"
     },
     {
       "id": "clip13_305_947",
@@ -163,7 +223,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip13_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip13_305_947.svg",
+      "png_file": "icons/icon_clip13_305_947.png"
     },
     {
       "id": "clip15_305_947",
@@ -174,7 +239,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip15_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip15_305_947.svg",
+      "png_file": "icons/icon_clip15_305_947.png"
     },
     {
       "id": "clip16_305_947",
@@ -185,7 +255,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip16_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip16_305_947.svg",
+      "png_file": "icons/icon_clip16_305_947.png"
     },
     {
       "id": "clip17_305_947",
@@ -196,7 +271,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip17_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip17_305_947.svg",
+      "png_file": "icons/icon_clip17_305_947.png"
     },
     {
       "id": "clip18_305_947",
@@ -207,7 +287,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip18_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip18_305_947.svg",
+      "png_file": "icons/icon_clip18_305_947.png"
     },
     {
       "id": "clip19_305_947",
@@ -218,7 +303,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip19_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip19_305_947.svg",
+      "png_file": "icons/icon_clip19_305_947.png"
     },
     {
       "id": "clip20_305_947",
@@ -229,7 +319,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip20_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip20_305_947.svg",
+      "png_file": "icons/icon_clip20_305_947.png"
     },
     {
       "id": "clip21_305_947",
@@ -240,7 +335,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip21_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip21_305_947.svg",
+      "png_file": "icons/icon_clip21_305_947.png"
     },
     {
       "id": "clip22_305_947",
@@ -251,7 +351,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip22_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip22_305_947.svg",
+      "png_file": "icons/icon_clip22_305_947.png"
     },
     {
       "id": "clip23_305_947",
@@ -262,7 +367,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip23_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip23_305_947.svg",
+      "png_file": "icons/icon_clip23_305_947.png"
     },
     {
       "id": "clip24_305_947",
@@ -273,7 +383,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip24_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip24_305_947.svg",
+      "png_file": "icons/icon_clip24_305_947.png"
     },
     {
       "id": "clip25_305_947",
@@ -284,7 +399,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip25_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip25_305_947.svg",
+      "png_file": "icons/icon_clip25_305_947.png"
     },
     {
       "id": "clip26_305_947",
@@ -295,7 +415,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip26_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip26_305_947.svg",
+      "png_file": "icons/icon_clip26_305_947.png"
     },
     {
       "id": "clip27_305_947",
@@ -306,7 +431,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip27_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip27_305_947.svg",
+      "png_file": "icons/icon_clip27_305_947.png"
     },
     {
       "id": "clip29_305_947",
@@ -317,7 +447,12 @@
         16.0,
         16.0
       ],
-      "file": "icons/icon_clip29_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip29_305_947.svg",
+      "png_file": "icons/icon_clip29_305_947.png"
     },
     {
       "id": "clip30_305_947",
@@ -328,7 +463,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip30_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip30_305_947.svg",
+      "png_file": "icons/icon_clip30_305_947.png"
     },
     {
       "id": "clip31_305_947",
@@ -339,7 +479,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip31_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip31_305_947.svg",
+      "png_file": "icons/icon_clip31_305_947.png"
     },
     {
       "id": "clip32_305_947",
@@ -350,7 +495,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip32_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip32_305_947.svg",
+      "png_file": "icons/icon_clip32_305_947.png"
     },
     {
       "id": "clip33_305_947",
@@ -361,7 +511,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip33_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip33_305_947.svg",
+      "png_file": "icons/icon_clip33_305_947.png"
     },
     {
       "id": "clip34_305_947",
@@ -372,7 +527,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip34_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip34_305_947.svg",
+      "png_file": "icons/icon_clip34_305_947.png"
     },
     {
       "id": "clip35_305_947",
@@ -383,7 +543,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip35_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip35_305_947.svg",
+      "png_file": "icons/icon_clip35_305_947.png"
     },
     {
       "id": "clip36_305_947",
@@ -394,7 +559,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip36_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip36_305_947.svg",
+      "png_file": "icons/icon_clip36_305_947.png"
     },
     {
       "id": "clip37_305_947",
@@ -405,7 +575,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip37_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip37_305_947.svg",
+      "png_file": "icons/icon_clip37_305_947.png"
     },
     {
       "id": "clip38_305_947",
@@ -416,7 +591,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip38_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip38_305_947.svg",
+      "png_file": "icons/icon_clip38_305_947.png"
     },
     {
       "id": "clip39_305_947",
@@ -427,7 +607,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip39_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip39_305_947.svg",
+      "png_file": "icons/icon_clip39_305_947.png"
     },
     {
       "id": "clip40_305_947",
@@ -438,7 +623,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip40_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip40_305_947.svg",
+      "png_file": "icons/icon_clip40_305_947.png"
     },
     {
       "id": "clip41_305_947",
@@ -449,7 +639,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip41_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip41_305_947.svg",
+      "png_file": "icons/icon_clip41_305_947.png"
     },
     {
       "id": "clip42_305_947",
@@ -460,7 +655,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip42_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip42_305_947.svg",
+      "png_file": "icons/icon_clip42_305_947.png"
     },
     {
       "id": "clip44_305_947",
@@ -471,7 +671,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip44_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip44_305_947.svg",
+      "png_file": "icons/icon_clip44_305_947.png"
     },
     {
       "id": "clip45_305_947",
@@ -482,7 +687,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip45_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip45_305_947.svg",
+      "png_file": "icons/icon_clip45_305_947.png"
     },
     {
       "id": "clip46_305_947",
@@ -493,7 +703,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip46_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip46_305_947.svg",
+      "png_file": "icons/icon_clip46_305_947.png"
     },
     {
       "id": "clip47_305_947",
@@ -504,7 +719,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip47_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip47_305_947.svg",
+      "png_file": "icons/icon_clip47_305_947.png"
     },
     {
       "id": "clip48_305_947",
@@ -515,7 +735,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip48_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip48_305_947.svg",
+      "png_file": "icons/icon_clip48_305_947.png"
     },
     {
       "id": "clip49_305_947",
@@ -526,7 +751,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip49_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip49_305_947.svg",
+      "png_file": "icons/icon_clip49_305_947.png"
     },
     {
       "id": "clip50_305_947",
@@ -537,7 +767,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip50_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip50_305_947.svg",
+      "png_file": "icons/icon_clip50_305_947.png"
     },
     {
       "id": "clip51_305_947",
@@ -548,7 +783,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip51_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip51_305_947.svg",
+      "png_file": "icons/icon_clip51_305_947.png"
     },
     {
       "id": "clip52_305_947",
@@ -559,7 +799,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip52_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip52_305_947.svg",
+      "png_file": "icons/icon_clip52_305_947.png"
     },
     {
       "id": "clip53_305_947",
@@ -570,7 +815,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip53_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip53_305_947.svg",
+      "png_file": "icons/icon_clip53_305_947.png"
     },
     {
       "id": "clip54_305_947",
@@ -581,7 +831,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip54_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip54_305_947.svg",
+      "png_file": "icons/icon_clip54_305_947.png"
     },
     {
       "id": "clip55_305_947",
@@ -592,7 +847,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip55_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip55_305_947.svg",
+      "png_file": "icons/icon_clip55_305_947.png"
     },
     {
       "id": "clip56_305_947",
@@ -603,7 +863,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip56_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip56_305_947.svg",
+      "png_file": "icons/icon_clip56_305_947.png"
     },
     {
       "id": "clip57_305_947",
@@ -614,7 +879,12 @@
         16.0,
         16.0
       ],
-      "file": "icons/icon_clip57_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip57_305_947.svg",
+      "png_file": "icons/icon_clip57_305_947.png"
     },
     {
       "id": "clip59_305_947",
@@ -625,7 +895,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip59_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip59_305_947.svg",
+      "png_file": "icons/icon_clip59_305_947.png"
     },
     {
       "id": "clip60_305_947",
@@ -636,7 +911,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip60_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip60_305_947.svg",
+      "png_file": "icons/icon_clip60_305_947.png"
     },
     {
       "id": "clip61_305_947",
@@ -647,7 +927,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip61_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip61_305_947.svg",
+      "png_file": "icons/icon_clip61_305_947.png"
     },
     {
       "id": "clip62_305_947",
@@ -658,7 +943,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip62_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip62_305_947.svg",
+      "png_file": "icons/icon_clip62_305_947.png"
     },
     {
       "id": "clip63_305_947",
@@ -669,7 +959,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip63_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip63_305_947.svg",
+      "png_file": "icons/icon_clip63_305_947.png"
     },
     {
       "id": "clip64_305_947",
@@ -680,7 +975,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip64_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip64_305_947.svg",
+      "png_file": "icons/icon_clip64_305_947.png"
     },
     {
       "id": "clip65_305_947",
@@ -691,7 +991,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip65_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip65_305_947.svg",
+      "png_file": "icons/icon_clip65_305_947.png"
     },
     {
       "id": "clip66_305_947",
@@ -702,7 +1007,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip66_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip66_305_947.svg",
+      "png_file": "icons/icon_clip66_305_947.png"
     },
     {
       "id": "clip67_305_947",
@@ -713,7 +1023,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip67_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip67_305_947.svg",
+      "png_file": "icons/icon_clip67_305_947.png"
     },
     {
       "id": "clip68_305_947",
@@ -724,7 +1039,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip68_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip68_305_947.svg",
+      "png_file": "icons/icon_clip68_305_947.png"
     },
     {
       "id": "clip69_305_947",
@@ -735,7 +1055,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip69_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip69_305_947.svg",
+      "png_file": "icons/icon_clip69_305_947.png"
     },
     {
       "id": "clip70_305_947",
@@ -746,7 +1071,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip70_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip70_305_947.svg",
+      "png_file": "icons/icon_clip70_305_947.png"
     },
     {
       "id": "clip71_305_947",
@@ -757,7 +1087,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip71_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip71_305_947.svg",
+      "png_file": "icons/icon_clip71_305_947.png"
     },
     {
       "id": "clip72_305_947",
@@ -768,7 +1103,12 @@
         16.0,
         16.0
       ],
-      "file": "icons/icon_clip72_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip72_305_947.svg",
+      "png_file": "icons/icon_clip72_305_947.png"
     },
     {
       "id": "clip74_305_947",
@@ -779,7 +1119,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip74_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip74_305_947.svg",
+      "png_file": "icons/icon_clip74_305_947.png"
     },
     {
       "id": "clip75_305_947",
@@ -790,7 +1135,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip75_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip75_305_947.svg",
+      "png_file": "icons/icon_clip75_305_947.png"
     },
     {
       "id": "clip76_305_947",
@@ -801,7 +1151,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip76_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip76_305_947.svg",
+      "png_file": "icons/icon_clip76_305_947.png"
     },
     {
       "id": "clip77_305_947",
@@ -812,7 +1167,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip77_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip77_305_947.svg",
+      "png_file": "icons/icon_clip77_305_947.png"
     },
     {
       "id": "clip78_305_947",
@@ -823,7 +1183,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip78_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip78_305_947.svg",
+      "png_file": "icons/icon_clip78_305_947.png"
     },
     {
       "id": "clip79_305_947",
@@ -834,7 +1199,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip79_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip79_305_947.svg",
+      "png_file": "icons/icon_clip79_305_947.png"
     },
     {
       "id": "clip80_305_947",
@@ -845,7 +1215,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip80_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip80_305_947.svg",
+      "png_file": "icons/icon_clip80_305_947.png"
     },
     {
       "id": "clip81_305_947",
@@ -856,7 +1231,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip81_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip81_305_947.svg",
+      "png_file": "icons/icon_clip81_305_947.png"
     },
     {
       "id": "clip82_305_947",
@@ -867,7 +1247,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip82_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip82_305_947.svg",
+      "png_file": "icons/icon_clip82_305_947.png"
     },
     {
       "id": "clip83_305_947",
@@ -878,7 +1263,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip83_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip83_305_947.svg",
+      "png_file": "icons/icon_clip83_305_947.png"
     },
     {
       "id": "clip84_305_947",
@@ -889,7 +1279,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip84_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip84_305_947.svg",
+      "png_file": "icons/icon_clip84_305_947.png"
     },
     {
       "id": "clip85_305_947",
@@ -900,7 +1295,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip85_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip85_305_947.svg",
+      "png_file": "icons/icon_clip85_305_947.png"
     },
     {
       "id": "clip86_305_947",
@@ -911,7 +1311,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip86_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip86_305_947.svg",
+      "png_file": "icons/icon_clip86_305_947.png"
     },
     {
       "id": "clip87_305_947",
@@ -922,7 +1327,12 @@
         16.0,
         16.0
       ],
-      "file": "icons/icon_clip87_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip87_305_947.svg",
+      "png_file": "icons/icon_clip87_305_947.png"
     },
     {
       "id": "clip89_305_947",
@@ -933,7 +1343,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip89_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip89_305_947.svg",
+      "png_file": "icons/icon_clip89_305_947.png"
     },
     {
       "id": "clip90_305_947",
@@ -944,7 +1359,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip90_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip90_305_947.svg",
+      "png_file": "icons/icon_clip90_305_947.png"
     },
     {
       "id": "clip91_305_947",
@@ -955,7 +1375,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip91_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip91_305_947.svg",
+      "png_file": "icons/icon_clip91_305_947.png"
     },
     {
       "id": "clip92_305_947",
@@ -966,7 +1391,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip92_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip92_305_947.svg",
+      "png_file": "icons/icon_clip92_305_947.png"
     },
     {
       "id": "clip93_305_947",
@@ -977,7 +1407,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip93_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip93_305_947.svg",
+      "png_file": "icons/icon_clip93_305_947.png"
     },
     {
       "id": "clip94_305_947",
@@ -988,7 +1423,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip94_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip94_305_947.svg",
+      "png_file": "icons/icon_clip94_305_947.png"
     },
     {
       "id": "clip95_305_947",
@@ -999,7 +1439,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip95_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip95_305_947.svg",
+      "png_file": "icons/icon_clip95_305_947.png"
     },
     {
       "id": "clip96_305_947",
@@ -1010,7 +1455,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip96_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip96_305_947.svg",
+      "png_file": "icons/icon_clip96_305_947.png"
     },
     {
       "id": "clip97_305_947",
@@ -1021,7 +1471,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip97_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip97_305_947.svg",
+      "png_file": "icons/icon_clip97_305_947.png"
     },
     {
       "id": "clip98_305_947",
@@ -1032,7 +1487,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip98_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip98_305_947.svg",
+      "png_file": "icons/icon_clip98_305_947.png"
     },
     {
       "id": "clip99_305_947",
@@ -1043,7 +1503,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip99_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip99_305_947.svg",
+      "png_file": "icons/icon_clip99_305_947.png"
     },
     {
       "id": "clip100_305_947",
@@ -1054,7 +1519,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip100_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip100_305_947.svg",
+      "png_file": "icons/icon_clip100_305_947.png"
     },
     {
       "id": "clip101_305_947",
@@ -1065,7 +1535,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip101_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip101_305_947.svg",
+      "png_file": "icons/icon_clip101_305_947.png"
     },
     {
       "id": "clip102_305_947",
@@ -1076,7 +1551,12 @@
         16.0,
         16.0
       ],
-      "file": "icons/icon_clip102_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip102_305_947.svg",
+      "png_file": "icons/icon_clip102_305_947.png"
     },
     {
       "id": "clip104_305_947",
@@ -1087,7 +1567,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip104_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip104_305_947.svg",
+      "png_file": "icons/icon_clip104_305_947.png"
     },
     {
       "id": "clip105_305_947",
@@ -1098,7 +1583,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip105_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip105_305_947.svg",
+      "png_file": "icons/icon_clip105_305_947.png"
     },
     {
       "id": "clip106_305_947",
@@ -1109,7 +1599,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip106_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip106_305_947.svg",
+      "png_file": "icons/icon_clip106_305_947.png"
     },
     {
       "id": "clip107_305_947",
@@ -1120,7 +1615,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip107_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip107_305_947.svg",
+      "png_file": "icons/icon_clip107_305_947.png"
     },
     {
       "id": "clip108_305_947",
@@ -1131,7 +1631,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip108_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip108_305_947.svg",
+      "png_file": "icons/icon_clip108_305_947.png"
     },
     {
       "id": "clip109_305_947",
@@ -1142,7 +1647,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip109_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip109_305_947.svg",
+      "png_file": "icons/icon_clip109_305_947.png"
     },
     {
       "id": "clip110_305_947",
@@ -1153,7 +1663,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip110_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip110_305_947.svg",
+      "png_file": "icons/icon_clip110_305_947.png"
     },
     {
       "id": "clip111_305_947",
@@ -1164,7 +1679,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip111_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip111_305_947.svg",
+      "png_file": "icons/icon_clip111_305_947.png"
     },
     {
       "id": "clip112_305_947",
@@ -1175,7 +1695,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip112_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip112_305_947.svg",
+      "png_file": "icons/icon_clip112_305_947.png"
     },
     {
       "id": "clip113_305_947",
@@ -1186,7 +1711,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip113_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip113_305_947.svg",
+      "png_file": "icons/icon_clip113_305_947.png"
     },
     {
       "id": "clip114_305_947",
@@ -1197,7 +1727,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip114_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip114_305_947.svg",
+      "png_file": "icons/icon_clip114_305_947.png"
     },
     {
       "id": "clip115_305_947",
@@ -1208,7 +1743,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip115_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip115_305_947.svg",
+      "png_file": "icons/icon_clip115_305_947.png"
     },
     {
       "id": "clip116_305_947",
@@ -1219,7 +1759,12 @@
         10.0,
         10.0
       ],
-      "file": "icons/icon_clip116_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip116_305_947.svg",
+      "png_file": "icons/icon_clip116_305_947.png"
     },
     {
       "id": "clip117_305_947",
@@ -1230,9 +1775,53 @@
         16.0,
         16.0
       ],
-      "file": "icons/icon_clip117_305_947.svg"
+      "display_size": [
+        32,
+        32
+      ],
+      "file": "icons/icon_clip117_305_947.svg",
+      "png_file": "icons/icon_clip117_305_947.png"
     }
   ],
-  "component_frames": [],
-  "button_controls": []
+  "component_frames": [
+    {
+      "id": "component_set_01",
+      "type": "component_frame",
+      "rect": [
+        0.5,
+        0.5,
+        2899.0,
+        715.0
+      ],
+      "element_count": 8,
+      "file": "components/component_set_01_2899x715.svg",
+      "png_file": "components/component_set_01_2899x715.png"
+    }
+  ],
+  "button_controls": [
+    {
+      "id": "button_050",
+      "type": "button_control",
+      "rect": [
+        1140.0,
+        309.0,
+        290.0,
+        96.0
+      ],
+      "file": "buttons/button_050_290x96.svg",
+      "png_file": "buttons/button_050_290x96.png"
+    },
+    {
+      "id": "button_053",
+      "type": "button_control",
+      "rect": [
+        2580.0,
+        346.0,
+        290.0,
+        108.0
+      ],
+      "file": "buttons/button_053_290x108.svg",
+      "png_file": "buttons/button_053_290x108.png"
+    }
+  ]
 }

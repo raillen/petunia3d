@@ -15,7 +15,6 @@
   "button_controls": [
     {
       "id": "button_001",
-      "mask_id": "path-1-inside-1_242_4622",
       "type": "button_control",
       "rect": [
         0.0,
@@ -23,11 +22,11 @@
         340.0,
         30.0
       ],
-      "file": "buttons/button_001_340x30.svg"
+      "file": "buttons/button_001_340x30.svg",
+      "png_file": "buttons/button_001_340x30.png"
     },
     {
       "id": "button_002",
-      "mask_id": "path-11-inside-2_242_4622",
       "type": "button_control",
       "rect": [
         150.0,
@@ -35,7 +34,8 @@
         120.0,
         17.0
       ],
-      "file": "buttons/button_002_120x17.svg"
+      "file": "buttons/button_002_120x17.svg",
+      "png_file": "buttons/button_002_120x17.png"
     }
   ]
 }

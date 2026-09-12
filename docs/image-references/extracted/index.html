@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Petunia3D — Galeria de Assets e Elementos Figma</title>
+  <style>
+    :root {
+      --bg-dark: #1e1e1e;
+      --card-dark: #282828;
+      --border-dark: #3a3a3a;
+      --text-dark: #e0e0e0;
+      --accent: #3169e3;
+      --accent-hover: #5283e8;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-dark);
+      margin: 0;
+      padding: 24px;
+      transition: background 0.2s, color 0.2s;
+    }
+    body.light-theme {
+      background: #f5f5f7;
+      color: #1d1d1f;
+      --card-dark: #ffffff;
+      --border-dark: #d2d2d7;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-dark);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .title h1 { margin: 0; font-size: 24px; }
+    .title p { margin: 4px 0 0; color: #888; font-size: 14px; }
+    .controls { display: flex; gap: 12px; }
+    .btn-toggle {
+      background: var(--card-dark);
+      color: inherit;
+      border: 1px solid var(--border-dark);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-toggle:hover { border-color: var(--accent); }
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .stat-badge {
+      background: var(--card-dark);
+      border: 1px solid var(--border-dark);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .stat-badge strong { color: var(--accent); }
+    .section { margin-bottom: 40px; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--border-dark);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    .section-header h2 { margin: 0; font-size: 18px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+    .grid.large {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .card {
+      background: var(--card-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .preview-box {
+      width: 100%;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.15);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+    .large .preview-box { height: 120px; }
+    .preview-box img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      word-break: break-all;
+      margin-bottom: 4px;
+    }
+    .card-meta {
+      font-size: 10px;
+      color: #888;
+    }
+    .links {
+      margin-top: 6px;
+      display: flex;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .links a { color: var(--accent); text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class='header'>
+    <div class='title'>
+      <h1>Petunia3D — Galeria de Assets e Elementos Figma</h1>
+      <p>Catálogo visual de ícones, botões, variantes de componentes e texturas extraídas</p>
+    </div>
+    <div class='controls'>
+      <button class='btn-toggle' onclick='toggleTheme()'>🌓 Alternar Tema (Escuro / Claro)</button>
+    </div>
+  </div>
+  <div class='stats-bar'>
+    <div class='stat-badge'>Ícones Vetoriais: <strong>172</strong></div>
+    <div class='stat-badge'>Imagens / Texturas: <strong>23</strong></div>
+    <div class='stat-badge'>Component Sets: <strong>15</strong></div>
+    <div class='stat-badge'>Botões & Controles: <strong>58</strong></div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 3d-view_bar.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 1200 30</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/buttons/button_001_51x17.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>51×17 px</div>
+        <div class='links'><a href='3d-view_bar/buttons/button_001_51x17.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/buttons/button_001_51x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/buttons/button_002_51x17.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>51×17 px</div>
+        <div class='links'><a href='3d-view_bar/buttons/button_002_51x17.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/buttons/button_002_51x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/buttons/button_003_38x17.svg' alt='button_003'></div>
+        <div class='card-title'>button_003</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='3d-view_bar/buttons/button_003_38x17.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/buttons/button_003_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/buttons/button_004_38x17.svg' alt='button_004'></div>
+        <div class='card-title'>button_004</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='3d-view_bar/buttons/button_004_38x17.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/buttons/button_004_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/buttons/button_005_98x17.svg' alt='button_005'></div>
+        <div class='card-title'>button_005</div>
+        <div class='card-meta'>98×17 px</div>
+        <div class='links'><a href='3d-view_bar/buttons/button_005_98x17.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/buttons/button_005_98x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Ícones Vetoriais Isolados</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/icons/icon_clip0_202_568.svg' alt='clip0_202_568'></div>
+        <div class='card-title'>clip0_202_568</div>
+        <div class='card-meta'>10×11 px</div>
+        <div class='links'><a href='3d-view_bar/icons/icon_clip0_202_568.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/icons/icon_clip0_202_568.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/icons/icon_clip1_202_568.svg' alt='clip1_202_568'></div>
+        <div class='card-title'>clip1_202_568</div>
+        <div class='card-meta'>10×11 px</div>
+        <div class='links'><a href='3d-view_bar/icons/icon_clip1_202_568.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/icons/icon_clip1_202_568.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='3d-view_bar/icons/icon_clip2_202_568.svg' alt='clip2_202_568'></div>
+        <div class='card-title'>clip2_202_568</div>
+        <div class='card-meta'>10×11 px</div>
+        <div class='links'><a href='3d-view_bar/icons/icon_clip2_202_568.svg' target='_blank'>SVG</a> • <a href='3d-view_bar/icons/icon_clip2_202_568.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 Blender.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 1920 1080</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/buttons/button_001_102x20.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>102×20 px</div>
+        <div class='links'><a href='Blender/buttons/button_001_102x20.svg' target='_blank'>SVG</a> • <a href='Blender/buttons/button_001_102x20.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/buttons/button_002_118x20.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>118×20 px</div>
+        <div class='links'><a href='Blender/buttons/button_002_118x20.svg' target='_blank'>SVG</a> • <a href='Blender/buttons/button_002_118x20.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/buttons/button_003_340x30.svg' alt='button_003'></div>
+        <div class='card-title'>button_003</div>
+        <div class='card-meta'>340×30 px</div>
+        <div class='links'><a href='Blender/buttons/button_003_340x30.svg' target='_blank'>SVG</a> • <a href='Blender/buttons/button_003_340x30.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/buttons/button_005_120x17.svg' alt='button_005'></div>
+        <div class='card-title'>button_005</div>
+        <div class='card-meta'>120×17 px</div>
+        <div class='links'><a href='Blender/buttons/button_005_120x17.svg' target='_blank'>SVG</a> • <a href='Blender/buttons/button_005_120x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Imagens Rasterizadas & Texturas (PNG)</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image0_202_4.png' alt='image0_202_4'></div>
+        <div class='card-title'>image0_202_4</div>
+        <div class='card-meta'>1920×1080 px</div>
+        <div class='links'><a href='Blender/embedded_png/image0_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image0_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image1_202_4.png' alt='image1_202_4'></div>
+        <div class='card-title'>image1_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image1_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image1_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image2_202_4.png' alt='image2_202_4'></div>
+        <div class='card-title'>image2_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image2_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image2_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image3_202_4.png' alt='image3_202_4'></div>
+        <div class='card-title'>image3_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image3_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image3_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image4_202_4.png' alt='image4_202_4'></div>
+        <div class='card-title'>image4_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image4_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image4_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image5_202_4.png' alt='image5_202_4'></div>
+        <div class='card-title'>image5_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image5_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image5_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image6_202_4.png' alt='image6_202_4'></div>
+        <div class='card-title'>image6_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image6_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image6_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image7_202_4.png' alt='image7_202_4'></div>
+        <div class='card-title'>image7_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image7_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image7_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image8_202_4.png' alt='image8_202_4'></div>
+        <div class='card-title'>image8_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image8_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image8_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image9_202_4.png' alt='image9_202_4'></div>
+        <div class='card-title'>image9_202_4</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='Blender/embedded_png/image9_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image9_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/embedded_png/image10_202_4.jpg' alt='image10_202_4'></div>
+        <div class='card-title'>image10_202_4</div>
+        <div class='card-meta'>736×736 px</div>
+        <div class='links'><a href='Blender/embedded_png/image10_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/embedded_png/image10_202_4.jpg' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Ícones Vetoriais Isolados</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip2_202_4.svg' alt='clip2_202_4'></div>
+        <div class='card-title'>clip2_202_4</div>
+        <div class='card-meta'>10×11 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip2_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip2_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip3_202_4.svg' alt='clip3_202_4'></div>
+        <div class='card-title'>clip3_202_4</div>
+        <div class='card-meta'>10×11 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip3_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip3_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip4_202_4.svg' alt='clip4_202_4'></div>
+        <div class='card-title'>clip4_202_4</div>
+        <div class='card-meta'>10×11 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip4_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip4_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip5_202_4.svg' alt='clip5_202_4'></div>
+        <div class='card-title'>clip5_202_4</div>
+        <div class='card-meta'>13×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip5_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip5_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip6_202_4.svg' alt='clip6_202_4'></div>
+        <div class='card-title'>clip6_202_4</div>
+        <div class='card-meta'>12×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip6_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip6_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip7_202_4.svg' alt='clip7_202_4'></div>
+        <div class='card-title'>clip7_202_4</div>
+        <div class='card-meta'>12×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip7_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip7_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip8_202_4.svg' alt='clip8_202_4'></div>
+        <div class='card-title'>clip8_202_4</div>
+        <div class='card-meta'>14×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip8_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip8_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip9_202_4.svg' alt='clip9_202_4'></div>
+        <div class='card-title'>clip9_202_4</div>
+        <div class='card-meta'>12×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip9_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip9_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip10_202_4.svg' alt='clip10_202_4'></div>
+        <div class='card-title'>clip10_202_4</div>
+        <div class='card-meta'>12×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip10_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip10_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip11_202_4.svg' alt='clip11_202_4'></div>
+        <div class='card-title'>clip11_202_4</div>
+        <div class='card-meta'>14×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip11_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip11_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip12_202_4.svg' alt='clip12_202_4'></div>
+        <div class='card-title'>clip12_202_4</div>
+        <div class='card-meta'>10×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip12_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip12_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip13_202_4.svg' alt='clip13_202_4'></div>
+        <div class='card-title'>clip13_202_4</div>
+        <div class='card-meta'>11×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip13_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip13_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip14_202_4.svg' alt='clip14_202_4'></div>
+        <div class='card-title'>clip14_202_4</div>
+        <div class='card-meta'>14×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip14_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip14_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip16_202_4.svg' alt='clip16_202_4'></div>
+        <div class='card-title'>clip16_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip16_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip16_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip17_202_4.svg' alt='clip17_202_4'></div>
+        <div class='card-title'>clip17_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip17_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip17_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip18_202_4.svg' alt='clip18_202_4'></div>
+        <div class='card-title'>clip18_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip18_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip18_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip19_202_4.svg' alt='clip19_202_4'></div>
+        <div class='card-title'>clip19_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip19_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip19_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip20_202_4.svg' alt='clip20_202_4'></div>
+        <div class='card-title'>clip20_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip20_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip20_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip21_202_4.svg' alt='clip21_202_4'></div>
+        <div class='card-title'>clip21_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip21_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip21_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip22_202_4.svg' alt='clip22_202_4'></div>
+        <div class='card-title'>clip22_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip22_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip22_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip23_202_4.svg' alt='clip23_202_4'></div>
+        <div class='card-title'>clip23_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip23_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip23_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip24_202_4.svg' alt='clip24_202_4'></div>
+        <div class='card-title'>clip24_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip24_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip24_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip25_202_4.svg' alt='clip25_202_4'></div>
+        <div class='card-title'>clip25_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip25_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip25_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip26_202_4.svg' alt='clip26_202_4'></div>
+        <div class='card-title'>clip26_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip26_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip26_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip27_202_4.svg' alt='clip27_202_4'></div>
+        <div class='card-title'>clip27_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip27_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip27_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip28_202_4.svg' alt='clip28_202_4'></div>
+        <div class='card-title'>clip28_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip28_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip28_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip29_202_4.svg' alt='clip29_202_4'></div>
+        <div class='card-title'>clip29_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip29_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip29_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip30_202_4.svg' alt='clip30_202_4'></div>
+        <div class='card-title'>clip30_202_4</div>
+        <div class='card-meta'>8×8 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip30_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip30_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip31_202_4.svg' alt='clip31_202_4'></div>
+        <div class='card-title'>clip31_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip31_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip31_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip32_202_4.svg' alt='clip32_202_4'></div>
+        <div class='card-title'>clip32_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip32_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip32_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip33_202_4.svg' alt='clip33_202_4'></div>
+        <div class='card-title'>clip33_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip33_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip33_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip34_202_4.svg' alt='clip34_202_4'></div>
+        <div class='card-title'>clip34_202_4</div>
+        <div class='card-meta'>8×8 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip34_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip34_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip35_202_4.svg' alt='clip35_202_4'></div>
+        <div class='card-title'>clip35_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip35_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip35_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip36_202_4.svg' alt='clip36_202_4'></div>
+        <div class='card-title'>clip36_202_4</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip36_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip36_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip37_202_4.svg' alt='clip37_202_4'></div>
+        <div class='card-title'>clip37_202_4</div>
+        <div class='card-meta'>20×20 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip37_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip37_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='Blender/icons/icon_clip38_202_4.svg' alt='clip38_202_4'></div>
+        <div class='card-title'>clip38_202_4</div>
+        <div class='card-meta'>15×12 px</div>
+        <div class='links'><a href='Blender/icons/icon_clip38_202_4.svg' target='_blank'>SVG</a> • <a href='Blender/icons/icon_clip38_202_4.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 UI Buttons.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 836 400</span>
+    </div>
+    <h3>Conjuntos de Componentes (Component Sets / Variantes)</h3>
+    <div class='grid large'>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_01_77x93.svg' alt='component_set_01'></div>
+        <div class='card-title'>component_set_01</div>
+        <div class='card-meta'>77×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_01_77x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_01_77x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_02_77x93.svg' alt='component_set_02'></div>
+        <div class='card-title'>component_set_02</div>
+        <div class='card-meta'>77×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_02_77x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_02_77x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_03_90x93.svg' alt='component_set_03'></div>
+        <div class='card-title'>component_set_03</div>
+        <div class='card-meta'>90×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_03_90x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_03_90x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_04_90x93.svg' alt='component_set_04'></div>
+        <div class='card-title'>component_set_04</div>
+        <div class='card-meta'>90×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_04_90x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_04_90x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_05_59x93.svg' alt='component_set_05'></div>
+        <div class='card-title'>component_set_05</div>
+        <div class='card-meta'>59×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_05_59x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_05_59x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_06_137x167.svg' alt='component_set_06'></div>
+        <div class='card-title'>component_set_06</div>
+        <div class='card-meta'>137×167 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_06_137x167.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_06_137x167.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_07_77x93.svg' alt='component_set_07'></div>
+        <div class='card-title'>component_set_07</div>
+        <div class='card-meta'>77×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_07_77x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_07_77x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_08_49x79.svg' alt='component_set_08'></div>
+        <div class='card-title'>component_set_08</div>
+        <div class='card-meta'>49×79 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_08_49x79.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_08_49x79.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_09_97x93.svg' alt='component_set_09'></div>
+        <div class='card-title'>component_set_09</div>
+        <div class='card-meta'>97×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_09_97x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_09_97x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_10_77x93.svg' alt='component_set_10'></div>
+        <div class='card-title'>component_set_10</div>
+        <div class='card-meta'>77×93 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_10_77x93.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_10_77x93.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/components/component_set_11_139x204.svg' alt='component_set_11'></div>
+        <div class='card-title'>component_set_11</div>
+        <div class='card-meta'>139×204 px</div>
+        <div class='links'><a href='UI_Buttons/components/component_set_11_139x204.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/components/component_set_11_139x204.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_001_38x17.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_001_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_001_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_002_38x17.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_002_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_002_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_003_51x17.svg' alt='button_003'></div>
+        <div class='card-title'>button_003</div>
+        <div class='card-meta'>51×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_003_51x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_003_51x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_004_51x17.svg' alt='button_004'></div>
+        <div class='card-title'>button_004</div>
+        <div class='card-meta'>51×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_004_51x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_004_51x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_005_98x17.svg' alt='button_005'></div>
+        <div class='card-title'>button_005</div>
+        <div class='card-meta'>98×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_005_98x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_005_98x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_006_100x17.svg' alt='button_006'></div>
+        <div class='card-title'>button_006</div>
+        <div class='card-meta'>100×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_006_100x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_006_100x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_007_38x17.svg' alt='button_007'></div>
+        <div class='card-title'>button_007</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_007_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_007_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_008_38x17.svg' alt='button_008'></div>
+        <div class='card-title'>button_008</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_008_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_008_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_009_51x17.svg' alt='button_009'></div>
+        <div class='card-title'>button_009</div>
+        <div class='card-meta'>51×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_009_51x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_009_51x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_010_51x17.svg' alt='button_010'></div>
+        <div class='card-title'>button_010</div>
+        <div class='card-meta'>51×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_010_51x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_010_51x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_011_98x17.svg' alt='button_011'></div>
+        <div class='card-title'>button_011</div>
+        <div class='card-meta'>98×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_011_98x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_011_98x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_012_100x17.svg' alt='button_012'></div>
+        <div class='card-title'>button_012</div>
+        <div class='card-meta'>100×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_012_100x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_012_100x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_013_98x17.svg' alt='button_013'></div>
+        <div class='card-title'>button_013</div>
+        <div class='card-meta'>98×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_013_98x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_013_98x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_014_100x17.svg' alt='button_014'></div>
+        <div class='card-title'>button_014</div>
+        <div class='card-meta'>100×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_014_100x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_014_100x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_015_38x17.svg' alt='button_015'></div>
+        <div class='card-title'>button_015</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_015_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_015_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_016_58x17.svg' alt='button_016'></div>
+        <div class='card-title'>button_016</div>
+        <div class='card-meta'>58×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_016_58x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_016_58x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_017_38x17.svg' alt='button_017'></div>
+        <div class='card-title'>button_017</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_017_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_017_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_018_98x17.svg' alt='button_018'></div>
+        <div class='card-title'>button_018</div>
+        <div class='card-meta'>98×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_018_98x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_018_98x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_019_100x17.svg' alt='button_019'></div>
+        <div class='card-title'>button_019</div>
+        <div class='card-meta'>100×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_019_100x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_019_100x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_020_100x17.svg' alt='button_020'></div>
+        <div class='card-title'>button_020</div>
+        <div class='card-meta'>100×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_020_100x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_020_100x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_021_38x17.svg' alt='button_021'></div>
+        <div class='card-title'>button_021</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_021_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_021_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_022_58x17.svg' alt='button_022'></div>
+        <div class='card-title'>button_022</div>
+        <div class='card-meta'>58×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_022_58x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_022_58x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Buttons/buttons/button_023_38x17.svg' alt='button_023'></div>
+        <div class='card-title'>button_023</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='UI_Buttons/buttons/button_023_38x17.svg' target='_blank'>SVG</a> • <a href='UI_Buttons/buttons/button_023_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 UI Elements.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 400 400</span>
+    </div>
+    <h3>Conjuntos de Componentes (Component Sets / Variantes)</h3>
+    <div class='grid large'>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Elements/components/component_set_01_139x59.svg' alt='component_set_01'></div>
+        <div class='card-title'>component_set_01</div>
+        <div class='card-meta'>139×59 px</div>
+        <div class='links'><a href='UI_Elements/components/component_set_01_139x59.svg' target='_blank'>SVG</a> • <a href='UI_Elements/components/component_set_01_139x59.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Elements/components/component_set_02_139x79.svg' alt='component_set_02'></div>
+        <div class='card-title'>component_set_02</div>
+        <div class='card-meta'>139×79 px</div>
+        <div class='links'><a href='UI_Elements/components/component_set_02_139x79.svg' target='_blank'>SVG</a> • <a href='UI_Elements/components/component_set_02_139x79.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Imagens Rasterizadas & Texturas (PNG)</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='UI_Elements/embedded_png/image0_202_9.jpg' alt='image0_202_9'></div>
+        <div class='card-title'>image0_202_9</div>
+        <div class='card-meta'>736×736 px</div>
+        <div class='links'><a href='UI_Elements/embedded_png/image0_202_9.svg' target='_blank'>SVG</a> • <a href='UI_Elements/embedded_png/image0_202_9.jpg' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 data_panel_vertical_menu.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 30 646</span>
+    </div>
+    <h3>Ícones Vetoriais Isolados</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip0_242_6715.svg' alt='clip0_242_6715'></div>
+        <div class='card-title'>clip0_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip0_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip0_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip1_242_6715.svg' alt='clip1_242_6715'></div>
+        <div class='card-title'>clip1_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip1_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip1_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip2_242_6715.svg' alt='clip2_242_6715'></div>
+        <div class='card-title'>clip2_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip2_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip2_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip3_242_6715.svg' alt='clip3_242_6715'></div>
+        <div class='card-title'>clip3_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip3_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip3_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip4_242_6715.svg' alt='clip4_242_6715'></div>
+        <div class='card-title'>clip4_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip4_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip4_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip5_242_6715.svg' alt='clip5_242_6715'></div>
+        <div class='card-title'>clip5_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip5_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip5_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip6_242_6715.svg' alt='clip6_242_6715'></div>
+        <div class='card-title'>clip6_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip6_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip6_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip7_242_6715.svg' alt='clip7_242_6715'></div>
+        <div class='card-title'>clip7_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip7_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip7_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip8_242_6715.svg' alt='clip8_242_6715'></div>
+        <div class='card-title'>clip8_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip8_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip8_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip9_242_6715.svg' alt='clip9_242_6715'></div>
+        <div class='card-title'>clip9_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip9_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip9_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip10_242_6715.svg' alt='clip10_242_6715'></div>
+        <div class='card-title'>clip10_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip10_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip10_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip11_242_6715.svg' alt='clip11_242_6715'></div>
+        <div class='card-title'>clip11_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip11_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip11_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='data_panel_vertical_menu/icons/icon_clip12_242_6715.svg' alt='clip12_242_6715'></div>
+        <div class='card-title'>clip12_242_6715</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='data_panel_vertical_menu/icons/icon_clip12_242_6715.svg' target='_blank'>SVG</a> • <a href='data_panel_vertical_menu/icons/icon_clip12_242_6715.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 header.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 1920 37</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='header/buttons/button_001_102x20.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>102×20 px</div>
+        <div class='links'><a href='header/buttons/button_001_102x20.svg' target='_blank'>SVG</a> • <a href='header/buttons/button_001_102x20.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/buttons/button_002_118x20.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>118×20 px</div>
+        <div class='links'><a href='header/buttons/button_002_118x20.svg' target='_blank'>SVG</a> • <a href='header/buttons/button_002_118x20.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Imagens Rasterizadas & Texturas (PNG)</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='header/embedded_png/image0_202_10.jpg' alt='image0_202_10'></div>
+        <div class='card-title'>image0_202_10</div>
+        <div class='card-meta'>736×736 px</div>
+        <div class='links'><a href='header/embedded_png/image0_202_10.svg' target='_blank'>SVG</a> • <a href='header/embedded_png/image0_202_10.jpg' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Ícones Vetoriais Isolados</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip0_202_10.svg' alt='clip0_202_10'></div>
+        <div class='card-title'>clip0_202_10</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='header/icons/icon_clip0_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip0_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip1_202_10.svg' alt='clip1_202_10'></div>
+        <div class='card-title'>clip1_202_10</div>
+        <div class='card-meta'>8×8 px</div>
+        <div class='links'><a href='header/icons/icon_clip1_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip1_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip2_202_10.svg' alt='clip2_202_10'></div>
+        <div class='card-title'>clip2_202_10</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='header/icons/icon_clip2_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip2_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip3_202_10.svg' alt='clip3_202_10'></div>
+        <div class='card-title'>clip3_202_10</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='header/icons/icon_clip3_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip3_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip4_202_10.svg' alt='clip4_202_10'></div>
+        <div class='card-title'>clip4_202_10</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='header/icons/icon_clip4_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip4_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip5_202_10.svg' alt='clip5_202_10'></div>
+        <div class='card-title'>clip5_202_10</div>
+        <div class='card-meta'>8×8 px</div>
+        <div class='links'><a href='header/icons/icon_clip5_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip5_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip6_202_10.svg' alt='clip6_202_10'></div>
+        <div class='card-title'>clip6_202_10</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='header/icons/icon_clip6_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip6_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip7_202_10.svg' alt='clip7_202_10'></div>
+        <div class='card-title'>clip7_202_10</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='header/icons/icon_clip7_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip7_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='header/icons/icon_clip8_202_10.svg' alt='clip8_202_10'></div>
+        <div class='card-title'>clip8_202_10</div>
+        <div class='card-meta'>20×20 px</div>
+        <div class='links'><a href='header/icons/icon_clip8_202_10.svg' target='_blank'>SVG</a> • <a href='header/icons/icon_clip8_202_10.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 outliner_panel_header.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 340 30</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='outliner_panel_header/buttons/button_001_340x30.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>340×30 px</div>
+        <div class='links'><a href='outliner_panel_header/buttons/button_001_340x30.svg' target='_blank'>SVG</a> • <a href='outliner_panel_header/buttons/button_001_340x30.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='outliner_panel_header/buttons/button_002_120x17.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>120×17 px</div>
+        <div class='links'><a href='outliner_panel_header/buttons/button_002_120x17.svg' target='_blank'>SVG</a> • <a href='outliner_panel_header/buttons/button_002_120x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 properties.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 2900 716</span>
+    </div>
+    <h3>Conjuntos de Componentes (Component Sets / Variantes)</h3>
+    <div class='grid large'>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/components/component_set_01_2899x715.svg' alt='component_set_01'></div>
+        <div class='card-title'>component_set_01</div>
+        <div class='card-meta'>2899×715 px</div>
+        <div class='links'><a href='properties/components/component_set_01_2899x715.svg' target='_blank'>SVG</a> • <a href='properties/components/component_set_01_2899x715.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/buttons/button_050_290x96.svg' alt='button_050'></div>
+        <div class='card-title'>button_050</div>
+        <div class='card-meta'>290×96 px</div>
+        <div class='links'><a href='properties/buttons/button_050_290x96.svg' target='_blank'>SVG</a> • <a href='properties/buttons/button_050_290x96.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/buttons/button_053_290x108.svg' alt='button_053'></div>
+        <div class='card-title'>button_053</div>
+        <div class='card-meta'>290×108 px</div>
+        <div class='links'><a href='properties/buttons/button_053_290x108.svg' target='_blank'>SVG</a> • <a href='properties/buttons/button_053_290x108.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Imagens Rasterizadas & Texturas (PNG)</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/embedded_png/image0_305_947.png' alt='image0_305_947'></div>
+        <div class='card-title'>image0_305_947</div>
+        <div class='card-meta'>60×60 px</div>
+        <div class='links'><a href='properties/embedded_png/image0_305_947.svg' target='_blank'>SVG</a> • <a href='properties/embedded_png/image0_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Ícones Vetoriais Isolados</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip1_305_947.svg' alt='clip1_305_947'></div>
+        <div class='card-title'>clip1_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip1_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip1_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip2_305_947.svg' alt='clip2_305_947'></div>
+        <div class='card-title'>clip2_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip2_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip2_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip3_305_947.svg' alt='clip3_305_947'></div>
+        <div class='card-title'>clip3_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip3_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip3_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip4_305_947.svg' alt='clip4_305_947'></div>
+        <div class='card-title'>clip4_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip4_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip4_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip5_305_947.svg' alt='clip5_305_947'></div>
+        <div class='card-title'>clip5_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip5_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip5_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip6_305_947.svg' alt='clip6_305_947'></div>
+        <div class='card-title'>clip6_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip6_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip6_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip7_305_947.svg' alt='clip7_305_947'></div>
+        <div class='card-title'>clip7_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip7_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip7_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip8_305_947.svg' alt='clip8_305_947'></div>
+        <div class='card-title'>clip8_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip8_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip8_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip9_305_947.svg' alt='clip9_305_947'></div>
+        <div class='card-title'>clip9_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip9_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip9_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip10_305_947.svg' alt='clip10_305_947'></div>
+        <div class='card-title'>clip10_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip10_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip10_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip11_305_947.svg' alt='clip11_305_947'></div>
+        <div class='card-title'>clip11_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip11_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip11_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip12_305_947.svg' alt='clip12_305_947'></div>
+        <div class='card-title'>clip12_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip12_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip12_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip13_305_947.svg' alt='clip13_305_947'></div>
+        <div class='card-title'>clip13_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip13_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip13_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip15_305_947.svg' alt='clip15_305_947'></div>
+        <div class='card-title'>clip15_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip15_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip15_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip16_305_947.svg' alt='clip16_305_947'></div>
+        <div class='card-title'>clip16_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip16_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip16_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip17_305_947.svg' alt='clip17_305_947'></div>
+        <div class='card-title'>clip17_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip17_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip17_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip18_305_947.svg' alt='clip18_305_947'></div>
+        <div class='card-title'>clip18_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip18_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip18_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip19_305_947.svg' alt='clip19_305_947'></div>
+        <div class='card-title'>clip19_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip19_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip19_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip20_305_947.svg' alt='clip20_305_947'></div>
+        <div class='card-title'>clip20_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip20_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip20_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip21_305_947.svg' alt='clip21_305_947'></div>
+        <div class='card-title'>clip21_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip21_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip21_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip22_305_947.svg' alt='clip22_305_947'></div>
+        <div class='card-title'>clip22_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip22_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip22_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip23_305_947.svg' alt='clip23_305_947'></div>
+        <div class='card-title'>clip23_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip23_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip23_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip24_305_947.svg' alt='clip24_305_947'></div>
+        <div class='card-title'>clip24_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip24_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip24_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip25_305_947.svg' alt='clip25_305_947'></div>
+        <div class='card-title'>clip25_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip25_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip25_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip26_305_947.svg' alt='clip26_305_947'></div>
+        <div class='card-title'>clip26_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip26_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip26_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip27_305_947.svg' alt='clip27_305_947'></div>
+        <div class='card-title'>clip27_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip27_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip27_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip29_305_947.svg' alt='clip29_305_947'></div>
+        <div class='card-title'>clip29_305_947</div>
+        <div class='card-meta'>16×16 px</div>
+        <div class='links'><a href='properties/icons/icon_clip29_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip29_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip30_305_947.svg' alt='clip30_305_947'></div>
+        <div class='card-title'>clip30_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip30_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip30_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip31_305_947.svg' alt='clip31_305_947'></div>
+        <div class='card-title'>clip31_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip31_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip31_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip32_305_947.svg' alt='clip32_305_947'></div>
+        <div class='card-title'>clip32_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip32_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip32_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip33_305_947.svg' alt='clip33_305_947'></div>
+        <div class='card-title'>clip33_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip33_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip33_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip34_305_947.svg' alt='clip34_305_947'></div>
+        <div class='card-title'>clip34_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip34_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip34_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip35_305_947.svg' alt='clip35_305_947'></div>
+        <div class='card-title'>clip35_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip35_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip35_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip36_305_947.svg' alt='clip36_305_947'></div>
+        <div class='card-title'>clip36_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip36_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip36_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip37_305_947.svg' alt='clip37_305_947'></div>
+        <div class='card-title'>clip37_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip37_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip37_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip38_305_947.svg' alt='clip38_305_947'></div>
+        <div class='card-title'>clip38_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip38_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip38_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip39_305_947.svg' alt='clip39_305_947'></div>
+        <div class='card-title'>clip39_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip39_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip39_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip40_305_947.svg' alt='clip40_305_947'></div>
+        <div class='card-title'>clip40_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip40_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip40_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip41_305_947.svg' alt='clip41_305_947'></div>
+        <div class='card-title'>clip41_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip41_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip41_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip42_305_947.svg' alt='clip42_305_947'></div>
+        <div class='card-title'>clip42_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip42_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip42_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip44_305_947.svg' alt='clip44_305_947'></div>
+        <div class='card-title'>clip44_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip44_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip44_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip45_305_947.svg' alt='clip45_305_947'></div>
+        <div class='card-title'>clip45_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip45_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip45_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip46_305_947.svg' alt='clip46_305_947'></div>
+        <div class='card-title'>clip46_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip46_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip46_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip47_305_947.svg' alt='clip47_305_947'></div>
+        <div class='card-title'>clip47_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip47_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip47_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip48_305_947.svg' alt='clip48_305_947'></div>
+        <div class='card-title'>clip48_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip48_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip48_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip49_305_947.svg' alt='clip49_305_947'></div>
+        <div class='card-title'>clip49_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip49_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip49_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip50_305_947.svg' alt='clip50_305_947'></div>
+        <div class='card-title'>clip50_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip50_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip50_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip51_305_947.svg' alt='clip51_305_947'></div>
+        <div class='card-title'>clip51_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip51_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip51_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip52_305_947.svg' alt='clip52_305_947'></div>
+        <div class='card-title'>clip52_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip52_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip52_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip53_305_947.svg' alt='clip53_305_947'></div>
+        <div class='card-title'>clip53_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip53_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip53_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip54_305_947.svg' alt='clip54_305_947'></div>
+        <div class='card-title'>clip54_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip54_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip54_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip55_305_947.svg' alt='clip55_305_947'></div>
+        <div class='card-title'>clip55_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip55_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip55_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip56_305_947.svg' alt='clip56_305_947'></div>
+        <div class='card-title'>clip56_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip56_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip56_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip57_305_947.svg' alt='clip57_305_947'></div>
+        <div class='card-title'>clip57_305_947</div>
+        <div class='card-meta'>16×16 px</div>
+        <div class='links'><a href='properties/icons/icon_clip57_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip57_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip59_305_947.svg' alt='clip59_305_947'></div>
+        <div class='card-title'>clip59_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip59_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip59_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip60_305_947.svg' alt='clip60_305_947'></div>
+        <div class='card-title'>clip60_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip60_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip60_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip61_305_947.svg' alt='clip61_305_947'></div>
+        <div class='card-title'>clip61_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip61_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip61_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip62_305_947.svg' alt='clip62_305_947'></div>
+        <div class='card-title'>clip62_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip62_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip62_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip63_305_947.svg' alt='clip63_305_947'></div>
+        <div class='card-title'>clip63_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip63_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip63_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip64_305_947.svg' alt='clip64_305_947'></div>
+        <div class='card-title'>clip64_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip64_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip64_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip65_305_947.svg' alt='clip65_305_947'></div>
+        <div class='card-title'>clip65_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip65_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip65_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip66_305_947.svg' alt='clip66_305_947'></div>
+        <div class='card-title'>clip66_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip66_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip66_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip67_305_947.svg' alt='clip67_305_947'></div>
+        <div class='card-title'>clip67_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip67_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip67_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip68_305_947.svg' alt='clip68_305_947'></div>
+        <div class='card-title'>clip68_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip68_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip68_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip69_305_947.svg' alt='clip69_305_947'></div>
+        <div class='card-title'>clip69_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip69_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip69_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip70_305_947.svg' alt='clip70_305_947'></div>
+        <div class='card-title'>clip70_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip70_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip70_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip71_305_947.svg' alt='clip71_305_947'></div>
+        <div class='card-title'>clip71_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip71_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip71_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip72_305_947.svg' alt='clip72_305_947'></div>
+        <div class='card-title'>clip72_305_947</div>
+        <div class='card-meta'>16×16 px</div>
+        <div class='links'><a href='properties/icons/icon_clip72_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip72_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip74_305_947.svg' alt='clip74_305_947'></div>
+        <div class='card-title'>clip74_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip74_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip74_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip75_305_947.svg' alt='clip75_305_947'></div>
+        <div class='card-title'>clip75_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip75_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip75_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip76_305_947.svg' alt='clip76_305_947'></div>
+        <div class='card-title'>clip76_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip76_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip76_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip77_305_947.svg' alt='clip77_305_947'></div>
+        <div class='card-title'>clip77_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip77_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip77_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip78_305_947.svg' alt='clip78_305_947'></div>
+        <div class='card-title'>clip78_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip78_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip78_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip79_305_947.svg' alt='clip79_305_947'></div>
+        <div class='card-title'>clip79_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip79_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip79_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip80_305_947.svg' alt='clip80_305_947'></div>
+        <div class='card-title'>clip80_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip80_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip80_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip81_305_947.svg' alt='clip81_305_947'></div>
+        <div class='card-title'>clip81_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip81_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip81_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip82_305_947.svg' alt='clip82_305_947'></div>
+        <div class='card-title'>clip82_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip82_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip82_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip83_305_947.svg' alt='clip83_305_947'></div>
+        <div class='card-title'>clip83_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip83_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip83_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip84_305_947.svg' alt='clip84_305_947'></div>
+        <div class='card-title'>clip84_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip84_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip84_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip85_305_947.svg' alt='clip85_305_947'></div>
+        <div class='card-title'>clip85_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip85_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip85_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip86_305_947.svg' alt='clip86_305_947'></div>
+        <div class='card-title'>clip86_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip86_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip86_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip87_305_947.svg' alt='clip87_305_947'></div>
+        <div class='card-title'>clip87_305_947</div>
+        <div class='card-meta'>16×16 px</div>
+        <div class='links'><a href='properties/icons/icon_clip87_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip87_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip89_305_947.svg' alt='clip89_305_947'></div>
+        <div class='card-title'>clip89_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip89_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip89_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip90_305_947.svg' alt='clip90_305_947'></div>
+        <div class='card-title'>clip90_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip90_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip90_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip91_305_947.svg' alt='clip91_305_947'></div>
+        <div class='card-title'>clip91_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip91_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip91_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip92_305_947.svg' alt='clip92_305_947'></div>
+        <div class='card-title'>clip92_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip92_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip92_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip93_305_947.svg' alt='clip93_305_947'></div>
+        <div class='card-title'>clip93_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip93_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip93_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip94_305_947.svg' alt='clip94_305_947'></div>
+        <div class='card-title'>clip94_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip94_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip94_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip95_305_947.svg' alt='clip95_305_947'></div>
+        <div class='card-title'>clip95_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip95_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip95_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip96_305_947.svg' alt='clip96_305_947'></div>
+        <div class='card-title'>clip96_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip96_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip96_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip97_305_947.svg' alt='clip97_305_947'></div>
+        <div class='card-title'>clip97_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip97_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip97_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip98_305_947.svg' alt='clip98_305_947'></div>
+        <div class='card-title'>clip98_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip98_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip98_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip99_305_947.svg' alt='clip99_305_947'></div>
+        <div class='card-title'>clip99_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip99_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip99_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip100_305_947.svg' alt='clip100_305_947'></div>
+        <div class='card-title'>clip100_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip100_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip100_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip101_305_947.svg' alt='clip101_305_947'></div>
+        <div class='card-title'>clip101_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip101_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip101_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip102_305_947.svg' alt='clip102_305_947'></div>
+        <div class='card-title'>clip102_305_947</div>
+        <div class='card-meta'>16×16 px</div>
+        <div class='links'><a href='properties/icons/icon_clip102_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip102_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip104_305_947.svg' alt='clip104_305_947'></div>
+        <div class='card-title'>clip104_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip104_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip104_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip105_305_947.svg' alt='clip105_305_947'></div>
+        <div class='card-title'>clip105_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip105_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip105_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip106_305_947.svg' alt='clip106_305_947'></div>
+        <div class='card-title'>clip106_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip106_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip106_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip107_305_947.svg' alt='clip107_305_947'></div>
+        <div class='card-title'>clip107_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip107_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip107_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip108_305_947.svg' alt='clip108_305_947'></div>
+        <div class='card-title'>clip108_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip108_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip108_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip109_305_947.svg' alt='clip109_305_947'></div>
+        <div class='card-title'>clip109_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip109_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip109_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip110_305_947.svg' alt='clip110_305_947'></div>
+        <div class='card-title'>clip110_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip110_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip110_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip111_305_947.svg' alt='clip111_305_947'></div>
+        <div class='card-title'>clip111_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip111_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip111_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip112_305_947.svg' alt='clip112_305_947'></div>
+        <div class='card-title'>clip112_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip112_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip112_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip113_305_947.svg' alt='clip113_305_947'></div>
+        <div class='card-title'>clip113_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip113_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip113_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip114_305_947.svg' alt='clip114_305_947'></div>
+        <div class='card-title'>clip114_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip114_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip114_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip115_305_947.svg' alt='clip115_305_947'></div>
+        <div class='card-title'>clip115_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip115_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip115_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip116_305_947.svg' alt='clip116_305_947'></div>
+        <div class='card-title'>clip116_305_947</div>
+        <div class='card-meta'>10×10 px</div>
+        <div class='links'><a href='properties/icons/icon_clip116_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip116_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties/icons/icon_clip117_305_947.svg' alt='clip117_305_947'></div>
+        <div class='card-title'>clip117_305_947</div>
+        <div class='card-meta'>16×16 px</div>
+        <div class='links'><a href='properties/icons/icon_clip117_305_947.svg' target='_blank'>SVG</a> • <a href='properties/icons/icon_clip117_305_947.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 properties_panel_header.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 340 30</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='properties_panel_header/buttons/button_001_340x30.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>340×30 px</div>
+        <div class='links'><a href='properties_panel_header/buttons/button_001_340x30.svg' target='_blank'>SVG</a> • <a href='properties_panel_header/buttons/button_001_340x30.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='properties_panel_header/buttons/button_002_120x17.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>120×17 px</div>
+        <div class='links'><a href='properties_panel_header/buttons/button_002_120x17.svg' target='_blank'>SVG</a> • <a href='properties_panel_header/buttons/button_002_120x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 timeline_list_panel.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 160 234</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_list_panel/buttons/button_001_160x20.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>160×20 px</div>
+        <div class='links'><a href='timeline_list_panel/buttons/button_001_160x20.svg' target='_blank'>SVG</a> • <a href='timeline_list_panel/buttons/button_001_160x20.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_list_panel/buttons/button_002_127x17.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>127×17 px</div>
+        <div class='links'><a href='timeline_list_panel/buttons/button_002_127x17.svg' target='_blank'>SVG</a> • <a href='timeline_list_panel/buttons/button_002_127x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 timeline_panel_header.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 1900 30</span>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_001_38x17.svg' alt='button_001'></div>
+        <div class='card-title'>button_001</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_001_38x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_001_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_002_105x17.svg' alt='button_002'></div>
+        <div class='card-title'>button_002</div>
+        <div class='card-meta'>105×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_002_105x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_002_105x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_003_58x17.svg' alt='button_003'></div>
+        <div class='card-title'>button_003</div>
+        <div class='card-meta'>58×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_003_58x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_003_58x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_004_38x17.svg' alt='button_004'></div>
+        <div class='card-title'>button_004</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_004_38x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_004_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_005_60x17.svg' alt='button_005'></div>
+        <div class='card-title'>button_005</div>
+        <div class='card-meta'>60×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_005_60x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_005_60x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_006_136x17.svg' alt='button_006'></div>
+        <div class='card-title'>button_006</div>
+        <div class='card-meta'>136×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_006_136x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_006_136x17.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='timeline_panel_header/buttons/button_007_38x17.svg' alt='button_007'></div>
+        <div class='card-title'>button_007</div>
+        <div class='card-meta'>38×17 px</div>
+        <div class='links'><a href='timeline_panel_header/buttons/button_007_38x17.svg' target='_blank'>SVG</a> • <a href='timeline_panel_header/buttons/button_007_38x17.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 toolbar.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 140 416</span>
+    </div>
+    <h3>Conjuntos de Componentes (Component Sets / Variantes)</h3>
+    <div class='grid large'>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/components/component_set_01_139x415.svg' alt='component_set_01'></div>
+        <div class='card-title'>component_set_01</div>
+        <div class='card-meta'>139×415 px</div>
+        <div class='links'><a href='toolbar/components/component_set_01_139x415.svg' target='_blank'>SVG</a> • <a href='toolbar/components/component_set_01_139x415.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Botões e Controles Interativos</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_01_select_box_40x40.svg' alt='tool_01_select_box'></div>
+        <div class='card-title'>tool_01_select_box</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_01_select_box_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_01_select_box_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_02_cursor_40x40.svg' alt='tool_02_cursor'></div>
+        <div class='card-title'>tool_02_cursor</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_02_cursor_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_02_cursor_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_03_move_40x40.svg' alt='tool_03_move'></div>
+        <div class='card-title'>tool_03_move</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_03_move_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_03_move_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_04_rotate_40x40.svg' alt='tool_04_rotate'></div>
+        <div class='card-title'>tool_04_rotate</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_04_rotate_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_04_rotate_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_05_scale_40x40.svg' alt='tool_05_scale'></div>
+        <div class='card-title'>tool_05_scale</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_05_scale_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_05_scale_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_06_transform_40x40.svg' alt='tool_06_transform'></div>
+        <div class='card-title'>tool_06_transform</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_06_transform_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_06_transform_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_07_annotate_40x40.svg' alt='tool_07_annotate'></div>
+        <div class='card-title'>tool_07_annotate</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_07_annotate_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_07_annotate_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_08_measure_40x40.svg' alt='tool_08_measure'></div>
+        <div class='card-title'>tool_08_measure</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_08_measure_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_08_measure_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/buttons/tool_09_add_primitive_40x40.svg' alt='tool_09_add_primitive'></div>
+        <div class='card-title'>tool_09_add_primitive</div>
+        <div class='card-meta'>40×40 px</div>
+        <div class='links'><a href='toolbar/buttons/tool_09_add_primitive_40x40.svg' target='_blank'>SVG</a> • <a href='toolbar/buttons/tool_09_add_primitive_40x40.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+    <h3>Imagens Rasterizadas & Texturas (PNG)</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image0_288_791.png' alt='image0_288_791'></div>
+        <div class='card-title'>image0_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image0_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image0_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image1_288_791.png' alt='image1_288_791'></div>
+        <div class='card-title'>image1_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image1_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image1_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image2_288_791.png' alt='image2_288_791'></div>
+        <div class='card-title'>image2_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image2_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image2_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image3_288_791.png' alt='image3_288_791'></div>
+        <div class='card-title'>image3_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image3_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image3_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image4_288_791.png' alt='image4_288_791'></div>
+        <div class='card-title'>image4_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image4_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image4_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image5_288_791.png' alt='image5_288_791'></div>
+        <div class='card-title'>image5_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image5_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image5_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image6_288_791.png' alt='image6_288_791'></div>
+        <div class='card-title'>image6_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image6_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image6_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image7_288_791.png' alt='image7_288_791'></div>
+        <div class='card-title'>image7_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image7_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image7_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+      <div class='card'>
+        <div class='preview-box'><img src='toolbar/embedded_png/image8_288_791.png' alt='image8_288_791'></div>
+        <div class='card-title'>image8_288_791</div>
+        <div class='card-meta'>256×256 px</div>
+        <div class='links'><a href='toolbar/embedded_png/image8_288_791.svg' target='_blank'>SVG</a> • <a href='toolbar/embedded_png/image8_288_791.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <div class='section'>
+    <div class='section-header'>
+      <h2>📁 windows_bar.svg</h2>
+      <span style='font-size: 12px; color: #888;'>ViewBox: 0 0 1920 40</span>
+    </div>
+    <h3>Ícones Vetoriais Isolados</h3>
+    <div class='grid'>
+      <div class='card'>
+        <div class='preview-box'><img src='windows_bar/icons/icon_clip0_202_28.svg' alt='clip0_202_28'></div>
+        <div class='card-title'>clip0_202_28</div>
+        <div class='card-meta'>15×12 px</div>
+        <div class='links'><a href='windows_bar/icons/icon_clip0_202_28.svg' target='_blank'>SVG</a> • <a href='windows_bar/icons/icon_clip0_202_28.png' target='_blank'>PNG</a></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('light-theme');
+    }
+  </script>
+</body>
+</html>
