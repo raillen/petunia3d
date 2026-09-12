@@ -1,0 +1,21 @@
+# Petunia3D — liga/desliga ferramentas SEM quebrar.
+# Cada chave é o `id()` da ferramenta. `false` oculta da toolbar.
+# Ferramentas novas: adicione `id = true` aqui e registre em
+# `crates/module-model/src/mod.rs`.
+
+[tools]
+select = true
+transform = true
+primitives = true
+draw_profile = true
+extrude = true
+pushpull = true
+inset = true
+bevel = true
+subdivide = true
+slice = true
+connect = true
+dissolve = true
+mirror = true
+merge = true
+paint = true

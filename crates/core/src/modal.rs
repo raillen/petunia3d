@@ -1,0 +1,755 @@
+//! Transactional viewport previews. Each update starts from the original mesh;
+//! only commit records history, and cancel restores the exact project snapshot.
+
+use glam::{EulerRot, Quat, Vec3};
+use petunia_mesh::Mesh;
+use petunia_project::Project;
+
+use crate::{AppState, EditMode, Selection};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModalKind {
+    Move,
+    Rotate,
+    Scale,
+    Extrude,
+    Inset,
+    Bevel,
+    PushPull,
+}
+
+impl ModalKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Move => "Move",
+            Self::Rotate => "Rotate",
+            Self::Scale => "Scale",
+            Self::Extrude => "Extrude",
+            Self::Inset => "Inset (factor)",
+            Self::Bevel => "Bevel",
+            Self::PushPull => "Push/Pull",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ModalConstraint {
+    #[default]
+    Free,
+    Axis(usize),
+    /// Plane perpendicular to the given axis (0 = YZ, 1 = XZ, 2 = XY).
+    Plane(usize),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModalError {
+    AlreadyActive,
+    NoActiveMesh,
+    NoSelection,
+    FacesRequired,
+    EdgesRequired,
+    InvalidInput,
+    InvalidMesh,
+    NoActiveOperation,
+    UnsupportedTopology,
+}
+
+impl std::fmt::Display for ModalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::AlreadyActive => "Confirm or cancel the active operation first",
+            Self::NoActiveMesh => "No active mesh",
+            Self::NoSelection => "Select geometry first",
+            Self::FacesRequired => "Select a face first",
+            Self::EdgesRequired => "Select an edge first",
+            Self::InvalidInput => "Invalid or out-of-range transform value",
+            Self::InvalidMesh => "Operation rejected: invalid mesh",
+            Self::NoActiveOperation => "No active operation",
+            Self::UnsupportedTopology => {
+                "Bevel supports one manifold edge with simple corners; select a supported edge"
+            }
+        })
+    }
+}
+
+impl std::error::Error for ModalError {}
+
+pub struct ModalOp {
+    pub kind: ModalKind,
+    pub constraint: ModalConstraint,
+    pub pivot: Vec3,
+    pub normal: Vec3,
+    /// Distance, degrees, scale factor, or inset fraction (not meters).
+    pub value: f32,
+    /// Absolute XYZ delta, Euler XYZ degrees, or per-axis scale factors.
+    pub components: Vec3,
+    original: Project,
+    selection: Selection,
+    source: Mesh,
+    changed: bool,
+}
+
+fn valid_mesh(mesh: &Mesh) -> bool {
+    mesh.verts.iter().all(|v| v.vec().is_finite())
+        && mesh.faces.iter().all(|f| {
+            f.verts.len() >= 3
+                && f.uv.len() == f.verts.len()
+                && f.verts.iter().all(|&v| (v as usize) < mesh.verts.len())
+                && f.uv.iter().flatten().all(|v| v.is_finite())
+        })
+        && mesh.selected_edges.iter().all(|&(a, b)| {
+            a != b && (a as usize) < mesh.verts.len() && (b as usize) < mesh.verts.len()
+        })
+}
+
+fn same_geometry(a: &Mesh, b: &Mesh) -> bool {
+    a.verts.len() == b.verts.len()
+        && a.faces.len() == b.faces.len()
+        && a.verts
+            .iter()
+            .zip(&b.verts)
+            .all(|(a, b)| a.pos == b.pos && a.color == b.color)
+        && a.faces
+            .iter()
+            .zip(&b.faces)
+            .all(|(a, b)| a.verts == b.verts && a.uv == b.uv)
+}
+
+fn axis(index: usize) -> Vec3 {
+    match index {
+        0 => Vec3::X,
+        1 => Vec3::Y,
+        _ => Vec3::Z,
+    }
+}
+
+impl AppState {
+    pub fn begin_modal(&mut self, kind: ModalKind) -> Result<(), ModalError> {
+        if self.modal.is_some() || self.mesh_preview.is_some() || self.paint_stroke.is_some() {
+            return Err(ModalError::AlreadyActive);
+        }
+        let mesh = self.project.active_mesh().ok_or(ModalError::NoActiveMesh)?;
+        if !valid_mesh(mesh) {
+            return Err(ModalError::InvalidMesh);
+        }
+        let mut source = mesh.clone();
+        let transform = matches!(kind, ModalKind::Move | ModalKind::Rotate | ModalKind::Scale);
+        if transform {
+            self.gizmo_mode = kind;
+        }
+        if transform && self.mode == EditMode::Object {
+            source.select_all();
+        } else {
+            // Face and edge selection must transform their vertices too.
+            for face in &source.faces {
+                if face.selected {
+                    for &vi in &face.verts {
+                        source.verts[vi as usize].selected = true;
+                    }
+                }
+            }
+            for &(a, b) in &source.selected_edges {
+                source.verts[a as usize].selected = true;
+                source.verts[b as usize].selected = true;
+            }
+        }
+        if !source.has_selection() || source.verts.is_empty() {
+            return Err(ModalError::NoSelection);
+        }
+        if matches!(
+            kind,
+            ModalKind::Extrude | ModalKind::Inset | ModalKind::PushPull
+        ) {
+            if source.selected_face_count() == 0 {
+                source.sync_face_selection_from_verts();
+            }
+            if source.selected_face_count() == 0 {
+                return Err(ModalError::FacesRequired);
+            }
+        }
+        if kind == ModalKind::Bevel && source.selected_edges.is_empty() {
+            source.sync_edge_selection_from_verts();
+            if source.selected_edges.is_empty() {
+                return Err(ModalError::EdgesRequired);
+            }
+        }
+        let mut normal = Vec3::ZERO;
+        for (fi, face) in source.faces.iter().enumerate() {
+            if face.selected {
+                normal += source.face_normal(fi);
+            }
+        }
+        normal = normal.normalize_or_zero();
+        if normal == Vec3::ZERO || transform {
+            normal = self.camera.forward().normalize_or_zero();
+        }
+        self.modal = Some(ModalOp {
+            kind,
+            constraint: ModalConstraint::Free,
+            pivot: Vec3::from(source.selection_center()),
+            normal,
+            value: if kind == ModalKind::Scale { 1.0 } else { 0.0 },
+            components: if kind == ModalKind::Scale {
+                Vec3::ONE
+            } else {
+                Vec3::ZERO
+            },
+            original: self.project.clone(),
+            selection: self.selection.clone(),
+            source,
+            changed: false,
+        });
+        self.pending_modal = None;
+        self.mark_dirty();
+        Ok(())
+    }
+
+    pub fn set_modal_constraint(&mut self, constraint: ModalConstraint) -> Result<(), ModalError> {
+        if matches!(constraint, ModalConstraint::Axis(i) | ModalConstraint::Plane(i) if i > 2) {
+            return Err(ModalError::InvalidInput);
+        }
+        let modal = self.modal.as_mut().ok_or(ModalError::NoActiveOperation)?;
+        modal.constraint = constraint;
+        self.mark_dirty();
+        Ok(())
+    }
+
+    /// `translation` is an absolute world-space delta from the start, `value`
+    /// is the absolute scalar (including exact numeric input), never a frame delta.
+    pub fn update_modal(&mut self, translation: Vec3, value: f32) -> Result<(), ModalError> {
+        if !translation.is_finite() || !value.is_finite() || value.abs() > 1.0e6 {
+            return Err(ModalError::InvalidInput);
+        }
+        let modal = self.modal.as_ref().ok_or(ModalError::NoActiveOperation)?;
+        if modal.kind == ModalKind::Scale && value.abs() < 1.0e-6 {
+            return Err(ModalError::InvalidInput);
+        }
+        if modal.kind == ModalKind::Inset && !(0.0..=0.95).contains(&value) {
+            return Err(ModalError::InvalidInput);
+        }
+        if modal.kind == ModalKind::Bevel && value < 0.0 {
+            return Err(ModalError::InvalidInput);
+        }
+        let mut mesh = modal.source.clone();
+        let mut components = Vec3::ZERO;
+        let direction = match modal.constraint {
+            ModalConstraint::Axis(i) => axis(i),
+            ModalConstraint::Plane(i) => {
+                (modal.normal - axis(i) * modal.normal[i]).normalize_or_zero()
+            }
+            ModalConstraint::Free => modal.normal,
+        };
+        match modal.kind {
+            ModalKind::Move => {
+                let delta = match modal.constraint {
+                    ModalConstraint::Free => translation,
+                    ModalConstraint::Axis(i) => axis(i) * value,
+                    ModalConstraint::Plane(i) => translation - axis(i) * translation[i],
+                };
+                components = delta;
+                mesh.translate_selected(delta.to_array());
+            }
+            ModalKind::Rotate => {
+                let normal = match modal.constraint {
+                    ModalConstraint::Axis(i) | ModalConstraint::Plane(i) => axis(i),
+                    ModalConstraint::Free => modal.normal,
+                };
+                let rotation = Quat::from_axis_angle(normal, value.to_radians());
+                let (x, y, z) = rotation.to_euler(EulerRot::XYZ);
+                components = Vec3::new(x.to_degrees(), y.to_degrees(), z.to_degrees());
+                for vertex in &mut mesh.verts {
+                    if vertex.selected {
+                        vertex.pos =
+                            (modal.pivot + rotation * (vertex.vec() - modal.pivot)).to_array();
+                    }
+                }
+            }
+            ModalKind::Scale => {
+                let factors = match modal.constraint {
+                    ModalConstraint::Free => Vec3::splat(value),
+                    ModalConstraint::Axis(i) => Vec3::ONE + axis(i) * (value - 1.0),
+                    ModalConstraint::Plane(i) => Vec3::splat(value) + axis(i) * (1.0 - value),
+                };
+                components = factors;
+                for vertex in &mut mesh.verts {
+                    if vertex.selected {
+                        vertex.pos =
+                            (modal.pivot + (vertex.vec() - modal.pivot) * factors).to_array();
+                    }
+                }
+            }
+            ModalKind::Extrude if value != 0.0 => {
+                // Build topology once per absolute preview, then constrain the new cap.
+                mesh.extrude_selected(0.0);
+                for vertex in mesh.verts.iter_mut().filter(|v| v.selected) {
+                    vertex.pos = (vertex.vec() + direction * value).to_array();
+                }
+            }
+            ModalKind::Inset if value != 0.0 => mesh.inset_selected(value),
+            ModalKind::Bevel if value != 0.0 => {
+                let (applied, skipped) = mesh.bevel_selected(value);
+                if applied == 0 || skipped > 0 {
+                    return Err(ModalError::UnsupportedTopology);
+                }
+            }
+            ModalKind::PushPull => mesh.translate_selected((direction * value).to_array()),
+            _ => {}
+        }
+        self.publish_modal_mesh(mesh, value, components)
+    }
+
+    /// Absolute XYZ property fields; rotation uses Euler XYZ angles in degrees.
+    /// Each call rebuilds from the same transaction snapshot, avoiding drift.
+    pub fn update_modal_components(&mut self, components: Vec3) -> Result<(), ModalError> {
+        if !components.is_finite() || components.abs().max_element() > 1.0e6 {
+            return Err(ModalError::InvalidInput);
+        }
+        let modal = self.modal.as_ref().ok_or(ModalError::NoActiveOperation)?;
+        if !matches!(
+            modal.kind,
+            ModalKind::Move | ModalKind::Rotate | ModalKind::Scale
+        ) || (modal.kind == ModalKind::Scale && components.abs().min_element() < 1.0e-6)
+        {
+            return Err(ModalError::InvalidInput);
+        }
+        let mut mesh = modal.source.clone();
+        let rotation = Quat::from_euler(
+            EulerRot::XYZ,
+            components.x.to_radians(),
+            components.y.to_radians(),
+            components.z.to_radians(),
+        );
+        for vertex in mesh.verts.iter_mut().filter(|v| v.selected) {
+            vertex.pos = match modal.kind {
+                ModalKind::Move => vertex.vec() + components,
+                ModalKind::Rotate => modal.pivot + rotation * (vertex.vec() - modal.pivot),
+                ModalKind::Scale => modal.pivot + components * (vertex.vec() - modal.pivot),
+                _ => return Err(ModalError::InvalidInput),
+            }
+            .to_array();
+        }
+        let value = if modal.kind == ModalKind::Scale {
+            components.x
+        } else {
+            components.length()
+        };
+        self.publish_modal_mesh(mesh, value, components)?;
+        if let Some(modal) = self.modal.as_mut() {
+            modal.constraint = ModalConstraint::Free;
+        }
+        Ok(())
+    }
+
+    fn publish_modal_mesh(
+        &mut self,
+        mut mesh: Mesh,
+        value: f32,
+        components: Vec3,
+    ) -> Result<(), ModalError> {
+        if !valid_mesh(&mesh) {
+            return Err(ModalError::InvalidMesh);
+        }
+        let modal = self.modal.as_ref().ok_or(ModalError::NoActiveOperation)?;
+        let changed = !same_geometry(&mesh, &modal.source);
+        // Preserve selection flags for object transforms and identity previews.
+        if !changed
+            || (self.mode == EditMode::Object
+                && matches!(
+                    modal.kind,
+                    ModalKind::Move | ModalKind::Rotate | ModalKind::Scale
+                ))
+        {
+            if let Some(original) = modal.original.active_mesh() {
+                for (vertex, source) in mesh.verts.iter_mut().zip(&original.verts) {
+                    vertex.selected = source.selected;
+                }
+                for (face, source) in mesh.faces.iter_mut().zip(&original.faces) {
+                    face.selected = source.selected;
+                }
+                mesh.selected_edges = original.selected_edges.clone();
+            }
+        }
+        let active = self
+            .project
+            .active_mesh_mut()
+            .ok_or(ModalError::NoActiveMesh)?;
+        *active = mesh;
+        if let Some(modal) = self.modal.as_mut() {
+            modal.value = value;
+            modal.components = components;
+            modal.changed = changed;
+        }
+        self.sync_selection();
+        self.emit_mesh_changed();
+        Ok(())
+    }
+
+    pub fn commit_modal(&mut self) -> bool {
+        let Some(modal) = self.modal.take() else {
+            return false;
+        };
+        if modal.changed {
+            self.undo.checkpoint(modal.kind.label(), &modal.original);
+        } else {
+            self.project = modal.original;
+            self.selection = modal.selection;
+        }
+        self.pending_modal = None;
+        self.emit_mesh_changed();
+        true
+    }
+
+    pub fn cancel_modal(&mut self) -> bool {
+        self.pending_modal = None;
+        let Some(modal) = self.modal.take() else {
+            return false;
+        };
+        self.project = modal.original;
+        self.selection = modal.selection;
+        self.events
+            .emit(crate::AppEvent::SelectionChanged(self.selection.clone()));
+        self.emit_mesh_changed();
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn selected_face() -> AppState {
+        let mut state = AppState::new("en");
+        state.mode = EditMode::Edit;
+        let mesh = state.project.active_mesh_mut().unwrap();
+        mesh.deselect_all();
+        mesh.faces[0].selected = true;
+        mesh.sync_vert_selection_from_faces();
+        state.sync_selection();
+        state
+    }
+
+    // Compare every mesh attribute, including UVs, colors and selection flags.
+    fn assert_exact_mesh(actual: &Mesh, expected: &Mesh) {
+        assert!(same_geometry(actual, expected));
+        assert_eq!(actual.selected_edges, expected.selected_edges);
+        assert_eq!(
+            actual.verts.iter().map(|v| v.selected).collect::<Vec<_>>(),
+            expected
+                .verts
+                .iter()
+                .map(|v| v.selected)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            actual.faces.iter().map(|f| f.selected).collect::<Vec<_>>(),
+            expected
+                .faces
+                .iter()
+                .map(|f| f.selected)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn numeric_xyz_fields_rebuild_absolute_transform_and_commit_once() {
+        for (kind, values) in [
+            (ModalKind::Move, Vec3::new(1.25, -2.0, 0.5)),
+            (ModalKind::Rotate, Vec3::new(90.0, 0.0, 0.0)),
+            (ModalKind::Scale, Vec3::new(2.0, 0.5, -1.0)),
+        ] {
+            let mut state = selected_face();
+            let original = state.project.active_mesh().unwrap().clone();
+            state.begin_modal(kind).unwrap();
+            let pivot = state.modal.as_ref().unwrap().pivot;
+            state.update_modal_components(Vec3::splat(0.25)).unwrap();
+            state.update_modal_components(values).unwrap();
+            for (before, after) in original
+                .verts
+                .iter()
+                .zip(&state.project.active_mesh().unwrap().verts)
+            {
+                let relative = before.vec() - pivot;
+                let expected = if before.selected {
+                    match kind {
+                        ModalKind::Move => before.vec() + values,
+                        ModalKind::Rotate => pivot + Vec3::new(relative.x, -relative.z, relative.y),
+                        ModalKind::Scale => pivot + relative * values,
+                        _ => unreachable!(),
+                    }
+                } else {
+                    before.vec()
+                };
+                assert!((after.vec() - expected).length() < 1.0e-5, "{kind:?}");
+            }
+            assert_eq!(state.modal.as_ref().unwrap().components, values);
+            assert_eq!(state.undo.depth(), (0, 0));
+            state.commit_modal();
+            assert_eq!(state.undo.depth(), (1, 0));
+            state.undo();
+            assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
+        }
+    }
+
+    #[test]
+    fn invalid_numeric_axis_preserves_last_valid_preview() {
+        let mut state = selected_face();
+        state.begin_modal(ModalKind::Scale).unwrap();
+        state
+            .update_modal_components(Vec3::new(1.0, 2.0, 3.0))
+            .unwrap();
+        let preview = state.project.active_mesh().unwrap().clone();
+        for invalid in [
+            Vec3::new(1.0, 0.0, 1.0),
+            Vec3::splat(f32::NAN),
+            Vec3::splat(1.0e7),
+        ] {
+            assert_eq!(
+                state.update_modal_components(invalid),
+                Err(ModalError::InvalidInput)
+            );
+            assert_exact_mesh(state.project.active_mesh().unwrap(), &preview);
+        }
+        assert_eq!(state.undo.depth(), (0, 0));
+    }
+
+    #[test]
+    fn cancel_restores_every_operation_without_touching_history() {
+        for kind in [
+            ModalKind::Move,
+            ModalKind::Rotate,
+            ModalKind::Scale,
+            ModalKind::Extrude,
+            ModalKind::Inset,
+            ModalKind::Bevel,
+            ModalKind::PushPull,
+        ] {
+            let mut state = selected_face();
+            if kind == ModalKind::Bevel {
+                state
+                    .project
+                    .active_mesh_mut()
+                    .unwrap()
+                    .selected_edges
+                    .insert((0, 1));
+            }
+            state.checkpoint("prior");
+            let before = state.project.clone();
+            state.begin_modal(kind).unwrap();
+            state.update_modal(Vec3::new(0.4, 0.2, 0.0), 0.25).unwrap();
+            state.update_modal(Vec3::new(0.8, 0.4, 0.0), 0.5).unwrap();
+            assert!(state.cancel_modal());
+            assert_eq!(state.undo.depth(), (1, 0), "{kind:?}");
+            assert_exact_mesh(
+                state.project.active_mesh().unwrap(),
+                before.active_mesh().unwrap(),
+            );
+        }
+    }
+
+    #[test]
+    fn multiple_previews_commit_one_checkpoint_and_roundtrip() {
+        let mut state = selected_face();
+        let original = state.project.active_mesh().unwrap().clone();
+        state.begin_modal(ModalKind::Move).unwrap();
+        for value in [0.2, 0.3, 0.8] {
+            state.update_modal(Vec3::X * value, value).unwrap();
+            assert_eq!(state.undo.depth(), (0, 0));
+        }
+        let result = state.project.active_mesh().unwrap().clone();
+        for (before, after) in original.verts.iter().zip(&result.verts) {
+            let expected = before.vec()
+                + if before.selected {
+                    Vec3::X * 0.8
+                } else {
+                    Vec3::ZERO
+                };
+            assert!((after.vec() - expected).length() < 1.0e-6);
+        }
+        assert!(state.commit_modal());
+        assert_eq!(state.undo.depth(), (1, 0));
+        assert!(state.undo());
+        assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
+        assert!(state.redo());
+        assert_exact_mesh(state.project.active_mesh().unwrap(), &result);
+    }
+
+    #[test]
+    fn topology_undo_and_redo_resynchronize_cached_selection() {
+        let mut state = selected_face();
+        let original_verts = state.selection.verts.clone();
+        state.begin_modal(ModalKind::Extrude).unwrap();
+        state.update_modal(Vec3::ZERO, 0.5).unwrap();
+        let extruded_verts = state.selection.verts.clone();
+        assert_ne!(extruded_verts, original_verts);
+        state.commit_modal();
+        state.undo();
+        assert_eq!(state.selection.verts, original_verts);
+        state.redo();
+        assert_eq!(state.selection.verts, extruded_verts);
+    }
+
+    #[test]
+    fn cancel_preserves_redo_and_undo_cancels_active_preview() {
+        let mut state = selected_face();
+        state.checkpoint("prior");
+        state
+            .project
+            .active_mesh_mut()
+            .unwrap()
+            .translate_selected([1.0, 0.0, 0.0]);
+        state.undo();
+        let original = state.project.active_mesh().unwrap().clone();
+        state.begin_modal(ModalKind::Extrude).unwrap();
+        state.update_modal(Vec3::ZERO, 1.0).unwrap();
+        assert!(state.undo());
+        assert_eq!(state.undo.depth(), (0, 1));
+        assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
+    }
+
+    #[test]
+    fn identity_after_preview_does_not_create_history_or_geometry() {
+        for kind in [
+            ModalKind::Move,
+            ModalKind::Extrude,
+            ModalKind::Inset,
+            ModalKind::Scale,
+        ] {
+            let mut state = selected_face();
+            let original = state.project.active_mesh().unwrap().clone();
+            state.begin_modal(kind).unwrap();
+            state.update_modal(Vec3::X, 0.2).unwrap();
+            state
+                .update_modal(Vec3::ZERO, if kind == ModalKind::Scale { 1.0 } else { 0.0 })
+                .unwrap();
+            state.commit_modal();
+            assert_eq!(state.undo.depth(), (0, 0));
+            assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
+        }
+    }
+
+    #[test]
+    fn axes_and_planes_constrain_absolute_translation() {
+        let mut state = selected_face();
+        let original = state.project.active_mesh().unwrap().clone();
+        state.begin_modal(ModalKind::Move).unwrap();
+        state
+            .set_modal_constraint(ModalConstraint::Axis(2))
+            .unwrap();
+        state.update_modal(Vec3::splat(9.0), -1.25).unwrap();
+        let vertex = original.verts.iter().position(|v| v.selected).unwrap();
+        assert_eq!(
+            state.project.active_mesh().unwrap().verts[vertex].vec(),
+            original.verts[vertex].vec() - Vec3::Z * 1.25
+        );
+        state
+            .set_modal_constraint(ModalConstraint::Plane(1))
+            .unwrap();
+        state.update_modal(Vec3::new(1.0, 2.0, 3.0), 0.0).unwrap();
+        assert_eq!(
+            state.project.active_mesh().unwrap().verts[vertex].vec(),
+            original.verts[vertex].vec() + Vec3::new(1.0, 0.0, 3.0)
+        );
+    }
+
+    #[test]
+    fn rotation_and_plane_scale_preserve_pivot_and_constrained_coordinates() {
+        let mut state = selected_face();
+        let original = state.project.active_mesh().unwrap().clone();
+        state.begin_modal(ModalKind::Rotate).unwrap();
+        let pivot = state.modal.as_ref().unwrap().pivot;
+        state
+            .set_modal_constraint(ModalConstraint::Axis(1))
+            .unwrap();
+        state.update_modal(Vec3::ZERO, 90.0).unwrap();
+        for (before, after) in original
+            .verts
+            .iter()
+            .zip(&state.project.active_mesh().unwrap().verts)
+        {
+            if before.selected {
+                let relative = before.vec() - pivot;
+                let expected = pivot + Vec3::new(relative.z, relative.y, -relative.x);
+                assert!((after.vec() - expected).length() < 1.0e-5);
+            } else {
+                assert_eq!(after.pos, before.pos);
+            }
+        }
+        state.cancel_modal();
+        state.begin_modal(ModalKind::Scale).unwrap();
+        state
+            .set_modal_constraint(ModalConstraint::Plane(2))
+            .unwrap();
+        state.update_modal(Vec3::ZERO, 2.0).unwrap();
+        for (before, after) in original
+            .verts
+            .iter()
+            .zip(&state.project.active_mesh().unwrap().verts)
+        {
+            if before.selected {
+                assert_eq!(
+                    after.vec(),
+                    pivot + (before.vec() - pivot) * Vec3::new(2.0, 2.0, 1.0)
+                );
+            } else {
+                assert_eq!(after.pos, before.pos);
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_inputs_leave_last_preview_untouched() {
+        let mut state = selected_face();
+        state.begin_modal(ModalKind::Move).unwrap();
+        state.update_modal(Vec3::X, 1.0).unwrap();
+        let preview = state.project.active_mesh().unwrap().clone();
+        assert_eq!(
+            state.update_modal(Vec3::ZERO, f32::NAN),
+            Err(ModalError::InvalidInput)
+        );
+        assert_eq!(
+            state.update_modal(Vec3::splat(f32::INFINITY), 1.0),
+            Err(ModalError::InvalidInput)
+        );
+        assert_eq!(
+            state.set_modal_constraint(ModalConstraint::Axis(99)),
+            Err(ModalError::InvalidInput)
+        );
+        assert_exact_mesh(state.project.active_mesh().unwrap(), &preview);
+        assert_eq!(state.undo.depth(), (0, 0));
+    }
+
+    #[test]
+    fn corrupted_mesh_rejected_before_indexing() {
+        let mut state = selected_face();
+        state.project.active_mesh_mut().unwrap().faces[0].verts[0] = u32::MAX;
+        assert_eq!(
+            state.begin_modal(ModalKind::Extrude),
+            Err(ModalError::InvalidMesh)
+        );
+        assert!(state.modal.is_none());
+    }
+
+    #[test]
+    fn empty_selection_rejected_in_edit_mode_and_object_mode_transforms_whole_mesh() {
+        let mut state = AppState::new("en");
+        state.project.active_mesh_mut().unwrap().deselect_all();
+        state.mode = EditMode::Edit;
+        assert_eq!(
+            state.begin_modal(ModalKind::Move),
+            Err(ModalError::NoSelection)
+        );
+        state.mode = EditMode::Object;
+        let original = state.project.active_mesh().unwrap().clone();
+        state.begin_modal(ModalKind::Move).unwrap();
+        state.update_modal(Vec3::Y, 1.0).unwrap();
+        state.commit_modal();
+        for (before, after) in original
+            .verts
+            .iter()
+            .zip(&state.project.active_mesh().unwrap().verts)
+        {
+            assert_eq!(after.vec(), before.vec() + Vec3::Y);
+            assert!(!after.selected);
+        }
+    }
+}

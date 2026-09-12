@@ -1,0 +1,220 @@
+# assets/locales/pt-BR.toml — Português.
+
+[app]
+title = "Petunia3D"
+
+[ui]
+tools = "Ferramentas"
+assets = "Assets"
+search = "Buscar"
+duplicate = "Duplicar"
+rename = "Renomear"
+outliner = "Outliner"
+active_tool = "Ferramenta ativa"
+no_tool = "Ferramenta desligada no tools.toml"
+properties = "Propriedades"
+refs = "Imagens de referência"
+help = "Ajuda"
+language = "Idioma"
+
+[menu]
+file = "Arquivo"
+edit = "Editar"
+help = "Ajuda"
+
+[file]
+new = "Novo projeto"
+open_project = "Abrir projeto…"
+save = "Salvar"
+save_as = "Salvar como…"
+import_obj = "Importar OBJ…"
+quit = "Sair"
+
+[edit]
+undo = "Desfazer"
+redo = "Refazer"
+
+[ws]
+model = "MODEL"
+paint = "PINTURA"
+uv = "UV"
+export = "EXPORT"
+
+[modes]
+object = "Objeto"
+edit = "Edição"
+paint = "Pintura"
+vertex = "Vértice"
+edge = "Aresta"
+face = "Face"
+
+[shading]
+solid = "Plano"
+smooth = "Suave"
+unlit = "Sem Luz"
+wire = "Arame"
+textured = "Textura"
+
+[view]
+frame = "Enquadrar"
+
+[tools]
+select = "Seleção"
+transform = "Mover"
+primitives = "Adicionar"
+draw_profile = "Perfil"
+extrude = "Extrudar"
+pushpull = "Push/Pull"
+inset = "Inset"
+bevel = "Bevel"
+subdivide = "Cortar"
+slice = "Fatiar"
+connect = "Conectar"
+dissolve = "Dissolver"
+mirror = "Espelho"
+merge = "Fundir"
+paint = "Pintar"
+
+[hints]
+select = "Clique p/ selecionar. 1/2/3: vértice/aresta/face."
+transform = "G/R/S: mover, rotacionar, escalar com mouse. Enter aplica; Esc cancela."
+primitives = "A: adiciona primitiva low-poly."
+draw_profile = "Shift+P: clique na vista ortográfica p/ pontos. Perto do 1º fecha."
+extrude = "E: extruda as faces selecionadas."
+pushpull = "P: empurra/puxa ao longo das normais."
+inset = "I: inset nas faces selecionadas."
+bevel = "Ctrl+B: bevel interativo de uma aresta suportada."
+subdivide = "W: subdivide (loop cut). Triangular abaixo."
+slice = "Shift+K: arraste o plano de corte; Enter aplica, Esc cancela."
+connect = "B: conecta (bridge) dois loops ou faces."
+dissolve = "X: dissolve arestas/vértices sem deixar buracos."
+mirror = "Ctrl+M: espelha + solda."
+merge = "M: funde a seleção no centro."
+paint = "B: clique na malha p/ pintar. Alt+clique: conta-gotas."
+
+[actions]
+select_all = "Tudo"
+deselect = "Nada"
+invert = "Inverter (Ctrl+I)"
+select_linked = "Conectados (L)"
+move = "Mover"
+scale = "Escala"
+apply_scale = "Aplicar escala"
+duplicate = "Duplicar"
+delete = "Apagar"
+distance = "Distância"
+extrude = "Extrudar"
+pushpull = "Push/Pull"
+factor = "Fator"
+inset = "Inset"
+amount = "Qtd"
+bevel = "Bevel"
+subdivide = "Subdividir"
+slice = "Fatiar Plano"
+connect = "Conectar Faces"
+dissolve = "Dissolver Seleção"
+flip_normals = "Inverter Normais"
+recalculate_normals = "Recalcular Normais"
+triangulate = "Triangular"
+mirror = "Espelhar"
+weld_eps = "Solda"
+merge_center = "Fundir no centro"
+
+[props]
+name = "Nome"
+verts = "verts"
+faces = "tris"
+
+[prims]
+cube = "Cubo"
+plane = "Plano"
+cylinder = "Cilindro (8)"
+cone = "Cone (8)"
+sphere = "Esfera (low)"
+capsule = "Cápsula"
+
+[paint]
+vertex = "Pintura vértice"
+radius = "Raio"
+strength = "Força"
+fill_sel = "Preencher sel"
+pick = "Pegar?"
+pick_hint = "Alt+clique na malha p/ pegar cor"
+picked = "cor capturada"
+canvas = "Canvas albedo"
+brush = "Pincel"
+eraser = "Borracha (segure Ctrl)"
+eraser_hint = "Segure Ctrl pintando p/ apagar"
+fill = "Preencher"
+clear = "Limpar"
+new_canvas = "Novo 256²"
+size = "Tam px"
+canvas_hint = "Arraste p/ pintar. Ctrl+arraste apaga. Scroll no UV escala."
+
+[profile]
+points = "pontos"
+snap = "Snap 0.25"
+depth = "Profundidade"
+segments = "Segs revolve"
+close = "Fechar"
+undo_pt = "Desfaz pt"
+clear = "Limpar"
+gen_extrude = "Gerar Extrude"
+gen_revolve = "Gerar Revolve"
+tris = "tris"
+closed = "perfil fechado"
+need_closed = "feche o perfil antes (clique perto do 1º ponto)"
+need_points = "desenhe ao menos 2 pontos"
+generated = "malha do perfil gerada"
+
+[uv]
+title = "Editor UV"
+reproject = "Planar"
+scale = "Escala"
+selected = "faces sel"
+hint = "Clique: seleciona face. Arraste: move UVs. Scroll: escala."
+
+[refs]
+load = "Carregar imagem…"
+front = "Frente"
+back = "Trás"
+left = "Esquerda"
+right = "Direita"
+side = "Lado"
+top = "Topo"
+bottom = "Fundo"
+offset = "Offset"
+size = "Tamanho"
+opacity = "Opacidade"
+rotation = "Rotação"
+xray = "Raio-X / Sobrepor"
+
+[export]
+title = "Exportar"
+format = "Formato"
+report = "Relatório"
+go = "Exportar…"
+empty = "nada selecionado"
+
+[help]
+body = "MMB orbita • Shift+MMB pan • scroll zoom • Tab modo • Del apaga • Home reseta • H ajuda • Ctrl+Z/Y desfaz"
+
+[camera]
+projection = "Projeção"
+perspective = "Perspectiva"
+orthographic = "Ortográfica"
+projection_hint = "Alterar a projeção mantendo o enquadramento no centro da vista. É possível orbitar nos dois modos."
+view = "Vista"
+free = "Livre"
+front = "Frente"
+back = "Traseira"
+left = "Esquerda"
+right = "Direita"
+top = "Superior"
+bottom = "Inferior"
+visible_height = "Altura visível"
+height_hint = "Altura do enquadramento no centro da vista, em metros. Arraste o valor ou clique duas vezes para digitar uma medida exata."
+frame_hint = "Enquadrar a seleção ou o objeto ativo quando nada estiver selecionado (F / Numpad .)."
+reset = "Redefinir vista"
+reset_hint = "Voltar à origem e ao zoom inicial mantendo esta vista e projeção (Home)."
+views_hint = "Vistas alinhadas aos eixos usam projeção ortográfica. Ctrl seleciona o lado oposto."

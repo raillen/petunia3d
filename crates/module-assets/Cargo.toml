@@ -1,0 +1,10 @@
+[package]
+name = "petunia_module_assets"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+petunia_core = { workspace = true }
+egui = { workspace = true }
+petunia_mesh = { workspace = true }

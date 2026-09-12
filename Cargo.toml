@@ -1,0 +1,68 @@
+[workspace]
+members = [
+    "crates/core",
+    "crates/mesh",
+    "crates/commands",
+    "crates/config",
+    "crates/project",
+    "crates/render",
+    "crates/render-gl",
+    "crates/render-wgpu",
+    "crates/module-model",
+    "crates/module-paint",
+    "crates/module-uv",
+    "crates/module-assets",
+    "crates/ui",
+    "crates/app",
+]
+resolver = "2"
+
+[workspace.dependencies]
+egui = "0.32"
+egui-winit = "0.32"
+egui-wgpu = "0.32"
+egui_glow = { version = "0.32", features = ["winit"] }
+glam = "0.27"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+anyhow = "1"
+log = "0.4"
+
+petunia_core = { path = "crates/core" }
+petunia_mesh = { path = "crates/mesh" }
+petunia_commands = { path = "crates/commands" }
+petunia_config = { path = "crates/config" }
+petunia_project = { path = "crates/project" }
+petunia_render = { path = "crates/render" }
+petunia_render_gl = { path = "crates/render-gl" }
+petunia_render_wgpu = { path = "crates/render-wgpu" }
+petunia_module_model = { path = "crates/module-model" }
+petunia_module_paint = { path = "crates/module-paint" }
+petunia_module_uv = { path = "crates/module-uv" }
+petunia_module_assets = { path = "crates/module-assets" }
+petunia_ui = { path = "crates/ui" }
+petunia_app = { path = "crates/app" }
+
+[package]
+name = "petunia3d"
+version = "0.1.0"
+edition = "2021"
+description = "Petunia3D — editor low-poly shape-first (OpenGL-first, modular)"
+license = "MIT"
+
+[[bin]]
+name = "petunia3d"
+path = "src/main.rs"
+
+[dependencies]
+petunia_app = { workspace = true }
+env_logger = "0.11"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

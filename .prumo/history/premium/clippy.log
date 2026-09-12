@@ -1,0 +1,11 @@
+    Checking petunia_core v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/core)
+    Checking petunia_module_assets v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-assets)
+    Checking petunia_module_model v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-model)
+    Checking petunia_module_uv v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-uv)
+    Checking petunia_module_paint v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-paint)
+    Checking petunia_render_wgpu v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/render-wgpu)
+    Checking petunia_render_gl v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/render-gl)
+    Checking petunia_ui v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui)
+    Checking petunia_app v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/app)
+    Checking petunia3d v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.30s

@@ -1,0 +1,14 @@
+[package]
+name = "petunia_render_wgpu"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+petunia_core = { workspace = true }
+petunia_mesh = { workspace = true }
+petunia_render = { workspace = true }
+wgpu = "25"
+glam = { workspace = true }
+bytemuck = "1"
+petunia_project = { workspace = true }

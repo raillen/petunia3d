@@ -1,0 +1,19 @@
+   Compiling petunia_core v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/core)
+   Compiling petunia_module_model v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-model)
+   Compiling petunia_module_assets v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-assets)
+   Compiling petunia_module_paint v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-paint)
+   Compiling petunia_module_uv v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-uv)
+   Compiling petunia_render_wgpu v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/render-wgpu)
+   Compiling petunia_render_gl v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/render-gl)
+   Compiling petunia_ui v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui)
+   Compiling petunia_app v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/app)
+   Compiling petunia3d v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 20.11s
+     Running `target/debug/petunia3d --smoke-test`
+SMOKE primitives ok (4 assets)
+SMOKE ops ok (v=377 f=440)
+SMOKE undo/redo ok
+SMOKE profile ok
+SMOKE uv/paint ok
+SMOKE project ok (6 assets, glb 1728 bytes)
+SMOKE OK

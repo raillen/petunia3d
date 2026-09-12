@@ -1,0 +1,19 @@
+[package]
+name = "petunia_render_gl"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+petunia_core = { workspace = true }
+petunia_mesh = { workspace = true }
+petunia_render = { workspace = true }
+egui_glow = { workspace = true }
+glam = { workspace = true }
+bytemuck = "1"
+uuid = { workspace = true }
+petunia_project = { workspace = true }
+winit = "0.30"
+glutin = "0.32"
+glutin-winit = "0.5"
+raw-window-handle = "0.6"

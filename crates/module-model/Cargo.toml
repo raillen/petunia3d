@@ -1,0 +1,12 @@
+[package]
+name = "petunia_module_model"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+petunia_core = { workspace = true }
+petunia_mesh = { workspace = true }
+egui = { workspace = true }
+glam = { workspace = true }
+petunia_config = { workspace = true }

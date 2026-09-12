@@ -1,0 +1,69 @@
+# 05 — Viewport, Shading e Modos de Visualização
+
+## Decisão principal
+
+O Petunia3D terá quatro modos de visualização centrais, sempre acessíveis por um único controle compacto:
+
+- **Textured** — textura/material aplicado; modo padrão para avaliação artística.
+- **Solid** — forma sem textura, com iluminação simples; ideal para avaliar volumes e silhueta.
+- **Wireframe** — arestas visíveis e transparência estrutural; ideal para alinhamento, topology e referências.
+- **Silhouette / Reference** — modelo reduzido à silhueta, com referência controlável ao fundo; modo assinatura do Petunia para tracing e comparação visual.
+
+## Overlays, não novos modos
+
+Para evitar bloat, informações técnicas entram como overlays combináveis:
+
+- Wire overlay sobre Solid/Textured.
+- Triangulation preview.
+- Vertex / edge / face selection highlights.
+- Face orientation.
+- UV checker / distortion preview.
+- Reference opacity / x-ray.
+
+## Flat e Smooth
+
+Flat/Smooth não serão modos de viewport separados; serão propriedades de shading. O projeto deve suportar:
+
+- Flat shading por padrão para estética low-poly.
+- Smooth shading **suportado no Core V1 como propriedade secundária**, não como modo de viewport separado.
+- Sharp edges / hard edges explícitos.
+- Visualização simples de normals somente em modo avançado.
+
+## Iluminação de trabalho
+
+Manter extremamente simples:
+
+- Studio light padrão previsível.
+- Rotação rápida da luz.
+- **Unlit suportado na V1** como opção secundária para conferir textura pura, sem substituir os quatro modos-base.
+- Sem sistema completo de renderização na área principal de modelagem.
+
+## Princípio de UX
+
+O usuário deve trocar a forma de enxergar o modelo sem mudar de workspace ou configurar dezenas de opções. O software adapta a visualização ao contexto: desenhar sobre referência favorece ortográfica + silhouette/reference; orbitar favorece perspective + solid/textured; editar topology ativa overlays relevantes.
+
+# Apresentação na UI
+
+A apresentação dos modos de viewport deve seguir a linguagem de controles compactos documentada na análise do Figma, mas com semântica Petunia.
+
+## Controle principal
+
+Preferir um **segmented control único** para os quatro modos mutuamente exclusivos:
+
+```plain text
+Wireframe | Solid | Textured | Silhouette/Reference
+```
+
+Não copiar `Rendered` do Blender.
+
+## Opções secundárias
+
+Lighting, Unlit, Wire Overlay, Triangulation, Face Orientation e demais overlays ficam em controles separados ou dropdown acoplado, evitando multiplicar modos principais.
+
+## Estado
+
+O modo ativo deve ser visualmente evidente por combinação de background/border/indicador, não apenas pela cor do ícone. O controle precisa também expor estado selecionado semanticamente ao toolkit de acessibilidade.
+
+## Relação com a referência visual
+
+Ver [22 — Referência de Interface: Análise do Figma Blender UI Redesign](22-referencia-interface-figma.md) para o componente `view3d_shading` observado e [25 — Biblioteca de Componentes e Contratos de Interação](25-biblioteca-componentes-interacao.md) para o contrato do View Mode Control.

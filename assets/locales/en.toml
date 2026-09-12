@@ -1,0 +1,220 @@
+# assets/locales/en.toml — English. Copy to translate (e.g. `es.toml`).
+
+[app]
+title = "Petunia3D"
+
+[ui]
+tools = "Tools"
+assets = "Asset Library"
+search = "Search"
+duplicate = "Duplicate"
+rename = "Rename"
+outliner = "Outliner"
+active_tool = "Active tool"
+no_tool = "Tool disabled in tools.toml"
+properties = "Properties"
+refs = "Reference images"
+help = "Help"
+language = "Language"
+
+[menu]
+file = "File"
+edit = "Edit"
+help = "Help"
+
+[file]
+new = "New project"
+open_project = "Open project…"
+save = "Save"
+save_as = "Save as…"
+import_obj = "Import OBJ…"
+quit = "Quit"
+
+[edit]
+undo = "Undo"
+redo = "Redo"
+
+[ws]
+model = "MODEL"
+paint = "PAINT"
+uv = "UV"
+export = "EXPORT"
+
+[modes]
+object = "Object"
+edit = "Edit"
+paint = "Texture Paint"
+vertex = "Vertex"
+edge = "Edge"
+face = "Face"
+
+[shading]
+solid = "Flat"
+smooth = "Smooth"
+unlit = "Unlit"
+wire = "Wireframe"
+textured = "Textured"
+
+[view]
+frame = "Frame"
+
+[tools]
+select = "Select"
+transform = "Move"
+primitives = "Add"
+draw_profile = "Profile"
+extrude = "Extrude"
+pushpull = "Push/Pull"
+inset = "Inset"
+bevel = "Bevel"
+subdivide = "Cut"
+slice = "Slice"
+connect = "Connect"
+dissolve = "Dissolve"
+mirror = "Mirror"
+merge = "Merge"
+paint = "Paint"
+
+[hints]
+select = "Click to select. 1/2/3: vertex/edge/face."
+transform = "G/R/S: move, rotate, scale with mouse. Enter applies; Esc cancels."
+primitives = "A: add low-poly primitive."
+draw_profile = "Shift+P: click in ortho view to add points. Click near 1st to close."
+extrude = "E: extrude selected faces."
+pushpull = "P: push/pull along normals."
+inset = "I: inset selected faces."
+bevel = "Ctrl+B: interactive bevel of one supported edge."
+subdivide = "W: subdivide (loop cut). Triangulate below."
+slice = "Shift+K: drag a cutting plane; Enter applies, Esc cancels."
+connect = "B: bridge two loops or faces."
+dissolve = "X: dissolve selected edges/vertices cleanly."
+mirror = "Ctrl+M: mirror + weld."
+merge = "M: merge selected into center."
+paint = "B: click the mesh to paint vertex colors. Alt+click: pick."
+
+[actions]
+select_all = "All"
+deselect = "None"
+invert = "Invert (Ctrl+I)"
+select_linked = "Linked (L)"
+move = "Move"
+scale = "Scale"
+apply_scale = "Apply scale"
+duplicate = "Duplicate"
+delete = "Delete"
+distance = "Distance"
+extrude = "Extrude"
+pushpull = "Push/Pull"
+factor = "Factor"
+inset = "Inset"
+amount = "Amount"
+bevel = "Bevel"
+subdivide = "Subdivide"
+slice = "Slice Plane"
+connect = "Bridge Faces"
+dissolve = "Dissolve Selected"
+flip_normals = "Flip Normals"
+recalculate_normals = "Recalc Normals"
+triangulate = "Triangulate"
+mirror = "Mirror"
+weld_eps = "Weld"
+merge_center = "Merge center"
+
+[props]
+name = "Name"
+verts = "verts"
+faces = "tris"
+
+[prims]
+cube = "Cube"
+plane = "Plane"
+cylinder = "Cylinder (8)"
+cone = "Cone (8)"
+sphere = "Sphere (low)"
+capsule = "Capsule"
+
+[paint]
+vertex = "Vertex paint"
+radius = "Radius"
+strength = "Strength"
+fill_sel = "Fill sel"
+pick = "Pick?"
+pick_hint = "Alt+click the mesh to pick a color"
+picked = "color picked"
+canvas = "Albedo canvas"
+brush = "Brush"
+eraser = "Eraser (hold Ctrl)"
+eraser_hint = "Hold Ctrl while painting to erase"
+fill = "Fill"
+clear = "Clear"
+new_canvas = "New 256²"
+size = "Size px"
+canvas_hint = "Drag to paint. Ctrl+drag erases. Wheel over UV scales it."
+
+[profile]
+points = "points"
+snap = "Snap 0.25"
+depth = "Depth"
+segments = "Revolve segs"
+close = "Close"
+undo_pt = "Undo pt"
+clear = "Clear"
+gen_extrude = "Gen Extrude"
+gen_revolve = "Gen Revolve"
+tris = "tris"
+closed = "profile closed"
+need_closed = "close the profile first (click near 1st point)"
+need_points = "draw at least 2 points first"
+generated = "profile mesh generated"
+
+[uv]
+title = "UV editor"
+reproject = "Planar"
+scale = "Scale"
+selected = "sel faces"
+hint = "Click: select face. Drag: move UVs. Wheel: scale."
+
+[refs]
+load = "Load image…"
+front = "Front"
+back = "Back"
+left = "Left"
+right = "Right"
+side = "Side"
+top = "Top"
+bottom = "Bottom"
+offset = "Offset"
+size = "Size"
+opacity = "Opacity"
+rotation = "Rotation"
+xray = "X-Ray / Overlay"
+
+[export]
+title = "Export"
+format = "Format"
+report = "Report"
+go = "Export…"
+empty = "nothing selected"
+
+[help]
+body = "MMB orbit • Shift+MMB pan • wheel zoom • Tab mode • Del delete • Home reset • H help • Ctrl+Z/Y undo"
+
+[camera]
+projection = "Projection"
+perspective = "Perspective"
+orthographic = "Orthographic"
+projection_hint = "Change projection while keeping the same framing at the view center. Orbit works in both modes."
+view = "View"
+free = "Free"
+front = "Front"
+back = "Back"
+left = "Left"
+right = "Right"
+top = "Top"
+bottom = "Bottom"
+visible_height = "Visible height"
+height_hint = "World height at the view center. Drag the value or double-click to type an exact size."
+frame_hint = "Frame the selection, or the active object when nothing is selected (F / Numpad .)."
+reset = "Reset view"
+reset_hint = "Restore the origin and default zoom while keeping this view and projection (Home)."
+views_hint = "Axis-aligned views use orthographic projection. Ctrl selects the opposite side."

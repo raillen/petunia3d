@@ -1,0 +1,40 @@
+# Changelog
+
+Todas as alterações notáveis deste projeto são documentadas neste arquivo.
+O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
+
+## [0.2.0] - 2026-09-12
+
+### Adicionado
+- Estrutura topológica Half-Edge (`HalfEdgeMesh`) com detecção de 2-variedades, anomalias de 1-anel via BFS e relatório de defeitos (`TopologyReport`).
+- Operações geométricas avançadas: Método de Newell para normais poligonais, triangulação em leque para N-gons arbitrários ($N \ge 3$), fatiamento planar com fechamento de tampas e soldagem de costuras (`cut_edge_cache`), varredura ao longo de polilinhas com RMF (`sweep`), ponte entre loops de faces com minimização cíclica de distância (`connect_loops`), dissolução de arestas/vértices (`dissolve_selected`), inversão e recálculo unificado de normais.
+- Modos de sombreamento no pipeline de renderização: Flat, Smooth (normais interpoladas por vértice) e Unlit em OpenGL 3.3 Core e WebGPU (WGSL).
+- Suporte a 6 planos ortogonais de imagens de referência (Front, Back, Left, Right, Top, Bottom) com ângulo de rotação arbitrário e modo X-Ray em split-pass (renderizado após a geometria sólida com bypass de profundidade).
+- Otimização de barramento PCIe no WebGPU com cache de hash FNV-1a para uploads de textura sob demanda.
+- Ferramentas de interface e modelagem: Slice, Connect e Dissolve na barra de ferramentas esquerda com área de rolagem vertical responsiva e ativação não-destrutiva; seleção por caixa (`box_select`) com descarte de vértices atrás da câmera; inversão completa de seleção sincronizada (`invert_selection`).
+- Preservação do índice do asset ativo na remoção de assets precedentes em `Project::remove`.
+- Sincronização automática de paleta ativa com a paleta do projeto em operações de `undo()` e `redo()`.
+- Cobertura expandida para 48 testes automatizados sem falhas e 0 warnings no Clippy com `-D warnings`.
+- Validação contínua do ciclo de vida da aplicação com teste de fumaça headless (`petunia3d --smoke-test`).
+
+## [0.1.0] - 2026-09-12
+
+### Adicionado
+- Inicialização da estrutura canônica do Prumo v0.5.
+- Configuração do manifesto `prumo.json` e orquestração `.ai/`.
+- Definição da hierarquia de documentação canônica em `docs/`.
+- Contrato estrito de arquitetura em `docs/architecture/clean-code-contract.md`.
+- Estratégia de testes exaustivos em `docs/development/testing-strategy.md` (unitários, integração, conformidade, segurança SAST/secrets, performance/stress, UI).
+- Política de documentação mandatória com `README.md` explicativo em cada diretório do projeto.
+
+## 2026-09-12 — Premium viewport, first implementation round
+
+- Added transactional modal previews, viewport HUD, exact input, axis/plane
+  constraints, snapping, transform gizmos and visible-component hover/picking.
+- Added quad loop preview/slide, welded knife segments, planar slice gestures,
+  atomic vertex-paint strokes and contextual brush radius/eyedropper input.
+- Fixed region extrusion topology, closed single-edge bevel, capped slice
+  half-space semantics, Top/Bottom camera math and viewport input/redraw ordering.
+- Standardized 1/2/3/4 selection, G/R/S, P, Ctrl+R, K/Shift+K and camera shortcuts.
+- Added independent review and domain/egui regression tests. Historical premium
+  convergence claims are superseded; remaining criteria are explicit in the plan.

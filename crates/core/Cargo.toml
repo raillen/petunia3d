@@ -1,0 +1,16 @@
+[package]
+name = "petunia_core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+petunia_mesh = { workspace = true }
+petunia_commands = { workspace = true }
+petunia_config = { workspace = true }
+petunia_project = { workspace = true }
+glam = { workspace = true }
+egui = { workspace = true }
+serde = { workspace = true }
+uuid = { workspace = true }
+petunia_render = { workspace = true }

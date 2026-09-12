@@ -1,0 +1,607 @@
+//! Petunia3D — domínio de malha low-poly.
+//!
+//! Malha própria: vértices + faces (tris/quads) + UV por vértice-de-face +
+//! arestas selecionáveis. Operações retornam `Result` em input externo e
+//! mantêm o invariante `face.uv.len() == face.verts.len()`.
+
+use std::collections::HashSet;
+
+use glam::Vec3;
+use serde::{Deserialize, Serialize};
+
+/// Vértice expandido p/ render/export: (posição, normal, cor, uv).
+pub type Tri = ([f32; 3], [f32; 3], [f32; 3], [f32; 2]);
+
+// ---------------------------------------------------------------------------
+// Tipos
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Vertex {
+    pub pos: [f32; 3],
+    pub color: [f32; 3],
+    pub selected: bool,
+}
+
+impl Vertex {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            pos: [x, y, z],
+            color: [0.75, 0.75, 0.78],
+            selected: false,
+        }
+    }
+    pub fn vec(&self) -> Vec3 {
+        Vec3::from(self.pos)
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Face {
+    /// 3 (tri) ou 4 (quad) índices.
+    pub verts: Vec<u32>,
+    /// UV por vértice-de-face; invariante: `uv.len() == verts.len()`.
+    pub uv: Vec<[f32; 2]>,
+    pub selected: bool,
+}
+
+impl Face {
+    pub fn new(verts: Vec<u32>) -> Self {
+        let n = verts.len();
+        Self {
+            verts,
+            uv: vec![[0.0, 0.0]; n],
+            selected: false,
+        }
+    }
+    pub fn with_uv(verts: Vec<u32>, uv: Vec<[f32; 2]>) -> Self {
+        debug_assert_eq!(verts.len(), uv.len());
+        Self {
+            verts,
+            uv,
+            selected: false,
+        }
+    }
+    fn fix_uv(&mut self) {
+        if self.uv.len() != self.verts.len() {
+            self.uv = vec![[0.0, 0.0]; self.verts.len()];
+        }
+    }
+}
+
+/// Malha. `selected_edges` guarda arestas como `(min, max)`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Mesh {
+    pub verts: Vec<Vertex>,
+    pub faces: Vec<Face>,
+    pub selected_edges: HashSet<(u32, u32)>,
+}
+
+fn edge_key(a: u32, b: u32) -> (u32, u32) {
+    (a.min(b), a.max(b))
+}
+
+impl Mesh {
+    fn push_face(&mut self, face: Face) {
+        let mut f = face;
+        f.fix_uv();
+        self.faces.push(f);
+    }
+
+    /// Valida/repara malha vinda de fora (arquivo): uvs, índices, arestas.
+    /// Nunca panica; remove o que não tem conserto.
+    pub fn validate(&mut self) {
+        // R2: sanitiza NaN/inf (senão o envenenamento persiste no projeto)
+        for v in &mut self.verts {
+            if !v.pos.iter().all(|x| x.is_finite()) {
+                v.pos = [0.0, 0.0, 0.0];
+            }
+            if !v.color.iter().all(|x| x.is_finite()) {
+                v.color = [0.75, 0.75, 0.78];
+            }
+        }
+        let n = self.verts.len();
+        for f in &mut self.faces {
+            f.fix_uv();
+        }
+        self.faces.retain(|f| {
+            f.verts.len() >= 3 && f.verts.iter().all(|&i| (i as usize) < n) && {
+                let mut u = f.verts.clone();
+                u.sort_unstable();
+                u.dedup();
+                u.len() >= 3
+            }
+        });
+        self.selected_edges
+            .retain(|&(a, b)| (a as usize) < n && (b as usize) < n && a != b);
+    }
+
+    pub fn vert_count(&self) -> usize {
+        self.verts.len()
+    }
+    #[allow(dead_code)]
+    pub fn face_count(&self) -> usize {
+        self.faces.len()
+    }
+    /// tris equivalentes (quads = 2 tris).
+    pub fn tri_count(&self) -> usize {
+        self.faces
+            .iter()
+            .map(|f| if f.verts.len() >= 4 { 2 } else { 1 })
+            .sum()
+    }
+
+    /// Arestas únicas da malha.
+    pub fn edges_unique(&self) -> Vec<(u32, u32)> {
+        let mut seen = HashSet::new();
+        let mut out = Vec::new();
+        for f in &self.faces {
+            let m = f.verts.len();
+            for k in 0..m {
+                let key = edge_key(f.verts[k], f.verts[(k + 1) % m]);
+                if seen.insert(key) {
+                    out.push(key);
+                }
+            }
+        }
+        out
+    }
+
+    /// Faces adjacentes a uma aresta (índices).
+    pub fn edge_faces(&self, a: u32, b: u32) -> Vec<usize> {
+        self.faces
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| {
+                let m = f.verts.len();
+                (0..m).any(|k| {
+                    let x = f.verts[k];
+                    let y = f.verts[(k + 1) % m];
+                    (x == a && y == b) || (x == b && y == a)
+                })
+            })
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    pub fn face_centroid(&self, fi: usize) -> Vec3 {
+        let f = &self.faces[fi];
+        let mut c = Vec3::ZERO;
+        for &vi in &f.verts {
+            c += self.verts[vi as usize].vec();
+        }
+        c / f.verts.len().max(1) as f32
+    }
+
+    /// Raycast contra a malha (Möller–Trumbore, quads como 2 tris).
+    /// Retorna `(face, t, ponto)` mais próximo, se houver.
+    pub fn ray_hit(&self, origin: Vec3, dir: Vec3) -> Option<(usize, f32, Vec3)> {
+        let mut best: Option<(usize, f32)> = None;
+        for (fi, f) in self.faces.iter().enumerate() {
+            let idx = &f.verts;
+            if idx.len() < 3 {
+                continue;
+            }
+            let tris: [(u32, u32, u32); 2] = if idx.len() >= 4 {
+                [(idx[0], idx[1], idx[2]), (idx[0], idx[2], idx[3])]
+            } else {
+                [(idx[0], idx[1], idx[2]), (u32::MAX, u32::MAX, u32::MAX)]
+            };
+            for (a, b, c) in tris {
+                if a == u32::MAX {
+                    continue;
+                }
+                if (a as usize) >= self.verts.len()
+                    || (b as usize) >= self.verts.len()
+                    || (c as usize) >= self.verts.len()
+                {
+                    continue;
+                }
+                if let Some(t) = triangulate::ray_tri(
+                    origin,
+                    dir,
+                    self.verts[a as usize].vec(),
+                    self.verts[b as usize].vec(),
+                    self.verts[c as usize].vec(),
+                ) {
+                    if t > 1e-6 && best.map(|(_, bt)| t < bt).unwrap_or(true) {
+                        best = Some((fi, t));
+                    }
+                }
+            }
+        }
+        best.map(|(fi, t)| (fi, t, origin + dir * t))
+    }
+
+    pub fn face_normal(&self, fi: usize) -> Vec3 {
+        triangulate::face_normal_of(&self.verts, &self.faces[fi].verts)
+    }
+}
+
+mod bevel;
+pub mod half_edge;
+pub mod knife;
+pub mod loop_cut;
+pub mod obj;
+pub mod ops;
+pub mod primitives;
+pub mod triangulate;
+pub mod uv;
+
+pub use half_edge::{
+    EdgeId, FaceId, HalfEdge, HalfEdgeId, HalfEdgeMesh, TopologyDefect, TopologyReport, VertexId,
+};
+
+impl Mesh {
+    // ---------------- saída p/ render/export ----------------
+
+    /// (pos, normal, cor, uv) por triângulo com normais facetadas (flat).
+    pub fn to_triangles(&self) -> Vec<Tri> {
+        self.to_triangles_smooth(false)
+    }
+
+    /// (pos, normal, cor, uv) por triângulo, com opção de normais suaves (interpoladas por vértice)
+    /// ou facetadas (flat).
+    pub fn to_triangles_smooth(&self, smooth: bool) -> Vec<Tri> {
+        let vert_normals: Vec<[f32; 3]> = if smooth {
+            let mut v_norms = vec![Vec3::ZERO; self.verts.len()];
+            for (fi, f) in self.faces.iter().enumerate() {
+                let fnorm = self.face_normal(fi);
+                for &vi in &f.verts {
+                    if (vi as usize) < v_norms.len() {
+                        v_norms[vi as usize] += fnorm;
+                    }
+                }
+            }
+            v_norms
+                .into_iter()
+                .map(|vn| vn.normalize_or_zero().to_array())
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        let mut out = Vec::new();
+        for f in &self.faces {
+            let m = f.verts.len();
+            if m < 3 {
+                continue;
+            }
+            for i in 1..(m - 1) {
+                let idx0 = f.verts[0] as usize;
+                let idx1 = f.verts[i] as usize;
+                let idx2 = f.verts[i + 1] as usize;
+                if idx0 >= self.verts.len() || idx1 >= self.verts.len() || idx2 >= self.verts.len()
+                {
+                    continue;
+                }
+                let pa = self.verts[idx0].vec();
+                let pb = self.verts[idx1].vec();
+                let pc = self.verts[idx2].vec();
+                let flat_n = (pb - pa).cross(pc - pa).normalize_or_zero().to_array();
+
+                let tri_indices = [idx0, idx1, idx2];
+                let tri_uvs = [
+                    f.uv.first().copied().unwrap_or([0.0, 0.0]),
+                    f.uv.get(i).copied().unwrap_or([0.0, 0.0]),
+                    f.uv.get(i + 1).copied().unwrap_or([0.0, 0.0]),
+                ];
+
+                for (k, &vi) in tri_indices.iter().enumerate() {
+                    let v = &self.verts[vi];
+                    let mut col = v.color;
+                    if v.selected || f.selected {
+                        col = [1.0, 0.55, 0.15];
+                    }
+                    let n = if smooth && vi < vert_normals.len() {
+                        vert_normals[vi]
+                    } else {
+                        flat_n
+                    };
+                    out.push((v.pos, n, col, tri_uvs[k]));
+                }
+            }
+        }
+        out
+    }
+
+    /// (pos, normal, cor, uv) com normais nulas para renderização unlit (sem iluminação).
+    pub fn to_triangles_unlit(&self) -> Vec<Tri> {
+        let mut tris = self.to_triangles_smooth(false);
+        for t in &mut tris {
+            t.1 = [0.0, 0.0, 0.0];
+        }
+        tris
+    }
+
+    /// (a, b, selecionada) p/ overlay wireframe.
+    pub fn to_edges(&self) -> Vec<([f32; 3], [f32; 3], bool)> {
+        let mut seen = HashSet::new();
+        let mut out = Vec::new();
+        for f in &self.faces {
+            let m = f.verts.len();
+            for k in 0..m {
+                let a = f.verts[k];
+                let b = f.verts[(k + 1) % m];
+                let key = edge_key(a, b);
+                if seen.insert(key) {
+                    let sel = self.selected_edges.contains(&key);
+                    out.push((self.verts[a as usize].pos, self.verts[b as usize].pos, sel));
+                }
+            }
+        }
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{triangulate::ear_clip, Face, Mesh};
+
+    #[test]
+    fn cube_has_8_verts_6_faces() {
+        let m = Mesh::cube(2.0);
+        assert_eq!(m.verts.len(), 8);
+        assert_eq!(m.faces.len(), 6);
+    }
+
+    #[test]
+    fn subdivide_quad_grows() {
+        let mut m = Mesh::cube(2.0);
+        m.select_all();
+        m.subdivide_selected();
+        assert!(m.faces.len() > 6);
+    }
+
+    #[test]
+    fn obj_roundtrip_with_uv() {
+        let m = Mesh::cube(2.0);
+        let s = m.to_obj();
+        assert!(s.contains("vt "));
+        let m2 = Mesh::from_obj(&s);
+        assert_eq!(m2.verts.len(), 8);
+        assert!(!m2.faces.is_empty());
+    }
+
+    #[test]
+    fn ear_clip_concave() {
+        // seta côncava: 7 pontos
+        let pts = [
+            [0.0, 0.0],
+            [2.0, 0.0],
+            [2.0, 1.0],
+            [1.0, 1.0],
+            [1.0, 2.0],
+            [0.0, 2.0],
+            [0.5, 1.0],
+        ];
+        let tris = ear_clip(&pts).expect("triangula");
+        assert_eq!(tris.len(), pts.len() - 2);
+    }
+
+    #[test]
+    fn ear_clip_rejects_degenerate() {
+        assert!(ear_clip(&[[0.0, 0.0], [1.0, 1.0]]).is_err());
+    }
+
+    #[test]
+    fn revolve_vase_counts() {
+        let profile = [[0.0, 0.0], [1.0, 0.0], [1.0, 2.0], [0.0, 2.0]];
+        let m = Mesh::revolve(&profile, 8).expect("revolve");
+        assert!(!m.faces.is_empty());
+        assert!(m.faces.iter().all(|f| f.uv.len() == f.verts.len()));
+    }
+
+    #[test]
+    fn mirror_welds_center() {
+        let mut m = Mesh::plane(2.0);
+        m.select_all();
+        let before = m.vert_count();
+        m.mirror(0, 0.001);
+        // plano simétrico em X com weld: volta a ~4 verts (+ tolerância)
+        assert!(m.vert_count() <= before + 4);
+    }
+
+    #[test]
+    fn bevel_manifold_cube_edge() {
+        let mut m = Mesh::cube(2.0);
+        m.selected_edges.insert((0, 1));
+        let (ok, skipped) = m.bevel_selected(0.2);
+        assert_eq!(ok, 1);
+        assert_eq!(skipped, 0);
+        assert!(m.faces.len() > 6);
+    }
+
+    #[test]
+    fn extrude_keeps_uv_invariant() {
+        let mut m = Mesh::cube(2.0);
+        m.select_all();
+        m.extrude_selected(0.5);
+        assert!(m.faces.iter().all(|f| f.uv.len() == f.verts.len()));
+    }
+
+    #[test]
+    fn capsule_is_closedish() {
+        let m = Mesh::capsule(8, 0.5, 2.0);
+        assert!(m.vert_count() > 10 && !m.faces.is_empty());
+    }
+
+    /// Guarda de winding: normais das primitivas convexas apontam p/ fora.
+    /// (Viewers com culling escondem faces invertidas — bug crítico p/ export.)
+    #[test]
+    fn primitives_wind_outward() {
+        use glam::Vec3;
+        let prims: Vec<Mesh> = vec![
+            Mesh::cube(2.0),
+            Mesh::plane(2.0),
+            Mesh::cylinder(8, 1.0, 2.0),
+            Mesh::cone(8, 1.0, 2.0),
+            Mesh::sphere_low(10, 7, 1.2),
+            Mesh::capsule(8, 0.5, 2.0),
+            Mesh::revolve(&[[0.0, -1.0], [1.0, -1.0], [1.0, 1.0], [0.0, 1.0]], 10).unwrap(),
+        ];
+        for (pi, m) in prims.iter().enumerate() {
+            let mut center = Vec3::ZERO;
+            for v in &m.verts {
+                center += v.vec();
+            }
+            center /= m.verts.len().max(1) as f32;
+            for (fi, f) in m.faces.iter().enumerate() {
+                let n = m.face_normal(fi);
+                assert!(n.length() > 1e-6, "prim {pi} face {fi} degenerada");
+                let mut c = Vec3::ZERO;
+                for &vi in &f.verts {
+                    c += m.verts[vi as usize].vec();
+                }
+                c /= f.verts.len() as f32;
+                assert!(
+                    n.dot(c - center) > -1e-4,
+                    "prim {pi} face {fi} com normal para dentro"
+                );
+            }
+        }
+        // plano: convenção +Y (para cima)
+        let plane = Mesh::plane(2.0);
+        assert!(plane.face_normal(0).y > 0.99);
+    }
+
+    #[test]
+    fn obj_hostile_indices_dropped_no_panic() {
+        // M1: índices fora da malha são descartados, sem panic depois
+        let m = Mesh::from_obj("v 0 0 0\nf 999999 999998 999997\n");
+        assert!(m.faces.is_empty());
+        // render/export helpers não panicam com malha vazia
+        assert!(m.to_triangles().is_empty());
+        assert_eq!(m.to_obj().matches("vt ").count(), 0);
+    }
+
+    #[test]
+    fn obj_nan_rejected() {
+        // M5: NaN/inf não entram na malha
+        let m = Mesh::from_obj("v nan nan nan\nv inf 0 0\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+        assert!(m.verts.iter().all(|v| v.pos.iter().all(|x| x.is_finite())));
+        assert_eq!(m.faces.len(), 1);
+    }
+
+    #[test]
+    fn validate_repairs_corrupt() {
+        // M2: invariante quebrado é reparado sem panic
+        let mut m = Mesh::cube(1.0);
+        m.faces.push(Face {
+            verts: vec![0, 1, 99],
+            uv: vec![[0.0, 0.0]],
+            selected: false,
+        });
+        m.selected_edges.insert((0, 500));
+        m.validate();
+        assert!(m.faces.iter().all(|f| f.uv.len() == f.verts.len()));
+        assert!(m
+            .faces
+            .iter()
+            .all(|f| f.verts.iter().all(|&i| (i as usize) < m.verts.len())));
+        assert!(m
+            .selected_edges
+            .iter()
+            .all(|&(a, b)| (a as usize) < m.verts.len() && (b as usize) < m.verts.len()));
+    }
+
+    #[test]
+    fn flip_normals_inverts_face_normal() {
+        let mut m = Mesh::plane(2.0);
+        let n_before = m.face_normal(0);
+        assert!(n_before.y > 0.9);
+        m.flip_normals();
+        let n_after = m.face_normal(0);
+        assert!(n_after.y < -0.9);
+    }
+
+    #[test]
+    fn recalculate_normals_unifies_inverted_cube() {
+        let mut m = Mesh::cube(2.0);
+        // Inverte propositalmente a face 0
+        m.faces[0].verts.reverse();
+        m.faces[0].uv.reverse();
+        m.recalculate_normals();
+        // Todas as normais devem apontar para fora do centro
+        for fi in 0..m.faces.len() {
+            let n = m.face_normal(fi);
+            let c = m.face_centroid(fi);
+            assert!(n.dot(c) > 0.0, "Face {} normal should point outward", fi);
+        }
+    }
+
+    #[test]
+    fn slice_plane_bisects_cube() {
+        use glam::Vec3;
+        let mut m = Mesh::cube(2.0);
+        // Corta o cubo no plano Y = 0
+        m.slice_plane(Vec3::ZERO, Vec3::Y, true);
+        assert_eq!(m.faces.len(), 6);
+        assert_eq!(m.verts.len(), 8);
+        assert!(m.verts.iter().all(|v| v.pos[1] >= 0.0));
+        let report = m.validate_topology();
+        assert!(report.is_manifold && report.is_closed, "{report:?}");
+    }
+
+    #[test]
+    fn sweep_polyline_creates_mesh() {
+        use glam::Vec3;
+        let mut m = Mesh::default();
+        let profile = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
+        let path = [
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(0.0, 2.0, 0.0),
+            Vec3::new(2.0, 4.0, 0.0),
+        ];
+        let res = m.sweep(&profile, &path, true);
+        assert!(res.is_ok());
+        assert!(!m.faces.is_empty());
+        assert!(m.faces.iter().all(|f| f.uv.len() == f.verts.len()));
+    }
+
+    #[test]
+    fn join_and_fuse_approximate() {
+        let mut m1 = Mesh::cube(2.0);
+        let m2 = Mesh::cube(2.0);
+        let count1 = m1.verts.len();
+        m1.join(&m2);
+        assert_eq!(m1.verts.len(), count1 * 2);
+        assert_eq!(m1.faces.len(), 12);
+        // Funde vértices idênticos com eps
+        m1.weld(0.001);
+        assert_eq!(m1.verts.len(), count1);
+    }
+
+    #[test]
+    fn connect_loops_bridges_faces() {
+        let mut m1 = Mesh::plane(2.0);
+        let mut m2 = Mesh::plane(2.0);
+        m2.translate_selected([0.0, 3.0, 0.0]);
+        m1.join(&m2);
+        assert_eq!(m1.faces.len(), 2);
+        let res = m1.connect_loops(0, 1);
+        assert!(res.is_ok());
+        // Deve ter criado 4 quads laterais e removido as 2 faces das pontas
+        assert_eq!(m1.faces.len(), 4);
+    }
+
+    #[test]
+    fn dissolve_selected_edge_merges_faces() {
+        let mut m = Mesh::plane(2.0);
+        // Subdivide o plano para ter aresta interna
+        m.select_all();
+        m.subdivide_selected();
+        let faces_before = m.faces.len();
+        assert_eq!(faces_before, 4);
+        // Seleciona a primeira aresta interna compartilhada por 2 faces
+        let internal_edge = m
+            .edges_unique()
+            .into_iter()
+            .find(|&(a, b)| m.edge_faces(a, b).len() == 2);
+        assert!(internal_edge.is_some());
+        m.selected_edges.clear();
+        m.selected_edges.insert(internal_edge.unwrap());
+        m.dissolve_selected();
+        assert_eq!(m.faces.len(), faces_before - 1);
+    }
+}

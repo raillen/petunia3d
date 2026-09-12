@@ -1,0 +1,43 @@
+# Petunia3D — keybinds (template padrão). Copie e edite à vontade:
+# ações desconhecidas são ignoradas, faltantes usam o padrão interno.
+
+[global]
+save_project = "Ctrl+S"
+undo = "Ctrl+Z"
+redo = "Ctrl+Shift+Z"
+toggle_wireframe = "Z"
+help = "H"
+reset_camera = "Home"
+toggle_projection = "O"
+cycle_mode = "Tab"
+
+[model]
+select_vertex = "1"
+select_face = "3"
+select_edge = "2"
+select_object = "4"
+transform = "G"
+rotate = "R"
+scale = "S"
+frame_selection = "F"
+extrude = "E"
+push_pull = "P"
+draw_profile = "Shift+P"
+inset = "I"
+bevel = "Ctrl+B"
+subdivide = "W"
+merge = "M"
+mirror = "Ctrl+M"
+slice = "Shift+K"
+knife = "K"
+loop_cut = "Ctrl+R"
+connect = "Ctrl+J"
+dissolve = "X"
+invert_selection = "Ctrl+I"
+select_linked = "L"
+primitives = "A"
+delete = "Delete"
+
+[paint]
+paint = "B"
+eyedropper = "Alt+Click"

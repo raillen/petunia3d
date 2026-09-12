@@ -1,0 +1,313 @@
+   Compiling petunia_core v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/core)
+   Compiling petunia_module_paint v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-paint)
+   Compiling petunia_module_assets v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-assets)
+   Compiling petunia_module_uv v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-uv)
+   Compiling petunia_module_model v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/module-model)
+   Compiling petunia_render_gl v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/render-gl)
+   Compiling petunia_render_wgpu v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/render-wgpu)
+   Compiling petunia_ui v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui)
+   Compiling petunia_app v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling/crates/app)
+   Compiling petunia3d v0.1.0 (/home/raillen/Documentos/Projetos/simple3d-modeling)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.46s
+     Running unittests src/main.rs (target/debug/deps/petunia3d-60ff4fbd66a6ade0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_app-fd1ce33722ea434e)
+
+running 5 tests
+test tests::key_extrude_starts_preview_without_mutating ... ok
+test tests::key_ctrl_z_undoes ... ok
+test tests::draw_profile_click_adds_point_in_front_view ... ok
+test tests::pick_empty_space_deselects ... ok
+test tests::pick_center_selects_face ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_commands-a1adbf181accdc02)
+
+running 2 tests
+test tests::checkpoint_clears_redo ... ok
+test tests::undo_redo_roundtrip ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_config-6c74e09d21acdb9c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_core-9b90b1be6939539d)
+
+running 33 tests
+test camera::tests::rays_match_projected_cursor_in_all_presets ... ok
+test camera::tests::frame_keeps_selection_inside_portrait_viewport ... ok
+test camera::tests::pan_follows_screen_basis_in_top_and_bottom_views ... ok
+test loop_cut::tests::repeated_slide_previews_rebuild_same_topology ... ok
+test modal::tests::corrupted_mesh_rejected_before_indexing ... ok
+test modal::tests::axes_and_planes_constrain_absolute_translation ... ok
+test modal::tests::cancel_preserves_redo_and_undo_cancels_active_preview ... ok
+test modal::tests::empty_selection_rejected_in_edit_mode_and_object_mode_transforms_whole_mesh ... ok
+test modal::tests::invalid_inputs_leave_last_preview_untouched ... ok
+test modal::tests::identity_after_preview_does_not_create_history_or_geometry ... ok
+test modal::tests::rotation_and_plane_scale_preserve_pivot_and_constrained_coordinates ... ok
+test modal::tests::multiple_previews_commit_one_checkpoint_and_roundtrip ... ok
+test modal::tests::topology_undo_and_redo_resynchronize_cached_selection ... ok
+test picking::tests::concave_polygon_does_not_pick_notch ... ok
+test picking::tests::edge_is_continuous_and_has_five_pixel_tolerance ... ok
+test picking::tests::faces_choose_nearest_surface ... ok
+test picking::tests::malformed_mesh_and_invalid_viewport_are_safe ... ok
+test picking::tests::perspective_edge_hit_projects_back_to_cursor ... ok
+test picking::tests::top_view_pick_matches_render_projection ... ok
+test picking::tests::hidden_vertex_and_edge_require_xray ... ok
+test picking::tests::vertex_tolerance_stays_eight_pixels_at_different_zoom_and_resolution ... ok
+test picking::tests::vertices_behind_camera_are_not_pickable_in_xray ... ok
+test preview_tests::identity_cut_preview_does_not_pollute_history ... ok
+test preview_tests::generic_preview_cannot_start_during_modal_or_paint_stroke ... ok
+test modal::tests::cancel_restores_every_operation_without_touching_history ... ok
+test preview_tests::modal_cannot_start_during_generic_preview_or_paint_stroke ... ok
+test preview_tests::cut_preview_cancel_restores_topology_and_commit_is_atomic ... ok
+test preview_tests::paint_cancel_restores_colors_without_discarding_redo ... ok
+test viewport::tests::panels_and_hidpi_map_to_same_pixels_for_both_backends ... ok
+test viewport::tests::projected_corners_and_interior_agree_with_egui_at_fractional_dpi ... ok
+test viewport::tests::resize_clamps_gpu_rect_and_rejects_empty_viewport ... ok
+test preview_tests::paint_stroke_cannot_start_inside_modal_or_cut_preview ... ok
+test preview_tests::repeated_paint_samples_commit_a_single_undo_and_redo_restores_colors ... ok
+
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_mesh-9c75774eaed2ac31)
+
+running 53 tests
+test bevel::tests::corrupt_face_indices_and_uvs_are_rejected_before_geometry_access ... ok
+test bevel::tests::unsupported_multiple_edges_and_nonfinite_width_are_atomic ... ok
+test half_edge::tests::cube_half_edge_roundtrip ... ok
+test half_edge::tests::cube_is_closed_manifold ... ok
+test half_edge::tests::non_manifold_edge_detected ... ok
+test half_edge::tests::non_manifold_vertex_detected ... ok
+test half_edge::tests::plane_has_boundary_loop ... ok
+test half_edge::tests::remove_isolated_vertices ... ok
+test knife::tests::knife_rejects_invalid_nonendpoint_index_before_geometry_access ... ok
+test half_edge::tests::topological_queries ... ok
+test knife::tests::knife_rejects_nonfinite_source_attributes ... ok
+test knife::tests::knife_rejects_missing_uv_even_when_both_points_are_existing_vertices ... ok
+test bevel::tests::twisted_surface_bevel_is_rejected_without_partial_geometry ... ok
+test knife::tests::knife_splits_cube_face_without_opening_neighbor_faces ... ok
+test loop_cut::tests::invalid_ring_and_parameters_never_mutate_source ... ok
+test loop_cut::tests::nonmanifold_branch_is_rejected ... ok
+test loop_cut::tests::open_quad_strip_preserves_uv_interpolation ... ok
+test loop_cut::tests::cylinder_side_ring_preserves_triangle_caps_and_winding ... ok
+test loop_cut::tests::slide_preview_matches_new_vertices_at_extremes ... ok
+test ops::region_tests::capped_slice_retains_positive_side_and_outward_cap ... ok
+test ops::region_tests::capped_slice_through_existing_vertices_is_welded ... ok
+test ops::region_tests::extrude_cube_face_replaces_base_and_preserves_closed_surface ... ok
+test ops::region_tests::extrude_adjacent_faces_has_shared_cap_and_only_boundary_walls ... ok
+test ops::region_tests::extrude_negative_distance_remains_closed ... ok
+test ops::region_tests::extrude_large_region_removes_old_interior_vertices ... ok
+test ops::region_tests::extrude_zero_prepares_selected_cap_for_modal_displacement ... ok
+test ops::region_tests::inset_cube_face_is_closed_even_at_clamped_maximum ... ok
+test ops::region_tests::nonfinite_extrusion_and_invalid_inset_do_not_mutate ... ok
+test ops::region_tests::tangent_slice_does_not_duplicate_existing_face ... ok
+test ops::region_tests::uncapped_slice_subdivides_both_sides_without_internal_face ... ok
+test tests::capsule_is_closedish ... ok
+test tests::bevel_manifold_cube_edge ... ok
+test tests::cube_has_8_verts_6_faces ... ok
+test tests::connect_loops_bridges_faces ... ok
+test tests::ear_clip_concave ... ok
+test tests::ear_clip_rejects_degenerate ... ok
+test tests::dissolve_selected_edge_merges_faces ... ok
+test tests::flip_normals_inverts_face_normal ... ok
+test tests::extrude_keeps_uv_invariant ... ok
+test tests::join_and_fuse_approximate ... ok
+test tests::mirror_welds_center ... ok
+test tests::obj_hostile_indices_dropped_no_panic ... ok
+test tests::obj_nan_rejected ... ok
+test tests::primitives_wind_outward ... ok
+test tests::obj_roundtrip_with_uv ... ok
+test loop_cut::tests::cube_ring_closes_and_multiple_cuts_share_vertices ... ok
+test tests::revolve_vase_counts ... ok
+test tests::recalculate_normals_unifies_inverted_cube ... ok
+test tests::slice_plane_bisects_cube ... ok
+test tests::sweep_polyline_creates_mesh ... ok
+test tests::subdivide_quad_grows ... ok
+test tests::validate_repairs_corrupt ... ok
+test bevel::tests::every_cube_edge_bevel_preserves_closed_planar_surface ... ok
+
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_module_assets-d03f63254c4481b0)
+
+running 1 test
+test tests::test_assets_filter_and_operations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_module_model-c2ea0ddc60e1e717)
+
+running 1 test
+test tests::activating_any_model_tool_preserves_geometry_and_history ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_module_paint-3c604b41923c9ec6)
+
+running 1 test
+test tests::test_push_and_set_palette_sync ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_module_uv-ec8a9d0df0523c69)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_project-dfb51a93598aec4a)
+
+running 11 tests
+test export::tests::glb_empty_errors ... ok
+test export::tests::json_str_escapes_controls ... ok
+test export::tests::obj_has_vt ... ok
+test export::tests::glb_nan_mesh_errors_not_panics ... ok
+test format::tests::rejects_garbage ... ok
+test palette::tests::gpl_roundtrip ... ok
+test format::tests::hostile_project_normalized ... ok
+test palette::tests::hex_roundtrip ... ok
+test tests::test_project_remove_shifts_active_index ... ok
+test format::tests::save_load_roundtrip ... ok
+test export::tests::glb_roundtrip_via_gltf_crate ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_render-9be490f06530d2d6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_render_gl-d773fc58c1c0ae9a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_render_wgpu-266f84324fdb85be)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/petunia_ui-dc69d055fe434a2c)
+
+running 21 tests
+test cutting_tests::loop_cut_first_click_slide_then_escape_restores_exact_mesh ... ok
+test cutting_tests::loop_cut_second_click_commits_one_checkpoint ... ok
+test cutting_tests::loop_cut_right_click_outside_viewport_centers_and_commits ... ok
+test cutting_tests::knife_two_edge_clicks_then_enter_commit_connected_cut ... ok
+test gizmo::tests::edge_on_plane_cannot_capture_arbitrary_clicks ... ok
+test gizmo::tests::convex_plane_hit_is_winding_independent ... ok
+test gizmo::tests::projected_axes_and_plane_return_drag_constraints ... ok
+test modal_tests::empty_redraw_does_not_reapply_preview_or_emit_mesh_events ... ok
+test cutting_tests::slice_drag_then_escape_restores_source_without_checkpoint ... ok
+test modal_tests::gizmo_drag_commits_on_release_without_extra_click ... ok
+test modal_tests::numeric_axis_session_enter_commits_one_checkpoint ... ok
+test modal_tests::invalid_number_cannot_confirm_last_valid_preview ... ok
+test modal_tests::pending_tool_waits_for_viewport_and_escape_cancels_without_history ... ok
+test modal_tests::keyboard_session_mouse_preview_then_escape_restores_mesh ... ok
+test modal_tests::pointer_leaving_window_keeps_last_preview_until_cancel ... ok
+test paint_tests::escape_cancels_paint_without_restarting_held_drag ... ok
+test modal_tests::sidebar_duplicate_button_is_disabled_during_modal_preview ... ok
+test paint_tests::idle_redraw_during_held_brush_does_not_repaint_or_request_render ... ok
+test modal_tests::right_click_cancels_and_left_click_confirms_keyboard_sessions ... ok
+test paint_tests::paint_mouse_drag_release_commits_one_checkpoint ... ok
+test paint_tests::paint_radius_escape_restores_radius_and_ends_adjustment ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+   Doc-tests petunia_app
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_commands
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_config
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_mesh
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_module_assets
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_module_model
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_module_paint
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_module_uv
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_project
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_render
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_render_gl
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_render_wgpu
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests petunia_ui
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

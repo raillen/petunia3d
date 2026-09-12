@@ -1,0 +1,20 @@
+[package]
+name = "petunia_ui"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+petunia_core = { workspace = true }
+petunia_mesh = { workspace = true }
+petunia_project = { workspace = true }
+petunia_config = { workspace = true }
+petunia_module_model = { workspace = true }
+petunia_module_paint = { workspace = true }
+petunia_module_uv = { workspace = true }
+petunia_module_assets = { workspace = true }
+egui = { workspace = true }
+rfd = "0.15"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+petunia_render = { workspace = true }
+glam = { workspace = true }
