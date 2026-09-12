@@ -1,0 +1,621 @@
+{
+  "source_file": "Blender.svg",
+  "width": "1920",
+  "height": "1080",
+  "viewBox": "0 0 1920 1080",
+  "counts": {
+    "embedded_images": 11,
+    "vector_icons": 36,
+    "component_frames": 0,
+    "button_controls": 8
+  },
+  "embedded_images": [
+    {
+      "id": "image0_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 1280000,
+      "width": "1920",
+      "height": "1080",
+      "png_file": "embedded_png/image0_202_4.png",
+      "svg_file": "embedded_png/image0_202_4.svg"
+    },
+    {
+      "id": "image1_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image1_202_4.png",
+      "svg_file": "embedded_png/image1_202_4.svg"
+    },
+    {
+      "id": "image2_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 20000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image2_202_4.png",
+      "svg_file": "embedded_png/image2_202_4.svg"
+    },
+    {
+      "id": "image3_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image3_202_4.png",
+      "svg_file": "embedded_png/image3_202_4.svg"
+    },
+    {
+      "id": "image4_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image4_202_4.png",
+      "svg_file": "embedded_png/image4_202_4.svg"
+    },
+    {
+      "id": "image5_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image5_202_4.png",
+      "svg_file": "embedded_png/image5_202_4.svg"
+    },
+    {
+      "id": "image6_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 20000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image6_202_4.png",
+      "svg_file": "embedded_png/image6_202_4.svg"
+    },
+    {
+      "id": "image7_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image7_202_4.png",
+      "svg_file": "embedded_png/image7_202_4.svg"
+    },
+    {
+      "id": "image8_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image8_202_4.png",
+      "svg_file": "embedded_png/image8_202_4.svg"
+    },
+    {
+      "id": "image9_202_4",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image9_202_4.png",
+      "svg_file": "embedded_png/image9_202_4.svg"
+    },
+    {
+      "id": "image10_202_4",
+      "type": "embedded_image",
+      "format": "jpg",
+      "size_bytes": 46185,
+      "width": "736",
+      "height": "736",
+      "png_file": "embedded_png/image10_202_4.jpg",
+      "svg_file": "embedded_png/image10_202_4.svg"
+    }
+  ],
+  "vector_icons": [
+    {
+      "id": "clip2_202_4",
+      "type": "vector_icon",
+      "rect": [
+        375.0,
+        96.0,
+        10.0,
+        11.0
+      ],
+      "file": "icons/icon_clip2_202_4.svg"
+    },
+    {
+      "id": "clip3_202_4",
+      "type": "vector_icon",
+      "rect": [
+        863.0,
+        96.0,
+        10.0,
+        11.0
+      ],
+      "file": "icons/icon_clip3_202_4.svg"
+    },
+    {
+      "id": "clip4_202_4",
+      "type": "vector_icon",
+      "rect": [
+        924.0,
+        96.0,
+        10.0,
+        11.0
+      ],
+      "file": "icons/icon_clip4_202_4.svg"
+    },
+    {
+      "id": "clip5_202_4",
+      "type": "vector_icon",
+      "rect": [
+        31.0,
+        124.0,
+        13.0,
+        12.0
+      ],
+      "file": "icons/icon_clip5_202_4.svg"
+    },
+    {
+      "id": "clip6_202_4",
+      "type": "vector_icon",
+      "rect": [
+        45.0,
+        140.0,
+        12.0,
+        12.0
+      ],
+      "file": "icons/icon_clip6_202_4.svg"
+    },
+    {
+      "id": "clip7_202_4",
+      "type": "vector_icon",
+      "rect": [
+        290.0,
+        140.0,
+        12.0,
+        12.0
+      ],
+      "file": "icons/icon_clip7_202_4.svg"
+    },
+    {
+      "id": "clip8_202_4",
+      "type": "vector_icon",
+      "rect": [
+        328.0,
+        140.0,
+        14.0,
+        12.0
+      ],
+      "file": "icons/icon_clip8_202_4.svg"
+    },
+    {
+      "id": "clip9_202_4",
+      "type": "vector_icon",
+      "rect": [
+        45.0,
+        156.0,
+        12.0,
+        12.0
+      ],
+      "file": "icons/icon_clip9_202_4.svg"
+    },
+    {
+      "id": "clip10_202_4",
+      "type": "vector_icon",
+      "rect": [
+        290.0,
+        156.0,
+        12.0,
+        12.0
+      ],
+      "file": "icons/icon_clip10_202_4.svg"
+    },
+    {
+      "id": "clip11_202_4",
+      "type": "vector_icon",
+      "rect": [
+        328.0,
+        156.0,
+        14.0,
+        12.0
+      ],
+      "file": "icons/icon_clip11_202_4.svg"
+    },
+    {
+      "id": "clip12_202_4",
+      "type": "vector_icon",
+      "rect": [
+        45.0,
+        172.0,
+        10.0,
+        12.0
+      ],
+      "file": "icons/icon_clip12_202_4.svg"
+    },
+    {
+      "id": "clip13_202_4",
+      "type": "vector_icon",
+      "rect": [
+        291.0,
+        172.0,
+        11.0,
+        12.0
+      ],
+      "file": "icons/icon_clip13_202_4.svg"
+    },
+    {
+      "id": "clip14_202_4",
+      "type": "vector_icon",
+      "rect": [
+        328.0,
+        172.0,
+        14.0,
+        12.0
+      ],
+      "file": "icons/icon_clip14_202_4.svg"
+    },
+    {
+      "id": "clip16_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        127.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip16_202_4.svg"
+    },
+    {
+      "id": "clip17_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        151.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip17_202_4.svg"
+    },
+    {
+      "id": "clip18_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        210.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip18_202_4.svg"
+    },
+    {
+      "id": "clip19_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        234.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip19_202_4.svg"
+    },
+    {
+      "id": "clip20_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        258.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip20_202_4.svg"
+    },
+    {
+      "id": "clip21_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        282.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip21_202_4.svg"
+    },
+    {
+      "id": "clip22_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        352.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip22_202_4.svg"
+    },
+    {
+      "id": "clip23_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        376.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip23_202_4.svg"
+    },
+    {
+      "id": "clip24_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        400.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip24_202_4.svg"
+    },
+    {
+      "id": "clip25_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        424.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip25_202_4.svg"
+    },
+    {
+      "id": "clip26_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        448.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip26_202_4.svg"
+    },
+    {
+      "id": "clip27_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        472.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip27_202_4.svg"
+    },
+    {
+      "id": "clip28_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1580.0,
+        496.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip28_202_4.svg"
+    },
+    {
+      "id": "clip29_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1630.0,
+        54.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip29_202_4.svg"
+    },
+    {
+      "id": "clip30_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1704.0,
+        55.0,
+        8.0,
+        8.0
+      ],
+      "file": "icons/icon_clip30_202_4.svg"
+    },
+    {
+      "id": "clip31_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1722.0,
+        54.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip31_202_4.svg"
+    },
+    {
+      "id": "clip32_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1742.0,
+        54.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip32_202_4.svg"
+    },
+    {
+      "id": "clip33_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1767.0,
+        54.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip33_202_4.svg"
+    },
+    {
+      "id": "clip34_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1857.0,
+        55.0,
+        8.0,
+        8.0
+      ],
+      "file": "icons/icon_clip34_202_4.svg"
+    },
+    {
+      "id": "clip35_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1875.0,
+        54.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip35_202_4.svg"
+    },
+    {
+      "id": "clip36_202_4",
+      "type": "vector_icon",
+      "rect": [
+        1895.0,
+        54.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip36_202_4.svg"
+    },
+    {
+      "id": "clip37_202_4",
+      "type": "vector_icon",
+      "rect": [
+        15.0,
+        49.0,
+        20.0,
+        20.0
+      ],
+      "file": "icons/icon_clip37_202_4.svg"
+    },
+    {
+      "id": "clip38_202_4",
+      "type": "vector_icon",
+      "rect": [
+        17.0,
+        14.0,
+        15.0,
+        12.0
+      ],
+      "file": "icons/icon_clip38_202_4.svg"
+    }
+  ],
+  "component_frames": [],
+  "button_controls": [
+    {
+      "id": "button_049",
+      "mask_id": "path-342-inside-51_202_4",
+      "type": "button_control",
+      "rect": [
+        10.0,
+        87.0,
+        340.0,
+        30.0
+      ],
+      "file": "buttons/button_049_340x30.svg"
+    },
+    {
+      "id": "button_050",
+      "mask_id": "path-352-inside-52_202_4",
+      "type": "button_control",
+      "rect": [
+        160.0,
+        93.0,
+        120.0,
+        17.0
+      ],
+      "file": "buttons/button_050_120x17.svg"
+    },
+    {
+      "id": "button_053",
+      "mask_id": "path-440-inside-57_202_4",
+      "type": "button_control",
+      "rect": [
+        1655.0,
+        49.0,
+        62.0,
+        20.0
+      ],
+      "file": "buttons/button_053_62x20.svg"
+    },
+    {
+      "id": "button_054",
+      "mask_id": "path-444-inside-58_202_4",
+      "type": "button_control",
+      "rect": [
+        1717.0,
+        49.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_054_20x20.svg"
+    },
+    {
+      "id": "button_055",
+      "mask_id": "path-448-inside-59_202_4",
+      "type": "button_control",
+      "rect": [
+        1737.0,
+        49.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_055_20x20.svg"
+    },
+    {
+      "id": "button_056",
+      "mask_id": "path-455-inside-60_202_4",
+      "type": "button_control",
+      "rect": [
+        1792.0,
+        49.0,
+        78.0,
+        20.0
+      ],
+      "file": "buttons/button_056_78x20.svg"
+    },
+    {
+      "id": "button_057",
+      "mask_id": "path-459-inside-61_202_4",
+      "type": "button_control",
+      "rect": [
+        1870.0,
+        49.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_057_20x20.svg"
+    },
+    {
+      "id": "button_058",
+      "mask_id": "path-463-inside-62_202_4",
+      "type": "button_control",
+      "rect": [
+        1890.0,
+        49.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_058_20x20.svg"
+    }
+  ]
+}

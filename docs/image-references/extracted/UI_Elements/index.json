@@ -1,0 +1,52 @@
+{
+  "source_file": "UI Elements.svg",
+  "width": "400",
+  "height": "400",
+  "viewBox": "0 0 400 400",
+  "counts": {
+    "embedded_images": 1,
+    "vector_icons": 0,
+    "component_frames": 2,
+    "button_controls": 0
+  },
+  "embedded_images": [
+    {
+      "id": "image0_202_9",
+      "type": "embedded_image",
+      "format": "jpg",
+      "size_bytes": 46185,
+      "width": "736",
+      "height": "736",
+      "png_file": "embedded_png/image0_202_9.jpg",
+      "svg_file": "embedded_png/image0_202_9.svg"
+    }
+  ],
+  "vector_icons": [],
+  "component_frames": [
+    {
+      "id": "component_set_01",
+      "type": "component_frame",
+      "rect": [
+        20.5,
+        20.5,
+        139.0,
+        59.0
+      ],
+      "element_count": 6,
+      "file": "components/component_set_01_139x59.svg"
+    },
+    {
+      "id": "component_set_02",
+      "type": "component_frame",
+      "rect": [
+        20.5,
+        100.5,
+        139.0,
+        79.0
+      ],
+      "element_count": 4,
+      "file": "components/component_set_02_139x79.svg"
+    }
+  ],
+  "button_controls": []
+}

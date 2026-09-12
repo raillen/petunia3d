@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 22.0 21.0" width="22.0" height="21.0" fill="none"><defs><mask id="path-57-inside-9_202_568" fill="white">
+<path d="M1044 6H1058C1060.21 6 1062 7.79086 1062 10V19C1062 21.2091 1060.21 23 1058 23H1044V6Z" />
+</mask>
+<clipPath id="clip0_202_568">
+<rect width="10" height="11" fill="white" transform="translate(15 9)" />
+</clipPath>
+<clipPath id="clip1_202_568">
+<rect width="10" height="11" fill="white" transform="translate(503 9)" />
+</clipPath>
+<clipPath id="clip2_202_568">
+<rect width="10" height="11" fill="white" transform="translate(564 9)" />
+</clipPath>
+</defs><g transform="translate(-1042.0, -4.0)"><path d="M1044 6H1058C1060.21 6 1062 7.79086 1062 10V19C1062 21.2091 1060.21 23 1058 23H1044V6Z" fill="#303030" />
+<path d="M1044 5H1058C1060.76 5 1063 7.23858 1063 10H1061C1061 8.34315 1059.66 7 1058 7H1044V5ZM1063 19C1063 21.7614 1060.76 24 1058 24H1044V22H1058C1059.66 22 1061 20.6569 1061 19H1063ZM1044 23V6V23ZM1058 5C1060.76 5 1063 7.23858 1063 10V19C1063 21.7614 1060.76 24 1058 24V22C1059.66 22 1061 20.6569 1061 19V10C1061 8.34315 1059.66 7 1058 7V5Z" fill="#424242" mask="url(#path-57-inside-9_202_568)" />
+<path d="M1051.47 13.36L1053 14.89L1054.53 13.36L1055 13.8333L1053 15.8333L1051 13.8333L1051.47 13.36Z" fill="white" />
+</g></svg>

@@ -1,0 +1,16 @@
+{
+  "source_file": "status_bar.svg",
+  "width": "1920",
+  "height": "30",
+  "viewBox": "0 0 1920 30",
+  "counts": {
+    "embedded_images": 0,
+    "vector_icons": 0,
+    "component_frames": 0,
+    "button_controls": 0
+  },
+  "embedded_images": [],
+  "vector_icons": [],
+  "component_frames": [],
+  "button_controls": []
+}

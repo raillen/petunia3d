@@ -1,0 +1,53 @@
+{
+  "source_file": "timeline_list_panel.svg",
+  "width": "160",
+  "height": "234",
+  "viewBox": "0 0 160 234",
+  "counts": {
+    "embedded_images": 0,
+    "vector_icons": 0,
+    "component_frames": 0,
+    "button_controls": 3
+  },
+  "embedded_images": [],
+  "vector_icons": [],
+  "component_frames": [],
+  "button_controls": [
+    {
+      "id": "button_001",
+      "mask_id": "path-1-inside-1_257_8081",
+      "type": "button_control",
+      "rect": [
+        0.0,
+        0.0,
+        160.0,
+        20.0
+      ],
+      "file": "buttons/button_001_160x20.svg"
+    },
+    {
+      "id": "button_002",
+      "mask_id": "path-5-inside-2_257_8081",
+      "type": "button_control",
+      "rect": [
+        25.0,
+        1.0,
+        110.0,
+        17.0
+      ],
+      "file": "buttons/button_002_110x17.svg"
+    },
+    {
+      "id": "button_003",
+      "mask_id": "path-8-inside-3_257_8081",
+      "type": "button_control",
+      "rect": [
+        135.0,
+        1.0,
+        17.0,
+        17.0
+      ],
+      "file": "buttons/button_003_17x17.svg"
+    }
+  ]
+}

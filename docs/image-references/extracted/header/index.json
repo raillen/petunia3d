@@ -1,0 +1,200 @@
+{
+  "source_file": "header.svg",
+  "width": "1920",
+  "height": "37",
+  "viewBox": "0 0 1920 37",
+  "counts": {
+    "embedded_images": 1,
+    "vector_icons": 9,
+    "component_frames": 0,
+    "button_controls": 6
+  },
+  "embedded_images": [
+    {
+      "id": "image0_202_10",
+      "type": "embedded_image",
+      "format": "jpg",
+      "size_bytes": 46185,
+      "width": "736",
+      "height": "736",
+      "png_file": "embedded_png/image0_202_10.jpg",
+      "svg_file": "embedded_png/image0_202_10.svg"
+    }
+  ],
+  "vector_icons": [
+    {
+      "id": "clip0_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1630.0,
+        14.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip0_202_10.svg"
+    },
+    {
+      "id": "clip1_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1704.0,
+        15.0,
+        8.0,
+        8.0
+      ],
+      "file": "icons/icon_clip1_202_10.svg"
+    },
+    {
+      "id": "clip2_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1722.0,
+        14.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip2_202_10.svg"
+    },
+    {
+      "id": "clip3_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1742.0,
+        14.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip3_202_10.svg"
+    },
+    {
+      "id": "clip4_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1767.0,
+        14.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip4_202_10.svg"
+    },
+    {
+      "id": "clip5_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1857.0,
+        15.0,
+        8.0,
+        8.0
+      ],
+      "file": "icons/icon_clip5_202_10.svg"
+    },
+    {
+      "id": "clip6_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1875.0,
+        14.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip6_202_10.svg"
+    },
+    {
+      "id": "clip7_202_10",
+      "type": "vector_icon",
+      "rect": [
+        1895.0,
+        14.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip7_202_10.svg"
+    },
+    {
+      "id": "clip8_202_10",
+      "type": "vector_icon",
+      "rect": [
+        15.0,
+        9.0,
+        20.0,
+        20.0
+      ],
+      "file": "icons/icon_clip8_202_10.svg"
+    }
+  ],
+  "component_frames": [],
+  "button_controls": [
+    {
+      "id": "button_001",
+      "mask_id": "path-9-inside-2_202_10",
+      "type": "button_control",
+      "rect": [
+        1655.0,
+        9.0,
+        62.0,
+        20.0
+      ],
+      "file": "buttons/button_001_62x20.svg"
+    },
+    {
+      "id": "button_002",
+      "mask_id": "path-13-inside-3_202_10",
+      "type": "button_control",
+      "rect": [
+        1717.0,
+        9.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_002_20x20.svg"
+    },
+    {
+      "id": "button_003",
+      "mask_id": "path-17-inside-4_202_10",
+      "type": "button_control",
+      "rect": [
+        1737.0,
+        9.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_003_20x20.svg"
+    },
+    {
+      "id": "button_004",
+      "mask_id": "path-24-inside-5_202_10",
+      "type": "button_control",
+      "rect": [
+        1792.0,
+        9.0,
+        78.0,
+        20.0
+      ],
+      "file": "buttons/button_004_78x20.svg"
+    },
+    {
+      "id": "button_005",
+      "mask_id": "path-28-inside-6_202_10",
+      "type": "button_control",
+      "rect": [
+        1870.0,
+        9.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_005_20x20.svg"
+    },
+    {
+      "id": "button_006",
+      "mask_id": "path-32-inside-7_202_10",
+      "type": "button_control",
+      "rect": [
+        1890.0,
+        9.0,
+        20.0,
+        20.0
+      ],
+      "file": "buttons/button_006_20x20.svg"
+    }
+  ]
+}

@@ -1,0 +1,217 @@
+{
+  "source_file": "toolbar.svg",
+  "width": "140",
+  "height": "416",
+  "viewBox": "0 0 140 416",
+  "counts": {
+    "embedded_images": 9,
+    "vector_icons": 0,
+    "component_frames": 1,
+    "button_controls": 8
+  },
+  "embedded_images": [
+    {
+      "id": "image0_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image0_288_791.png",
+      "svg_file": "embedded_png/image0_288_791.svg"
+    },
+    {
+      "id": "image1_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 20000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image1_288_791.png",
+      "svg_file": "embedded_png/image1_288_791.svg"
+    },
+    {
+      "id": "image2_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image2_288_791.png",
+      "svg_file": "embedded_png/image2_288_791.svg"
+    },
+    {
+      "id": "image3_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image3_288_791.png",
+      "svg_file": "embedded_png/image3_288_791.svg"
+    },
+    {
+      "id": "image4_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image4_288_791.png",
+      "svg_file": "embedded_png/image4_288_791.svg"
+    },
+    {
+      "id": "image5_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 20000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image5_288_791.png",
+      "svg_file": "embedded_png/image5_288_791.svg"
+    },
+    {
+      "id": "image6_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image6_288_791.png",
+      "svg_file": "embedded_png/image6_288_791.svg"
+    },
+    {
+      "id": "image7_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image7_288_791.png",
+      "svg_file": "embedded_png/image7_288_791.svg"
+    },
+    {
+      "id": "image8_288_791",
+      "type": "embedded_image",
+      "format": "png",
+      "size_bytes": 10000,
+      "width": "256",
+      "height": "256",
+      "png_file": "embedded_png/image8_288_791.png",
+      "svg_file": "embedded_png/image8_288_791.svg"
+    }
+  ],
+  "vector_icons": [],
+  "component_frames": [
+    {
+      "id": "component_set_01",
+      "type": "component_frame",
+      "rect": [
+        0.5,
+        0.5,
+        139.0,
+        415.0
+      ],
+      "element_count": 54,
+      "file": "components/component_set_01_139x415.svg"
+    }
+  ],
+  "button_controls": [
+    {
+      "id": "button_001",
+      "mask_id": "path-22-inside-1_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        60.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_001_40x40.svg"
+    },
+    {
+      "id": "button_002",
+      "mask_id": "path-25-inside-2_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        100.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_002_40x40.svg"
+    },
+    {
+      "id": "button_003",
+      "mask_id": "path-28-inside-3_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        140.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_003_40x40.svg"
+    },
+    {
+      "id": "button_004",
+      "mask_id": "path-31-inside-4_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        180.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_004_40x40.svg"
+    },
+    {
+      "id": "button_005",
+      "mask_id": "path-34-inside-5_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        220.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_005_40x40.svg"
+    },
+    {
+      "id": "button_006",
+      "mask_id": "path-37-inside-6_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        260.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_006_40x40.svg"
+    },
+    {
+      "id": "button_007",
+      "mask_id": "path-40-inside-7_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        300.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_007_40x40.svg"
+    },
+    {
+      "id": "button_008",
+      "mask_id": "path-43-inside-8_288_791",
+      "type": "button_control",
+      "rect": [
+        20.0,
+        340.0,
+        40.0,
+        40.0
+      ],
+      "file": "buttons/button_008_40x40.svg"
+    }
+  ]
+}

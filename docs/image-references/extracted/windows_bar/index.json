@@ -1,0 +1,28 @@
+{
+  "source_file": "windows_bar.svg",
+  "width": "1920",
+  "height": "40",
+  "viewBox": "0 0 1920 40",
+  "counts": {
+    "embedded_images": 0,
+    "vector_icons": 1,
+    "component_frames": 0,
+    "button_controls": 0
+  },
+  "embedded_images": [],
+  "vector_icons": [
+    {
+      "id": "clip0_202_28",
+      "type": "vector_icon",
+      "rect": [
+        17.0,
+        14.0,
+        15.0,
+        12.0
+      ],
+      "file": "icons/icon_clip0_202_28.svg"
+    }
+  ],
+  "component_frames": [],
+  "button_controls": []
+}

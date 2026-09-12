@@ -1,0 +1,160 @@
+{
+  "source_file": "data_panel_vertical_menu.svg",
+  "width": "30",
+  "height": "646",
+  "viewBox": "0 0 30 646",
+  "counts": {
+    "embedded_images": 0,
+    "vector_icons": 13,
+    "component_frames": 0,
+    "button_controls": 0
+  },
+  "embedded_images": [],
+  "vector_icons": [
+    {
+      "id": "clip0_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        10.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip0_242_6715.svg"
+    },
+    {
+      "id": "clip1_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        34.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip1_242_6715.svg"
+    },
+    {
+      "id": "clip2_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        93.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip2_242_6715.svg"
+    },
+    {
+      "id": "clip3_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        117.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip3_242_6715.svg"
+    },
+    {
+      "id": "clip4_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        141.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip4_242_6715.svg"
+    },
+    {
+      "id": "clip5_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        165.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip5_242_6715.svg"
+    },
+    {
+      "id": "clip6_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        235.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip6_242_6715.svg"
+    },
+    {
+      "id": "clip7_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        259.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip7_242_6715.svg"
+    },
+    {
+      "id": "clip8_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        283.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip8_242_6715.svg"
+    },
+    {
+      "id": "clip9_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        307.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip9_242_6715.svg"
+    },
+    {
+      "id": "clip10_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        331.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip10_242_6715.svg"
+    },
+    {
+      "id": "clip11_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        355.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip11_242_6715.svg"
+    },
+    {
+      "id": "clip12_242_6715",
+      "type": "vector_icon",
+      "rect": [
+        10.0,
+        379.0,
+        10.0,
+        10.0
+      ],
+      "file": "icons/icon_clip12_242_6715.svg"
+    }
+  ],
+  "component_frames": [],
+  "button_controls": []
+}

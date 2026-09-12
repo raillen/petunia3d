@@ -1,0 +1,41 @@
+{
+  "source_file": "properties_panel_header.svg",
+  "width": "340",
+  "height": "30",
+  "viewBox": "0 0 340 30",
+  "counts": {
+    "embedded_images": 0,
+    "vector_icons": 0,
+    "component_frames": 0,
+    "button_controls": 2
+  },
+  "embedded_images": [],
+  "vector_icons": [],
+  "component_frames": [],
+  "button_controls": [
+    {
+      "id": "button_001",
+      "mask_id": "path-1-inside-1_223_4422",
+      "type": "button_control",
+      "rect": [
+        0.0,
+        0.0,
+        340.0,
+        30.0
+      ],
+      "file": "buttons/button_001_340x30.svg"
+    },
+    {
+      "id": "button_002",
+      "mask_id": "path-6-inside-2_223_4422",
+      "type": "button_control",
+      "rect": [
+        187.0,
+        6.0,
+        120.0,
+        17.0
+      ],
+      "file": "buttons/button_002_120x17.svg"
+    }
+  ]
+}
