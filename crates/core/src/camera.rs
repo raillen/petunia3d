@@ -73,11 +73,13 @@ impl Camera {
         self.right().cross(self.forward()).normalize_or_zero()
     }
 
-    pub fn view_proj(&self) -> Mat4 {
-        // The analytic orbit basis remains defined at both poles.
+    pub fn view(&self) -> Mat4 {
         let eye = self.eye();
-        let view = Mat4::look_at_rh(eye, self.target, self.up());
-        let proj = match self.proj {
+        Mat4::look_at_rh(eye, self.target, self.up())
+    }
+
+    pub fn proj(&self) -> Mat4 {
+        match self.proj {
             Projection::Perspective => {
                 Mat4::perspective_rh(self.fov_y, self.aspect.max(0.01), self.near, self.far)
             }
@@ -86,8 +88,11 @@ impl Camera {
                 let w = h * self.aspect.max(0.01);
                 Mat4::orthographic_rh(-w, w, -h, h, self.near, self.far)
             }
-        };
-        proj * view
+        }
+    }
+
+    pub fn view_proj(&self) -> Mat4 {
+        self.proj() * self.view()
     }
 
     /// Raio do cursor (ndc x/y em [-1,1]) para pick/posicionamento.

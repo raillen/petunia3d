@@ -1,0 +1,25 @@
+# Petunia Simple Keymap Profile
+[profile]
+id = "petunia-simple"
+name = "Petunia Simples"
+description = "Atalhos minimalistas focados em modelagem rápida para iniciantes sem combinações complexas"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Y"
+save_project = "Ctrl+S"
+help = "F1"
+reset_camera = "Space"
+
+[model]
+select_vertex = "1"
+select_edge = "2"
+select_face = "3"
+select_object = "4"
+transform = "T"
+rotate = "R"
+scale = "S"
+frame_selection = "F"
+extrude = "E"
+inset = "I"
+delete = "Delete"

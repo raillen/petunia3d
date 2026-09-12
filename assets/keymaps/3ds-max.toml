@@ -1,0 +1,21 @@
+# 3ds Max-like Keymap Profile
+[profile]
+id = "3ds-max"
+name = "3ds Max"
+description = "Padrão Autodesk 3ds Max (Q/W/E/R, Z para Zoom Extents, 1/2/3/4 para sub-objetos)"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Y"
+save_project = "Ctrl+S"
+
+[model]
+select_vertex = "1"
+select_edge = "2"
+select_face = "4"
+transform = "W"
+rotate = "E"
+scale = "R"
+frame_selection = "Z"
+extrude = "Shift+E"
+delete = "Delete"

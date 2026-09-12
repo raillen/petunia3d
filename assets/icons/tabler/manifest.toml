@@ -1,0 +1,6 @@
+[icon_pack]
+id = "tabler"
+name = "Tabler Icons"
+version = "3.2.0"
+author = "Paweł Kuna"
+description = "Conjunto de ícones altamente consistente, desenhado em grade de 24x24 pixels com traço uniforme de 2px"

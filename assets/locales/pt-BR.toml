@@ -218,3 +218,11 @@ frame_hint = "Enquadrar a seleção ou o objeto ativo quando nada estiver seleci
 reset = "Redefinir vista"
 reset_hint = "Voltar à origem e ao zoom inicial mantendo esta vista e projeção (Home)."
 views_hint = "Vistas alinhadas aos eixos usam projeção ortográfica. Ctrl seleciona o lado oposto."
+
+[settings]
+title = "Configurações"
+appearance = "Aparência"
+icons = "Ícones"
+language = "Idioma"
+keymap = "Atalhos"
+

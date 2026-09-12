@@ -230,6 +230,71 @@ pub struct AppState {
     pub show_overlays: bool,
     /// Modo de raio-x / transparência no viewport.
     pub show_xray: bool,
+    /// Medições ativas na cena (ferramenta Measure).
+    pub measurements: Vec<Measurement>,
+    pub active_measurement: Option<Measurement>,
+    /// Anotações e rascunhos livres na cena (ferramenta Annotate).
+    pub annotations: Vec<AnnotationStroke>,
+    pub active_annotation: Option<AnnotationStroke>,
+    /// Modal de configurações ativado.
+    pub show_settings: bool,
+    pub settings_tab: String,
+    /// Gaveta/modal de biblioteca de assets ativado.
+    pub show_asset_library: bool,
+    /// Tema ativo ("petunia-dark", "petunia-light", "petunia-capuccino", "petunia-tokyo-nights").
+    pub active_theme_id: String,
+    /// Pacote de ícones ativo ("tabler", "iconoir", "phosphor", "lucide").
+    pub active_icon_pack_id: String,
+    /// Perfil de atalhos ativo ("petunia-default", "blender-like", etc.).
+    pub active_keymap_id: String,
+}
+
+/// Medição interativa em espaço 3D (ferramenta Measure).
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Measurement {
+    pub start: [f32; 3],
+    pub end: [f32; 3],
+    pub distance: f32,
+}
+
+impl Measurement {
+    pub fn new(start: [f32; 3], end: [f32; 3]) -> Self {
+        let dx = end[0] - start[0];
+        let dy = end[1] - start[1];
+        let dz = end[2] - start[2];
+        let distance = (dx * dx + dy * dy + dz * dz).sqrt();
+        Self {
+            start,
+            end,
+            distance,
+        }
+    }
+
+    pub fn deltas(&self) -> [f32; 3] {
+        [
+            (self.end[0] - self.start[0]).abs(),
+            (self.end[1] - self.start[1]).abs(),
+            (self.end[2] - self.start[2]).abs(),
+        ]
+    }
+}
+
+/// Traço de anotação livre em espaço 3D ou tela (ferramenta Annotate).
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct AnnotationStroke {
+    pub points: Vec<[f32; 3]>,
+    pub color: [f32; 4],
+    pub width: f32,
+}
+
+impl Default for AnnotationStroke {
+    fn default() -> Self {
+        Self {
+            points: Vec::new(),
+            color: [0.0, 0.74, 0.83, 1.0], // Ciano característico do Blender
+            width: 2.0,
+        }
+    }
 }
 
 impl AppState {
@@ -308,6 +373,16 @@ impl AppState {
             pivot_point: "Median Point".to_string(),
             show_overlays: true,
             show_xray: false,
+            measurements: Vec::new(),
+            active_measurement: None,
+            annotations: Vec::new(),
+            active_annotation: None,
+            show_settings: false,
+            settings_tab: "appearance".to_string(),
+            show_asset_library: false,
+            active_theme_id: "petunia-dark".to_string(),
+            active_icon_pack_id: "tabler".to_string(),
+            active_keymap_id: "petunia-default".to_string(),
         }
     }
 
@@ -534,5 +609,43 @@ impl AppState {
             }
         }
         best.map(|(e, _, _, p)| (e, p))
+    }
+
+    /// Salva o objeto ativo atual como um novo asset permanente na biblioteca do projeto.
+    pub fn save_active_as_asset(&mut self) -> bool {
+        if let Some(active_asset) = self.project.active() {
+            let mut cloned = active_asset.duplicate();
+            cloned.name = format!("{} (Asset)", active_asset.name);
+            let name = cloned.name.clone();
+            self.checkpoint("save asset");
+            self.project.assets.push(cloned);
+            self.set_status(format!("Asset '{}' salvo na biblioteca do projeto", name));
+            self.mark_dirty();
+            return true;
+        }
+        false
+    }
+
+    /// Cria uma nova instância de um asset da biblioteca na posição do 3D Cursor.
+    pub fn instantiate_asset_at_cursor(&mut self, asset_index: usize) -> bool {
+        if let Some(asset) = self.project.assets.get(asset_index) {
+            let mut new_asset = asset.duplicate();
+            let cursor = self.cursor_3d;
+            for v in &mut new_asset.mesh.verts {
+                v.pos[0] += cursor[0];
+                v.pos[1] += cursor[1];
+                v.pos[2] += cursor[2];
+            }
+            let name = new_asset.name.clone();
+            self.checkpoint("instantiate asset");
+            self.project.assets.push(new_asset);
+            self.project.active = self.project.assets.len() - 1;
+            self.sync_selection();
+            self.emit_mesh_changed();
+            self.set_status(format!("Asset '{}' instanciado na cena", name));
+            self.mark_dirty();
+            return true;
+        }
+        false
     }
 }

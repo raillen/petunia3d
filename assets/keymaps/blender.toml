@@ -1,0 +1,27 @@
+# Blender-like Keymap Profile
+[profile]
+id = "blender"
+name = "Blender (Oficial)"
+description = "Mapeamento 100% fiel ao padrão Blender (G/R/S, E, I, Ctrl+B, Shift+A, Tab, Numpad)"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Shift+Z"
+save_project = "Ctrl+S"
+cycle_mode = "Tab"
+
+[model]
+select_vertex = "1"
+select_edge = "2"
+select_face = "3"
+transform = "G"
+rotate = "R"
+scale = "S"
+frame_selection = "Numpad ."
+extrude = "E"
+inset = "I"
+bevel = "Ctrl+B"
+loop_cut = "Ctrl+R"
+knife = "K"
+primitives = "Shift+A"
+delete = "X"

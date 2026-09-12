@@ -1,123 +1,125 @@
 //! Barra de contexto superior do Viewport 3D (`3D View Bar`).
-//! Implementa os controles de modo (Object/Edit), seleção de componente (1/2/3),
-//! orientação de transformação, snapping, proporcional e modos de shading canônicos do Blender.svg.
+//! Organizada em 5 clusters semânticos coerentes:
+//! 1. Seleção unificada (Objeto, Vértice, Aresta, Face);
+//! 2. Menus de ação rápida com ícones compactos (View, Select, Add);
+//! 3. Orientação de transformação, Ponto de pivô e Snapping magnético;
+//! 4. Diagnóstico de cena (Overlays e X-Ray);
+//! 5. 4 modos de sombreamento esféricos canônicos do Blender.
 
-use egui::{vec2, Ui};
+use egui::{vec2, Color32, CornerRadius, Ui};
 use petunia_core::{AppState, EditMode, Projection, SelectMode};
+use petunia_mesh::Mesh;
 use petunia_render::Shading;
 
 use crate::tokens;
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+    ui.horizontal_centered(|ui| {
+        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-        // 1. Seletor de Modo (Object / Edit)
-        draw_mode_selector(ui, state);
+        // CLUSTER 1: Seletor Unificado de Seleção (Objeto, Vértice, Aresta, Face)
+        draw_selection_target_cluster(ui, state);
 
         ui.add_space(2.0);
-
-        // 2. Seleção de Componentes (Vértice / Aresta / Face) no Modo de Edição
-        if state.mode == EditMode::Edit {
-            draw_component_selectors(ui, state);
-            ui.separator();
-        }
-
-        // 3. Menus contextuais do Viewport (View, Select, Add, Mesh)
-        draw_viewport_menus(ui, state);
-
         ui.separator();
+        ui.add_space(2.0);
 
-        // 4. Orientação de Transformação (Global, Local, etc.)
-        draw_transform_orientation(ui, state);
+        // CLUSTER 2: Menus Rápidos com Ícones (View, Select, Add)
+        draw_viewport_actions_cluster(ui, state);
 
-        // 5. Ponto de Pivô
-        draw_pivot_point(ui, state);
+        ui.add_space(2.0);
+        ui.separator();
+        ui.add_space(2.0);
 
-        // 6. Snapping e Edição Proporcional
-        draw_snap_and_proportional(ui, state);
+        // CLUSTER 3: Orientação, Pivô e Snapping
+        draw_transform_and_snap_cluster(ui, state);
 
-        // 7. Controles do lado direito (Overlays, X-Ray e 4 Esferas de Shading)
+        // CLUSTER 4 & 5: Controles do lado direito (Overlays, X-Ray e 4 Esferas de Shading)
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            draw_shading_spheres(ui, state);
+            // CLUSTER 5: 4 Modos de Sombreamento no Estilo Canônico do Blender
+            draw_shading_spheres_cluster(ui, state);
+
+            ui.add_space(3.0);
             ui.separator();
-            draw_display_toggles(ui, state);
+            ui.add_space(3.0);
+
+            // CLUSTER 4: Diagnóstico de Visualização (Overlays e X-Ray)
+            draw_display_toggles_cluster(ui, state);
         });
     });
 }
 
-fn draw_mode_selector(ui: &mut Ui, state: &mut AppState) {
-    let (mode_label, mode_color) = match state.mode {
-        EditMode::Object => ("Object Mode", tokens::MODE_OBJECT),
-        EditMode::Edit => ("Edit Mode", tokens::MODE_EDIT),
-        EditMode::TexturePaint => ("Paint Mode", tokens::MODE_PAINT),
-    };
-
-    let _ = mode_color;
-    egui::ComboBox::from_id_salt("viewport_mode_select")
-        .selected_text(
-            egui::RichText::new(mode_label)
-                .size(11.5)
-                .color(tokens::TEXT_ACTIVE),
-        )
-        .show_ui(ui, |ui| {
-            if ui
-                .selectable_label(state.mode == EditMode::Object, "Object Mode · Tab")
-                .clicked()
-            {
-                state.mode = EditMode::Object;
-                state.mark_dirty();
-            }
-            if ui
-                .selectable_label(state.mode == EditMode::Edit, "Edit Mode · Tab")
-                .clicked()
-            {
-                state.mode = EditMode::Edit;
-                state.mark_dirty();
-            }
-            if ui
-                .selectable_label(state.mode == EditMode::TexturePaint, "Paint Mode")
-                .clicked()
-            {
-                state.mode = EditMode::TexturePaint;
-                state.mark_dirty();
-            }
-        });
-}
-
-fn draw_component_selectors(ui: &mut Ui, state: &mut AppState) {
-    let components = [
-        (SelectMode::Vertex, "Vertex", "1", "Vértices · 1"),
-        (SelectMode::Edge, "Edge", "2", "Arestas · 2"),
-        (SelectMode::Face, "Face", "3", "Faces · 3"),
+/// Cluster 1: Seletor unificado de 4 tipos de seleção substituindo a dualidade de modos.
+fn draw_selection_target_cluster(ui: &mut Ui, state: &mut AppState) {
+    let targets = [
+        (0, "🧊 Objeto", "Tab", "Seleção de Objeto · Tab ou 0"),
+        (1, "⬝ Vértice", "1", "Seleção de Vértices · 1"),
+        (2, "╱ Aresta", "2", "Seleção de Arestas · 2"),
+        (3, "▨ Face", "3", "Seleção de Faces · 3"),
     ];
 
-    for (mode, tag, shortcut, hint) in components {
-        let is_active = state.select_mode == mode;
+    for (target_idx, label, shortcut, hint) in targets {
+        let is_active = match target_idx {
+            0 => state.mode == EditMode::Object,
+            1 => state.mode == EditMode::Edit && state.select_mode == SelectMode::Vertex,
+            2 => state.mode == EditMode::Edit && state.select_mode == SelectMode::Edge,
+            3 => state.mode == EditMode::Edit && state.select_mode == SelectMode::Face,
+            _ => false,
+        };
+
         let (bg, fg) = if is_active {
             (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
         } else {
             (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
         };
 
-        let btn = egui::Button::new(
-            egui::RichText::new(format!("{tag} [{shortcut}]"))
-                .size(10.5)
-                .color(fg),
-        )
-        .fill(bg)
-        .corner_radius(tokens::RADIUS_CONTROL);
+        let btn = egui::Button::new(egui::RichText::new(label).size(11.0).color(fg))
+            .fill(bg)
+            .corner_radius(tokens::RADIUS_CONTROL);
 
-        if ui.add(btn).on_hover_text(hint).clicked() {
-            state.select_mode = mode;
-            state.sync_selection();
+        if ui
+            .add(btn)
+            .on_hover_text(format!("{hint} [{shortcut}]"))
+            .clicked()
+        {
+            match target_idx {
+                0 => {
+                    state.mode = EditMode::Object;
+                    state.active_tool = "select".into();
+                }
+                1 => {
+                    state.mode = EditMode::Edit;
+                    state.select_mode = SelectMode::Vertex;
+                    state.sync_selection();
+                }
+                2 => {
+                    state.mode = EditMode::Edit;
+                    state.select_mode = SelectMode::Edge;
+                    state.sync_selection();
+                }
+                3 => {
+                    state.mode = EditMode::Edit;
+                    state.select_mode = SelectMode::Face;
+                    state.sync_selection();
+                }
+                _ => {}
+            }
+            state.mark_dirty();
         }
     }
 }
 
-fn draw_viewport_menus(ui: &mut Ui, state: &mut AppState) {
-    ui.menu_button("View", |ui| {
+/// Cluster 2: Menus rápidos representados com ícones compactos.
+fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
+    let visuals = ui.visuals_mut();
+    visuals.widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
+    visuals.widgets.inactive.bg_fill = Color32::TRANSPARENT;
+    visuals.widgets.hovered.weak_bg_fill = tokens::BG_SURFACE_HOVER;
+    visuals.widgets.active.weak_bg_fill = tokens::ACCENT_BLUE;
+
+    // Menu View com ícone de Câmera/Viewport
+    ui.menu_button("👁 View ▾", |ui| {
         if ui.button("Frame Selected · Numpad .").clicked() {
             crate::frame_selection(state);
             ui.close();
@@ -148,7 +150,8 @@ fn draw_viewport_menus(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
-    ui.menu_button("Select", |ui| {
+    // Menu Select com ícone de Marquise de Seleção
+    ui.menu_button("▢ Select ▾", |ui| {
         if ui.button("Select All · A").clicked() {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.select_all();
@@ -172,30 +175,58 @@ fn draw_viewport_menus(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
-    ui.menu_button("Add", |ui| {
-        if ui.button("Cube").clicked() {
-            state.active_tool = "primitives".into();
-            state.mark_dirty();
+    // Menu Add com botão explícito ➕ Add+ solicitado pelo usuário
+    let mut spawn_mesh: Option<(&'static str, Mesh)> = None;
+    ui.menu_button("➕ Add+ ▾", |ui| {
+        if ui.button("🧊 Cube").clicked() {
+            spawn_mesh = Some(("Cube", Mesh::cube(1.0)));
             ui.close();
         }
-        if ui.button("Cylinder").clicked() {
-            state.active_tool = "primitives".into();
-            state.mark_dirty();
+        if ui.button("⚪ UV Sphere").clicked() {
+            spawn_mesh = Some(("Sphere", Mesh::sphere_low(16, 12, 0.5)));
+            ui.close();
+        }
+        if ui.button("🛢 Cylinder").clicked() {
+            spawn_mesh = Some(("Cylinder", Mesh::cylinder(16, 0.5, 1.0)));
+            ui.close();
+        }
+        if ui.button("▭ Plane").clicked() {
+            spawn_mesh = Some(("Plane", Mesh::plane(2.0)));
+            ui.close();
+        }
+        if ui.button("▲ Cone").clicked() {
+            spawn_mesh = Some(("Cone", Mesh::cone(16, 0.5, 1.0)));
             ui.close();
         }
     });
+
+    if let Some((name, mut mesh)) = spawn_mesh {
+        state.checkpoint("add primitive");
+        let cursor = state.cursor_3d;
+        for v in &mut mesh.verts {
+            v.pos[0] += cursor[0];
+            v.pos[1] += cursor[1];
+            v.pos[2] += cursor[2];
+        }
+        state.project.add(name, mesh);
+        state.sync_selection();
+        state.emit_mesh_changed();
+        state.mark_dirty();
+    }
 }
 
-fn draw_transform_orientation(ui: &mut Ui, state: &mut AppState) {
+/// Cluster 3: Orientação de transformação, Ponto de pivô e Snapping magnético.
+fn draw_transform_and_snap_cluster(ui: &mut Ui, state: &mut AppState) {
+    // Orientação de Transformação
     egui::ComboBox::from_id_salt("transform_orientation")
         .selected_text(
             egui::RichText::new(&state.transform_orientation)
                 .size(11.0)
                 .color(tokens::TEXT_PRIMARY),
         )
-        .width(68.0)
+        .width(64.0)
         .show_ui(ui, |ui| {
-            for orient in ["Global", "Local", "Normal", "Gimbal", "View", "Cursor"] {
+            for orient in ["Global", "Local", "Normal", "View", "Cursor"] {
                 if ui
                     .selectable_label(state.transform_orientation == orient, orient)
                     .clicked()
@@ -205,22 +236,21 @@ fn draw_transform_orientation(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
-}
 
-fn draw_pivot_point(ui: &mut Ui, state: &mut AppState) {
+    // Ponto de Pivô
     egui::ComboBox::from_id_salt("pivot_point")
         .selected_text(
             egui::RichText::new(&state.pivot_point)
                 .size(11.0)
                 .color(tokens::TEXT_PRIMARY),
         )
-        .width(96.0)
+        .width(92.0)
         .show_ui(ui, |ui| {
             for pivot in [
-                "Bounding Box",
-                "3D Cursor",
-                "Individual Origins",
                 "Median Point",
+                "3D Cursor",
+                "Bounding Box",
+                "Individual Origins",
                 "Active Element",
             ] {
                 if ui
@@ -232,9 +262,7 @@ fn draw_pivot_point(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
-}
 
-fn draw_snap_and_proportional(ui: &mut Ui, state: &mut AppState) {
     // Botão Snap (Ímã)
     let snap_bg = if state.snap_enabled {
         tokens::ACCENT_BLUE
@@ -282,7 +310,8 @@ fn draw_snap_and_proportional(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-fn draw_display_toggles(ui: &mut Ui, state: &mut AppState) {
+/// Cluster 4: Alternâncias de visualização de cena (Overlays e X-Ray).
+fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
     // Toggle Overlays (Grid, Eixos, Cursor)
     let ov_bg = if state.show_overlays {
         tokens::ACCENT_BLUE
@@ -290,16 +319,17 @@ fn draw_display_toggles(ui: &mut Ui, state: &mut AppState) {
         tokens::BG_SURFACE
     };
     let ov_btn = egui::Button::new(
-        egui::RichText::new("Overlays")
+        egui::RichText::new("⊞ Overlays")
             .size(10.5)
             .color(tokens::TEXT_ACTIVE),
     )
+    .min_size(vec2(24.0, 22.0))
     .fill(ov_bg)
     .corner_radius(tokens::RADIUS_CONTROL);
 
     if ui
         .add(ov_btn)
-        .on_hover_text("Alternar Exibição de Overlays")
+        .on_hover_text("Alternar Exibição de Overlays (Grade 3D e Eixos)")
         .clicked()
     {
         state.show_overlays = !state.show_overlays;
@@ -313,16 +343,17 @@ fn draw_display_toggles(ui: &mut Ui, state: &mut AppState) {
         tokens::BG_SURFACE
     };
     let xray_btn = egui::Button::new(
-        egui::RichText::new("X-Ray")
+        egui::RichText::new("⧉ X-Ray")
             .size(10.5)
             .color(tokens::TEXT_ACTIVE),
     )
+    .min_size(vec2(24.0, 22.0))
     .fill(xray_bg)
     .corner_radius(tokens::RADIUS_CONTROL);
 
     if ui
         .add(xray_btn)
-        .on_hover_text("Modo Raio-X / Transparência · Alt+Z")
+        .on_hover_text("Modo Raio-X / Transparência de Malha · Alt+Z")
         .clicked()
     {
         state.show_xray = !state.show_xray;
@@ -330,16 +361,17 @@ fn draw_display_toggles(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-fn draw_shading_spheres(ui: &mut Ui, state: &mut AppState) {
+/// Cluster 5: Os 4 modos canônicos de sombreamento no estilo esférico do Blender.
+fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
     let modes = [
-        (Shading::Wireframe, "Wire", "Wireframe Shading · Z 4"),
-        (Shading::Solid, "Solid", "Solid Shading · Z 6"),
-        (Shading::Smooth, "Material", "Material Preview · Z 2"),
-        (Shading::Unlit, "Render", "Rendered View · Z 8"),
+        (Shading::Wireframe, "○", "Wireframe (Z 4)"),
+        (Shading::Solid, "●", "Solid / Clay (Z 6)"),
+        (Shading::Smooth, "◐", "Material Preview (Z 2)"),
+        (Shading::Unlit, "☼", "Rendered View (Z 8)"),
     ];
 
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+        ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
         for (shading, label, hint) in modes {
             let is_active = state.shading == shading;
             let (bg, fg) = if is_active {
@@ -348,9 +380,10 @@ fn draw_shading_spheres(ui: &mut Ui, state: &mut AppState) {
                 (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
             };
 
-            let btn = egui::Button::new(egui::RichText::new(label).size(10.5).color(fg))
+            let btn = egui::Button::new(egui::RichText::new(label).size(13.0).strong().color(fg))
+                .min_size(vec2(22.0, 22.0))
                 .fill(bg)
-                .corner_radius(tokens::RADIUS_CONTROL);
+                .corner_radius(CornerRadius::same(11));
 
             if ui.add(btn).on_hover_text(hint).clicked() {
                 state.shading = shading;
@@ -374,5 +407,18 @@ mod tests {
                 draw(ui, &mut state);
             });
         });
+    }
+
+    #[test]
+    fn test_selection_modes_toggle_via_bar() {
+        let mut state = AppState::new("en");
+        assert_eq!(state.mode, EditMode::Object);
+
+        state.mode = EditMode::Edit;
+        state.select_mode = SelectMode::Vertex;
+        assert_eq!(state.select_mode, SelectMode::Vertex);
+
+        state.select_mode = SelectMode::Face;
+        assert_eq!(state.select_mode, SelectMode::Face);
     }
 }

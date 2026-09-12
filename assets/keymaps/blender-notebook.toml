@@ -1,0 +1,22 @@
+# Blender-like Notebook Keymap Profile
+[profile]
+id = "blender-notebook"
+name = "Blender Notebook"
+description = "Padrão Blender adaptado para laptops com emulação de teclado numérico nas teclas numéricas superiores"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Shift+Z"
+save_project = "Ctrl+S"
+cycle_mode = "Tab"
+
+[model]
+transform = "G"
+rotate = "R"
+scale = "S"
+frame_selection = "F"
+extrude = "E"
+inset = "I"
+bevel = "Ctrl+B"
+loop_cut = "Ctrl+R"
+delete = "Delete"

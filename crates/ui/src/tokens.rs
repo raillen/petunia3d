@@ -42,8 +42,12 @@ pub const BORDER_LIGHT: Color32 = Color32::from_rgb(0x3e, 0x3e, 0x3e);
 
 // ----------------------------------------------------------------- Dimensões (px)
 pub const TOP_HEADER_HEIGHT: f32 = 28.0;
+pub const TOP_HEADER_MAX_HEIGHT: f32 = 72.0;
 pub const VIEWPORT_BAR_HEIGHT: f32 = 26.0;
+pub const VIEWPORT_BAR_MAX_HEIGHT: f32 = 56.0;
 pub const TOOLBAR_WIDTH: f32 = 40.0;
+pub const TOOLBAR_MIN_WIDTH: f32 = 48.0;
+pub const TOOLBAR_MAX_WIDTH: f32 = 240.0;
 pub const STATUS_BAR_HEIGHT: f32 = 24.0;
 pub const TIMELINE_HEIGHT: f32 = 56.0;
 pub const PROPERTIES_DEFAULT_WIDTH: f32 = 290.0;
@@ -65,4 +69,39 @@ pub fn stroke_border() -> Stroke {
 
 pub fn stroke_focus() -> Stroke {
     Stroke::new(1.5_f32, ACCENT_BORDER)
+}
+
+pub use petunia_config::ThemeToken;
+
+/// Obtém dinamicamente a cor correspondente a um ThemeToken para o tema ativo no AppState.
+pub fn color(state: &petunia_core::AppState, token: ThemeToken) -> Color32 {
+    let registry = petunia_config::ThemeRegistry::global();
+    if let Some(theme) = registry.get_theme(&state.active_theme_id) {
+        theme.colors.get_token_color(token)
+    } else {
+        match token {
+            ThemeToken::BgCanvas => BG_APP,
+            ThemeToken::BgHeader => BG_HEADER,
+            ThemeToken::BgPanel => BG_PANEL,
+            ThemeToken::BgPanelHeader => BG_PANEL_HEADER,
+            ThemeToken::BgSurface => BG_SURFACE,
+            ThemeToken::BgSurfaceHover => BG_SURFACE_HOVER,
+            ThemeToken::BgSurfaceActive => BG_SURFACE_ACTIVE,
+            ThemeToken::TextPrimary => TEXT_PRIMARY,
+            ThemeToken::TextSecondary => TEXT_SECONDARY,
+            ThemeToken::TextMuted => TEXT_MUTED,
+            ThemeToken::TextActive => TEXT_ACTIVE,
+            ThemeToken::AccentBlue => ACCENT_BLUE,
+            ThemeToken::AccentOrange => MODE_EDIT,
+            ThemeToken::AccentHover => ACCENT_BLUE_HOVER,
+            ThemeToken::AccentBorder => ACCENT_BORDER,
+            ThemeToken::BorderSubtle => BORDER_SUBTLE,
+            ThemeToken::BorderStrong => BORDER_LIGHT,
+            ThemeToken::BorderFocus => ACCENT_BLUE,
+            ThemeToken::StatusInfo => ACCENT_BLUE,
+            ThemeToken::StatusWarning => MODE_EDIT,
+            ThemeToken::StatusError => AXIS_X,
+            ThemeToken::StatusSuccess => MODE_PAINT,
+        }
+    }
 }

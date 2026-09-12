@@ -10,25 +10,34 @@ use petunia_mesh::Mesh;
 use petunia_module_model::ToolRegistry;
 use petunia_project::{export, format};
 
+pub mod annotation;
 pub mod app_icons;
+pub mod asset_library_drawer;
 pub mod camera_controls;
 mod cutting;
+pub mod file_dialog_service;
 pub mod gizmo;
+pub mod icon_registry;
 pub mod icons;
 pub mod main_header;
+pub mod measurement;
 #[cfg(test)]
 mod modal_tests;
 mod modal_viewport;
 pub mod nav_gizmo;
 pub mod outliner;
 pub mod properties_panel;
+pub mod settings_modal;
 pub mod status_bar;
+pub mod tiles_workspace;
 pub mod timeline;
 pub mod tokens;
 mod tool_fields;
 pub mod toolbar;
+pub mod transform_gizmo_integration;
 pub mod viewport_bar;
 mod viewport_interaction;
+pub mod widgets;
 
 pub struct UiAction {
     pub quit: bool,
@@ -49,16 +58,19 @@ pub fn draw(
 ) {
     main_header::draw(ctx, state, action);
     status_bar::draw(ctx, state, tools);
-    timeline::draw(ctx, state);
     toolbar::draw(ctx, state, tools);
     right_panel(ctx, state, tools, registry);
     viewport_bar_panel(ctx, state);
     viewport(ctx, state);
+    asset_library_drawer::draw(ctx, state);
+    settings_modal::draw(ctx, state);
 }
 
 fn viewport_bar_panel(ctx: &egui::Context, state: &mut AppState) {
     egui::TopBottomPanel::top("viewport_context_bar")
-        .exact_height(tokens::VIEWPORT_BAR_HEIGHT)
+        .default_height(tokens::VIEWPORT_BAR_HEIGHT)
+        .height_range(tokens::VIEWPORT_BAR_HEIGHT..=tokens::VIEWPORT_BAR_MAX_HEIGHT)
+        .resizable(true)
         .frame(
             egui::Frame::new()
                 .fill(tokens::BG_PANEL_HEADER)

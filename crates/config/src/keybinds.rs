@@ -116,20 +116,110 @@ pub fn parse_binding(s: &str) -> Option<Binding> {
     key.map(|key| Binding { key, mods })
 }
 
+impl Binding {
+    pub fn to_shortcut_string(&self) -> String {
+        let mut parts = Vec::new();
+        if self.mods.ctrl {
+            parts.push("Ctrl");
+        }
+        if self.mods.shift {
+            parts.push("Shift");
+        }
+        if self.mods.alt {
+            parts.push("Alt");
+        }
+        parts.push(self.key.as_str());
+        parts.join("+")
+    }
+}
+
 /// Mapa ação -> binding, ex. `"model.extrude"`.
 #[derive(Debug, Default, Clone)]
 pub struct Keybinds {
     map: HashMap<String, Binding>,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct KeymapProfileInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+}
+
 impl Keybinds {
-    pub fn load() -> Self {
+    /// Retorna a lista de todos os 8 perfis canônicos disponíveis.
+    pub fn available_profiles() -> Vec<KeymapProfileInfo> {
+        vec![
+            KeymapProfileInfo {
+                id: "petunia-default".into(),
+                name: "Petunia Padrão".into(),
+                description: "Atalhos canônicos com acesso direto a ferramentas e navegação ágil"
+                    .into(),
+            },
+            KeymapProfileInfo {
+                id: "petunia-simple".into(),
+                name: "Petunia Simples".into(),
+                description:
+                    "Atalhos minimalistas focados em modelagem rápida sem combinações complexas"
+                        .into(),
+            },
+            KeymapProfileInfo {
+                id: "petunia-notebook".into(),
+                name: "Petunia Notebook".into(),
+                description: "Otimizado para laptops sem teclado numérico dedicado".into(),
+            },
+            KeymapProfileInfo {
+                id: "blender".into(),
+                name: "Blender (Oficial)".into(),
+                description:
+                    "Mapeamento 100% fiel ao padrão do Blender (G/R/S, E, I, Ctrl+B, Shift+A, Tab)"
+                        .into(),
+            },
+            KeymapProfileInfo {
+                id: "blender-notebook".into(),
+                name: "Blender Notebook".into(),
+                description: "Padrão Blender adaptado para laptops sem teclado numérico".into(),
+            },
+            KeymapProfileInfo {
+                id: "maya".into(),
+                name: "Autodesk Maya".into(),
+                description:
+                    "Padrão Maya (Q/W/E/R para Seleção, Mover, Rotacionar e Escalar, F para Frame)"
+                        .into(),
+            },
+            KeymapProfileInfo {
+                id: "3ds-max".into(),
+                name: "Autodesk 3ds Max".into(),
+                description:
+                    "Padrão 3ds Max (Q/W/E/R, Z para Zoom Extents, 1/2/4 para sub-objetos)".into(),
+            },
+            KeymapProfileInfo {
+                id: "cinema-4d".into(),
+                name: "Maxon Cinema 4D".into(),
+                description: "Padrão Cinema 4D (E para Mover, R para Rotacionar, T para Escalar)"
+                    .into(),
+            },
+        ]
+    }
+
+    /// Carrega um perfil específico pelo ID buscando em assets/keymaps/{id}.toml.
+    pub fn load_profile(profile_id: &str) -> Self {
         let mut kb = Self::defaults();
-        for path in candidate_paths() {
+        let candidate_paths = [
+            format!("assets/keymaps/{profile_id}.toml"),
+            format!("keymaps/{profile_id}.toml"),
+            format!("assets/keybinds/{profile_id}.toml"),
+            format!("keybinds/{profile_id}.toml"),
+        ];
+
+        for path in candidate_paths {
             if let Ok(text) = fs::read_to_string(&path) {
                 if let Ok(v) = toml::from_str::<toml::Value>(&text) {
                     if let Some(t) = v.as_table() {
                         for (section, inner) in t {
+                            if section == "profile" {
+                                continue;
+                            }
                             if let Some(m) = inner.as_table() {
                                 for (action, val) in m {
                                     if let Some(s) = val.as_str() {
@@ -148,12 +238,44 @@ impl Keybinds {
         kb
     }
 
+    pub fn load() -> Self {
+        Self::load_profile("petunia-default")
+    }
+
     /// Procura ação pelo (key, mods). Retorna ex. `"model.extrude"`.
     pub fn find(&self, key: KeyCode, mods: Mods2) -> Option<&str> {
         self.map
             .iter()
             .find(|(_, b)| b.key == key && b.mods == mods)
             .map(|(a, _)| a.as_str())
+    }
+
+    /// Retorna a lista de todas as ações e seus atalhos formatados como string, ordenados.
+    pub fn all_bindings(&self) -> Vec<(String, String)> {
+        let mut list: Vec<(String, String)> = self
+            .map
+            .iter()
+            .map(|(action, binding)| (action.clone(), binding.to_shortcut_string()))
+            .collect();
+        list.sort_by(|a, b| a.0.cmp(&b.0));
+        list
+    }
+
+    /// Detecta conflitos de atalho (duas ações diferentes usando a mesma combinação de teclas).
+    pub fn detect_conflicts(&self) -> Vec<(String, String, String)> {
+        let mut conflicts = Vec::new();
+        let items: Vec<(&String, &Binding)> = self.map.iter().collect();
+
+        for i in 0..items.len() {
+            for j in (i + 1)..items.len() {
+                let (act_a, bind_a) = items[i];
+                let (act_b, bind_b) = items[j];
+                if bind_a == bind_b {
+                    conflicts.push((act_a.clone(), act_b.clone(), bind_a.to_shortcut_string()));
+                }
+            }
+        }
+        conflicts
     }
 
     /// Defaults "Petunia" (iguais aos atalhos documentados na UI).
@@ -170,7 +292,7 @@ impl Keybinds {
             ("model.select_vertex", "1"),
             ("model.select_face", "3"),
             ("model.select_edge", "2"),
-            ("model.select_object", "4"),
+            ("model.select_object", "0"),
             ("model.transform", "G"),
             ("model.rotate", "R"),
             ("model.scale", "S"),
@@ -202,23 +324,6 @@ impl Keybinds {
         }
         kb
     }
-}
-
-fn candidate_paths() -> Vec<String> {
-    let mut v = vec![
-        "assets/keybinds/petunia.toml".to_string(),
-        "keybinds/petunia.toml".to_string(),
-    ];
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            v.push(
-                dir.join("assets/keybinds/petunia.toml")
-                    .to_string_lossy()
-                    .to_string(),
-            );
-        }
-    }
-    v
 }
 
 // Os tipos winit são convertidos em `app`; aqui ficam tipos próprios para
@@ -284,11 +389,109 @@ pub mod winit_keys {
         Escape,
         Enter,
     }
+
+    impl KeyCode {
+        pub fn as_str(&self) -> &'static str {
+            match self {
+                KeyCode::KeyA => "A",
+                KeyCode::KeyB => "B",
+                KeyCode::KeyC => "C",
+                KeyCode::KeyD => "D",
+                KeyCode::KeyE => "E",
+                KeyCode::KeyF => "F",
+                KeyCode::KeyG => "G",
+                KeyCode::KeyH => "H",
+                KeyCode::KeyI => "I",
+                KeyCode::KeyJ => "J",
+                KeyCode::KeyK => "K",
+                KeyCode::KeyL => "L",
+                KeyCode::KeyM => "M",
+                KeyCode::KeyN => "N",
+                KeyCode::KeyO => "O",
+                KeyCode::KeyP => "P",
+                KeyCode::KeyQ => "Q",
+                KeyCode::KeyR => "R",
+                KeyCode::KeyS => "S",
+                KeyCode::KeyT => "T",
+                KeyCode::KeyU => "U",
+                KeyCode::KeyV => "V",
+                KeyCode::KeyW => "W",
+                KeyCode::KeyX => "X",
+                KeyCode::KeyY => "Y",
+                KeyCode::KeyZ => "Z",
+                KeyCode::Digit0 => "0",
+                KeyCode::Digit1 => "1",
+                KeyCode::Digit2 => "2",
+                KeyCode::Digit3 => "3",
+                KeyCode::Digit4 => "4",
+                KeyCode::Digit5 => "5",
+                KeyCode::Digit6 => "6",
+                KeyCode::Digit7 => "7",
+                KeyCode::Digit8 => "8",
+                KeyCode::Digit9 => "9",
+                KeyCode::F1 => "F1",
+                KeyCode::F2 => "F2",
+                KeyCode::F3 => "F3",
+                KeyCode::F4 => "F4",
+                KeyCode::F5 => "F5",
+                KeyCode::F6 => "F6",
+                KeyCode::F7 => "F7",
+                KeyCode::F8 => "F8",
+                KeyCode::F9 => "F9",
+                KeyCode::F10 => "F10",
+                KeyCode::F11 => "F11",
+                KeyCode::F12 => "F12",
+                KeyCode::Tab => "Tab",
+                KeyCode::Space => "Space",
+                KeyCode::Delete => "Delete",
+                KeyCode::Backspace => "Backspace",
+                KeyCode::Home => "Home",
+                KeyCode::End => "End",
+                KeyCode::Escape => "Escape",
+                KeyCode::Enter => "Enter",
+            }
+        }
+    }
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
     #[allow(missing_docs)]
     pub struct Mods {
         pub ctrl: bool,
         pub shift: bool,
         pub alt: bool,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_all_8_keymap_profiles_load_validly() {
+        let profiles = Keybinds::available_profiles();
+        assert_eq!(profiles.len(), 8);
+
+        for p in profiles {
+            let kb = Keybinds::load_profile(&p.id);
+            let bindings = kb.all_bindings();
+            assert!(
+                !bindings.is_empty(),
+                "Profile {} must contain bindings",
+                p.id
+            );
+        }
+    }
+
+    #[test]
+    fn test_conflict_detection_logic() {
+        let mut kb = Keybinds::default();
+        kb.map
+            .insert("model.extrude".into(), parse_binding("E").unwrap());
+        kb.map
+            .insert("model.push_pull".into(), parse_binding("E").unwrap());
+
+        let conflicts = kb.detect_conflicts();
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].2, "E");
     }
 }

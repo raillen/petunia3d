@@ -1,0 +1,20 @@
+# Cinema 4D-like Keymap Profile
+[profile]
+id = "cinema-4d"
+name = "Cinema 4D"
+description = "Padrão Maxon Cinema 4D (E para Mover, R para Rotacionar, T para Escalar, Espaço para alternar)"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Y"
+save_project = "Ctrl+S"
+
+[model]
+transform = "E"
+rotate = "R"
+scale = "T"
+frame_selection = "H"
+extrude = "D"
+inset = "I"
+bevel = "B"
+delete = "Backspace"

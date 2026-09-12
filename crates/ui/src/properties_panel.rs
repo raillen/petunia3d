@@ -6,8 +6,10 @@ use egui::{vec2, Context, ScrollArea, Ui};
 use petunia_core::{AppState, ModuleRegistry, Workspace};
 use petunia_module_model::ToolRegistry;
 
+use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
 use crate::tool_fields;
+use crate::widgets::PetuniaPropertyTabButton;
 
 /// Renderiza o painel de propriedades completo com abas e seções sanfonadas.
 pub fn draw(
@@ -73,7 +75,7 @@ pub fn draw(
 
                 if state.show_help {
                     egui::CollapsingHeader::new(state.t("ui.help"))
-                        .default_open(true)
+                        .default_open(false)
                         .show(ui, |ui| {
                             ui.label(state.t("help.body"));
                         });
@@ -84,33 +86,38 @@ pub fn draw(
 
 fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
     let tabs = [
-        ("tool", "🔧", "Active Tool & Workspace Settings"),
-        ("render", "📷", "Render Properties"),
-        ("output", "🖨", "Output & Export Properties"),
-        ("scene", "🎬", "Scene Properties"),
-        ("world", "🌐", "World Environment"),
-        ("object", "📦", "Object Transform & Properties"),
-        ("modifiers", "⚡", "Modifier Stack"),
-        ("data", "📐", "Mesh Data & References"),
-        ("material", "🎨", "Material & Surface Shading"),
+        ("tool", PetuniaIcon::PropTool, "Active Tool & Settings"),
+        (
+            "object",
+            PetuniaIcon::PropObject,
+            "Object Transform & Properties",
+        ),
+        (
+            "modifiers",
+            PetuniaIcon::PropModifiers,
+            "Modifiers & Geometry Tools",
+        ),
+        (
+            "data",
+            PetuniaIcon::PropData,
+            "Mesh Data & Reference Images",
+        ),
+        (
+            "material",
+            PetuniaIcon::PropMaterial,
+            "Material & Surface Color",
+        ),
     ];
 
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing = vec2(3.0, 3.0);
         for (tab_id, icon, hint) in tabs {
             let is_active = state.properties_tab == tab_id;
-            let (bg, fg) = if is_active {
-                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
-            } else {
-                (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
-            };
-
-            let btn = egui::Button::new(egui::RichText::new(icon).size(12.5).color(fg))
-                .fill(bg)
-                .min_size(vec2(24.0, 24.0))
-                .corner_radius(tokens::RADIUS_CONTROL);
-
-            if ui.add(btn).on_hover_text(hint).clicked() {
+            if PetuniaPropertyTabButton::new(icon, is_active)
+                .tooltip(hint)
+                .show(ui)
+                .clicked()
+            {
                 state.properties_tab = tab_id.to_string();
                 state.mark_dirty();
             }
@@ -127,11 +134,6 @@ fn draw_active_tab_content(
 ) {
     match state.properties_tab.as_str() {
         "tool" => draw_tab_tool(ctx, ui, state, tools, fields),
-        "render" => draw_tab_render(ui, state),
-        "output" => crate::export_section(ui, state),
-        "scene" => draw_tab_scene(ui, state),
-        "world" => draw_tab_world(ui, state),
-        "object" => draw_tab_object(ui, state),
         "modifiers" => draw_tab_modifiers(ui, state),
         "data" => draw_tab_data(ui, state),
         "material" => draw_tab_material(ui, state),
@@ -290,32 +292,6 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                     state.mark_dirty();
                 }
             });
-        });
-}
-
-fn draw_tab_render(ui: &mut Ui, state: &mut AppState) {
-    egui::CollapsingHeader::new("Render Engine")
-        .default_open(true)
-        .show(ui, |ui| {
-            ui.label(format!("Backend: {}", state.backend_name));
-            ui.checkbox(&mut state.show_perf, "Display Performance Overlay");
-        });
-}
-
-fn draw_tab_scene(ui: &mut Ui, _state: &mut AppState) {
-    egui::CollapsingHeader::new("Scene Settings")
-        .default_open(true)
-        .show(ui, |ui| {
-            ui.label("Unit System: Metric");
-            ui.label("Gravity: -9.81 m/s² Z");
-        });
-}
-
-fn draw_tab_world(ui: &mut Ui, state: &mut AppState) {
-    egui::CollapsingHeader::new("World Environment")
-        .default_open(true)
-        .show(ui, |ui| {
-            ui.checkbox(&mut state.textured, "Enable Textures & Lighting");
         });
 }
 

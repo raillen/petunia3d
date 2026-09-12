@@ -1,0 +1,35 @@
+# Petunia Default Keymap Profile
+[profile]
+id = "petunia-default"
+name = "Petunia Padrão"
+description = "Mapa de teclas canônico do Petunia3D com acesso direto a ferramentas e navegação ágil"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Shift+Z"
+save_project = "Ctrl+S"
+help = "H"
+reset_camera = "Home"
+toggle_projection = "Numpad 5"
+cycle_mode = "Tab"
+
+[model]
+select_vertex = "1"
+select_edge = "2"
+select_face = "3"
+select_object = "0"
+transform = "G"
+rotate = "R"
+scale = "S"
+frame_selection = "F"
+extrude = "E"
+push_pull = "P"
+inset = "I"
+bevel = "Ctrl+B"
+subdivide = "W"
+merge = "M"
+mirror = "Ctrl+M"
+primitives = "Shift+A"
+loop_cut = "Ctrl+R"
+knife = "K"
+delete = "Delete"

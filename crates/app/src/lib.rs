@@ -293,6 +293,22 @@ impl Core {
         {
             return; // Brush radius and eyedropper are contextual viewport input.
         }
+        // Tab: alterna entre modo Objeto e modo de Edição de malha
+        if physical == PhysicalKey::Code(WKey::Tab) && !self.ctrl_down {
+            self.state.mode = match self.state.mode {
+                EditMode::Object => EditMode::Edit,
+                _ => EditMode::Object,
+            };
+            self.state.mark_dirty();
+            return;
+        }
+        // Tecla 0: Seleção de Objeto
+        if physical == PhysicalKey::Code(WKey::Digit0) && !self.ctrl_down && !self.shift_down {
+            self.state.mode = EditMode::Object;
+            self.state.active_tool = "select".into();
+            self.state.mark_dirty();
+            return;
+        }
         let mods = self.mods();
         let ck = to_config_key(physical);
         let action = ck
@@ -333,8 +349,7 @@ impl Core {
             "global.cycle_mode" => {
                 self.state.mode = match self.state.mode {
                     EditMode::Object => EditMode::Edit,
-                    EditMode::Edit => EditMode::TexturePaint,
-                    EditMode::TexturePaint => EditMode::Object,
+                    _ => EditMode::Object,
                 };
                 self.state.mark_dirty();
             }
@@ -1003,11 +1018,30 @@ impl ApplicationHandler for WgpuApp {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         let Some(gfx) = self.gfx.as_mut() else { return };
 
+        let is_shortcut_key = matches!(
+            &event,
+            WindowEvent::KeyboardInput {
+                event: winit::event::KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: PhysicalKey::Code(
+                        WKey::Tab
+                            | WKey::Digit0
+                            | WKey::Digit1
+                            | WKey::Digit2
+                            | WKey::Digit3
+                            | WKey::Digit4
+                    ),
+                    ..
+                },
+                ..
+            }
+        );
+
         let resp = gfx.egui_state.on_window_event(&gfx.window, &event);
         if resp.repaint {
             gfx.window.request_redraw();
         }
-        if resp.consumed {
+        if resp.consumed && (!is_shortcut_key || gfx.egui_ctx.wants_keyboard_input()) {
             if matches!(event, WindowEvent::RedrawRequested) {
                 self.redraw();
             }
@@ -1284,11 +1318,30 @@ impl ApplicationHandler for GlApp {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         let Some(g) = self.gfx.as_mut() else { return };
 
+        let is_shortcut_key = matches!(
+            &event,
+            WindowEvent::KeyboardInput {
+                event: winit::event::KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: PhysicalKey::Code(
+                        WKey::Tab
+                            | WKey::Digit0
+                            | WKey::Digit1
+                            | WKey::Digit2
+                            | WKey::Digit3
+                            | WKey::Digit4
+                    ),
+                    ..
+                },
+                ..
+            }
+        );
+
         let resp = g.egui_state.on_window_event(g.gl_window.window(), &event);
         if resp.repaint {
             g.gl_window.window().request_redraw();
         }
-        if resp.consumed {
+        if resp.consumed && (!is_shortcut_key || g.egui_ctx.wants_keyboard_input()) {
             if matches!(event, WindowEvent::RedrawRequested) {
                 self.redraw();
             }
@@ -1708,6 +1761,40 @@ mod tests {
         assert_eq!(core.state.profile.points.len(), 1);
         handle_pick(&mut core, 0.5, 0.5);
         assert_eq!(core.state.profile.points.len(), 2);
+    }
+
+    #[test]
+    fn test_tab_and_selection_keys() {
+        use winit::keyboard::KeyCode as WKey;
+        let mut core = Core::new();
+        assert_eq!(core.state.mode, EditMode::Object);
+
+        // Tab -> alterna para Edit
+        core.on_key(PhysicalKey::Code(WKey::Tab));
+        assert_eq!(core.state.mode, EditMode::Edit);
+
+        // Tab -> alterna de volta para Object
+        core.on_key(PhysicalKey::Code(WKey::Tab));
+        assert_eq!(core.state.mode, EditMode::Object);
+
+        // Tecla 1 -> alterna para Edit + Vertex
+        core.on_key(PhysicalKey::Code(WKey::Digit1));
+        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.select_mode, SelectMode::Vertex);
+
+        // Tecla 2 -> alterna para Edit + Edge
+        core.on_key(PhysicalKey::Code(WKey::Digit2));
+        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.select_mode, SelectMode::Edge);
+
+        // Tecla 3 -> alterna para Edit + Face
+        core.on_key(PhysicalKey::Code(WKey::Digit3));
+        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.select_mode, SelectMode::Face);
+
+        // Tecla 0 -> alterna para Object
+        core.on_key(PhysicalKey::Code(WKey::Digit0));
+        assert_eq!(core.state.mode, EditMode::Object);
     }
 }
 

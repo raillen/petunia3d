@@ -218,3 +218,11 @@ frame_hint = "Frame the selection, or the active object when nothing is selected
 reset = "Reset view"
 reset_hint = "Restore the origin and default zoom while keeping this view and projection (Home)."
 views_hint = "Axis-aligned views use orthographic projection. Ctrl selects the opposite side."
+
+[settings]
+title = "Settings"
+appearance = "Appearance"
+icons = "Icons"
+language = "Language"
+keymap = "Keymap"
+

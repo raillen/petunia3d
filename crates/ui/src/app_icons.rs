@@ -65,6 +65,11 @@ pub fn paint_icon(
     target_rect: Rect,
     tint: Color32,
 ) {
+    if crate::icon_registry::is_toolbar_vector_tool(id) {
+        icons::paint(painter, id, target_rect, tint);
+        return;
+    }
+
     if let Some(tex) = get_icon_texture(ctx, id) {
         // Renderiza textura rasterizada centralizada e mantendo proporção 1:1
         let side = target_rect.width().min(target_rect.height());
@@ -89,7 +94,7 @@ pub fn toolbar_button(
     let desired_size = if compact {
         vec2(tokens::TOOLBAR_WIDTH, tokens::TOOLBAR_WIDTH)
     } else {
-        vec2(ui.available_width().max(136.0), 32.0)
+        vec2(ui.available_width().max(tokens::TOOLBAR_WIDTH), 32.0)
     };
 
     let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
@@ -106,14 +111,15 @@ pub fn toolbar_button(
             (Color32::TRANSPARENT, tokens::TEXT_SECONDARY)
         };
 
+        let painter = ui.painter().with_clip_rect(rect);
+
         if bg_fill != Color32::TRANSPARENT {
-            ui.painter()
-                .rect_filled(rect, tokens::RADIUS_CONTAINER, bg_fill);
+            painter.rect_filled(rect, tokens::RADIUS_CONTAINER, bg_fill);
         }
 
         // Borda de foco visual acessível
         if response.has_focus() {
-            ui.painter().rect_stroke(
+            painter.rect_stroke(
                 rect,
                 tokens::RADIUS_CONTAINER,
                 tokens::stroke_focus(),
@@ -124,17 +130,17 @@ pub fn toolbar_button(
         if compact {
             // Centraliza o ícone de 20x20 no botão de 40x40
             let icon_rect = Rect::from_center_size(rect.center(), vec2(20.0, 20.0));
-            paint_icon(ui.ctx(), ui.painter(), id, icon_rect, fg_color);
+            paint_icon(ui.ctx(), &painter, id, icon_rect, fg_color);
         } else {
             // Ícone na esquerda (20x20) + texto alinhado
             let icon_rect = Rect::from_min_size(
                 egui::pos2(rect.min.x + 8.0, rect.min.y + (rect.height() - 20.0) * 0.5),
                 vec2(20.0, 20.0),
             );
-            paint_icon(ui.ctx(), ui.painter(), id, icon_rect, fg_color);
+            paint_icon(ui.ctx(), &painter, id, icon_rect, fg_color);
 
             let text_pos = egui::pos2(rect.min.x + 36.0, rect.min.y + (rect.height() - 14.0) * 0.5);
-            ui.painter().text(
+            painter.text(
                 text_pos,
                 egui::Align2::LEFT_TOP,
                 label,

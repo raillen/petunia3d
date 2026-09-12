@@ -1,0 +1,10 @@
+[icons]
+select_box = "assets/ui/icons/toolbar/select_box.png"
+cursor_3d = "assets/ui/icons/toolbar/cursor_3d.png"
+move = "assets/ui/icons/toolbar/move.png"
+rotate = "assets/ui/icons/toolbar/rotate.png"
+scale = "assets/ui/icons/toolbar/scale.png"
+transform = "assets/ui/icons/toolbar/transform.png"
+annotate = "assets/ui/icons/toolbar/annotate.png"
+measure = "assets/ui/icons/toolbar/measure.png"
+add_primitive = "assets/ui/icons/toolbar/add_primitive.png"

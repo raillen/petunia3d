@@ -34,6 +34,12 @@ pub fn draw(
     if crate::cutting::draw(ctx, state, rect, painter) {
         return true;
     }
+    if crate::measurement::draw(ctx, state, rect, painter, response) {
+        return true;
+    }
+    if crate::annotation::draw(ctx, state, rect, painter, response) {
+        return true;
+    }
     let pointer = ctx.pointer_hover_pos().filter(|p| rect.contains(*p));
     // Navegação usa deltas por frame e a base da câmera, inclusive nas vistas Top/Bottom.
     if response.dragged_by(PointerButton::Middle) {

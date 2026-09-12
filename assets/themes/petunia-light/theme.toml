@@ -1,0 +1,27 @@
+[colors]
+bg_canvas = "#eaecef"
+bg_header = "#f3f4f6"
+bg_panel = "#f8f9fa"
+bg_panel_header = "#e9ebed"
+bg_surface = "#ffffff"
+bg_surface_hover = "#e2e5e9"
+bg_surface_active = "#d1d5db"
+text_primary = "#1f2937"
+text_secondary = "#4b5563"
+text_muted = "#9ca3af"
+text_active = "#111827"
+accent_blue = "#2563eb"
+accent_orange = "#ea580c"
+accent_hover = "#3b82f6"
+accent_border = "#1d4ed8"
+border_subtle = "#e5e7eb"
+border_strong = "#cbd5e1"
+border_focus = "#2563eb"
+status_info = "#0284c7"
+status_warning = "#d97706"
+status_error = "#dc2626"
+status_success = "#16a34a"
+
+[font]
+family = "proportional"
+size = 14.0

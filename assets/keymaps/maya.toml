@@ -1,0 +1,20 @@
+# Maya-like Keymap Profile
+[profile]
+id = "maya"
+name = "Maya"
+description = "Padrão Autodesk Maya (Q/W/E/R para Selecionar, Mover, Rotacionar e Escalar, F para Frame)"
+
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Y"
+save_project = "Ctrl+S"
+
+[model]
+select_object = "Q"
+transform = "W"
+rotate = "E"
+scale = "R"
+frame_selection = "F"
+extrude = "Ctrl+E"
+bevel = "Ctrl+B"
+delete = "Delete"

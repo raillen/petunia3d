@@ -10,7 +10,9 @@ use crate::UiAction;
 /// Renderiza o cabeçalho superior completo da aplicação.
 pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
     egui::TopBottomPanel::top("main_header")
-        .exact_height(tokens::TOP_HEADER_HEIGHT)
+        .default_height(tokens::TOP_HEADER_HEIGHT)
+        .height_range(tokens::TOP_HEADER_HEIGHT..=tokens::TOP_HEADER_MAX_HEIGHT)
+        .resizable(true)
         .frame(
             egui::Frame::new()
                 .fill(tokens::BG_HEADER)
@@ -27,7 +29,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
 
                     ui.separator();
 
-                    // Menus da aplicação
+                    // Menus da aplicação com visual flat limpo
                     draw_menus(ui, state, action);
 
                     ui.separator();
@@ -35,9 +37,53 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
                     // Abas de Workspaces em pílulas arredondadas (estilo Blender.svg)
                     draw_workspace_pills(ui, state);
 
-                    // Espaçamento flexível para alinhar controles da direita
+                    // Lado direito do header: Assets e Configurações
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        draw_scene_controls(ui, state);
+                        let cfg_color = if state.show_settings {
+                            tokens::ACCENT_BLUE
+                        } else {
+                            tokens::BG_SURFACE
+                        };
+                        let cfg_btn = egui::Button::new(
+                            egui::RichText::new("⚙ Config")
+                                .size(11.0)
+                                .color(tokens::TEXT_PRIMARY),
+                        )
+                        .fill(cfg_color)
+                        .corner_radius(tokens::RADIUS_CONTROL);
+
+                        if ui
+                            .add(cfg_btn)
+                            .on_hover_text(
+                                "Preferências e Configurações (Tema, Ícones, Idioma, Teclas)",
+                            )
+                            .clicked()
+                        {
+                            state.show_settings = !state.show_settings;
+                            state.mark_dirty();
+                        }
+
+                        let asset_color = if state.show_asset_library {
+                            tokens::ACCENT_BLUE
+                        } else {
+                            tokens::BG_SURFACE
+                        };
+                        let asset_btn = egui::Button::new(
+                            egui::RichText::new("📦 Assets")
+                                .size(11.0)
+                                .color(tokens::TEXT_PRIMARY),
+                        )
+                        .fill(asset_color)
+                        .corner_radius(tokens::RADIUS_CONTROL);
+
+                        if ui
+                            .add(asset_btn)
+                            .on_hover_text("Abrir Biblioteca de Assets do Projeto")
+                            .clicked()
+                        {
+                            state.show_asset_library = !state.show_asset_library;
+                            state.mark_dirty();
+                        }
                     });
                 });
             });
@@ -66,22 +112,42 @@ fn draw_app_brand(ui: &mut Ui) {
 }
 
 fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
+    let visuals = ui.visuals_mut();
+    visuals.widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
+    visuals.widgets.inactive.bg_fill = Color32::TRANSPARENT;
+    visuals.widgets.hovered.weak_bg_fill = tokens::BG_SURFACE_HOVER;
+    visuals.widgets.active.weak_bg_fill = tokens::ACCENT_BLUE;
+
+    ui.style_mut().text_styles.insert(
+        egui::TextStyle::Button,
+        egui::FontId::new(11.5, egui::FontFamily::Proportional),
+    );
+
     ui.menu_button(state.t("menu.file"), |ui| {
         for (key, operation) in [
             ("file.new", 0),
             ("file.open_project", 1),
+            ("file.save_asset", 6),
             ("file.save", 2),
             ("file.save_as", 3),
             ("file.import_obj", 4),
             ("file.quit", 5),
         ] {
-            if ui.button(state.t(key)).clicked() {
+            let label = if key == "file.save_asset" {
+                "📥 Salvar Modelo Ativo como Asset".to_string()
+            } else {
+                state.t(key)
+            };
+            if ui.button(label).clicked() {
                 match operation {
                     0 => crate::new_project(state),
                     1 => crate::open_project_dialog(state),
                     2 => crate::save_project_dialog(state, false),
                     3 => crate::save_project_dialog(state, true),
                     4 => crate::import_obj_dialog(state),
+                    6 => {
+                        state.save_active_as_asset();
+                    }
                     _ => action.quit = true,
                 }
                 ui.close();
@@ -114,30 +180,12 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
 
     ui.menu_button(
         if state.i18n.lang == "en" {
-            "Render"
-        } else {
-            "Renderizar"
-        },
-        |ui| {
-            if ui.button("Render Image · F12").clicked() {
-                state.set_status("Render Image triggered");
-                ui.close();
-            }
-            if ui.button("Render Animation · Ctrl+F12").clicked() {
-                state.set_status("Render Animation triggered");
-                ui.close();
-            }
-        },
-    );
-
-    ui.menu_button(
-        if state.i18n.lang == "en" {
             "Window"
         } else {
             "Janela"
         },
         |ui| {
-            ui.checkbox(&mut state.show_perf, "Performance HUD");
+            ui.checkbox(&mut state.show_perf, "Performance HUD (FPS & Overlays)");
             ui.separator();
             for lang in petunia_config::I18n::available() {
                 if ui
@@ -172,7 +220,7 @@ fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
             (Color32::TRANSPARENT, tokens::TEXT_SECONDARY)
         };
 
-        let button = egui::Button::new(egui::RichText::new(&label).size(12.0).color(fg))
+        let button = egui::Button::new(egui::RichText::new(&label).size(11.5).color(fg))
             .fill(bg)
             .corner_radius(tokens::RADIUS_PILL);
 
@@ -181,28 +229,6 @@ fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
         }
     }
-}
-
-fn draw_scene_controls(ui: &mut Ui, state: &mut AppState) {
-    let _ = state;
-    // Pílulas compactas de Scene e ViewLayer como na referência Blender.svg
-    let view_layer_btn = egui::Button::new(
-        egui::RichText::new("ViewLayer")
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
-    )
-    .fill(tokens::BG_SURFACE)
-    .corner_radius(tokens::RADIUS_CONTROL);
-    ui.add(view_layer_btn);
-
-    let scene_btn = egui::Button::new(
-        egui::RichText::new("Scene")
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
-    )
-    .fill(tokens::BG_SURFACE)
-    .corner_radius(tokens::RADIUS_CONTROL);
-    ui.add(scene_btn);
 }
 
 #[cfg(test)]
@@ -218,5 +244,27 @@ mod tests {
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             draw(ctx, &mut state, &mut action);
         });
+    }
+
+    #[test]
+    fn test_main_header_renders_at_different_heights() {
+        let mut state = AppState::new("en");
+        let mut action = UiAction::none();
+
+        // Testa renderização com tela expandida e múltiplas dimensões
+        for width in [800.0, 1280.0, 1920.0] {
+            let ctx = Context::default();
+            let raw_input = egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(width, 800.0),
+                )),
+                ..Default::default()
+            };
+
+            let _ = ctx.run(raw_input, |ctx| {
+                draw(ctx, &mut state, &mut action);
+            });
+        }
     }
 }
