@@ -27,6 +27,14 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 - Estratégia de testes exaustivos em `docs/development/testing-strategy.md` (unitários, integração, conformidade, segurança SAST/secrets, performance/stress, UI).
 - Política de documentação mandatória com `README.md` explicativo em cada diretório do projeto.
 
+## 2026-09-12 — Premium viewport, second implementation round (UI, Ortho Camera & Vector Icons)
+
+- Implementada câmera ortográfica explícita (`Projection::Ortho`) com 6 vistas predefinidas (`Front`, `Back`, `Right`, `Left`, `Top`, `Bottom`), atalhos de Numpad e controle contínuo de altura de enquadramento.
+- Criado motor de ícones vetoriais nativos em grade 24x24 (`crates/ui/src/icons.rs`) e componente acessível `tool_button` com variantes compacta (40x40) e expandida.
+- Implementados campos de preenchimento numérico direto para ferramentas de transformação e modelagem (`crates/ui/src/tool_fields.rs`) sincronizados com a máquina de estados modal.
+- Interface responsiva com adaptação a janelas estreitas, status bar aprimorada e tokens de tema com conformidade de contraste WCAG 2.2 AA.
+- Suíte de testes expandida para 130 testes automatizados com 100% de aprovação, Clippy com 0 warnings e formatação canônica.
+
 ## 2026-09-12 — Premium viewport, first implementation round
 
 - Added transactional modal previews, viewport HUD, exact input, axis/plane

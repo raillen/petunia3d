@@ -83,7 +83,7 @@ fn selected_kind(state: &AppState) -> Option<ModalKind> {
         .as_ref()
         .map(|modal| modal.kind)
         .or(state.pending_modal)
-        .or_else(|| match state.active_tool.as_str() {
+        .or(match state.active_tool.as_str() {
             "transform" => Some(state.gizmo_mode),
             "extrude" => Some(ModalKind::Extrude),
             "inset" => Some(ModalKind::Inset),

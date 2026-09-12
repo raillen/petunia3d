@@ -49,7 +49,9 @@ pub fn draw(
     rect: Rect,
     painter: &egui::Painter,
 ) -> bool {
-    if crate::tool_fields::owns_modal(ctx) { return state.modal.is_some(); }
+    if crate::tool_fields::owns_modal(ctx) {
+        return state.modal.is_some();
+    }
     let id = egui::Id::new("modal.pointer");
     let mut started = false;
     if let Some(kind) = state.pending_modal {

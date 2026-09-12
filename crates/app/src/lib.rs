@@ -1711,7 +1711,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod camera_shortcut_tests {
     use super::*;
@@ -1724,10 +1723,11 @@ mod camera_shortcut_tests {
         let height = core.state.camera.visible_height();
         for key in [WKey::Numpad5, WKey::KeyO] {
             let before = core.state.camera.proj;
-            core.state.camera_frame = Some((core.state.camera.clone(), core.state.camera.clone(), 0.0));
+            core.state.camera_frame =
+                Some((core.state.camera.clone(), core.state.camera.clone(), 0.0));
             core.on_key(PhysicalKey::Code(key));
             assert_ne!(core.state.camera.proj, before);
-            assert!((core.state.camera.visible_height()-height).abs()<1e-5);
+            assert!((core.state.camera.visible_height() - height).abs() < 1e-5);
             assert!(core.state.camera_frame.is_none());
         }
     }
@@ -1735,10 +1735,15 @@ mod camera_shortcut_tests {
     #[test]
     fn numpad_with_ctrl_exposes_all_six_orthographic_views() {
         let mut core = Core::new();
-        for (key,ctrl,view) in [(WKey::Numpad1,false,ViewPreset::Front),(WKey::Numpad1,true,ViewPreset::Back),
-            (WKey::Numpad3,false,ViewPreset::Right),(WKey::Numpad3,true,ViewPreset::Left),
-            (WKey::Numpad7,false,ViewPreset::Top),(WKey::Numpad7,true,ViewPreset::Bottom)] {
-            core.ctrl_down=ctrl;
+        for (key, ctrl, view) in [
+            (WKey::Numpad1, false, ViewPreset::Front),
+            (WKey::Numpad1, true, ViewPreset::Back),
+            (WKey::Numpad3, false, ViewPreset::Right),
+            (WKey::Numpad3, true, ViewPreset::Left),
+            (WKey::Numpad7, false, ViewPreset::Top),
+            (WKey::Numpad7, true, ViewPreset::Bottom),
+        ] {
+            core.ctrl_down = ctrl;
             core.on_key(PhysicalKey::Code(key));
             assert_eq!(core.state.camera.proj, Projection::Ortho);
             assert_eq!(core.state.camera.view_preset(), Some(view));

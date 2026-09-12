@@ -4,7 +4,7 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Theme {
     pub colors: ThemeColors,
@@ -34,7 +34,10 @@ pub struct ThemeFont {
 
 impl Default for ThemeFont {
     fn default() -> Self {
-        Self { family: "proportional".into(), size: 14.0 }
+        Self {
+            family: "proportional".into(),
+            size: 14.0,
+        }
     }
 }
 
@@ -51,12 +54,6 @@ impl Default for ThemeColors {
             selection: "#284d70".into(),
             text_muted: "#b7c2d0".into(),
         }
-    }
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Self { colors: ThemeColors::default(), font: ThemeFont::default() }
     }
 }
 
@@ -87,7 +84,11 @@ impl Theme {
     pub fn apply(&self, ctx: &egui::Context) {
         let mut v = egui::Visuals::dark();
         let defaults = ThemeColors::default();
-        let color = |value: &str, fallback: &str| Self::hex(value).or_else(|| Self::hex(fallback)).unwrap_or(egui::Color32::WHITE);
+        let color = |value: &str, fallback: &str| {
+            Self::hex(value)
+                .or_else(|| Self::hex(fallback))
+                .unwrap_or(egui::Color32::WHITE)
+        };
         let bg = color(&self.colors.background, &defaults.background);
         let panel = color(&self.colors.panel, &defaults.panel);
         let text = color(&self.colors.text, &defaults.text);
@@ -106,7 +107,13 @@ impl Theme {
         v.selection.stroke = egui::Stroke::new(1.0_f32, text);
         v.hyperlink_color = accent;
         v.window_stroke = egui::Stroke::new(1.0_f32, border);
-        for widget in [&mut v.widgets.noninteractive, &mut v.widgets.inactive, &mut v.widgets.hovered, &mut v.widgets.active, &mut v.widgets.open] {
+        for widget in [
+            &mut v.widgets.noninteractive,
+            &mut v.widgets.inactive,
+            &mut v.widgets.hovered,
+            &mut v.widgets.active,
+            &mut v.widgets.open,
+        ] {
             widget.fg_stroke = egui::Stroke::new(1.5_f32, text);
             widget.bg_stroke = egui::Stroke::new(1.0_f32, border);
             widget.corner_radius = egui::CornerRadius::same(5);
@@ -124,13 +131,31 @@ impl Theme {
         v.widgets.active.bg_stroke = egui::Stroke::new(1.5_f32, accent);
         v.widgets.open = v.widgets.active;
         ctx.set_visuals(v);
-        let size = if self.font.size.is_finite() { self.font.size.clamp(12.0, 20.0) } else { 14.0 };
-        let family = if self.font.family == "monospace" { egui::FontFamily::Monospace } else { egui::FontFamily::Proportional };
+        let size = if self.font.size.is_finite() {
+            self.font.size.clamp(12.0, 20.0)
+        } else {
+            14.0
+        };
+        let family = if self.font.family == "monospace" {
+            egui::FontFamily::Monospace
+        } else {
+            egui::FontFamily::Proportional
+        };
         ctx.style_mut(|style| {
-            for (name, points) in [(egui::TextStyle::Body, size), (egui::TextStyle::Button, size), (egui::TextStyle::Small, (size - 2.0).max(12.0)), (egui::TextStyle::Heading, size + 4.0)] {
-                style.text_styles.insert(name, egui::FontId::new(points, family.clone()));
+            for (name, points) in [
+                (egui::TextStyle::Body, size),
+                (egui::TextStyle::Button, size),
+                (egui::TextStyle::Small, (size - 2.0).max(12.0)),
+                (egui::TextStyle::Heading, size + 4.0),
+            ] {
+                style
+                    .text_styles
+                    .insert(name, egui::FontId::new(points, family.clone()));
             }
-            style.text_styles.insert(egui::TextStyle::Monospace, egui::FontId::monospace((size - 1.0).max(12.0)));
+            style.text_styles.insert(
+                egui::TextStyle::Monospace,
+                egui::FontId::monospace((size - 1.0).max(12.0)),
+            );
             style.spacing.item_spacing = egui::vec2(8.0, 6.0);
             style.spacing.button_padding = egui::vec2(10.0, 6.0);
             style.spacing.interact_size.y = 30.0;
@@ -142,19 +167,37 @@ impl Theme {
 mod tests {
     use super::*;
     fn luminance(color: egui::Color32) -> f32 {
-        [color.r(), color.g(), color.b()].into_iter().zip([0.2126, 0.7152, 0.0722]).map(|(channel, weight)| {
-            let value = channel as f32 / 255.0;
-            weight * if value <= 0.04045 { value / 12.92 } else { ((value + 0.055) / 1.055).powf(2.4) }
-        }).sum()
+        [color.r(), color.g(), color.b()]
+            .into_iter()
+            .zip([0.2126, 0.7152, 0.0722])
+            .map(|(channel, weight)| {
+                let value = channel as f32 / 255.0;
+                weight
+                    * if value <= 0.04045 {
+                        value / 12.92
+                    } else {
+                        ((value + 0.055) / 1.055).powf(2.4)
+                    }
+            })
+            .sum()
     }
     #[test]
     fn default_text_and_icons_meet_contrast_targets_in_interactive_states() {
         let theme = Theme::default();
-        for background in [&theme.colors.background, &theme.colors.panel, &theme.colors.control, &theme.colors.hover, &theme.colors.selection] {
+        for background in [
+            &theme.colors.background,
+            &theme.colors.panel,
+            &theme.colors.control,
+            &theme.colors.hover,
+            &theme.colors.selection,
+        ] {
             let bg = luminance(Theme::hex(background).unwrap());
             for foreground in [&theme.colors.text, &theme.colors.text_muted] {
                 let fg = luminance(Theme::hex(foreground).unwrap());
-                assert!((fg.max(bg) + 0.05) / (fg.min(bg) + 0.05) >= 4.5, "{foreground} on {background}");
+                assert!(
+                    (fg.max(bg) + 0.05) / (fg.min(bg) + 0.05) >= 4.5,
+                    "{foreground} on {background}"
+                );
             }
         }
     }
@@ -166,6 +209,9 @@ mod tests {
         let ctx = egui::Context::default();
         theme.apply(&ctx);
         assert_eq!(ctx.style().text_styles[&egui::TextStyle::Body].size, 14.0);
-        assert_eq!(ctx.style().visuals.text_color(), Theme::hex(&ThemeColors::default().text).unwrap());
+        assert_eq!(
+            ctx.style().visuals.text_color(),
+            Theme::hex(&ThemeColors::default().text).unwrap()
+        );
     }
 }
