@@ -1,0 +1,68 @@
+//! Design tokens e paleta semântica canônica para o Petunia3D.
+//! Baseado na Golden Reference visual (`Blender.svg`) e sistema de design desktop profissional.
+
+use egui::{Color32, CornerRadius, Stroke};
+
+// ---------------------------------------------------------------- Cores de Fundo
+pub const BG_APP: Color32 = Color32::from_rgb(0x12, 0x12, 0x12);
+pub const BG_HEADER: Color32 = Color32::from_rgb(0x1a, 0x1a, 0x1a);
+pub const BG_PANEL: Color32 = Color32::from_rgb(0x20, 0x20, 0x20);
+pub const BG_PANEL_HEADER: Color32 = Color32::from_rgb(0x28, 0x28, 0x28);
+pub const BG_SURFACE: Color32 = Color32::from_rgb(0x2d, 0x2d, 0x2d);
+pub const BG_SURFACE_HOVER: Color32 = Color32::from_rgb(0x38, 0x38, 0x38);
+pub const BG_SURFACE_ACTIVE: Color32 = Color32::from_rgb(0x31, 0x69, 0xe3);
+pub const BG_INPUT: Color32 = Color32::from_rgb(0x16, 0x16, 0x16);
+pub const BG_DROPDOWN: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
+
+// ------------------------------------------------------------- Cores de Destaque
+pub const ACCENT_BLUE: Color32 = Color32::from_rgb(0x31, 0x69, 0xe3);
+pub const ACCENT_BLUE_HOVER: Color32 = Color32::from_rgb(0x47, 0x7c, 0xf5);
+pub const ACCENT_BORDER: Color32 = Color32::from_rgb(0x5b, 0x8e, 0xff);
+
+// ------------------------------------------------------------- Cores dos Modos
+pub const MODE_OBJECT: Color32 = Color32::from_rgb(0x34, 0x98, 0xdb);
+pub const MODE_EDIT: Color32 = Color32::from_rgb(0xe6, 0x7e, 0x22);
+pub const MODE_PAINT: Color32 = Color32::from_rgb(0x2e, 0xcc, 0x71);
+
+// -------------------------------------------------------------- Cores dos Eixos
+pub const AXIS_X: Color32 = Color32::from_rgb(0xe0, 0x3c, 0x42);
+pub const AXIS_Y: Color32 = Color32::from_rgb(0x62, 0xc9, 0x34);
+pub const AXIS_Z: Color32 = Color32::from_rgb(0x31, 0x82, 0xf6);
+
+// ---------------------------------------------------------------- Cores de Texto
+pub const TEXT_PRIMARY: Color32 = Color32::from_rgb(0xde, 0xde, 0xde);
+pub const TEXT_SECONDARY: Color32 = Color32::from_rgb(0x9c, 0x9c, 0x9c);
+pub const TEXT_MUTED: Color32 = Color32::from_rgb(0x62, 0x62, 0x62);
+pub const TEXT_ACTIVE: Color32 = Color32::from_rgb(0xff, 0xff, 0xff);
+
+// ---------------------------------------------------------------- Cores de Borda
+pub const BORDER_DARK: Color32 = Color32::from_rgb(0x14, 0x14, 0x14);
+pub const BORDER_SUBTLE: Color32 = Color32::from_rgb(0x2f, 0x2f, 0x2f);
+pub const BORDER_LIGHT: Color32 = Color32::from_rgb(0x3e, 0x3e, 0x3e);
+
+// ----------------------------------------------------------------- Dimensões (px)
+pub const TOP_HEADER_HEIGHT: f32 = 28.0;
+pub const VIEWPORT_BAR_HEIGHT: f32 = 26.0;
+pub const TOOLBAR_WIDTH: f32 = 40.0;
+pub const STATUS_BAR_HEIGHT: f32 = 24.0;
+pub const TIMELINE_HEIGHT: f32 = 56.0;
+pub const PROPERTIES_DEFAULT_WIDTH: f32 = 290.0;
+pub const OUTLINER_DEFAULT_HEIGHT: f32 = 230.0;
+
+// -------------------------------------------------------------- Raios de Cantos
+pub const RADIUS_PILL: CornerRadius = CornerRadius::same(12);
+pub const RADIUS_CONTROL: CornerRadius = CornerRadius::same(3);
+pub const RADIUS_CONTAINER: CornerRadius = CornerRadius::same(4);
+
+// --------------------------------------------------------------- Traços (Strokes)
+pub fn stroke_subtle() -> Stroke {
+    Stroke::new(1.0_f32, BORDER_SUBTLE)
+}
+
+pub fn stroke_border() -> Stroke {
+    Stroke::new(1.0_f32, BORDER_DARK)
+}
+
+pub fn stroke_focus() -> Stroke {
+    Stroke::new(1.5_f32, ACCENT_BORDER)
+}

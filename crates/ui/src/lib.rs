@@ -5,20 +5,29 @@
 //! antes dos closures; mutações via índices, nunca com iterator vivo.
 
 use petunia_core::Projection;
-use petunia_core::{AppState, EditMode, ModuleRegistry, RefAxis, Workspace};
+use petunia_core::{AppState, ModuleRegistry, RefAxis};
 use petunia_mesh::Mesh;
 use petunia_module_model::ToolRegistry;
 use petunia_project::{export, format};
 
+pub mod app_icons;
 pub mod camera_controls;
 mod cutting;
 pub mod gizmo;
 pub mod icons;
+pub mod main_header;
 #[cfg(test)]
 mod modal_tests;
 mod modal_viewport;
 pub mod nav_gizmo;
+pub mod outliner;
+pub mod properties_panel;
+pub mod status_bar;
+pub mod timeline;
+pub mod tokens;
 mod tool_fields;
+pub mod toolbar;
+pub mod viewport_bar;
 mod viewport_interaction;
 
 pub struct UiAction {
@@ -38,214 +47,52 @@ pub fn draw(
     registry: &mut ModuleRegistry,
     action: &mut UiAction,
 ) {
-    top_bar(ctx, state, action);
-    status_bar(ctx, state, tools);
-    left_toolbar(ctx, state, tools);
+    main_header::draw(ctx, state, action);
+    status_bar::draw(ctx, state, tools);
+    timeline::draw(ctx, state);
+    toolbar::draw(ctx, state, tools);
     right_panel(ctx, state, tools, registry);
+    viewport_bar_panel(ctx, state);
     viewport(ctx, state);
 }
 
-// ---------------------------------------------------------------- top bar
-
-fn top_bar(ctx: &egui::Context, state: &mut AppState, action: &mut UiAction) {
-    egui::TopBottomPanel::top("top").show(ctx, |ui| {
-        ui.add_enabled_ui(!state.is_interacting(), |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.strong("Petunia3D");
-                ui.separator();
-                ui.menu_button(state.t("menu.file"), |ui| {
-                    for (key, operation) in [
-                        ("file.new", 0),
-                        ("file.open_project", 1),
-                        ("file.save", 2),
-                        ("file.save_as", 3),
-                        ("file.import_obj", 4),
-                        ("file.quit", 5),
-                    ] {
-                        if ui.button(state.t(key)).clicked() {
-                            match operation {
-                                0 => new_project(state),
-                                1 => open_project_dialog(state),
-                                2 => save_project_dialog(state, false),
-                                3 => save_project_dialog(state, true),
-                                4 => import_obj_dialog(state),
-                                _ => action.quit = true,
-                            }
-                            ui.close();
-                        }
-                    }
-                });
-                ui.menu_button(state.t("menu.edit"), |ui| {
-                    if ui
-                        .add_enabled(
-                            state.undo.can_undo(),
-                            egui::Button::new(state.t("edit.undo")),
-                        )
-                        .clicked()
-                    {
-                        state.undo();
-                        ui.close();
-                    }
-                    if ui
-                        .add_enabled(
-                            state.undo.can_redo(),
-                            egui::Button::new(state.t("edit.redo")),
-                        )
-                        .clicked()
-                    {
-                        state.redo();
-                        ui.close();
-                    }
-                });
-                ui.menu_button(
-                    if state.i18n.lang == "en" {
-                        "Display"
-                    } else {
-                        "Exibição"
-                    },
-                    |ui| {
-                        for (shading, key) in [
-                            (petunia_render::Shading::Solid, "shading.solid"),
-                            (petunia_render::Shading::Smooth, "shading.smooth"),
-                            (petunia_render::Shading::Unlit, "shading.unlit"),
-                            (petunia_render::Shading::Wireframe, "shading.wire"),
-                        ] {
-                            if ui
-                                .selectable_label(state.shading == shading, state.t(key))
-                                .clicked()
-                            {
-                                state.shading = shading;
-                                state.mark_dirty();
-                                ui.close();
-                            }
-                        }
-                        let label = state.t("shading.textured");
-                        if ui.checkbox(&mut state.textured, label).changed() {
-                            state.mark_dirty();
-                        }
-                        ui.checkbox(&mut state.show_perf, "Performance");
-                        ui.separator();
-                        for lang in petunia_config::I18n::available() {
-                            if ui
-                                .selectable_label(state.i18n.lang == lang, &lang)
-                                .clicked()
-                            {
-                                state.i18n.set_lang(&lang);
-                                state.mark_dirty();
-                            }
-                        }
-                    },
-                );
-                if ui.button(state.t("menu.help")).clicked() {
-                    state.show_help = !state.show_help;
-                }
-            });
-            ui.separator();
-            ui.horizontal_wrapped(|ui| {
-                for workspace in Workspace::all() {
-                    if ui
-                        .selectable_label(state.workspace == workspace, state.t(workspace.key()))
-                        .clicked()
-                    {
-                        state.workspace = workspace;
-                        state.mark_dirty();
-                    }
-                }
-                ui.separator();
-                let current = if state.mode == EditMode::Object {
-                    state.t("mode.object")
-                } else {
-                    match state.select_mode {
-                        petunia_core::SelectMode::Vertex => if state.i18n.lang == "en" {
-                            "Vertices · 1"
-                        } else {
-                            "Vértices · 1"
-                        }
-                        .to_owned(),
-                        petunia_core::SelectMode::Edge => if state.i18n.lang == "en" {
-                            "Edges · 2"
-                        } else {
-                            "Arestas · 2"
-                        }
-                        .to_owned(),
-                        petunia_core::SelectMode::Face => "Faces · 3".to_owned(),
-                    }
-                };
-                egui::ComboBox::from_id_salt("selection.level")
-                    .selected_text(current)
-                    .width(112.0)
-                    .show_ui(ui, |ui| {
-                        if ui
-                            .selectable_label(
-                                state.mode == EditMode::Object,
-                                format!("{} · 4", state.t("mode.object")),
-                            )
-                            .clicked()
-                        {
-                            state.mode = EditMode::Object;
-                            state.mark_dirty();
-                        }
-                        for (mode, label) in [
-                            (
-                                petunia_core::SelectMode::Vertex,
-                                if state.i18n.lang == "en" {
-                                    "Vertices · 1"
-                                } else {
-                                    "Vértices · 1"
-                                },
-                            ),
-                            (
-                                petunia_core::SelectMode::Edge,
-                                if state.i18n.lang == "en" {
-                                    "Edges · 2"
-                                } else {
-                                    "Arestas · 2"
-                                },
-                            ),
-                            (petunia_core::SelectMode::Face, "Faces · 3"),
-                        ] {
-                            if ui
-                                .selectable_label(
-                                    state.mode == EditMode::Edit && state.select_mode == mode,
-                                    label,
-                                )
-                                .clicked()
-                            {
-                                state.mode = EditMode::Edit;
-                                state.select_mode = mode;
-                                state.sync_selection();
-                            }
-                        }
-                    });
-            });
-            ui.separator();
-            camera_controls::draw(ui, state);
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing = egui::vec2(2.0, 2.0);
-                for (shading, label, hint) in [
-                    (petunia_render::Shading::Wireframe, "Wire", "Wireframe"),
-                    (petunia_render::Shading::Solid, "Solid", "Solid Shading"),
-                    (
-                        petunia_render::Shading::Smooth,
-                        "Material",
-                        "Material Preview / Smooth",
-                    ),
-                    (petunia_render::Shading::Unlit, "Render", "Rendered / Unlit"),
-                ] {
-                    let selected = state.shading == shading;
-                    if ui
-                        .selectable_label(selected, label)
-                        .on_hover_text(hint)
-                        .clicked()
-                    {
-                        state.shading = shading;
-                        state.mark_dirty();
-                    }
-                }
+fn viewport_bar_panel(ctx: &egui::Context, state: &mut AppState) {
+    egui::TopBottomPanel::top("viewport_context_bar")
+        .exact_height(tokens::VIEWPORT_BAR_HEIGHT)
+        .frame(
+            egui::Frame::new()
+                .fill(tokens::BG_PANEL_HEADER)
+                .stroke(tokens::stroke_border())
+                .inner_margin(egui::Margin::symmetric(6, 2)),
+        )
+        .show(ctx, |ui| {
+            ui.add_enabled_ui(!state.is_interacting(), |ui| {
+                viewport_bar::draw(ui, state);
             });
         });
-    });
+}
+
+pub fn right_panel(
+    ctx: &egui::Context,
+    state: &mut AppState,
+    tools: &ToolRegistry,
+    registry: &mut ModuleRegistry,
+) {
+    let max_width = (ctx.screen_rect().width() * 0.45).clamp(240.0, 420.0);
+    egui::SidePanel::right("props")
+        .default_width(tokens::PROPERTIES_DEFAULT_WIDTH)
+        .width_range(220.0..=max_width)
+        .frame(
+            egui::Frame::new()
+                .fill(tokens::BG_PANEL)
+                .stroke(tokens::stroke_border())
+                .inner_margin(egui::Margin::symmetric(6, 4)),
+        )
+        .show(ctx, |ui| {
+            outliner::draw(ui, state);
+            ui.separator();
+            properties_panel::draw(ctx, ui, state, tools, registry);
+        });
 }
 
 pub fn new_project(state: &mut AppState) {
@@ -304,7 +151,7 @@ pub fn save_project_dialog(state: &mut AppState, save_as: bool) {
     }
 }
 
-fn import_obj_dialog(state: &mut AppState) {
+pub fn import_obj_dialog(state: &mut AppState) {
     if let Some(path) = rfd::FileDialog::new()
         .add_filter("OBJ", &["obj"])
         .pick_file()
@@ -359,247 +206,7 @@ pub fn frame_selection(state: &mut AppState) {
     }
 }
 
-// ------------------------------------------------------- toolbar esquerda
-
-fn left_toolbar(ctx: &egui::Context, state: &mut AppState, tools: &ToolRegistry) {
-    let want: &[&str] = match state.workspace {
-        Workspace::Model => &[
-            "select",
-            "transform",
-            "rotate",
-            "scale",
-            "primitives",
-            "extrude",
-            "inset",
-            "bevel",
-            "pushpull",
-            "loop_cut",
-            "knife",
-            "slice",
-            "subdivide",
-            "draw_profile",
-            "connect",
-            "dissolve",
-            "mirror",
-            "merge",
-        ],
-        Workspace::Paint => &["paint"],
-        Workspace::Uv => &["select"],
-        Workspace::Export => &[],
-    };
-    let compact = ctx.screen_rect().width() < 1000.0;
-    egui::SidePanel::left("toolbar")
-        .exact_width(if compact { 52.0 } else { 152.0 })
-        .resizable(false)
-        .show(ctx, |ui| {
-            ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                egui::ScrollArea::vertical()
-                    .id_salt("tools.scroll")
-                    .show(ui, |ui| {
-                        for &id in want {
-                            let extra = match id {
-                                "rotate" => Some((
-                                    if state.i18n.lang == "en" {
-                                        "Rotate"
-                                    } else {
-                                        "Rotacionar"
-                                    },
-                                    "R",
-                                )),
-                                "scale" => Some((
-                                    if state.i18n.lang == "en" {
-                                        "Scale"
-                                    } else {
-                                        "Escalar"
-                                    },
-                                    "S",
-                                )),
-                                "loop_cut" => Some(("Loop cut", "Ctrl+R")),
-                                "knife" => Some((
-                                    if state.i18n.lang == "en" {
-                                        "Knife"
-                                    } else {
-                                        "Faca"
-                                    },
-                                    "K",
-                                )),
-                                _ => None,
-                            };
-                            let (label, hint) = if let Some((label, key)) = extra {
-                                (label.to_owned(), format!("{label} · {key}"))
-                            } else if let Some(tool) = tools.get(id) {
-                                (
-                                    state.t(tool.label_key()),
-                                    format!("{} · {}", state.t(tool.hint_key()), tool.shortcut()),
-                                )
-                            } else {
-                                continue;
-                            };
-                            let kind = match id {
-                                "rotate" => petunia_core::ModalKind::Rotate,
-                                "scale" => petunia_core::ModalKind::Scale,
-                                _ => petunia_core::ModalKind::Move,
-                            };
-                            let active = if matches!(id, "transform" | "rotate" | "scale") {
-                                state.active_tool == "transform" && state.gizmo_mode == kind
-                            } else {
-                                state.active_tool == id
-                            };
-                            if icons::tool_button(ui, id, &label, active, compact)
-                                .on_hover_text(hint)
-                                .clicked()
-                            {
-                                if matches!(id, "transform" | "rotate" | "scale") {
-                                    state.active_tool = "transform".into();
-                                    state.gizmo_mode = kind;
-                                } else {
-                                    state.active_tool = id.into();
-                                }
-                                // Toolbar selects a tool so its editable properties are immediately available.
-                                // Keyboard shortcuts continue to launch direct mouse sessions.
-                                state.pending_modal = None;
-                                state.mark_dirty();
-                            }
-                        }
-                    });
-            });
-        });
-}
-
-// ---------------------------------------------------------- painel direito
-
-fn right_panel(
-    ctx: &egui::Context,
-    state: &mut AppState,
-    tools: &ToolRegistry,
-    registry: &mut ModuleRegistry,
-) {
-    let max_width = (ctx.screen_rect().width() * 0.43).clamp(210.0, 400.0);
-    egui::SidePanel::right("props")
-        .default_width(260.0)
-        .width_range(210.0..=max_width)
-        .show(ctx, |ui| {
-            ui.heading(state.t("ui.properties"));
-            ui.separator();
-            egui::ScrollArea::vertical()
-                .id_salt("properties.scroll")
-                .show(ui, |ui| {
-                    let fields =
-                        state.workspace == Workspace::Model && tool_fields::draw(ui, state);
-                    ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                        match state.workspace {
-                            Workspace::Model => model_section(ctx, ui, state, tools, fields),
-                            Workspace::Paint => {
-                                if let Some(module) = registry.get_mut("paint") {
-                                    module.ui(ctx, ui, state);
-                                }
-                            }
-                            Workspace::Uv => {
-                                if let Some(module) = registry.get_mut("uv") {
-                                    module.ui(ctx, ui, state);
-                                }
-                            }
-                            Workspace::Export => export_section(ui, state),
-                        }
-                        ui.separator();
-                        if let Some(module) = registry.get_mut("assets") {
-                            module.ui(ctx, ui, state);
-                        }
-                        if state.show_help {
-                            egui::CollapsingHeader::new(state.t("ui.help"))
-                                .default_open(true)
-                                .show(ui, |ui| {
-                                    ui.label(state.t("help.body"));
-                                });
-                        }
-                    });
-                });
-        });
-}
-
-fn model_section(
-    ctx: &egui::Context,
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    tools: &ToolRegistry,
-    fields: bool,
-) {
-    let active_id = state.active_tool.clone();
-    let l_tool = state.t("ui.active_tool");
-    let l_no_tool = state.t("ui.no_tool");
-    if fields && active_id == "transform" {
-        ui.horizontal_wrapped(|ui| {
-            if ui.button(state.t("actions.duplicate")).clicked() {
-                state.checkpoint("duplicate");
-                if let Some(mesh) = state.project.active_mesh_mut() {
-                    mesh.duplicate_selected();
-                }
-                state.sync_selection();
-                state.emit_mesh_changed();
-            }
-            if ui.button(state.t("actions.delete")).clicked() {
-                state.checkpoint("delete");
-                if let Some(mesh) = state.project.active_mesh_mut() {
-                    mesh.delete_selected();
-                }
-                state.sync_selection();
-                state.emit_mesh_changed();
-            }
-        });
-    }
-    if !fields {
-        egui::CollapsingHeader::new(l_tool)
-            .default_open(true)
-            .show(ui, |ui| {
-                if let Some(tool) = tools.get(&active_id) {
-                    tool.ui(ctx, ui, state);
-                } else {
-                    ui.label(l_no_tool);
-                }
-            });
-    }
-    let l_props = state.t("ui.properties");
-    let l_name = state.t("props.name");
-    let l_verts = state.t("props.verts");
-    let l_faces = state.t("props.faces");
-    egui::CollapsingHeader::new(l_props)
-        .default_open(false)
-        .show(ui, |ui| {
-            if state.project.assets.is_empty() {
-                return;
-            }
-            let idx = state.project.active.min(state.project.assets.len() - 1);
-            let (vc, fc) = {
-                let o = &state.project.assets[idx];
-                (o.mesh.vert_count(), o.mesh.tri_count())
-            };
-            ui.horizontal(|ui| {
-                ui.label(l_name);
-                if let Some(o) = state.project.assets.get_mut(idx) {
-                    ui.text_edit_singleline(&mut o.name);
-                }
-            });
-            ui.label(format!("{l_verts}: {vc}  {l_faces}: {fc}"));
-            let mut c = state.project.assets[idx].base_color;
-            if ui.color_edit_button_rgb(&mut c).changed() {
-                state.checkpoint("base color");
-                if let Some(o) = state.project.assets.get_mut(idx) {
-                    o.base_color = c;
-                    for v in &mut o.mesh.verts {
-                        if !v.selected {
-                            v.color = c;
-                        }
-                    }
-                }
-                state.emit_mesh_changed();
-                state.mark_dirty();
-            }
-        });
-
-    refs_section(ui, state);
-}
-
-fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
+pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
     let l_refs = state.t("ui.refs");
     let l_load = state.t("refs.load");
     let l_offset = state.t("refs.offset");
@@ -745,7 +352,7 @@ fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
         });
 }
 
-fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
+pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
     let l_exp = state.t("export.title");
     let l_fmt = state.t("export.format");
     let l_report = state.t("export.report");
@@ -838,64 +445,6 @@ fn sanitize(s: &str) -> String {
             }
         })
         .collect()
-}
-
-// --------------------------------------------------------------- status
-
-fn status_bar(ctx: &egui::Context, state: &mut AppState, tools: &ToolRegistry) {
-    let (verts, faces) = state
-        .project
-        .active_mesh()
-        .map(|m| (m.verts.len(), m.faces.len()))
-        .unwrap_or((0, 0));
-    let hint = tools
-        .get(&state.active_tool)
-        .map(|t| state.t(t.hint_key()))
-        .unwrap_or_else(|| state.t("hints.select"));
-    let status = if state.status.is_empty() {
-        hint
-    } else {
-        state.status.clone()
-    };
-    egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
-        ui.horizontal(|ui| {
-            if ui
-                .add_enabled(
-                    !state.is_interacting() && state.undo.can_undo(),
-                    egui::Button::new(state.t("edit.undo")),
-                )
-                .on_hover_text(format!(
-                    "Ctrl+Z · {}",
-                    state.undo.undo_label().unwrap_or("")
-                ))
-                .clicked()
-            {
-                state.undo();
-            }
-            if ui
-                .add_enabled(
-                    !state.is_interacting() && state.undo.can_redo(),
-                    egui::Button::new(state.t("edit.redo")),
-                )
-                .on_hover_text(format!(
-                    "Ctrl+Shift+Z · {}",
-                    state.undo.redo_label().unwrap_or("")
-                ))
-                .clicked()
-            {
-                state.redo();
-            }
-            ui.separator();
-            ui.monospace(format!("{verts}v  {faces}f"))
-                .on_hover_text(format!(
-                    "{}\n{:.1} ms · {} draws",
-                    state.backend_name, state.stats.frame_ms, state.stats.draws
-                ));
-            ui.separator();
-            ui.add(egui::Label::new(&status).truncate())
-                .on_hover_text(&status);
-        });
-    });
 }
 
 // ------------------------------------------------------------- viewport

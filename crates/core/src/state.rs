@@ -206,6 +206,30 @@ pub struct AppState {
     pub context_menu_pos: Option<[f32; 2]>,
     /// Formato do export: false = OBJ (pasta), true = GLB (arquivo).
     pub export_gltf: bool,
+    /// Termo de busca no painel Outliner.
+    pub outliner_search: String,
+    /// Aba ativa no painel Properties (tool, render, object, modifiers, data, material).
+    pub properties_tab: String,
+    /// Frame atual da timeline de animação.
+    pub timeline_frame: i32,
+    /// Frame inicial do intervalo da timeline.
+    pub timeline_start: i32,
+    /// Frame final do intervalo da timeline.
+    pub timeline_end: i32,
+    /// Estado de reprodução da timeline.
+    pub timeline_playing: bool,
+    /// Snapping magnético ativado no viewport.
+    pub snap_enabled: bool,
+    /// Edição proporcional ativada no viewport.
+    pub proportional_editing: bool,
+    /// Orientação de transformação ativa ("Global", "Local", etc.).
+    pub transform_orientation: String,
+    /// Ponto de pivô ativo ("Median Point", "3D Cursor", etc.).
+    pub pivot_point: String,
+    /// Exibição de overlays no viewport (grid, eixos, 3d cursor).
+    pub show_overlays: bool,
+    /// Modo de raio-x / transparência no viewport.
+    pub show_xray: bool,
 }
 
 impl AppState {
@@ -272,6 +296,18 @@ impl AppState {
             cursor_3d: [0.0, 0.0, 0.0],
             context_menu_pos: None,
             export_gltf: true,
+            outliner_search: String::new(),
+            properties_tab: "object".to_string(),
+            timeline_frame: 1,
+            timeline_start: 1,
+            timeline_end: 250,
+            timeline_playing: false,
+            snap_enabled: false,
+            proportional_editing: false,
+            transform_orientation: "Global".to_string(),
+            pivot_point: "Median Point".to_string(),
+            show_overlays: true,
+            show_xray: false,
         }
     }
 
