@@ -6,10 +6,10 @@ use std::collections::HashSet;
 
 use glam::Vec3;
 use petunia_commands::UndoStack;
-use uuid::Uuid;
 use petunia_config::{I18n, Keybinds};
 use petunia_project::Project;
 use petunia_render::Shading;
+use uuid::Uuid;
 
 use super::camera::Camera;
 use super::events::{AppEvent, EventBus};

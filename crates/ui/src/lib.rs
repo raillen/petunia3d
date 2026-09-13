@@ -402,7 +402,9 @@ pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
             state.project.export_selected = new_sel_ids;
             ui.separator();
             ui.label(l_report);
-            for line in export::export_report(&state.project, &new_sel_indices, state.project.export_gltf) {
+            for line in
+                export::export_report(&state.project, &new_sel_indices, state.project.export_gltf)
+            {
                 ui.small(line);
             }
             if ui.button(l_go).clicked() {

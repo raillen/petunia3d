@@ -32,7 +32,10 @@ fn test_flip_diagonal_quad() {
     assert_eq!(wire_before[0].1, mesh.verts[2].pos);
 
     // Executa flip
-    assert!(mesh.flip_diagonal(), "Flip em quad selecionado deve ter sucesso");
+    assert!(
+        mesh.flip_diagonal(),
+        "Flip em quad selecionado deve ter sucesso"
+    );
 
     // Depois do flip: vertices foram rotacionados para [1, 2, 3, 0] -> fan gera diagonal (1, 3)
     let wire_after = mesh.triangulation_wireframe();
@@ -57,7 +60,10 @@ fn test_flip_diagonal_shared_triangles_edge() {
     // Seleciona aresta (1, 2)
     mesh.selected_edges.insert(petunia_mesh::edge_key(1, 2));
 
-    assert!(mesh.flip_diagonal(), "Flip em aresta de dois triângulos deve ter sucesso");
+    assert!(
+        mesh.flip_diagonal(),
+        "Flip em aresta de dois triângulos deve ter sucesso"
+    );
 
     // A aresta compartilhada agora deve ser entre (0, 3) e as faces devem conectar (0, 1, 3) e (3, 2, 0)
     assert_eq!(mesh.faces.len(), 2);

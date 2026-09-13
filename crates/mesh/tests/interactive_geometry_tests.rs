@@ -25,7 +25,10 @@ fn test_extrude_individual_faces_decouples_shared_edges() {
     let top_face0_verts = &mesh.faces[0].verts;
     let top_face1_verts = &mesh.faces[1].verts;
     for v0 in top_face0_verts {
-        assert!(!top_face1_verts.contains(v0), "Faces extrudadas individualmente não devem compartilhar vértices no topo");
+        assert!(
+            !top_face1_verts.contains(v0),
+            "Faces extrudadas individualmente não devem compartilhar vértices no topo"
+        );
     }
 }
 
@@ -49,7 +52,11 @@ fn test_revolve_selection_full_360_circle() {
     // 2 arestas do perfil * 8 segmentos = 16 quads gerados
     assert_eq!(mesh.faces.len(), 16);
     for face in &mesh.faces {
-        assert_eq!(face.verts.len(), 4, "Revolução em anel deve gerar faces quadrangulares");
+        assert_eq!(
+            face.verts.len(),
+            4,
+            "Revolução em anel deve gerar faces quadrangulares"
+        );
     }
 }
 
@@ -57,11 +64,15 @@ fn test_revolve_selection_full_360_circle() {
 fn test_bevel_multi_segments() {
     let mut mesh = Mesh::cube(2.0);
     // Seleciona a primeira aresta
-    let (a, b) = mesh.to_edges().first().map(|&(a_pos, b_pos, _)| {
-        let ai = mesh.verts.iter().position(|v| v.pos == a_pos).unwrap() as u32;
-        let bi = mesh.verts.iter().position(|v| v.pos == b_pos).unwrap() as u32;
-        (ai, bi)
-    }).unwrap();
+    let (a, b) = mesh
+        .to_edges()
+        .first()
+        .map(|&(a_pos, b_pos, _)| {
+            let ai = mesh.verts.iter().position(|v| v.pos == a_pos).unwrap() as u32;
+            let bi = mesh.verts.iter().position(|v| v.pos == b_pos).unwrap() as u32;
+            (ai, bi)
+        })
+        .unwrap();
 
     mesh.selected_edges.insert(petunia_mesh::edge_key(a, b));
 
@@ -74,8 +85,14 @@ fn test_bevel_multi_segments() {
     assert_eq!(mesh.faces.len(), 6 + 3);
 
     let report = mesh.validate_topology();
-    assert!(report.is_manifold, "Malha após bevel multi-segmentos deve ser manifold");
-    assert!(report.is_closed, "Cubo com aresta chanfrada deve permanecer fechado");
+    assert!(
+        report.is_manifold,
+        "Malha após bevel multi-segmentos deve ser manifold"
+    );
+    assert!(
+        report.is_closed,
+        "Cubo com aresta chanfrada deve permanecer fechado"
+    );
 }
 
 #[test]
@@ -87,8 +104,15 @@ fn test_guarded_inset_extreme_factor_stability() {
     mesh.inset_selected(5.0);
 
     let report = mesh.validate_topology();
-    assert!(report.is_manifold, "Inset com fator extremo deve manter a malha manifold");
-    assert_eq!(mesh.faces.len(), 6 + 4, "Inset de 1 face gera 4 faces de anel");
+    assert!(
+        report.is_manifold,
+        "Inset com fator extremo deve manter a malha manifold"
+    );
+    assert_eq!(
+        mesh.faces.len(),
+        6 + 4,
+        "Inset de 1 face gera 4 faces de anel"
+    );
 
     // A normal da face interna modificada deve continuar alinhada à face original
     let inner_face = &mesh.faces[0];

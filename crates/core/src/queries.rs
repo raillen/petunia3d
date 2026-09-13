@@ -170,7 +170,9 @@ impl AppState {
 
     /// Localiza referência imutável de asset por UUID.
     pub fn find_asset_by_id(&self, id: Uuid) -> Option<&petunia_project::Asset> {
-        self.project.find(id).and_then(|idx| self.project.assets.get(idx))
+        self.project
+            .find(id)
+            .and_then(|idx| self.project.assets.get(idx))
     }
 
     /// Localiza referência mutável de asset por UUID.

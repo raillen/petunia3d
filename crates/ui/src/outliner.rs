@@ -856,115 +856,117 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                         let visible = state.project.assets[i].visible;
                         let locked = state.project.assets[i].locked;
                         let asset_id = state.project.assets[i].id;
-                        builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(|ui| {
-                            ui.horizontal(|ui| {
-                                ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                        builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(
+                            |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
-                                let fg = if is_selected {
-                                    tokens::TEXT_ACTIVE
-                                } else {
-                                    tokens::TEXT_PRIMARY
-                                };
+                                    let fg = if is_selected {
+                                        tokens::TEXT_ACTIVE
+                                    } else {
+                                        tokens::TEXT_PRIMARY
+                                    };
 
-                                outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
-                                let item_label = format!("{name} ({vc}v, {fc}f)");
-                                let label_resp = ui.label(
-                                    egui::RichText::new(item_label)
-                                        .size(11.0)
-                                        .color(fg)
-                                        .background_color(if is_selected {
-                                            tokens::ACCENT_BLUE
+                                    outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
+                                    let item_label = format!("{name} ({vc}v, {fc}f)");
+                                    let label_resp = ui.label(
+                                        egui::RichText::new(item_label)
+                                            .size(11.0)
+                                            .color(fg)
+                                            .background_color(if is_selected {
+                                                tokens::ACCENT_BLUE
+                                            } else {
+                                                Color32::TRANSPARENT
+                                            }),
+                                    );
+
+                                    label_resp.context_menu(|ui| {
+                                        ui.menu_button("Move to Collection ›", |ui| {
+                                            if ui.button("None (Root)").clicked() {
+                                                move_to_col = Some((i, None));
+                                                ui.close();
+                                            }
+                                            ui.separator();
+                                            for col in &collections {
+                                                let is_cur =
+                                                    state.project.assets[i].collection.as_deref()
+                                                        == Some(col);
+                                                let label = if is_cur {
+                                                    format!("✓ {col}")
+                                                } else {
+                                                    col.clone()
+                                                };
+                                                if ui.button(label).clicked() {
+                                                    move_to_col = Some((i, Some(col.clone())));
+                                                    ui.close();
+                                                }
+                                            }
+                                        });
+                                        ui.separator();
+                                        let lock_txt = if locked {
+                                            "Unlock Object"
                                         } else {
-                                            Color32::TRANSPARENT
-                                        }),
-                                );
-
-                                label_resp.context_menu(|ui| {
-                                    ui.menu_button("Move to Collection ›", |ui| {
-                                        if ui.button("None (Root)").clicked() {
-                                            move_to_col = Some((i, None));
+                                            "Lock Object"
+                                        };
+                                        if ui.button(lock_txt).clicked() {
+                                            toggle_lock_idx = Some(i);
+                                            ui.close();
+                                        }
+                                        let iso_txt = if state.isolate_active && is_selected {
+                                            "Restore Visibility (Exit Isolate)"
+                                        } else {
+                                            "Isolate Object (Numpad /)"
+                                        };
+                                        if ui.button(iso_txt).clicked() {
+                                            isolate_idx = Some(i);
                                             ui.close();
                                         }
                                         ui.separator();
-                                        for col in &collections {
-                                            let is_cur =
-                                                state.project.assets[i].collection.as_deref()
-                                                    == Some(col);
-                                            let label = if is_cur {
-                                                format!("✓ {col}")
-                                            } else {
-                                                col.clone()
-                                            };
-                                            if ui.button(label).clicked() {
-                                                move_to_col = Some((i, Some(col.clone())));
-                                                ui.close();
-                                            }
+                                        if ui.button("Duplicate · Shift+D").clicked() {
+                                            dup_idx = Some(i);
+                                            ui.close();
+                                        }
+                                        if ui.button("Delete · X").clicked() {
+                                            delete_idx = Some(i);
+                                            ui.close();
                                         }
                                     });
-                                    ui.separator();
-                                    let lock_txt = if locked {
-                                        "Unlock Object"
-                                    } else {
-                                        "Lock Object"
-                                    };
-                                    if ui.button(lock_txt).clicked() {
-                                        toggle_lock_idx = Some(i);
-                                        ui.close();
-                                    }
-                                    let iso_txt = if state.isolate_active && is_selected {
-                                        "Restore Visibility (Exit Isolate)"
-                                    } else {
-                                        "Isolate Object (Numpad /)"
-                                    };
-                                    if ui.button(iso_txt).clicked() {
-                                        isolate_idx = Some(i);
-                                        ui.close();
-                                    }
-                                    ui.separator();
-                                    if ui.button("Duplicate · Shift+D").clicked() {
-                                        dup_idx = Some(i);
-                                        ui.close();
-                                    }
-                                    if ui.button("Delete · X").clicked() {
-                                        delete_idx = Some(i);
-                                        ui.close();
-                                    }
+
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            if outliner_eye_button(
+                                                ui,
+                                                visible,
+                                                if visible {
+                                                    "Hide in 3D Viewport"
+                                                } else {
+                                                    "Show in 3D Viewport"
+                                                },
+                                            )
+                                            .clicked()
+                                            {
+                                                toggle_vis_idx = Some(i);
+                                            }
+
+                                            if outliner_lock_button(
+                                                ui,
+                                                locked,
+                                                if locked {
+                                                    "Unlock Object (currently fixed)"
+                                                } else {
+                                                    "Lock Object (prevents transform)"
+                                                },
+                                            )
+                                            .clicked()
+                                            {
+                                                toggle_lock_idx = Some(i);
+                                            }
+                                        },
+                                    );
                                 });
-
-                                ui.with_layout(
-                                    egui::Layout::right_to_left(egui::Align::Center),
-                                    |ui| {
-                                        if outliner_eye_button(
-                                            ui,
-                                            visible,
-                                            if visible {
-                                                "Hide in 3D Viewport"
-                                            } else {
-                                                "Show in 3D Viewport"
-                                            },
-                                        )
-                                        .clicked()
-                                        {
-                                            toggle_vis_idx = Some(i);
-                                        }
-
-                                        if outliner_lock_button(
-                                            ui,
-                                            locked,
-                                            if locked {
-                                                "Unlock Object (currently fixed)"
-                                            } else {
-                                                "Lock Object (prevents transform)"
-                                            },
-                                        )
-                                        .clicked()
-                                        {
-                                            toggle_lock_idx = Some(i);
-                                        }
-                                    },
-                                );
-                            });
-                        }));
+                            },
+                        ));
                     }
                     builder.close_dir();
                 }
@@ -993,101 +995,106 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                 let visible = state.project.assets[i].visible;
                 let locked = state.project.assets[i].locked;
                 let asset_id = state.project.assets[i].id;
-                builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                builder.node(
+                    NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
-                        let fg = if is_selected {
-                            tokens::TEXT_ACTIVE
-                        } else {
-                            tokens::TEXT_PRIMARY
-                        };
+                            let fg = if is_selected {
+                                tokens::TEXT_ACTIVE
+                            } else {
+                                tokens::TEXT_PRIMARY
+                            };
 
-                        outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
-                        let item_label = format!("{name} ({vc}v, {fc}f)");
-                        let label_resp = ui.label(
-                            egui::RichText::new(item_label)
-                                .size(11.0)
-                                .color(fg)
-                                .background_color(if is_selected {
-                                    tokens::ACCENT_BLUE
-                                } else {
-                                    Color32::TRANSPARENT
-                                }),
-                        );
+                            outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
+                            let item_label = format!("{name} ({vc}v, {fc}f)");
+                            let label_resp = ui.label(
+                                egui::RichText::new(item_label)
+                                    .size(11.0)
+                                    .color(fg)
+                                    .background_color(if is_selected {
+                                        tokens::ACCENT_BLUE
+                                    } else {
+                                        Color32::TRANSPARENT
+                                    }),
+                            );
 
-                        label_resp.context_menu(|ui| {
-                            if !collections.is_empty() {
-                                ui.menu_button("Move to Collection ›", |ui| {
-                                    for col in &collections {
-                                        if ui.button(col).clicked() {
-                                            move_to_col = Some((i, Some(col.clone())));
-                                            ui.close();
+                            label_resp.context_menu(|ui| {
+                                if !collections.is_empty() {
+                                    ui.menu_button("Move to Collection ›", |ui| {
+                                        for col in &collections {
+                                            if ui.button(col).clicked() {
+                                                move_to_col = Some((i, Some(col.clone())));
+                                                ui.close();
+                                            }
                                         }
-                                    }
-                                });
+                                    });
+                                    ui.separator();
+                                }
+                                let lock_txt = if locked {
+                                    "Unlock Object"
+                                } else {
+                                    "Lock Object"
+                                };
+                                if ui.button(lock_txt).clicked() {
+                                    toggle_lock_idx = Some(i);
+                                    ui.close();
+                                }
+                                let iso_txt = if state.isolate_active && is_selected {
+                                    "Restore Visibility (Exit Isolate)"
+                                } else {
+                                    "Isolate Object (Numpad /)"
+                                };
+                                if ui.button(iso_txt).clicked() {
+                                    isolate_idx = Some(i);
+                                    ui.close();
+                                }
                                 ui.separator();
-                            }
-                            let lock_txt = if locked {
-                                "Unlock Object"
-                            } else {
-                                "Lock Object"
-                            };
-                            if ui.button(lock_txt).clicked() {
-                                toggle_lock_idx = Some(i);
-                                ui.close();
-                            }
-                            let iso_txt = if state.isolate_active && is_selected {
-                                "Restore Visibility (Exit Isolate)"
-                            } else {
-                                "Isolate Object (Numpad /)"
-                            };
-                            if ui.button(iso_txt).clicked() {
-                                isolate_idx = Some(i);
-                                ui.close();
-                            }
-                            ui.separator();
-                            if ui.button("Duplicate · Shift+D").clicked() {
-                                dup_idx = Some(i);
-                                ui.close();
-                            }
-                            if ui.button("Delete · X").clicked() {
-                                delete_idx = Some(i);
-                                ui.close();
-                            }
-                        });
+                                if ui.button("Duplicate · Shift+D").clicked() {
+                                    dup_idx = Some(i);
+                                    ui.close();
+                                }
+                                if ui.button("Delete · X").clicked() {
+                                    delete_idx = Some(i);
+                                    ui.close();
+                                }
+                            });
 
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if outliner_eye_button(
-                                ui,
-                                visible,
-                                if visible {
-                                    "Hide in 3D Viewport"
-                                } else {
-                                    "Show in 3D Viewport"
-                                },
-                            )
-                            .clicked()
-                            {
-                                toggle_vis_idx = Some(i);
-                            }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if outliner_eye_button(
+                                        ui,
+                                        visible,
+                                        if visible {
+                                            "Hide in 3D Viewport"
+                                        } else {
+                                            "Show in 3D Viewport"
+                                        },
+                                    )
+                                    .clicked()
+                                    {
+                                        toggle_vis_idx = Some(i);
+                                    }
 
-                            if outliner_lock_button(
-                                ui,
-                                locked,
-                                if locked {
-                                    "Unlock Object (currently fixed)"
-                                } else {
-                                    "Lock Object (prevents transform)"
+                                    if outliner_lock_button(
+                                        ui,
+                                        locked,
+                                        if locked {
+                                            "Unlock Object (currently fixed)"
+                                        } else {
+                                            "Lock Object (prevents transform)"
+                                        },
+                                    )
+                                    .clicked()
+                                    {
+                                        toggle_lock_idx = Some(i);
+                                    }
                                 },
-                            )
-                            .clicked()
-                            {
-                                toggle_lock_idx = Some(i);
-                            }
+                            );
                         });
-                    });
-                }));
+                    }),
+                );
             }
 
             builder.close_dir();

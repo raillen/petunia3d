@@ -369,10 +369,7 @@ pub unsafe extern "C" fn petunia_duplicate_selection(ctx: *mut PetuniaContext) -
 
 /// Extrude os elementos selecionados com a distância especificada.
 #[no_mangle]
-pub unsafe extern "C" fn petunia_extrude_selection(
-    ctx: *mut PetuniaContext,
-    distance: f32,
-) -> i32 {
+pub unsafe extern "C" fn petunia_extrude_selection(ctx: *mut PetuniaContext, distance: f32) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
         return PETUNIA_ERR_NULL_PTR;

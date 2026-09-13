@@ -393,5 +393,3 @@ fn petunia_ffi_must_be_pure_headless() {
         "VIOLAÇÃO ARQUITETURAL (G10): crates/ffi/src/lib.rs não pode referenciar egui!"
     );
 }
-
-

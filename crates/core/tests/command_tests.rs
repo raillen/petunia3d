@@ -405,4 +405,3 @@ fn test_extrude_individual_command_and_undo() {
     assert_eq!(mesh_restored.verts.len(), initial_verts);
     assert_eq!(mesh_restored.faces.len(), initial_faces);
 }
-

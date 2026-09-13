@@ -115,10 +115,7 @@ fn test_modeling_primitives_and_scene_queries() {
 
         // Adiciona Esfera e Cilindro
         let sphere_name = CString::new("Sphere").unwrap();
-        assert_eq!(
-            petunia_add_primitive(ctx, sphere_name.as_ptr()),
-            PETUNIA_OK
-        );
+        assert_eq!(petunia_add_primitive(ctx, sphere_name.as_ptr()), PETUNIA_OK);
 
         let cylinder_name = CString::new("Cylinder8").unwrap();
         assert_eq!(
@@ -217,10 +214,7 @@ fn test_project_io_and_obj_glb_exports() {
         let glb_c = CString::new(glb_path.to_str().unwrap()).unwrap();
 
         // Salva projeto
-        assert_eq!(
-            petunia_save_project(ctx, prj_c.as_ptr()),
-            PETUNIA_OK
-        );
+        assert_eq!(petunia_save_project(ctx, prj_c.as_ptr()), PETUNIA_OK);
         assert!(prj_path.exists());
 
         // Exporta OBJ
@@ -239,10 +233,7 @@ fn test_project_io_and_obj_glb_exports() {
         assert_eq!(petunia_new_project(ctx), PETUNIA_OK);
         assert_eq!(petunia_get_asset_count(ctx), 1);
 
-        assert_eq!(
-            petunia_load_project(ctx, prj_c.as_ptr()),
-            PETUNIA_OK
-        );
+        assert_eq!(petunia_load_project(ctx, prj_c.as_ptr()), PETUNIA_OK);
         assert_eq!(petunia_get_asset_count(ctx), 2);
 
         // Limpeza

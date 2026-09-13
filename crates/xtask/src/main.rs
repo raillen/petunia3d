@@ -407,7 +407,9 @@ fn task_arch_check() -> Result<()> {
     println!("🛡️ Validando estabilização da Application API (Gauntlet G9 / F-010)...");
     let queries_path = root.join("crates/core/src/queries.rs");
     if !queries_path.exists() {
-        bail!("Violação de Application API (G9 / F-010): crates/core/src/queries.rs não encontrado!");
+        bail!(
+            "Violação de Application API (G9 / F-010): crates/core/src/queries.rs não encontrado!"
+        );
     }
     let state_path = root.join("crates/core/src/state.rs");
     let state_content = std::fs::read_to_string(&state_path)?;
@@ -437,6 +439,8 @@ fn task_arch_check() -> Result<()> {
     }
     println!("✅ Camada C-ABI / FFI validada: petunia_ffi e include/petunia.h são 100% autônomos.");
 
-    println!("🏛️ Progresso de remediação: TODOS OS 11 GAUNTLETS (G0 a G10) 100% CONCLUÍDOS COM SUCESSO!");
+    println!(
+        "🏛️ Progresso de remediação: TODOS OS 11 GAUNTLETS (G0 a G10) 100% CONCLUÍDOS COM SUCESSO!"
+    );
     Ok(())
 }

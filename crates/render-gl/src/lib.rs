@@ -445,12 +445,7 @@ impl GlRenderer {
         Ok(slot.tex)
     }
 
-    unsafe fn draw_edges(
-        &mut self,
-        scene: &Project,
-        shading: Shading,
-        show_triangulation: bool,
-    ) {
+    unsafe fn draw_edges(&mut self, scene: &Project, shading: Shading, show_triangulation: bool) {
         let gl = &self.gl;
         let wire = shading == Shading::Wireframe;
         let mut data: Vec<f32> = Vec::new();
