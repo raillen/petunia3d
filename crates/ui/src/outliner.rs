@@ -1334,16 +1334,14 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
     // Ações de meshes
     if let Some(idx) = toggle_vis_idx {
-        if let Some(asset) = state.project.assets.get_mut(idx) {
-            asset.visible = !asset.visible;
-            state.mark_dirty();
-        }
+        let _ = state.dispatch(&petunia_core::ToggleVisibilityAssetCmd {
+            asset_index: Some(idx),
+        });
     }
     if let Some(idx) = toggle_lock_idx {
-        if let Some(asset) = state.project.assets.get_mut(idx) {
-            asset.locked = !asset.locked;
-            state.mark_dirty();
-        }
+        let _ = state.dispatch(&petunia_core::ToggleLockAssetCmd {
+            asset_index: Some(idx),
+        });
     }
     if let Some(idx) = isolate_idx {
         if idx < state.project.assets.len() {
@@ -1352,38 +1350,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         }
     }
     if let Some((idx, col)) = move_to_col {
-        if let Some(asset) = state.project.assets.get_mut(idx) {
-            asset.collection = col;
-            state.mark_dirty();
-        }
+        let _ = state.dispatch(&petunia_core::SetAssetCollectionCmd {
+            asset_index: idx,
+            collection: col,
+        });
     }
     if let Some(col) = toggle_col_vis {
-        let all_vis = state
-            .project
-            .assets
-            .iter()
-            .filter(|a| a.collection.as_deref() == Some(&col))
-            .all(|a| a.visible);
-        for a in &mut state.project.assets {
-            if a.collection.as_deref() == Some(&col) {
-                a.visible = !all_vis;
-            }
-        }
-        state.mark_dirty();
+        let _ = state.dispatch(&petunia_core::ToggleCollectionVisibilityCmd { collection: col });
     }
     if let Some(col) = toggle_col_lock {
-        let all_locked = state
-            .project
-            .assets
-            .iter()
-            .filter(|a| a.collection.as_deref() == Some(&col))
-            .all(|a| a.locked);
-        for a in &mut state.project.assets {
-            if a.collection.as_deref() == Some(&col) {
-                a.locked = !all_locked;
-            }
-        }
-        state.mark_dirty();
+        let _ = state.dispatch(&petunia_core::ToggleCollectionLockCmd { collection: col });
     }
     if let Some(col) = delete_col {
         state.project.remove_collection(&col);

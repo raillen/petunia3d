@@ -3,6 +3,30 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.22.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 1 (Architecture Spine)
+
+### Adicionado
+- **Consolidação de Comandos Canônicos (`crates/core/src/command.rs`, `crates/core/src/lib.rs`)**:
+  - `SelectLinkedCmd`: Comando para seleção limpa de componentes conectados (ilhas de malha) no mesh ativo (`model.select_linked`).
+  - `BoxSelectCmd`: Comando para seleção de área por frustum/retângulo 2D normalizado no viewport.
+  - `ToggleLockAssetCmd`: Comando transacional com Undo/Redo para alternar estado de bloqueio de assets.
+  - `ToggleVisibilityAssetCmd`: Comando transacional com Undo/Redo para alternar visibilidade de assets.
+  - `SetAssetCollectionCmd`: Comando transacional com Undo/Redo para atribuir ou remover um asset de uma coleção organizacional.
+  - `ToggleCollectionVisibilityCmd` & `ToggleCollectionLockCmd`: Comandos transacionais com Undo/Redo para operações em lote sobre coleções.
+- **Desacoplamento e Convergência de UI (`crates/ui/src/outliner.rs`, `crates/ui/src/lib.rs`, `crates/app/src/lib.rs`)**:
+  - Eliminação de mutações diretas do Outliner: toggles de cadeado (lock), olho (visibilidade) e movimentação para coleções agora despacham comandos canônicos via `state.dispatch`.
+  - Box select do viewport migrado para despacho semântico via `BoxSelectCmd`.
+  - Atalho de teclado `model.select_linked` roteado através de `SelectLinkedCmd`.
+- **Governança Automatizada de Invariantes (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - `tools_must_not_depend_on_physical_keycodes`: Validação estrita de que ferramentas de modelagem não referenciam `PhysicalKey`, `winit::keyboard` ou `egui::Key`.
+  - `core_and_domain_must_not_depend_on_eframe`: Validação estrita de ausência de `eframe` em todos os 12 crates de domínio e infraestrutura neutra.
+  - Gate `cargo run -p xtask -- arch-check` atualizado confirmando Wave 1 concluída com 100% de sucesso.
+- **Suíte de Testes Automatizados (`crates/core/tests/command_tests.rs`)**:
+  - 3 novos testes de integração cobrindo o ciclo transacional e Undo/Redo para os comandos de seleção e operações de outliner/coleções.
+  - Total de testes no workspace elevado para 282 testes unitários, integração e UI, todos verdes.
+
+---
+
 ## [0.21.0] - 2026-09-13 — Core V1 & Interactive Geometry Refinement (Gauntlet Loop)
 
 ### Adicionado

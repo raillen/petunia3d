@@ -439,8 +439,57 @@ fn task_arch_check() -> Result<()> {
     }
     println!("✅ Camada C-ABI / FFI validada: petunia_ffi e include/petunia.h são 100% autônomos.");
 
+    println!("🛡️ Validando ausência de atalhos físicos nas ferramentas (Wave 1)...");
+    for file_path in &rs_files {
+        let rel = file_path
+            .strip_prefix(&root)
+            .unwrap_or(file_path)
+            .to_string_lossy();
+
+        if rel.starts_with("crates/module-model")
+            || rel == "crates/core/src/modal.rs"
+            || rel == "crates/core/src/cutting_session.rs"
+        {
+            let content = std::fs::read_to_string(file_path)
+                .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+            if content.contains("winit::keyboard")
+                || content.contains("PhysicalKey")
+                || content.contains("egui::Key")
+            {
+                bail!("Violação de Desacoplamento de Entrada (Wave 1): {rel} referencia atalhos físicos!");
+            }
+        }
+    }
+    println!("✅ Soberania de ferramentas validada: tools não conhecem keycodes físicos.");
+
+    println!("🛡️ Validando ausência de eframe em todo o domínio (Wave 1)...");
+    let domain_crates = [
+        "crates/core",
+        "crates/mesh",
+        "crates/commands",
+        "crates/config",
+        "crates/project",
+        "crates/render",
+        "crates/module-model",
+        "crates/module-paint",
+        "crates/module-uv",
+        "crates/module-assets",
+        "crates/cli",
+        "crates/ffi",
+    ];
+    for c in domain_crates {
+        let cargo_p = root.join(c).join("Cargo.toml");
+        if cargo_p.exists() {
+            let content = std::fs::read_to_string(&cargo_p)?;
+            if content.contains("eframe") {
+                bail!("Violação de Domínio (Wave 1): {c}/Cargo.toml depende de eframe!");
+            }
+        }
+    }
+    println!("✅ Domínio agnóstico validado: eframe ausente de todo o Core e Módulos.");
+
     println!(
-        "🏛️ Progresso de remediação: TODOS OS 11 GAUNTLETS (G0 a G10) 100% CONCLUÍDOS COM SUCESSO!"
+        "🏛️ Progresso de remediação: GAUNTLETS G0 a G10 e WAVE 1 100% CONCLUÍDOS COM SUCESSO!"
     );
     Ok(())
 }

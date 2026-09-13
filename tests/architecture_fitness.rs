@@ -393,3 +393,84 @@ fn petunia_ffi_must_be_pure_headless() {
         "VIOLAÇÃO ARQUITETURAL (G10): crates/ffi/src/lib.rs não pode referenciar egui!"
     );
 }
+
+#[test]
+fn tools_must_not_depend_on_physical_keycodes() {
+    let tool_crates = [
+        "crates/module-model",
+        "crates/core/src/modal.rs",
+        "crates/core/src/cutting_session.rs",
+    ];
+
+    let mut rs_files = Vec::new();
+    fn scan_path(p: &Path, acc: &mut Vec<std::path::PathBuf>) {
+        if p.is_dir() {
+            if let Ok(entries) = fs::read_dir(p) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        scan_path(&path, acc);
+                    } else if path.extension().is_some_and(|ext| ext == "rs") {
+                        acc.push(path);
+                    }
+                }
+            }
+        } else if p.exists() {
+            acc.push(p.to_path_buf());
+        }
+    }
+
+    for target in tool_crates {
+        let p = root_dir().join(target);
+        scan_path(&p, &mut rs_files);
+    }
+
+    for file_path in rs_files {
+        let rel_path = file_path
+            .strip_prefix(root_dir())
+            .unwrap_or(&file_path)
+            .to_string_lossy();
+        let content = fs::read_to_string(&file_path).expect("ler arquivo de ferramentas");
+        assert!(
+            !content.contains("winit::keyboard"),
+            "VIOLAÇÃO ARQUITETURAL (Wave 1): {rel_path} referencia winit::keyboard! Ferramentas não podem conhecer atalhos físicos."
+        );
+        assert!(
+            !content.contains("PhysicalKey"),
+            "VIOLAÇÃO ARQUITETURAL (Wave 1): {rel_path} referencia PhysicalKey! Ferramentas não podem conhecer atalhos físicos."
+        );
+        assert!(
+            !content.contains("egui::Key"),
+            "VIOLAÇÃO ARQUITETURAL (Wave 1): {rel_path} referencia egui::Key! Ferramentas não podem conhecer atalhos físicos."
+        );
+    }
+}
+
+#[test]
+fn core_and_domain_must_not_depend_on_eframe() {
+    let domain_crates = [
+        "crates/core",
+        "crates/mesh",
+        "crates/commands",
+        "crates/config",
+        "crates/project",
+        "crates/render",
+        "crates/module-model",
+        "crates/module-paint",
+        "crates/module-uv",
+        "crates/module-assets",
+        "crates/cli",
+        "crates/ffi",
+    ];
+
+    for c in domain_crates {
+        let cargo_path = root_dir().join(c).join("Cargo.toml");
+        if cargo_path.exists() {
+            let content = fs::read_to_string(&cargo_path).expect("ler Cargo.toml de domínio");
+            assert!(
+                !content.contains("eframe"),
+                "VIOLAÇÃO ARQUITETURAL (Wave 1): {c}/Cargo.toml não pode depender de eframe!"
+            );
+        }
+    }
+}

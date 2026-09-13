@@ -495,3 +495,201 @@ impl Command for ExtrudeIndividualCmd {
         Ok(())
     }
 }
+
+/// Comando para selecionar todos os elementos conectados à seleção atual (Select Linked).
+#[derive(Debug, Clone, Default)]
+pub struct SelectLinkedCmd;
+
+impl Command for SelectLinkedCmd {
+    fn label(&self) -> &'static str {
+        "select linked"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        mesh.select_linked();
+        state.sync_selection();
+        Ok(())
+    }
+}
+
+/// Comando para seleção por área (retângulo 2D projetado via matriz de visão/projeção).
+#[derive(Debug, Clone)]
+pub struct BoxSelectCmd {
+    pub p0: [f32; 2],
+    pub p1: [f32; 2],
+    pub view_proj: [f32; 16],
+    pub add: bool,
+}
+
+impl Command for BoxSelectCmd {
+    fn label(&self) -> &'static str {
+        "box select"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        mesh.box_select(self.p0, self.p1, &self.view_proj, self.add);
+        state.sync_selection();
+        Ok(())
+    }
+}
+
+/// Comando para alternar o bloqueio (lock) do asset ativo ou especificado.
+#[derive(Debug, Clone, Default)]
+pub struct ToggleLockAssetCmd {
+    pub asset_index: Option<usize>,
+}
+
+impl Command for ToggleLockAssetCmd {
+    fn label(&self) -> &'static str {
+        "toggle lock"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let idx = self.asset_index.unwrap_or(state.project.active);
+        let Some(asset) = state.project.assets.get_mut(idx) else {
+            return Err(CommandError::InvalidAssetIndex(idx));
+        };
+        asset.locked = !asset.locked;
+        let name = asset.name.clone();
+        let locked = asset.locked;
+        state.set_status(if locked {
+            format!("Locked {}", name)
+        } else {
+            format!("Unlocked {}", name)
+        });
+        Ok(())
+    }
+}
+
+/// Comando para alternar a visibilidade do asset ativo ou especificado.
+#[derive(Debug, Clone, Default)]
+pub struct ToggleVisibilityAssetCmd {
+    pub asset_index: Option<usize>,
+}
+
+impl Command for ToggleVisibilityAssetCmd {
+    fn label(&self) -> &'static str {
+        "toggle visibility"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let idx = self.asset_index.unwrap_or(state.project.active);
+        let Some(asset) = state.project.assets.get_mut(idx) else {
+            return Err(CommandError::InvalidAssetIndex(idx));
+        };
+        asset.visible = !asset.visible;
+        let name = asset.name.clone();
+        let visible = asset.visible;
+        state.set_status(if visible {
+            format!("Showed {}", name)
+        } else {
+            format!("Hid {}", name)
+        });
+        Ok(())
+    }
+}
+
+/// Comando para definir a coleção organizadora de um asset.
+#[derive(Debug, Clone)]
+pub struct SetAssetCollectionCmd {
+    pub asset_index: usize,
+    pub collection: Option<String>,
+}
+
+impl Command for SetAssetCollectionCmd {
+    fn label(&self) -> &'static str {
+        "set collection"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(asset) = state.project.assets.get_mut(self.asset_index) else {
+            return Err(CommandError::InvalidAssetIndex(self.asset_index));
+        };
+        asset.collection = self.collection.clone();
+        let name = asset.name.clone();
+        if let Some(ref col) = self.collection {
+            state.set_status(format!("Moved {} to collection {}", name, col));
+        } else {
+            state.set_status(format!("Removed {} from collections", name));
+        }
+        Ok(())
+    }
+}
+
+/// Comando para alternar a visibilidade de todos os assets de uma coleção.
+#[derive(Debug, Clone)]
+pub struct ToggleCollectionVisibilityCmd {
+    pub collection: String,
+}
+
+impl Command for ToggleCollectionVisibilityCmd {
+    fn label(&self) -> &'static str {
+        "toggle collection visibility"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let all_vis = state
+            .project
+            .assets
+            .iter()
+            .filter(|a| a.collection.as_deref() == Some(&self.collection))
+            .all(|a| a.visible);
+        for a in &mut state.project.assets {
+            if a.collection.as_deref() == Some(&self.collection) {
+                a.visible = !all_vis;
+            }
+        }
+        state.set_status(format!(
+            "Collection {}: {}",
+            self.collection,
+            if !all_vis { "visible" } else { "hidden" }
+        ));
+        Ok(())
+    }
+}
+
+/// Comando para alternar o bloqueio (lock) de todos os assets de uma coleção.
+#[derive(Debug, Clone)]
+pub struct ToggleCollectionLockCmd {
+    pub collection: String,
+}
+
+impl Command for ToggleCollectionLockCmd {
+    fn label(&self) -> &'static str {
+        "toggle collection lock"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let all_locked = state
+            .project
+            .assets
+            .iter()
+            .filter(|a| a.collection.as_deref() == Some(&self.collection))
+            .all(|a| a.locked);
+        for a in &mut state.project.assets {
+            if a.collection.as_deref() == Some(&self.collection) {
+                a.locked = !all_locked;
+            }
+        }
+        state.set_status(format!(
+            "Collection {}: {}",
+            self.collection,
+            if !all_locked { "locked" } else { "unlocked" }
+        ));
+        Ok(())
+    }
+}

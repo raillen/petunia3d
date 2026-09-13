@@ -471,11 +471,7 @@ impl Core {
                 let _ = self.state.dispatch(&InvertSelectionCmd);
             }
             "model.select_linked" => {
-                if let Some(m) = self.state.project.active_mesh_mut() {
-                    m.select_linked();
-                }
-                self.state.sync_selection();
-                self.state.mark_dirty();
+                let _ = self.state.dispatch(&petunia_core::SelectLinkedCmd);
             }
             "paint.paint" => self.set_tool("paint", None),
             _ => {}

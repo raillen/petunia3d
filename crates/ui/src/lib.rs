@@ -533,11 +533,12 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
                         let p1 = to_ndc(curr);
                         let shift = ui.input(|i| i.modifiers.shift);
                         let vp = state.session.camera.view_proj().to_cols_array();
-                        if let Some(m) = state.project.active_mesh_mut() {
-                            m.box_select(p0, p1, &vp, shift);
-                        }
-                        state.sync_selection();
-                        state.mark_dirty();
+                        let _ = state.dispatch(&petunia_core::BoxSelectCmd {
+                            p0,
+                            p1,
+                            view_proj: vp,
+                            add: shift,
+                        });
                     }
                 }
             }

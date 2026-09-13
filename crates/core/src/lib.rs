@@ -20,10 +20,12 @@ pub use cutting_session::CutSession;
 pub use queries::{SceneHierarchyDto, SceneObjectDto, SelectionDetailsDto, ToolStatusDto};
 
 pub use command::{
-    AddPrimitiveCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError, DeleteAssetCmd,
-    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, ExtrudeIndividualCmd,
-    FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, RevolveCmd,
-    SelectAllCmd, SubdivideSelectionCmd,
+    AddPrimitiveCmd, BoxSelectCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError,
+    DeleteAssetCmd, DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd,
+    ExtrudeIndividualCmd, FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd,
+    PrimitiveKind, RevolveCmd, SelectAllCmd, SelectLinkedCmd, SetAssetCollectionCmd,
+    SubdivideSelectionCmd, ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd,
+    ToggleLockAssetCmd, ToggleVisibilityAssetCmd,
 };
 pub use project_service::{sanitize_filename, ProjectService, ProjectServiceError};
 

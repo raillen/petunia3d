@@ -3,10 +3,12 @@
 #![allow(clippy::field_reassign_with_default)]
 
 use petunia_core::command::{
-    AddPrimitiveCmd, ClearSelectionCmd, CommandDispatcher, CommandError, DeleteAssetCmd,
-    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, ExtrudeIndividualCmd,
-    FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, RevolveCmd,
-    SelectAllCmd, SubdivideSelectionCmd,
+    AddPrimitiveCmd, BoxSelectCmd, ClearSelectionCmd, CommandDispatcher, CommandError,
+    DeleteAssetCmd, DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd,
+    ExtrudeIndividualCmd, FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd,
+    PrimitiveKind, RevolveCmd, SelectAllCmd, SelectLinkedCmd, SetAssetCollectionCmd,
+    SubdivideSelectionCmd, ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd,
+    ToggleLockAssetCmd, ToggleVisibilityAssetCmd,
 };
 use petunia_core::state::{AppState, EditMode};
 
@@ -404,4 +406,133 @@ fn test_extrude_individual_command_and_undo() {
     let mesh_restored = state.project.active_mesh().unwrap();
     assert_eq!(mesh_restored.verts.len(), initial_verts);
     assert_eq!(mesh_restored.faces.len(), initial_faces);
+}
+
+#[test]
+fn test_select_linked_and_box_select_commands() {
+    let mut state = AppState::default();
+    state.mode = EditMode::Edit;
+
+    // Deseleciona tudo
+    state.dispatch(&ClearSelectionCmd).expect("clear");
+    assert_eq!(
+        state
+            .project
+            .active_mesh()
+            .unwrap()
+            .verts
+            .iter()
+            .filter(|v| v.selected)
+            .count(),
+        0
+    );
+
+    // Seleciona um vértice e executa SelectLinkedCmd
+    state.project.active_mesh_mut().unwrap().verts[0].selected = true;
+    state.dispatch(&SelectLinkedCmd).expect("select linked");
+
+    // Todo o cubo conectado deve estar selecionado
+    assert_eq!(
+        state
+            .project
+            .active_mesh()
+            .unwrap()
+            .verts
+            .iter()
+            .filter(|v| v.selected)
+            .count(),
+        8
+    );
+
+    // BoxSelectCmd cobrindo toda a tela NDC [-1, 1]
+    state.dispatch(&ClearSelectionCmd).expect("clear");
+    let vp = state.session.camera.view_proj().to_cols_array();
+    let box_cmd = BoxSelectCmd {
+        p0: [-1.0, -1.0],
+        p1: [1.0, 1.0],
+        view_proj: vp,
+        add: false,
+    };
+    state.dispatch(&box_cmd).expect("box select");
+    assert!(state
+        .project
+        .active_mesh()
+        .unwrap()
+        .verts
+        .iter()
+        .any(|v| v.selected));
+}
+
+#[test]
+fn test_outliner_asset_lock_and_visibility_commands_and_undo() {
+    let mut state = AppState::default();
+    assert!(!state.project.assets[0].locked);
+    assert!(state.project.assets[0].visible);
+
+    // 1. Toggle lock
+    let toggle_lock = ToggleLockAssetCmd { asset_index: None };
+    state.dispatch(&toggle_lock).expect("lock active asset");
+    assert!(state.project.assets[0].locked);
+
+    // Undo restaura lock para false
+    assert!(state.undo());
+    assert!(!state.project.assets[0].locked);
+
+    // Redo re-aplica lock
+    assert!(state.redo());
+    assert!(state.project.assets[0].locked);
+
+    // 2. Toggle visibility
+    let toggle_vis = ToggleVisibilityAssetCmd {
+        asset_index: Some(0),
+    };
+    state.dispatch(&toggle_vis).expect("hide active asset");
+    assert!(!state.project.assets[0].visible);
+
+    // Undo restaura visibilidade
+    assert!(state.undo());
+    assert!(state.project.assets[0].visible);
+}
+
+#[test]
+fn test_outliner_collection_commands_and_undo() {
+    let mut state = AppState::default();
+    assert_eq!(state.project.assets[0].collection, None);
+
+    // 1. Set collection
+    let set_col = SetAssetCollectionCmd {
+        asset_index: 0,
+        collection: Some("Characters".to_string()),
+    };
+    state.dispatch(&set_col).expect("set collection");
+    assert_eq!(
+        state.project.assets[0].collection.as_deref(),
+        Some("Characters")
+    );
+
+    // 2. Toggle collection lock
+    let lock_col = ToggleCollectionLockCmd {
+        collection: "Characters".to_string(),
+    };
+    state.dispatch(&lock_col).expect("lock collection");
+    assert!(state.project.assets[0].locked);
+
+    // 3. Toggle collection visibility
+    let vis_col = ToggleCollectionVisibilityCmd {
+        collection: "Characters".to_string(),
+    };
+    state.dispatch(&vis_col).expect("hide collection");
+    assert!(!state.project.assets[0].visible);
+
+    // 4. Undo reverte visibilidade da coleção
+    assert!(state.undo());
+    assert!(state.project.assets[0].visible);
+
+    // Undo reverte lock da coleção
+    assert!(state.undo());
+    assert!(!state.project.assets[0].locked);
+
+    // Undo reverte atribuição da coleção
+    assert!(state.undo());
+    assert_eq!(state.project.assets[0].collection, None);
 }
