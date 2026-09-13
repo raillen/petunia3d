@@ -18,6 +18,8 @@ pub const BG_DROPDOWN: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
 pub const ACCENT_BLUE: Color32 = Color32::from_rgb(0x31, 0x69, 0xe3);
 pub const ACCENT_BLUE_HOVER: Color32 = Color32::from_rgb(0x47, 0x7c, 0xf5);
 pub const ACCENT_BORDER: Color32 = Color32::from_rgb(0x5b, 0x8e, 0xff);
+pub const ACCENT_GREEN: Color32 = Color32::from_rgb(0x2e, 0xcc, 0x71);
+pub const ACCENT_AMBER: Color32 = Color32::from_rgb(0xf3, 0x9c, 0x12);
 
 // ------------------------------------------------------------- Cores dos Modos
 pub const MODE_OBJECT: Color32 = Color32::from_rgb(0x34, 0x98, 0xdb);
@@ -55,8 +57,9 @@ pub const OUTLINER_DEFAULT_HEIGHT: f32 = 230.0;
 
 // -------------------------------------------------------------- Raios de Cantos
 pub const RADIUS_PILL: CornerRadius = CornerRadius::same(12);
-pub const RADIUS_CONTROL: CornerRadius = CornerRadius::same(3);
 pub const RADIUS_CONTAINER: CornerRadius = CornerRadius::same(4);
+pub const RADIUS_CONTROL: CornerRadius = CornerRadius::same(3);
+pub const RADIUS_SMALL: CornerRadius = CornerRadius::same(2);
 
 // --------------------------------------------------------------- Traços (Strokes)
 pub fn stroke_subtle() -> Stroke {

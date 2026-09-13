@@ -37,7 +37,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
                             Workspace::Model => draw_model_tools(ui, state, tools, compact),
                             Workspace::Paint => draw_paint_tools(ui, state, compact),
                             Workspace::Uv => draw_uv_tools(ui, state, compact),
-                            Workspace::Export => {}
+                            Workspace::Animate => {}
                         }
                     });
             });
@@ -101,7 +101,7 @@ const MESH_TOOLS: &[(PetuniaIcon, &str, &str, &str)] = &[
     ),
 ];
 
-fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistry, compact: bool) {
+fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegistry, compact: bool) {
     // Normalização defensiva: se não estiver no modo de edição e a ferramenta ativa
     // for exclusiva de malha, reverte para a seleção básica de objetos.
     if state.mode != petunia_core::EditMode::Edit
@@ -113,7 +113,7 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
         state.mark_dirty();
     }
 
-    // 1. Ferramentas Primárias de Interação e Transformação (Visíveis em todos os modos)
+    // 1. Ferramentas Primárias de Interação e Transformação
     let primary_tools = [
         (
             PetuniaIcon::SelectBox,
@@ -145,27 +145,6 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
             "T",
             "Gizmo de Transformação Combinado · T",
         ),
-        (
-            PetuniaIcon::Annotate,
-            "annotate",
-            "Annotate",
-            "D",
-            "Anotação e Rascunho · D",
-        ),
-        (
-            PetuniaIcon::Measure,
-            "measure",
-            "Measure",
-            "M",
-            "Régua e Medição · M",
-        ),
-        (
-            PetuniaIcon::AddPrimitive,
-            "add_primitive",
-            "Add Cube",
-            "Shift+A",
-            "Adicionar Primitiva · Shift+A",
-        ),
     ];
 
     for (icon, id, label, _key, hint) in primary_tools {
@@ -174,7 +153,6 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
             "rotate" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Rotate,
             "scale" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Scale,
             "select_box" => state.active_tool == "select" || state.active_tool == "select_box",
-            "add_primitive" => state.active_tool == "primitives",
             _ => state.active_tool == id,
         };
 
@@ -201,9 +179,6 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
                 "select_box" => {
                     state.active_tool = "select".into();
                 }
-                "add_primitive" => {
-                    state.active_tool = "primitives".into();
-                }
                 _ => {
                     state.active_tool = id.into();
                 }
@@ -213,32 +188,40 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
         }
     }
 
-    // 2. Ferramentas de Modelagem Poligonal (Extrude, Inset, Bevel, Loop Cut, Knife, etc.)
-    // Exibidas exclusivamente quando o usuário estiver no modo de edição (EditMode::Edit).
-    if state.mode == petunia_core::EditMode::Edit {
-        ui.add_space(3.0);
-        ui.separator();
-        ui.add_space(3.0);
+    ui.add_space(3.0);
+    ui.separator();
+    ui.add_space(3.0);
 
-        for &(icon, id, label, hint) in MESH_TOOLS {
-            let is_active = state.active_tool == id;
-            let final_label = if let Some(tool) = tools.get(id) {
-                state.t(tool.label_key())
-            } else {
-                label.to_string()
-            };
+    // 2. Ferramentas de Inspeção e Anotação Tridimensional
+    let inspection_tools = [
+        (
+            PetuniaIcon::Measure,
+            "measure",
+            "Measure",
+            "M",
+            "Régua e Medição 3D · M",
+        ),
+        (
+            PetuniaIcon::Annotate,
+            "annotate",
+            "Annotate",
+            "D",
+            "Anotação e Rascunho 3D · D",
+        ),
+    ];
 
-            if PetuniaToolbarButton::new(icon, &final_label)
-                .selected(is_active)
-                .compact(compact)
-                .tooltip(hint)
-                .show(ui)
-                .clicked()
-            {
-                state.active_tool = id.into();
-                state.pending_modal = None;
-                state.mark_dirty();
-            }
+    for (icon, id, label, _key, hint) in inspection_tools {
+        let is_active = state.active_tool == id;
+        if PetuniaToolbarButton::new(icon, label)
+            .selected(is_active)
+            .compact(compact)
+            .tooltip(hint)
+            .show(ui)
+            .clicked()
+        {
+            state.active_tool = id.into();
+            state.pending_modal = None;
+            state.mark_dirty();
         }
     }
 }

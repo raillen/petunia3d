@@ -239,8 +239,9 @@ pub struct AppState {
     /// Modal de configurações ativado.
     pub show_settings: bool,
     pub settings_tab: String,
-    /// Gaveta/modal de biblioteca de assets ativado.
     pub show_asset_library: bool,
+    /// Painel retrátil de navegação de assets (lado esquerdo).
+    pub show_asset_browser: bool,
     /// Tema ativo ("petunia-dark", "petunia-light", "petunia-capuccino", "petunia-tokyo-nights").
     pub active_theme_id: String,
     /// Pacote de ícones ativo ("tabler", "iconoir", "phosphor", "lucide").
@@ -380,10 +381,19 @@ impl AppState {
             show_settings: false,
             settings_tab: "appearance".to_string(),
             show_asset_library: false,
+            show_asset_browser: false,
             active_theme_id: "petunia-dark".to_string(),
             active_icon_pack_id: "tabler".to_string(),
             active_keymap_id: "petunia-default".to_string(),
         }
+    }
+
+    pub fn scene_tris(&self) -> usize {
+        self.project.assets.iter().map(|a| a.mesh.tri_count()).sum()
+    }
+
+    pub fn scene_verts(&self) -> usize {
+        self.project.assets.iter().map(|a| a.mesh.verts.len()).sum()
     }
 
     pub fn t(&self, key: &str) -> String {

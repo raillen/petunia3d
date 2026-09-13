@@ -12,8 +12,10 @@ use petunia_project::{export, format};
 
 pub mod annotation;
 pub mod app_icons;
+pub mod asset_browser;
 pub mod asset_library_drawer;
 pub mod camera_controls;
+pub mod contextual_shelf;
 mod cutting;
 pub mod file_dialog_service;
 pub mod gizmo;
@@ -58,6 +60,7 @@ pub fn draw(
 ) {
     main_header::draw(ctx, state, action);
     status_bar::draw(ctx, state, tools);
+    asset_browser::draw(ctx, state);
     toolbar::draw(ctx, state, tools);
     right_panel(ctx, state, tools, registry);
     viewport_bar_panel(ctx, state);
@@ -414,6 +417,16 @@ pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
         });
 }
 
+pub fn export_active_or_all(state: &mut AppState, glb: bool) {
+    let sel: Vec<usize> = if !state.export_selected.is_empty() {
+        state.export_selected.clone()
+    } else {
+        (0..state.project.assets.len()).collect()
+    };
+    state.export_gltf = glb;
+    export_dialog(state, &sel);
+}
+
 fn export_dialog(state: &mut AppState, sel: &[usize]) {
     if sel.is_empty() {
         state.set_status(state.t("export.empty"));
@@ -494,6 +507,22 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
             }
             let resp = ui.allocate_rect(rect, egui::Sense::click_and_drag());
             if viewport_interaction::draw(ctx, state, rect, &p, &resp) {
+                return;
+            }
+
+            // Barra contextual horizontal flutuante na base da viewport
+            let shelf_rect = contextual_shelf::draw(ui, state, rect);
+            let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
+                ui.input(|i| {
+                    i.pointer
+                        .interact_pos()
+                        .or(i.pointer.hover_pos())
+                        .is_some_and(|pos| sr.contains(pos))
+                })
+            });
+
+            if pointer_on_shelf {
+                state.box_select_start = None;
                 return;
             }
             if resp.drag_started_by(egui::PointerButton::Primary) {

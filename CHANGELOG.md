@@ -3,6 +3,49 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.7.0] - 2026-09-12 — UI Reorganization & Ergonomics Refinement: Contextual Modeling Shelf, Retractable Asset Browser, Clean Two-Panel Sidebar & Viewport Bar 6 Clusters
+
+### Adicionado
+- **Barra Contextual Horizontal do Viewport (`crates/ui/src/contextual_shelf.rs`)**:
+  - Cápsula flutuante na base inferior do Viewport 3D reagindo dinamicamente ao workspace e ao modo ativo (`Model + Edit`, `Model + Object`, `Paint`, `UV`, `Animate`).
+  - Em `Model + Edit`: botões de seleção de malha (`⬝ Vértice`, `╱ Aresta`, `▨ Face`), comandos essenciais (`Extrude`, `Inset`, `Bevel`, `Loop Cut`, `Knife`) e operações topológicas (`Subdivide`, `Merge`).
+  - Em `Model + Object`: atalhos de transformação (`Move`, `Rotate`, `Scale`) e primitivas rápidas (`Cubo`, `Esfera`, `Cilindro`, `Plano`) e duplicar objeto.
+  - Em `Paint`: ferramentas de pincel, apagador, conta-gotas, ajuste de raio e chip da cor ativa.
+  - Em `Animate`: timeline transport player (`◀◀`, `▶ Play / ⏸ Pausa`, `▶▶`) e seletor de frame.
+  - Contenção e blindagem de eventos de ponteiro para evitar disparar raycasting de seleção 3D acidental durante cliques e ajustes na shelf.
+- **Painel Lateral Retrátil de Navegação de Assets (`crates/ui/src/asset_browser.rs`)**:
+  - Painel lateral dedicado à esquerda (220–340px) acionado pelo botão `[📦 Assets]` do cabeçalho superior.
+  - Filtro por categorias (`Todos`, `Props`, `Personagens`, `Cenário`) e busca instantânea com `petunia_search_box`.
+  - Cards detalhados com contagem de vértices e triângulos, swatch de cor e ações rápidas (`➕ Instanciar`, `🎯 Ativar`, `📋 Duplicar`, `🗑 Deletar`).
+  - Botão de rodapé para salvar o modelo ativo atual diretamente na biblioteca do projeto (`state.save_active_as_asset()`).
+- **Exportação Canônica nos Menus de Sistema (`crates/ui/src/main_header.rs`, `crates/ui/src/lib.rs`)**:
+  - Reclassificação de `Export` de workspace para itens canônicos de menu: `Arquivo -> Exportar OBJ (.obj)...` e `Arquivo -> Exportar GLB (.glb)...`.
+  - Introdução do workspace `ANIMATE` nas abas superiores: `[ MODEL ] [ PAINT ] [ UV ] [ ANIMATE ]`.
+
+### Modificado
+- **Reorganização Estrutural da Barra Superior da Viewport (`crates/ui/src/viewport_bar.rs`)**:
+  - 6 clusters semânticos rigorosamente separados:
+    1. Dropdown de Modo (`[ Object Mode ▾ ]` vs `[ Edit Mode ▾ ]`) com alvos contextuais (`⬝ Vértice`, `╱ Aresta`, `▨ Face`) exibidos **exclusivamente** em modo de edição.
+    2. Menus rápidos com ícones (`👁 View ▾`, `▢ Select ▾`, `➕ Add+ ▾`) e menu contextual reativo (`🧊 Object ▾` ou `🕸 Mesh ▾`).
+    3. Orientação de transformação (`Global`, `Local`, etc.) e Ponto de Pivô (`Median Point`, `3D Cursor`, etc.).
+    4. Botões de Snapping Magnético (`🧲 Snap`) e Edição Proporcional (`◎ Prop`).
+    5. Diagnóstico de cena (`⊞ Overlays`, `⧉ X-Ray`).
+    6. 4 Modos de sombreamento esféricos canônicos do Blender (`○`, `●`, `◐`, `☼`).
+  - Interceptação de atalhos de teclado globais (Tab para alternar Object/Edit, e 1/2/3 para alvos de vértice/aresta/face) tratada com fallback e garantia direta no egui sem conflitos de foco.
+- **Descongestionamento e Limpeza da Sidebar Direita (`crates/ui/src/outliner.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Redução estrita para apenas 2 componentes verticais: `Outliner` e `Properties`.
+  - Remoção de galerias duplicadas, criação solta de primitivas no outliner e seção avulsa de exportação.
+  - Aba `Material` no painel de propriedades agora abriga com exclusividade a cor base e a paleta interativa de swatches do projeto.
+  - Aba `Object` refinada com identidade do objeto ativo e inspector `▾ Transform` com grid tri-axial e rótulos coloridos RGB (X, Y, Z).
+- **Especialização da Barra de Ferramentas Vertical Esquerda (`crates/ui/src/toolbar.rs`)**:
+  - Foco exclusivo nas 8 ferramentas primárias e persistentes de interação: `Select Box`, `3D Cursor`, `Move`, `Rotate`, `Scale`, `Transform`, `Measure` e `Annotate`.
+  - Operações transitórias de modelagem de malha movidas para a Contextual Modeling Shelf.
+- **Refatoração da Barra de Status Inferior (`crates/ui/src/status_bar.rs`)**:
+  - Organizada em 3 blocos limpos:
+    * Esquerda: indicador de projeto (`● Salvo` / `○ Não salvo`), nome do arquivo e atalhos de mouse/ferramenta ativa.
+    * Centro: mensagens operacionais e feedbacks do sistema com truncate.
+    * Direita: métricas agregadas da cena (`Tris: {} │ Verts: {} │ Objs: {} │ {:.1}ms │ v0.6.0`) e botões de Undo (`↩`) e Redo (`↪`).
+
 ## [0.6.0] - 2026-09-12 — Interactive Measurement & Annotation, Viewport Floating Bar, Asset Drawer, Theme & Icon Packs, Keymaps & TOML i18n
 
 ### Adicionado

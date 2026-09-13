@@ -38,6 +38,7 @@ redo = "Redo"
 model = "MODEL"
 paint = "PAINT"
 uv = "UV"
+animate = "ANIMATE"
 export = "EXPORT"
 
 [modes]

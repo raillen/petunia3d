@@ -65,12 +65,17 @@ pub fn draw(
                             module.ui(ctx, ui, state);
                         }
                     }
-                    Workspace::Export => crate::export_section(ui, state),
-                }
-
-                ui.separator();
-                if let Some(module) = registry.get_mut("assets") {
-                    module.ui(ctx, ui, state);
+                    Workspace::Animate => {
+                        egui::CollapsingHeader::new("Animation Properties")
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                ui.label(format!("Current Frame: {}", state.timeline_frame));
+                                ui.label(format!(
+                                    "Range: {}..={}",
+                                    state.timeline_start, state.timeline_end
+                                ));
+                            });
+                    }
                 }
 
                 if state.show_help {
@@ -164,18 +169,34 @@ fn draw_tab_tool(
 
 fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
     if state.project.assets.is_empty() {
-        ui.label("No active object in scene");
+        ui.label("Nenhum objeto ativo na cena");
         return;
     }
 
     let idx = state.project.active.min(state.project.assets.len() - 1);
+
+    // Identidade do Objeto
+    let asset_name = state.project.assets[idx].name.clone();
+    let mut visible = state.project.assets[idx].visible;
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new("🧊").size(14.0));
+        ui.label(egui::RichText::new(&asset_name).strong().size(12.0));
+        if ui.checkbox(&mut visible, "Visível").changed() {
+            if let Some(o) = state.project.assets.get_mut(idx) {
+                o.visible = visible;
+            }
+            state.mark_dirty();
+        }
+    });
+
+    ui.add_space(4.0);
 
     // Seção de Transform (Location, Rotation, Scale)
     egui::CollapsingHeader::new("Transform")
         .default_open(true)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.label("Name");
+                ui.label("Nome");
                 if let Some(o) = state.project.assets.get_mut(idx) {
                     ui.text_edit_singleline(&mut o.name);
                 }
@@ -184,7 +205,11 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
             ui.add_space(4.0);
 
             // Location X, Y, Z com cores semânticas nos rótulos
-            ui.label(egui::RichText::new("Location").strong());
+            ui.label(
+                egui::RichText::new("Posição (Location)")
+                    .strong()
+                    .size(11.0),
+            );
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
                 ui.add(egui::DragValue::new(&mut state.transform_delta[0]).speed(0.05));
@@ -194,10 +219,12 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
                 ui.add(egui::DragValue::new(&mut state.transform_delta[2]).speed(0.05));
             });
 
+            ui.add_space(2.0);
+
             // Scale
-            ui.label(egui::RichText::new("Scale").strong());
+            ui.label(egui::RichText::new("Escala (Scale)").strong().size(11.0));
             ui.horizontal(|ui| {
-                ui.label("XYZ");
+                ui.label("Uniforme");
                 ui.add(
                     egui::DragValue::new(&mut state.transform_scale)
                         .speed(0.02)
@@ -208,7 +235,7 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
             ui.separator();
 
             ui.horizontal(|ui| {
-                if ui.button("Duplicate · Shift+D").clicked() {
+                if ui.button("📋 Duplicar · Shift+D").clicked() {
                     state.checkpoint("duplicate");
                     if let Some(mesh) = state.project.active_mesh_mut() {
                         mesh.duplicate_selected();
@@ -216,7 +243,7 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
                     state.sync_selection();
                     state.emit_mesh_changed();
                 }
-                if ui.button("Delete · X").clicked() {
+                if ui.button("🗑 Deletar · Delete").clicked() {
                     state.checkpoint("delete");
                     if let Some(mesh) = state.project.active_mesh_mut() {
                         mesh.delete_selected();
@@ -254,11 +281,11 @@ fn draw_tab_modifiers(ui: &mut Ui, state: &mut AppState) {
 
 fn draw_tab_data(ui: &mut Ui, state: &mut AppState) {
     if let Some(mesh) = state.project.active_mesh() {
-        egui::CollapsingHeader::new("Geometry Statistics")
+        egui::CollapsingHeader::new("Estatísticas de Geometria")
             .default_open(true)
             .show(ui, |ui| {
-                ui.label(format!("Vertices: {}", mesh.vert_count()));
-                ui.label(format!("Triangles: {}", mesh.tri_count()));
+                ui.label(format!("Vértices: {}", mesh.vert_count()));
+                ui.label(format!("Triângulos: {}", mesh.tri_count()));
                 ui.label(format!("Faces: {}", mesh.faces.len()));
             });
     }
@@ -268,16 +295,17 @@ fn draw_tab_data(ui: &mut Ui, state: &mut AppState) {
 
 fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
     if state.project.assets.is_empty() {
+        ui.label("Nenhum modelo ativo para material");
         return;
     }
 
     let idx = state.project.active.min(state.project.assets.len() - 1);
-    egui::CollapsingHeader::new("Surface Material")
+    egui::CollapsingHeader::new("Material & Cores")
         .default_open(true)
         .show(ui, |ui| {
             let mut c = state.project.assets[idx].base_color;
             ui.horizontal(|ui| {
-                ui.label("Base Color");
+                ui.label("Cor Base:");
                 if ui.color_edit_button_rgb(&mut c).changed() {
                     state.checkpoint("base color");
                     if let Some(o) = state.project.assets.get_mut(idx) {
@@ -290,6 +318,50 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                     }
                     state.emit_mesh_changed();
                     state.mark_dirty();
+                }
+            });
+
+            ui.add_space(4.0);
+            ui.label(
+                egui::RichText::new("Paleta do Projeto:")
+                    .size(11.0)
+                    .color(tokens::TEXT_MUTED),
+            );
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing = vec2(4.0, 4.0);
+                let palette_colors = state.palette.clone();
+                for (pal_idx, pal_col) in palette_colors.iter().enumerate() {
+                    let color32 = egui::Color32::from_rgb(
+                        (pal_col[0] * 255.0) as u8,
+                        (pal_col[1] * 255.0) as u8,
+                        (pal_col[2] * 255.0) as u8,
+                    );
+                    let (rect, resp) =
+                        ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+                    ui.painter()
+                        .rect_filled(rect, tokens::RADIUS_CONTROL, color32);
+                    ui.painter().rect_stroke(
+                        rect,
+                        tokens::RADIUS_CONTROL,
+                        tokens::stroke_border(),
+                        egui::StrokeKind::Outside,
+                    );
+                    if resp
+                        .on_hover_text(format!("Aplicar cor {pal_idx}"))
+                        .clicked()
+                    {
+                        state.checkpoint("apply palette color");
+                        if let Some(o) = state.project.assets.get_mut(idx) {
+                            o.base_color = *pal_col;
+                            for v in &mut o.mesh.verts {
+                                if !v.selected {
+                                    v.color = *pal_col;
+                                }
+                            }
+                        }
+                        state.emit_mesh_changed();
+                        state.mark_dirty();
+                    }
                 }
             });
         });

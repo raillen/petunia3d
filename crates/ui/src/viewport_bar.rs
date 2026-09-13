@@ -1,10 +1,11 @@
 //! Barra de contexto superior do Viewport 3D (`3D View Bar`).
-//! Organizada em 5 clusters semânticos coerentes:
-//! 1. Seleção unificada (Objeto, Vértice, Aresta, Face);
-//! 2. Menus de ação rápida com ícones compactos (View, Select, Add);
-//! 3. Orientação de transformação, Ponto de pivô e Snapping magnético;
-//! 4. Diagnóstico de cena (Overlays e X-Ray);
-//! 5. 4 modos de sombreamento esféricos canônicos do Blender.
+//! Organizada em 6 clusters semânticos coerentes:
+//! 1. Modo de Trabalho (`[ Object Mode ▾ ]` ou `[ Edit Mode ▾ ]`) com alvos contextuais (`⬝ Vértice`, `╱ Aresta`, `▨ Face`) exibidos apenas em Edit Mode;
+//! 2. Menus Rápidos (`👁 View ▾`, `▢ Select ▾`, `➕ Add+ ▾`, e menu contextual de `Objeto` / `Malha`);
+//! 3. Orientação de Transformação e Ponto de Pivô;
+//! 4. Snapping Magnético e Edição Proporcional;
+//! 5. Diagnóstico de Cena (Overlays e X-Ray);
+//! 6. 4 Modos de Sombreamento no estilo esférico canônico do Blender.
 
 use egui::{vec2, Color32, CornerRadius, Ui};
 use petunia_core::{AppState, EditMode, Projection, SelectMode};
@@ -15,102 +16,164 @@ use crate::tokens;
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
+    // Interceptação defensiva de atalhos globais de modo se nenhum campo de texto estiver focado
+    handle_keyboard_shortcuts(ui, state);
+
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-        // CLUSTER 1: Seletor Unificado de Seleção (Objeto, Vértice, Aresta, Face)
-        draw_selection_target_cluster(ui, state);
+        // CLUSTER 1: Seletor de Modo e Alvos de Seleção Contextuais (Apenas em Edit Mode)
+        draw_mode_and_targets_cluster(ui, state);
 
         ui.add_space(2.0);
         ui.separator();
         ui.add_space(2.0);
 
-        // CLUSTER 2: Menus Rápidos com Ícones (View, Select, Add)
+        // CLUSTER 2: Menus Rápidos com Ícones (View, Select, Add+, Objeto/Malha)
         draw_viewport_actions_cluster(ui, state);
 
         ui.add_space(2.0);
         ui.separator();
         ui.add_space(2.0);
 
-        // CLUSTER 3: Orientação, Pivô e Snapping
-        draw_transform_and_snap_cluster(ui, state);
+        // CLUSTER 3: Orientação e Ponto de Pivô
+        draw_transform_cluster(ui, state);
 
-        // CLUSTER 4 & 5: Controles do lado direito (Overlays, X-Ray e 4 Esferas de Shading)
+        ui.add_space(2.0);
+        ui.separator();
+        ui.add_space(2.0);
+
+        // CLUSTER 4: Snapping Magnético e Edição Proporcional
+        draw_snap_and_prop_cluster(ui, state);
+
+        // CLUSTER 5 & 6: Controles do lado direito (Overlays, X-Ray e 4 Esferas de Sombreamento)
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // CLUSTER 5: 4 Modos de Sombreamento no Estilo Canônico do Blender
+            // CLUSTER 6: 4 Modos de Sombreamento no Estilo Canônico do Blender
             draw_shading_spheres_cluster(ui, state);
 
-            ui.add_space(3.0);
+            ui.add_space(4.0);
             ui.separator();
-            ui.add_space(3.0);
+            ui.add_space(4.0);
 
-            // CLUSTER 4: Diagnóstico de Visualização (Overlays e X-Ray)
+            // CLUSTER 5: Diagnóstico de Visualização (Overlays e X-Ray)
             draw_display_toggles_cluster(ui, state);
         });
     });
 }
 
-/// Cluster 1: Seletor unificado de 4 tipos de seleção substituindo a dualidade de modos.
-fn draw_selection_target_cluster(ui: &mut Ui, state: &mut AppState) {
-    let targets = [
-        (0, "🧊 Objeto", "Tab", "Seleção de Objeto · Tab ou 0"),
-        (1, "⬝ Vértice", "1", "Seleção de Vértices · 1"),
-        (2, "╱ Aresta", "2", "Seleção de Arestas · 2"),
-        (3, "▨ Face", "3", "Seleção de Faces · 3"),
-    ];
+/// Trata atalhos de teclado (Tab, 1, 2, 3, 0) diretamente no egui para máxima responsividade.
+fn handle_keyboard_shortcuts(ui: &mut Ui, state: &mut AppState) {
+    if ui.ctx().wants_keyboard_input() {
+        return;
+    }
 
-    for (target_idx, label, shortcut, hint) in targets {
-        let is_active = match target_idx {
-            0 => state.mode == EditMode::Object,
-            1 => state.mode == EditMode::Edit && state.select_mode == SelectMode::Vertex,
-            2 => state.mode == EditMode::Edit && state.select_mode == SelectMode::Edge,
-            3 => state.mode == EditMode::Edit && state.select_mode == SelectMode::Face,
-            _ => false,
+    // Tab: Alterna entre Object Mode e Edit Mode
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Tab)) {
+        state.mode = match state.mode {
+            EditMode::Object => EditMode::Edit,
+            _ => EditMode::Object,
         };
+        state.sync_selection();
+        state.mark_dirty();
+    }
 
-        let (bg, fg) = if is_active {
-            (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
-        } else {
-            (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
-        };
+    // 0: Modo Objeto
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num0)) {
+        state.mode = EditMode::Object;
+        state.active_tool = "select".into();
+        state.mark_dirty();
+    }
 
-        let btn = egui::Button::new(egui::RichText::new(label).size(11.0).color(fg))
-            .fill(bg)
-            .corner_radius(tokens::RADIUS_CONTROL);
+    // 1: Vértice (em Edit Mode)
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num1)) {
+        state.mode = EditMode::Edit;
+        state.select_mode = SelectMode::Vertex;
+        state.sync_selection();
+        state.mark_dirty();
+    }
 
-        if ui
-            .add(btn)
-            .on_hover_text(format!("{hint} [{shortcut}]"))
-            .clicked()
-        {
-            match target_idx {
-                0 => {
-                    state.mode = EditMode::Object;
-                    state.active_tool = "select".into();
-                }
-                1 => {
-                    state.mode = EditMode::Edit;
-                    state.select_mode = SelectMode::Vertex;
-                    state.sync_selection();
-                }
-                2 => {
-                    state.mode = EditMode::Edit;
-                    state.select_mode = SelectMode::Edge;
-                    state.sync_selection();
-                }
-                3 => {
-                    state.mode = EditMode::Edit;
-                    state.select_mode = SelectMode::Face;
-                    state.sync_selection();
-                }
-                _ => {}
+    // 2: Aresta (em Edit Mode)
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num2)) {
+        state.mode = EditMode::Edit;
+        state.select_mode = SelectMode::Edge;
+        state.sync_selection();
+        state.mark_dirty();
+    }
+
+    // 3: Face (em Edit Mode)
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num3)) {
+        state.mode = EditMode::Edit;
+        state.select_mode = SelectMode::Face;
+        state.sync_selection();
+        state.mark_dirty();
+    }
+}
+
+/// Cluster 1: Seletor de Modo (`Object` vs `Edit`) + Alvos de Seleção (`⬝ Vértice`, `╱ Aresta`, `▨ Face`)
+/// exibidos exclusivamente no modo de edição.
+fn draw_mode_and_targets_cluster(ui: &mut Ui, state: &mut AppState) {
+    let mode_text = match state.mode {
+        EditMode::Object => "🧊 Object Mode ▾",
+        EditMode::Edit => "🕸 Edit Mode ▾",
+        _ => "Modo ▾",
+    };
+
+    ui.menu_button(
+        egui::RichText::new(mode_text)
+            .strong()
+            .size(11.0)
+            .color(tokens::TEXT_PRIMARY),
+        |ui| {
+            if ui.button("🧊 Object Mode · Tab").clicked() {
+                state.mode = EditMode::Object;
+                state.active_tool = "select".into();
+                state.mark_dirty();
+                ui.close();
             }
-            state.mark_dirty();
+            if ui.button("🕸 Edit Mode · Tab").clicked() {
+                state.mode = EditMode::Edit;
+                state.sync_selection();
+                state.mark_dirty();
+                ui.close();
+            }
+        },
+    );
+
+    // Botões de alvo de seleção: visíveis EXCLUSIVAMENTE em modo de edição
+    if state.mode == EditMode::Edit {
+        ui.add_space(2.0);
+        let targets = [
+            (SelectMode::Vertex, "⬝ Vértice", "1", "Seleção de Vértices"),
+            (SelectMode::Edge, "╱ Aresta", "2", "Seleção de Arestas"),
+            (SelectMode::Face, "▨ Face", "3", "Seleção de Faces"),
+        ];
+
+        for (mode, label, shortcut, hint) in targets {
+            let is_active = state.select_mode == mode;
+            let (bg, fg) = if is_active {
+                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
+            } else {
+                (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
+            };
+
+            let btn = egui::Button::new(egui::RichText::new(label).size(11.0).color(fg))
+                .fill(bg)
+                .corner_radius(tokens::RADIUS_CONTROL);
+
+            if ui
+                .add(btn)
+                .on_hover_text(format!("{hint} · [{shortcut}]"))
+                .clicked()
+            {
+                state.select_mode = mode;
+                state.sync_selection();
+                state.mark_dirty();
+            }
         }
     }
 }
 
-/// Cluster 2: Menus rápidos representados com ícones compactos.
+/// Cluster 2: Menus rápidos com ícones (View, Select, Add+, Objeto/Malha).
 fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     let visuals = ui.visuals_mut();
     visuals.widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
@@ -118,14 +181,17 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     visuals.widgets.hovered.weak_bg_fill = tokens::BG_SURFACE_HOVER;
     visuals.widgets.active.weak_bg_fill = tokens::ACCENT_BLUE;
 
-    // Menu View com ícone de Câmera/Viewport
+    // Menu View com ícone
     ui.menu_button("👁 View ▾", |ui| {
-        if ui.button("Frame Selected · Numpad .").clicked() {
+        if ui.button("Centralizar Seleção · Numpad .").clicked() {
             crate::frame_selection(state);
             ui.close();
         }
         ui.separator();
-        if ui.button("Perspective / Ortho · Numpad 5").clicked() {
+        if ui
+            .button("Alternar Perspectiva / Ortho · Numpad 5")
+            .clicked()
+        {
             state.camera.proj = match state.camera.proj {
                 Projection::Perspective => Projection::Ortho,
                 Projection::Ortho => Projection::Perspective,
@@ -133,40 +199,40 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
             ui.close();
         }
-        if ui.button("Front · Numpad 1").clicked() {
+        if ui.button("Frente (Front) · Numpad 1").clicked() {
             state.camera.set_preset(petunia_core::ViewPreset::Front);
             state.mark_dirty();
             ui.close();
         }
-        if ui.button("Right · Numpad 3").clicked() {
+        if ui.button("Direita (Right) · Numpad 3").clicked() {
             state.camera.set_preset(petunia_core::ViewPreset::Right);
             state.mark_dirty();
             ui.close();
         }
-        if ui.button("Top · Numpad 7").clicked() {
+        if ui.button("Topo (Top) · Numpad 7").clicked() {
             state.camera.set_preset(petunia_core::ViewPreset::Top);
             state.mark_dirty();
             ui.close();
         }
     });
 
-    // Menu Select com ícone de Marquise de Seleção
+    // Menu Select com ícone
     ui.menu_button("▢ Select ▾", |ui| {
-        if ui.button("Select All · A").clicked() {
+        if ui.button("Selecionar Tudo · A").clicked() {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.select_all();
             }
             state.sync_selection();
             ui.close();
         }
-        if ui.button("Deselect All · Alt+A").clicked() {
+        if ui.button("Desmarcar Tudo · Alt+A").clicked() {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.deselect_all();
             }
             state.sync_selection();
             ui.close();
         }
-        if ui.button("Invert Selection · Ctrl+I").clicked() {
+        if ui.button("Inverter Seleção · Ctrl+I").clicked() {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.invert_selection();
             }
@@ -175,22 +241,22 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
-    // Menu Add com botão explícito ➕ Add+ solicitado pelo usuário
+    // Menu Add+ explícito conforme solicitado pelo usuário
     let mut spawn_mesh: Option<(&'static str, Mesh)> = None;
     ui.menu_button("➕ Add+ ▾", |ui| {
-        if ui.button("🧊 Cube").clicked() {
+        if ui.button("🧊 Cubo").clicked() {
             spawn_mesh = Some(("Cube", Mesh::cube(1.0)));
             ui.close();
         }
-        if ui.button("⚪ UV Sphere").clicked() {
+        if ui.button("⚪ Esfera UV").clicked() {
             spawn_mesh = Some(("Sphere", Mesh::sphere_low(16, 12, 0.5)));
             ui.close();
         }
-        if ui.button("🛢 Cylinder").clicked() {
+        if ui.button("🛢 Cilindro").clicked() {
             spawn_mesh = Some(("Cylinder", Mesh::cylinder(16, 0.5, 1.0)));
             ui.close();
         }
-        if ui.button("▭ Plane").clicked() {
+        if ui.button("▭ Plano").clicked() {
             spawn_mesh = Some(("Plane", Mesh::plane(2.0)));
             ui.close();
         }
@@ -213,11 +279,93 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         state.emit_mesh_changed();
         state.mark_dirty();
     }
+
+    // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
+    if state.mode == EditMode::Object {
+        ui.menu_button("🧊 Object ▾", |ui| {
+            if ui.button("📋 Duplicar Objeto · Shift+D").clicked() {
+                if let Some(active) = state.project.active() {
+                    let dup = active.duplicate();
+                    state.checkpoint("duplicate object");
+                    state.project.assets.push(dup);
+                    state.project.active = state.project.assets.len() - 1;
+                    state.sync_selection();
+                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                }
+                ui.close();
+            }
+            if ui.button("🗑 Deletar Objeto · Delete").clicked() {
+                if state.project.assets.len() > 1 {
+                    let idx = state.project.active;
+                    state.checkpoint("delete object");
+                    state.project.assets.remove(idx);
+                    state.project.active = state.project.active.min(state.project.assets.len() - 1);
+                    state.sync_selection();
+                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                }
+                ui.close();
+            }
+            ui.separator();
+            if ui.button("🎯 Cursor para a Origem").clicked() {
+                state.cursor_3d = [0.0, 0.0, 0.0];
+                state.mark_dirty();
+                ui.close();
+            }
+        });
+    } else {
+        ui.menu_button("🕸 Mesh ▾", |ui| {
+            if ui.button("Extrusão (Extrude) · E").clicked() {
+                state.active_tool = "extrude".into();
+                state.mark_dirty();
+                ui.close();
+            }
+            if ui.button("Inserção (Inset) · I").clicked() {
+                state.active_tool = "inset".into();
+                state.mark_dirty();
+                ui.close();
+            }
+            if ui.button("Chanfro (Bevel) · Ctrl+B").clicked() {
+                state.active_tool = "bevel".into();
+                state.mark_dirty();
+                ui.close();
+            }
+            if ui.button("Corte em Anel (Loop Cut) · Ctrl+R").clicked() {
+                state.active_tool = "loop_cut".into();
+                state.mark_dirty();
+                ui.close();
+            }
+            if ui.button("Faca Topológica (Knife) · K").clicked() {
+                state.active_tool = "knife".into();
+                state.mark_dirty();
+                ui.close();
+            }
+            ui.separator();
+            if ui.button("Subdividir Seleção").clicked() {
+                state.checkpoint("subdivide");
+                if let Some(m) = state.project.active_mesh_mut() {
+                    m.subdivide_selected();
+                }
+                state.sync_selection();
+                state.emit_mesh_changed();
+                ui.close();
+            }
+            if ui.button("Fundir no Centro (Merge)").clicked() {
+                state.checkpoint("merge");
+                if let Some(m) = state.project.active_mesh_mut() {
+                    m.merge_center();
+                }
+                state.sync_selection();
+                state.emit_mesh_changed();
+                ui.close();
+            }
+        });
+    }
 }
 
-/// Cluster 3: Orientação de transformação, Ponto de pivô e Snapping magnético.
-fn draw_transform_and_snap_cluster(ui: &mut Ui, state: &mut AppState) {
-    // Orientação de Transformação
+/// Cluster 3: Orientação de transformação e Ponto de pivô.
+fn draw_transform_cluster(ui: &mut Ui, state: &mut AppState) {
     egui::ComboBox::from_id_salt("transform_orientation")
         .selected_text(
             egui::RichText::new(&state.transform_orientation)
@@ -237,7 +385,6 @@ fn draw_transform_and_snap_cluster(ui: &mut Ui, state: &mut AppState) {
             }
         });
 
-    // Ponto de Pivô
     egui::ComboBox::from_id_salt("pivot_point")
         .selected_text(
             egui::RichText::new(&state.pivot_point)
@@ -262,7 +409,10 @@ fn draw_transform_and_snap_cluster(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
+}
 
+/// Cluster 4: Snapping magnético e Edição proporcional.
+fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
     // Botão Snap (Ímã)
     let snap_bg = if state.snap_enabled {
         tokens::ACCENT_BLUE
@@ -310,9 +460,8 @@ fn draw_transform_and_snap_cluster(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-/// Cluster 4: Alternâncias de visualização de cena (Overlays e X-Ray).
+/// Cluster 5: Alternâncias de visualização de cena (Overlays e X-Ray).
 fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
-    // Toggle Overlays (Grid, Eixos, Cursor)
     let ov_bg = if state.show_overlays {
         tokens::ACCENT_BLUE
     } else {
@@ -336,7 +485,6 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
         state.mark_dirty();
     }
 
-    // Toggle X-Ray
     let xray_bg = if state.show_xray {
         tokens::ACCENT_BLUE
     } else {
@@ -361,7 +509,7 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-/// Cluster 5: Os 4 modos canônicos de sombreamento no estilo esférico do Blender.
+/// Cluster 6: Os 4 modos canônicos de sombreamento no estilo esférico do Blender.
 fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
     let modes = [
         (Shading::Wireframe, "○", "Wireframe (Z 4)"),
@@ -420,5 +568,17 @@ mod tests {
 
         state.select_mode = SelectMode::Face;
         assert_eq!(state.select_mode, SelectMode::Face);
+    }
+
+    #[test]
+    fn test_mode_and_target_separation() {
+        let mut state = AppState::new("en");
+        // Em Object Mode, alvos de seleção de malha não devem ser alterados
+        assert_eq!(state.mode, EditMode::Object);
+
+        state.mode = EditMode::Edit;
+        assert_eq!(state.mode, EditMode::Edit);
+        state.select_mode = SelectMode::Edge;
+        assert_eq!(state.select_mode, SelectMode::Edge);
     }
 }

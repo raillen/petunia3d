@@ -11,14 +11,14 @@ pub enum SelectMode {
     Face,
 }
 
-/// Workspaces V1: MODEL / PAINT / UV / EXPORT.
+/// Workspaces V1: MODEL / PAINT / UV / ANIMATE.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Workspace {
     #[default]
     Model,
     Paint,
     Uv,
-    Export,
+    Animate,
 }
 
 impl Workspace {
@@ -27,7 +27,7 @@ impl Workspace {
             Workspace::Model,
             Workspace::Paint,
             Workspace::Uv,
-            Workspace::Export,
+            Workspace::Animate,
         ]
     }
     pub fn key(&self) -> &'static str {
@@ -35,7 +35,7 @@ impl Workspace {
             Workspace::Model => "ws.model",
             Workspace::Paint => "ws.paint",
             Workspace::Uv => "ws.uv",
-            Workspace::Export => "ws.export",
+            Workspace::Animate => "ws.animate",
         }
     }
 }

@@ -33,15 +33,10 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
             // 2. Área de rolagem com a árvore de objetos da cena
             ScrollArea::vertical()
                 .id_salt("outliner_tree_scroll")
-                .max_height(200.0)
+                .max_height(260.0)
                 .show(ui, |ui| {
                     draw_tree_nodes(ui, state);
                 });
-
-            ui.separator();
-
-            // 3. Galeria de Assets / Primitivas Rápidas
-            draw_asset_gallery(ui, state);
         });
 }
 
@@ -66,30 +61,6 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
 
         // Campo de busca com ícone Phosphor e botão de limpar
         widgets::petunia_search_box(ui, &mut state.outliner_search, "Search...");
-
-        // Botão de Adicionar Primitiva Rápida (+)
-        ui.menu_button("+", |ui| {
-            if ui.button("🧊 Cube").clicked() {
-                add_primitive_to_scene(state, 0, "Cube");
-                ui.close();
-            }
-            if ui.button("⚪ Sphere").clicked() {
-                add_primitive_to_scene(state, 1, "Sphere");
-                ui.close();
-            }
-            if ui.button("🛢 Cylinder").clicked() {
-                add_primitive_to_scene(state, 2, "Cylinder");
-                ui.close();
-            }
-            if ui.button("▭ Plane").clicked() {
-                add_primitive_to_scene(state, 3, "Plane");
-                ui.close();
-            }
-            if ui.button("▲ Cone").clicked() {
-                add_primitive_to_scene(state, 4, "Cone");
-                ui.close();
-            }
-        });
     });
 }
 
@@ -267,44 +238,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-fn draw_asset_gallery(ui: &mut Ui, state: &mut AppState) {
-    egui::CollapsingHeader::new("Asset Library & Primitives")
-        .default_open(false)
-        .show(ui, |ui| {
-            ui.label(
-                egui::RichText::new("Quick Primitive Creation")
-                    .size(10.5)
-                    .color(tokens::TEXT_MUTED),
-            );
-            ui.add_space(2.0);
-            ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().item_spacing = vec2(4.0, 4.0);
-                let primitives = [
-                    ("Cube", "🧊", 0),
-                    ("Sphere", "⚪", 1),
-                    ("Cylinder", "🛢", 2),
-                    ("Plane", "▭", 3),
-                    ("Cone", "▲", 4),
-                    ("Capsule", "💊", 5),
-                ];
-                for (name, icon, kind) in primitives {
-                    let btn = egui::Button::new(
-                        egui::RichText::new(format!("{icon} {name}"))
-                            .size(10.5)
-                            .color(tokens::TEXT_PRIMARY),
-                    )
-                    .fill(tokens::BG_SURFACE)
-                    .corner_radius(tokens::RADIUS_CONTROL);
-
-                    if ui.add(btn).clicked() {
-                        add_primitive_to_scene(state, kind, name);
-                    }
-                }
-            });
-        });
-}
-
-fn add_primitive_to_scene(state: &mut AppState, kind: usize, name: &str) {
+pub fn add_primitive_to_scene(state: &mut AppState, kind: usize, name: &str) {
     let mesh = match kind {
         0 => Mesh::cube(1.0),
         1 => Mesh::sphere_low(16, 12, 0.5),

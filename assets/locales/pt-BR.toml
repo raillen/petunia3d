@@ -38,6 +38,7 @@ redo = "Refazer"
 model = "MODEL"
 paint = "PINTURA"
 uv = "UV"
+animate = "ANIMATE"
 export = "EXPORT"
 
 [modes]

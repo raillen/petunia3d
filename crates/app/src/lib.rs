@@ -84,7 +84,7 @@ impl Core {
             self.state.workspace = match ws.to_lowercase().as_str() {
                 "paint" | "pintura" => Workspace::Paint,
                 "uv" => Workspace::Uv,
-                "export" => Workspace::Export,
+                "animate" | "anim" => Workspace::Animate,
                 _ => Workspace::Model,
             };
         }

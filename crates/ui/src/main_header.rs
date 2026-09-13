@@ -63,7 +63,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
                             state.mark_dirty();
                         }
 
-                        let asset_color = if state.show_asset_library {
+                        let asset_color = if state.show_asset_browser || state.show_asset_library {
                             tokens::ACCENT_BLUE
                         } else {
                             tokens::BG_SURFACE
@@ -78,10 +78,10 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
 
                         if ui
                             .add(asset_btn)
-                            .on_hover_text("Abrir Biblioteca de Assets do Projeto")
+                            .on_hover_text("Alternar Painel de Assets do Projeto")
                             .clicked()
                         {
-                            state.show_asset_library = !state.show_asset_library;
+                            state.show_asset_browser = !state.show_asset_browser;
                             state.mark_dirty();
                         }
                     });
@@ -131,12 +131,15 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
             ("file.save", 2),
             ("file.save_as", 3),
             ("file.import_obj", 4),
+            ("file.export_obj", 7),
+            ("file.export_glb", 8),
             ("file.quit", 5),
         ] {
-            let label = if key == "file.save_asset" {
-                "📥 Salvar Modelo Ativo como Asset".to_string()
-            } else {
-                state.t(key)
+            let label = match key {
+                "file.save_asset" => "📥 Salvar Modelo Ativo como Asset".to_string(),
+                "file.export_obj" => "📦 Exportar OBJ (.obj)...".to_string(),
+                "file.export_glb" => "🌐 Exportar GLB (.glb)...".to_string(),
+                _ => state.t(key),
             };
             if ui.button(label).clicked() {
                 match operation {
@@ -148,6 +151,8 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
                     6 => {
                         state.save_active_as_asset();
                     }
+                    7 => crate::export_active_or_all(state, false),
+                    8 => crate::export_active_or_all(state, true),
                     _ => action.quit = true,
                 }
                 ui.close();
@@ -209,7 +214,7 @@ fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
         (Workspace::Model, state.t(Workspace::Model.key())),
         (Workspace::Paint, state.t(Workspace::Paint.key())),
         (Workspace::Uv, state.t(Workspace::Uv.key())),
-        (Workspace::Export, state.t(Workspace::Export.key())),
+        (Workspace::Animate, state.t(Workspace::Animate.key())),
     ];
 
     for (ws, label) in canonical_workspaces {
