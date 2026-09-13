@@ -3,6 +3,71 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.9.0] - 2026-09-13 — Annotations & Measurements: Undo/Redo (Ctrl+Z), Dedicated Outliner Collections, Subgrouping, Strict Confinement, and Transform Properties
+
+### Adicionado
+- **Undo/Redo Transacional para Anotações e Medidas (`Ctrl+Z` / `Ctrl+Shift+Z`) (`crates/project/src/lib.rs`, `crates/core/src/state.rs`, `crates/ui/src/annotation.rs`, `crates/ui/src/measurement.rs`)**:
+  - Migração de `annotations` e `measurements` de estruturas transitórias soltas para o domínio de dados persistente `Project`.
+  - Checkpoint automático a cada traço finalizado, medição completada ou item excluído via `state.checkpoint()`.
+  - Desfazer e refazer completos, imediatos e estáveis com `Ctrl+Z` e `Ctrl+Shift+Z` restaurando perfeitamente os traços e réguas.
+- **Coleção Especializada `📝 Anotações` no Topo do Outliner (`crates/ui/src/outliner.rs`)**:
+  - Posicionamento canônico no topo da árvore de cena, acima das coleções de malhas.
+  - Identidade visual distinta com ícone `📝` e cor ciano característica (`#00d2d3`).
+  - Controles coletivos e por item: alternância de visibilidade (`👁` / `⊘`) e alternância de bloqueio (`🔒` / `🔓`).
+  - Suporte a múltiplos subgrupos internos (`📁 Subgrupo`) com menus contextuais para mover anotações entre subgrupos ou para a raiz da coleção.
+  - **Confinamento Estrito**: Anotações residem exclusivamente na coleção de Anotações e não podem ser movidas ou mescladas em coleções de malhas 3D.
+- **Coleção Especializada `📏 Medidas` no Outliner (`crates/ui/src/outliner.rs`)**:
+  - Posicionamento canônico no topo da árvore de cena com ícone `📏` e cor amarela de destaque (`#feca57`).
+  - Controles estritamente limitados a ocultar/exibir (`👁` / `⊘`) e exclusão (`🗑` / `X`), sem suporte a bloqueio ou transformações, conforme especificado.
+- **Inspetor e Propriedades de Transformação de Anotações no Painel de Propriedades (`crates/ui/src/properties_panel.rs`)**:
+  - Exibição automática das propriedades ao selecionar uma anotação na árvore ou após desenhá-la.
+  - Campos de identificação (nome editável, visibilidade, bloqueio e atribuição de subgrupo).
+  - Aparência do traço: seletor de cor RGBA e controle deslizante de espessura de traço.
+  - **Seção de Transformação Completa**:
+    * Posição (Location): `X`, `Y`, `Z` com badges semânticos coloridos.
+    * Rotação (Rotation): `X`, `Y`, `Z` em graus de Euler.
+    * Escala (Scale): `X`, `Y`, `Z` com alcance de `0.01..=100.0`.
+    * Botão de redefinição de transformação (`↺ Redefinir Transformação`).
+  - Ação de exclusão direta com botão `🗑 Deletar Anotação`.
+- **Manipulação Direta por Gizmo no Viewport 3D (`crates/ui/src/viewport_interaction.rs`)**:
+  - Gizmos tridimensionais (Mover, Rotacionar, Escalar) acoplados ao centro geométrico da anotação selecionada.
+  - Suporte a arrasto de eixos e planos com cancelamento por `Escape` e gravação de checkpoint transacional ao soltar o mouse.
+  - Respeito integral ao bloqueio individual da anotação e bloqueio global da coleção.
+
+## [0.8.0] - 2026-09-12 — UI Enhancements & Interactions: Vertex Hover Demarcation, Toolbar Edit Tools, WGPU X-Ray, Reference Images, Outliner Collections/Lock/Isolate, and Vibrant Properties Tabs
+
+### Adicionado
+- **Demarcação Visual de Vértices no Modo de Edição (`crates/ui/src/viewport_interaction.rs`)**:
+  - Quando em `EditMode::Edit` com `SelectMode::Vertex`, todos os vértices da malha ativa são desenhados de forma proeminente (pontos laranjas para selecionados, pontos escuros com contorno claro para não selecionados).
+  - Hover dinâmico sobre vértices desenha um ponto interno dourado e um anel/halo externo ciano brilhante (`#64dcff`), garantindo feedback imediato de que o modo de vértices está ativo e indicando qual vértice será selecionado antes do clique.
+- **Ferramentas de Modelagem na Barra de Ferramentas Esquerda (`crates/ui/src/toolbar.rs`)**:
+  - Ao entrar em `EditMode::Edit`, a barra vertical esquerda expande automaticamente para exibir a paleta completa de 9 ferramentas de modelagem de malha (`Extrude`, `Inset`, `Bevel`, `Loop Cut`, `Knife`, `Push/Pull`, `Slice`, `Subdivide`, `Draw Profile`), em paralelo com a barra flutuante inferior.
+- **Renderização e Picking em Modo Raio-X (`crates/render-wgpu/src/lib.rs`, `crates/app/src/lib.rs`, `crates/core/src/state.rs`)**:
+  - Pipeline de shader WGSL `fs_xray` com translucidez (`alpha ~ 0.45`), `depth_write_enabled: false` e comparação de profundidade `LessEqual`.
+  - Pipeline de arestas X-Ray sem teste de oclusão de profundidade (`CompareFunction::Always`), permitindo que as arestas sejam visíveis através de qualquer geometria.
+  - O algoritmo de picking passa a considerar `state.show_xray`, permitindo selecionar vértices, arestas e faces ocultos atrás da superfície quando o modo Raio-X estiver ativado.
+  - Atalho canônico `Alt+Z` para alternar modo Raio-X.
+- **Reintegração Completa de Imagens de Referência (`crates/ui/src/lib.rs`, `viewport_bar.rs`, `contextual_shelf.rs`, `outliner.rs`)**:
+  - Abertura assíncrona/nativa via `pick_and_add_reference_image` disponível tanto no menu `➕ Add+ ▾` da viewport bar quanto na barra contextual flutuante de baixo (`🖼 Referência`).
+  - Seção dedicada `🖼 Imagens de Referência` no Outliner com controle de visibilidade (`👁` / `⊘`), alternância de Raio-X (`⚡`) e remoção.
+- **Hierarquia de Pastas / Coleções no Outliner (`crates/project/src/lib.rs`, `crates/ui/src/outliner.rs`)**:
+  - Capacidade de criar pastas/coleções (`📁 Coleções`) no cabeçalho do Outliner através do botão `📁+ Pasta`.
+  - Suporte a agrupar modelos em coleções, renomeação inline, exclusão com retorno automático de itens à raiz, e alternância em lote de visibilidade e bloqueio.
+  - Menu contextual nos objetos: `📁 Mover para Coleção ▾` (listando coleções existentes e raiz).
+- **Bloqueio (`Lock`) e Isolamento (`Isolate`) de Modelos (`crates/project/src/lib.rs`, `crates/core/src/state.rs`, `crates/core/src/modal.rs`, `crates/ui/src/outliner.rs`)**:
+  - Campo `asset.locked: bool` persistido no projeto.
+  - Botão `🔒` / `🔓` no Outliner para fixar objetos, impedindo qualquer transformação modal (`ModalError::ActiveLocked`), manipulação por gizmo ou menus contextuais no viewport.
+  - Botão e modo `⌖ Isolar` (atalho `Numpad /` ou `/`) que oculta temporariamente todos os outros modelos mantendo apenas o selecionado em visão local, com restauração perfeita do estado de visibilidade anterior ao desativar.
+- **Abas de Propriedades Ampliadas e Coloridas Semanticamente (`crates/ui/src/widgets.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Botões de categoria ampliados para `32x28px`, emoldurados em container estilizado (`tokens::BG_PANEL_HEADER`).
+  - Cores semânticas vibrantes inspiradas no Blender:
+    * `Tool`: Azul canônico (`#3169e3`)
+    * `Object`: Laranja característico (`#e67e22`)
+    * `Modifiers`: Azul-celeste (`#00a8ff`)
+    * `Data`: Verde (`#2ecc71`)
+    * `Material`: Magenta / Rosa (`#e84393`)
+  - Indicador inferior de seleção ativa e realce refinado ao passar o cursor.
+
 ## [0.7.0] - 2026-09-12 — UI Reorganization & Ergonomics Refinement: Contextual Modeling Shelf, Retractable Asset Browser, Clean Two-Panel Sidebar & Viewport Bar 6 Clusters
 
 ### Adicionado

@@ -17,8 +17,8 @@ pub use events::{AppEvent, EventBus};
 pub use module::{Module, ModuleRegistry};
 pub use selection::{SelectMode, Selection, Workspace};
 pub use state::{
-    AnnotationStroke, AppState, EditMode, Measurement, ProfileState, RefAxis, ReferenceImage,
-    RenderStats,
+    AnnotationItem, AnnotationStroke, AppState, EditMode, Measurement, MeasurementItem,
+    ProfileState, RefAxis, ReferenceImage, RenderStats,
 };
 
 pub use modal::{ModalConstraint, ModalError, ModalKind, ModalOp};

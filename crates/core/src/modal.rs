@@ -52,6 +52,7 @@ pub enum ModalError {
     InvalidMesh,
     NoActiveOperation,
     UnsupportedTopology,
+    ActiveLocked,
 }
 
 impl std::fmt::Display for ModalError {
@@ -68,6 +69,7 @@ impl std::fmt::Display for ModalError {
             Self::UnsupportedTopology => {
                 "Bevel supports one manifold edge with simple corners; select a supported edge"
             }
+            Self::ActiveLocked => "Active object is locked",
         })
     }
 }
@@ -127,6 +129,9 @@ impl AppState {
     pub fn begin_modal(&mut self, kind: ModalKind) -> Result<(), ModalError> {
         if self.modal.is_some() || self.mesh_preview.is_some() || self.paint_stroke.is_some() {
             return Err(ModalError::AlreadyActive);
+        }
+        if self.is_active_locked() {
+            return Err(ModalError::ActiveLocked);
         }
         let mesh = self.project.active_mesh().ok_or(ModalError::NoActiveMesh)?;
         if !valid_mesh(mesh) {
@@ -751,5 +756,16 @@ mod tests {
             assert_eq!(after.vec(), before.vec() + Vec3::Y);
             assert!(!after.selected);
         }
+    }
+
+    #[test]
+    fn locked_asset_rejects_begin_modal() {
+        let mut state = AppState::new("en");
+        state.toggle_lock_active();
+        assert!(state.is_active_locked());
+        assert_eq!(
+            state.begin_modal(ModalKind::Move),
+            Err(ModalError::ActiveLocked)
+        );
     }
 }

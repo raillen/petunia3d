@@ -1,17 +1,17 @@
 //! Ferramenta interativa de medição 3D (`Measure`).
 //! Permite medir distâncias entre pontos no espaço e vértices da malha ativa,
-//! exibindo linhas de medição com marcas de régua e indicador flutuante com distância e deltas (ΔX, ΔY, ΔZ).
+//! exibindo linhas de medição com marcas de régua e indicador flutuante com distância e deltas (ΔX, ΔY, ΔZ),
+//! com suporte transacional a Undo/Redo (Ctrl+Z) e coleção dedicada no Outliner.
 
 use egui::{vec2, Color32, FontId, PointerButton, Pos2, Rect, Response, Stroke};
 use glam::Vec3;
-use petunia_core::{AppState, Measurement};
+use petunia_core::{AppState, MeasurementItem};
 
 /// Projeta uma coordenada 3D de mundo para a coordenada 2D de tela dentro do retângulo do viewport.
 fn project_to_screen(point: [f32; 3], state: &AppState, rect: Rect) -> Option<Pos2> {
     let p3 = Vec3::from(point);
     let ndc = state.camera.project_ndc(p3);
     if state.camera.proj == petunia_core::Projection::Perspective {
-        // Se estiver atrás da câmera no espaço de visão
         let fwd = state.camera.forward();
         let to_p = (p3 - state.camera.eye()).normalize_or_zero();
         if fwd.dot(to_p) <= 0.0 {
@@ -69,7 +69,7 @@ fn unproject_cursor_or_snap(screen_pos: Pos2, state: &AppState, rect: Rect) -> [
     ]
 }
 
-/// Renderiza e manipula a ferramenta de medição interativa no viewport.
+/// Renderiza e manipula a ferramenta de medição interativa no viewport com suporte a undo/redo.
 pub fn draw(
     ctx: &egui::Context,
     state: &mut AppState,
@@ -79,14 +79,24 @@ pub fn draw(
 ) -> bool {
     let is_measure_tool = state.active_tool == "measure";
 
-    // 1. Limpeza por atalho Delete/Backspace
+    // 1. Limpeza / Exclusão por atalho Delete ou Backspace
     if is_measure_tool
         && (ctx.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)))
     {
-        state.measurements.clear();
-        state.active_measurement = None;
-        state.mark_dirty();
-        return true;
+        if let Some(sel_id) = state.selected_measurement {
+            state.checkpoint("delete measurement");
+            state.project.remove_measurement(sel_id);
+            state.selected_measurement = None;
+            state.mark_dirty();
+            return true;
+        } else if !state.project.measurements.is_empty() {
+            state.checkpoint("clear measurements");
+            state.project.measurements.clear();
+            state.active_measurement = None;
+            state.selected_measurement = None;
+            state.mark_dirty();
+            return true;
+        }
     }
 
     // 2. Manipulação de arrasto de medição quando a ferramenta estiver ativa
@@ -95,20 +105,36 @@ pub fn draw(
         if let Some(pointer) = ctx.pointer_hover_pos().filter(|p| rect.contains(*p)) {
             if response.drag_started_by(PointerButton::Primary) {
                 let start_3d = unproject_cursor_or_snap(pointer, state, rect);
-                state.active_measurement = Some(Measurement::new(start_3d, start_3d));
+                state.active_measurement =
+                    Some(MeasurementItem::new("Active", start_3d, start_3d, 0.0));
                 state.mark_dirty();
                 handled = true;
             } else if response.dragged_by(PointerButton::Primary) {
                 let curr_3d = unproject_cursor_or_snap(pointer, state, rect);
                 if let Some(ref mut m) = state.active_measurement {
-                    *m = Measurement::new(m.start, curr_3d);
+                    let dx = curr_3d[0] - m.start[0];
+                    let dy = curr_3d[1] - m.start[1];
+                    let dz = curr_3d[2] - m.start[2];
+                    m.end = curr_3d;
+                    m.distance = (dx * dx + dy * dy + dz * dz).sqrt();
                     state.mark_dirty();
                     handled = true;
                 }
             } else if response.drag_stopped_by(PointerButton::Primary) {
                 if let Some(m) = state.active_measurement.take() {
                     if m.distance > 0.001 {
-                        state.measurements.push(m);
+                        // Checkpoint transacional para que a medida possa ser desfeita com Ctrl+Z!
+                        state.checkpoint("add measurement");
+                        let count = state.project.measurements.len() + 1;
+                        let item = MeasurementItem::new(
+                            format!("Medida {count}"),
+                            m.start,
+                            m.end,
+                            m.distance,
+                        );
+                        let item_id = item.id;
+                        state.project.add_measurement(item);
+                        state.selected_measurement = Some(item_id);
                     }
                     state.mark_dirty();
                     handled = true;
@@ -117,75 +143,112 @@ pub fn draw(
         }
     }
 
-    // 3. Renderização de todas as medições (salvas e ativa)
+    // 3. Renderização de todas as medições salvas (se a coleção estiver visível)
     let c_yellow = Color32::from_rgb(255, 213, 79);
     let c_blue = Color32::from_rgb(64, 196, 255);
     let c_bg = Color32::from_rgba_unmultiplied(24, 25, 29, 230);
     let c_white = Color32::WHITE;
 
-    let mut to_render: Vec<&Measurement> = state.measurements.iter().collect();
-    if let Some(ref active) = state.active_measurement {
-        to_render.push(active);
+    if state.project.measurements_visible {
+        for m in &state.project.measurements {
+            if !m.visible {
+                continue;
+            }
+            let is_selected = state.selected_measurement == Some(m.id);
+            let p0 = project_to_screen(m.start, state, rect);
+            let p1 = project_to_screen(m.end, state, rect);
+
+            if let (Some(s0), Some(s1)) = (p0, p1) {
+                let line_color = if is_selected {
+                    Color32::from_rgb(100, 220, 255)
+                } else {
+                    c_yellow
+                };
+                let stroke_w = if is_selected { 2.5_f32 } else { 2.0_f32 };
+
+                // Linha principal de medição
+                painter.line_segment([s0, s1], Stroke::new(stroke_w, line_color));
+
+                // Miras nas pontas (+)
+                for pt in [s0, s1] {
+                    painter.line_segment(
+                        [pt + vec2(-4.0, 0.0), pt + vec2(4.0, 0.0)],
+                        Stroke::new(1.5_f32, c_white),
+                    );
+                    painter.line_segment(
+                        [pt + vec2(0.0, -4.0), pt + vec2(0.0, 4.0)],
+                        Stroke::new(1.5_f32, c_white),
+                    );
+                }
+
+                // Ponto médio e badge informativo
+                let mid = Pos2::new((s0.x + s1.x) * 0.5, (s0.y + s1.y) * 0.5);
+                let deltas = m.deltas();
+                let text = format!(
+                    "{:.2}m (ΔX:{:.2} ΔY:{:.2} ΔZ:{:.2})",
+                    m.distance, deltas[0], deltas[1], deltas[2]
+                );
+                let font = FontId::monospace(11.0);
+                let text_color = if is_selected {
+                    Color32::from_rgb(100, 220, 255)
+                } else {
+                    c_blue
+                };
+                let galley = painter.layout_no_wrap(text, font, text_color);
+                let badge_rect = Rect::from_center_size(mid, galley.size() + vec2(10.0, 6.0));
+
+                painter.rect_filled(badge_rect, 4.0, c_bg);
+                painter.rect_stroke(
+                    badge_rect,
+                    4.0,
+                    Stroke::new(
+                        1.0_f32,
+                        if is_selected {
+                            Color32::from_rgb(100, 220, 255)
+                        } else {
+                            Color32::from_white_alpha(40)
+                        },
+                    ),
+                    egui::StrokeKind::Inside,
+                );
+                painter.galley(badge_rect.min + vec2(5.0, 3.0), galley, text_color);
+            }
+        }
     }
 
-    for m in to_render {
+    // 4. Medição ativa em tempo real durante arrasto
+    if let Some(ref m) = state.active_measurement {
         let p0 = project_to_screen(m.start, state, rect);
         let p1 = project_to_screen(m.end, state, rect);
-
         if let (Some(s0), Some(s1)) = (p0, p1) {
-            // Linha principal de medição
             painter.line_segment([s0, s1], Stroke::new(2.0_f32, c_yellow));
-
-            // Miras nas pontas (+)
             for pt in [s0, s1] {
                 painter.line_segment(
                     [pt + vec2(-4.0, 0.0), pt + vec2(4.0, 0.0)],
-                    Stroke::new(2.0_f32, c_blue),
+                    Stroke::new(1.5_f32, c_white),
                 );
                 painter.line_segment(
                     [pt + vec2(0.0, -4.0), pt + vec2(0.0, 4.0)],
-                    Stroke::new(2.0_f32, c_blue),
+                    Stroke::new(1.5_f32, c_white),
                 );
-                painter.circle_filled(pt, 2.5, c_yellow);
             }
-
-            // Marcas de régua (ticks) ao longo da linha na tela
-            let line_vec = s1 - s0;
-            let line_len = line_vec.length();
-            if line_len > 20.0 {
-                let normal = vec2(-line_vec.y, line_vec.x).normalized();
-                let steps = (line_len / 20.0).clamp(2.0, 10.0) as usize;
-                for i in 1..steps {
-                    let t = i as f32 / steps as f32;
-                    let tick_center = s0 + line_vec * t;
-                    painter.line_segment(
-                        [tick_center - normal * 3.0, tick_center + normal * 3.0],
-                        Stroke::new(1.5_f32, c_yellow),
-                    );
-                }
-            }
-
-            // Badge flutuante com distância e deltas no ponto médio
-            let mid = s0 + (s1 - s0) * 0.5;
+            let mid = Pos2::new((s0.x + s1.x) * 0.5, (s0.y + s1.y) * 0.5);
             let deltas = m.deltas();
             let text = format!(
-                "{:.2} m  (ΔX: {:.2}  ΔY: {:.2}  ΔZ: {:.2})",
+                "{:.2}m (ΔX:{:.2} ΔY:{:.2} ΔZ:{:.2})",
                 m.distance, deltas[0], deltas[1], deltas[2]
             );
-
-            let badge_pos = mid + vec2(0.0, -16.0);
-            let font = FontId::proportional(11.0);
-            let galley = painter.layout_no_wrap(text, font, c_white);
-            let badge_rect = Rect::from_center_size(badge_pos, galley.size() + vec2(12.0, 8.0));
-
+            let font = FontId::monospace(11.0);
+            let galley = painter.layout_no_wrap(text, font, c_blue);
+            let badge_rect = Rect::from_center_size(mid, galley.size() + vec2(10.0, 6.0));
             painter.rect_filled(badge_rect, 4.0, c_bg);
             painter.rect_stroke(
                 badge_rect,
                 4.0,
-                Stroke::new(1.0_f32, c_yellow),
+                Stroke::new(1.0_f32, Color32::from_white_alpha(40)),
                 egui::StrokeKind::Inside,
             );
-            painter.galley(badge_rect.min + vec2(6.0, 4.0), galley, c_white);
+            painter.galley(badge_rect.min + vec2(5.0, 3.0), galley, c_blue);
         }
     }
 
@@ -201,9 +264,12 @@ mod tests {
         let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         state.active_tool = "measure".into();
-        state
-            .measurements
-            .push(Measurement::new([0.0, 0.0, 0.0], [1.0, 2.0, 0.0]));
+        state.project.add_measurement(MeasurementItem::new(
+            "M1",
+            [0.0, 0.0, 0.0],
+            [1.0, 2.0, 0.0],
+            2.23,
+        ));
 
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| {
@@ -213,13 +279,36 @@ mod tests {
                 let _ = draw(ctx, &mut state, rect, &painter, &response);
             });
         });
+
+        assert_eq!(state.project.measurements.len(), 1);
     }
 
     #[test]
     fn test_measurement_deltas_computation() {
-        let m = Measurement::new([0.0, 0.0, 0.0], [3.0, 4.0, 0.0]);
+        let m = MeasurementItem::new("M1", [0.0, 0.0, 0.0], [3.0, 4.0, 0.0], 5.0);
         assert!((m.distance - 5.0).abs() < 1e-4);
         let deltas = m.deltas();
         assert_eq!(deltas, [3.0, 4.0, 0.0]);
+    }
+
+    #[test]
+    fn test_measurement_undo_redo() {
+        let mut state = AppState::new("en");
+        state.checkpoint("initial");
+        let initial_count = state.project.measurements.len();
+
+        // Adiciona medição com checkpoint
+        state.checkpoint("add measurement");
+        let item = MeasurementItem::new("M1", [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], 1.0);
+        state.project.add_measurement(item);
+        assert_eq!(state.project.measurements.len(), initial_count + 1);
+
+        // Undo (Ctrl+Z)
+        assert!(state.undo());
+        assert_eq!(state.project.measurements.len(), initial_count);
+
+        // Redo (Ctrl+Shift+Z)
+        assert!(state.redo());
+        assert_eq!(state.project.measurements.len(), initial_count + 1);
     }
 }

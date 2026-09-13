@@ -63,7 +63,10 @@ pub struct Renderer {
     depth_view: Option<wgpu::TextureView>,
     depth_size: (u32, u32),
     mesh_pipeline: wgpu::RenderPipeline,
+    mesh_xray_pipeline: wgpu::RenderPipeline,
     line_pipeline: wgpu::RenderPipeline,
+    line_xray_pipeline: wgpu::RenderPipeline,
+    xray: bool,
     ref_pipeline: wgpu::RenderPipeline,
     ref_xray_pipeline: wgpu::RenderPipeline,
     cam_buffer: wgpu::Buffer,
@@ -117,6 +120,19 @@ fn fs_main(in: Out) -> @location(0) vec4<f32> {
     let amb = LIGHT_AMB;
     let c = in.color * (amb + LIGHT_DIF * diff);
     return vec4<f32>(c, 1.0);
+}
+
+@fragment
+fn fs_xray(in: Out) -> @location(0) vec4<f32> {
+    if (length(in.normal) < 0.1) {
+        return vec4<f32>(in.color, 0.45);
+    }
+    let light = normalize(vec3<f32>(LIGHT_X, LIGHT_Y, LIGHT_Z));
+    let n = normalize(in.normal);
+    let diff = max(dot(n, light), 0.0);
+    let amb = LIGHT_AMB;
+    let c = in.color * (amb + LIGHT_DIF * diff);
+    return vec4<f32>(c, 0.45);
 }
 "#;
 
@@ -340,6 +356,85 @@ impl Renderer {
             cache: None,
         });
 
+        let mesh_xray_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("simple3d-mesh-xray-pipe"),
+            layout: Some(&mesh_layout),
+            vertex: wgpu::VertexState {
+                module: &mesh_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<MeshVertex>() as u64,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3],
+                }],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &mesh_shader,
+                entry_point: Some("fs_xray"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: None,
+                ..Default::default()
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: Default::default(),
+                bias: Default::default(),
+            }),
+            multisample: Default::default(),
+            multiview: None,
+            cache: None,
+        });
+
+        let line_xray_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("simple3d-line-xray-pipe"),
+            layout: Some(&mesh_layout),
+            vertex: wgpu::VertexState {
+                module: &line_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<LineVertex>() as u64,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3],
+                }],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &line_shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::LineList,
+                ..Default::default()
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::Always,
+                stencil: Default::default(),
+                bias: Default::default(),
+            }),
+            multisample: Default::default(),
+            multiview: None,
+            cache: None,
+        });
+
         // refs: layout do grupo 1 (params + textura + sampler)
         let ref_tex_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("simple3d-ref-tex-layout"),
@@ -477,7 +572,10 @@ impl Renderer {
             depth_view: None,
             depth_size: (0, 0),
             mesh_pipeline,
+            mesh_xray_pipeline,
             line_pipeline,
+            line_xray_pipeline,
+            xray: false,
             ref_pipeline,
             ref_xray_pipeline,
             cam_buffer,
@@ -522,6 +620,7 @@ impl Renderer {
     }
 
     /// Reconstrói buffers da cena. Barato para low-poly; roda por frame.
+    #[allow(clippy::too_many_arguments)]
     pub fn update(
         &mut self,
         device: &wgpu::Device,
@@ -530,7 +629,9 @@ impl Renderer {
         refs: &[petunia_core::ReferenceImage],
         camera: &Camera,
         shading: Shading,
+        xray: bool,
     ) {
+        self.xray = xray;
         queue.write_buffer(
             &self.cam_buffer,
             0,
@@ -798,15 +899,23 @@ impl Renderer {
             }
         }
 
-        // malha sólida
+        // malha sólida (ou raio-x com transparência)
         if let Some(vb) = &self.mesh_vb {
-            pass.set_pipeline(&self.mesh_pipeline);
+            if self.xray {
+                pass.set_pipeline(&self.mesh_xray_pipeline);
+            } else {
+                pass.set_pipeline(&self.mesh_pipeline);
+            }
             pass.set_vertex_buffer(0, vb.slice(..));
             pass.draw(0..self.mesh_count, 0..1);
         }
         // arestas
         if let Some(vb) = &self.line_vb {
-            pass.set_pipeline(&self.line_pipeline);
+            if self.xray {
+                pass.set_pipeline(&self.line_xray_pipeline);
+            } else {
+                pass.set_pipeline(&self.line_pipeline);
+            }
             pass.set_vertex_buffer(0, vb.slice(..));
             pass.draw(0..self.line_count, 0..1);
         }

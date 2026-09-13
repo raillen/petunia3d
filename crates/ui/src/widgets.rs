@@ -129,6 +129,7 @@ pub struct PetuniaPropertyTabButton {
     pub icon: PetuniaIcon,
     pub selected: bool,
     pub tooltip: Option<String>,
+    pub accent_color: Color32,
 }
 
 impl PetuniaPropertyTabButton {
@@ -137,7 +138,13 @@ impl PetuniaPropertyTabButton {
             icon,
             selected,
             tooltip: None,
+            accent_color: tokens::ACCENT_BLUE,
         }
+    }
+
+    pub fn accent_color(mut self, color: Color32) -> Self {
+        self.accent_color = color;
+        self
     }
 
     pub fn tooltip(mut self, hint: impl Into<String>) -> Self {
@@ -146,22 +153,40 @@ impl PetuniaPropertyTabButton {
     }
 
     pub fn show(self, ui: &mut Ui) -> Response {
-        let desired_size = vec2(26.0, 26.0);
+        let desired_size = vec2(32.0, 28.0);
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
 
         if ui.is_rect_visible(rect) {
             let (bg_fill, fg_color) = if self.selected {
-                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
+                (self.accent_color.gamma_multiply(0.35), Color32::WHITE)
             } else if response.hovered() {
-                (tokens::BG_SURFACE_HOVER, tokens::TEXT_ACTIVE)
+                (self.accent_color.gamma_multiply(0.20), Color32::WHITE)
             } else {
-                (Color32::TRANSPARENT, tokens::TEXT_SECONDARY)
+                (Color32::TRANSPARENT, self.accent_color)
             };
 
             let painter = ui.painter().with_clip_rect(rect);
 
             if bg_fill != Color32::TRANSPARENT {
                 painter.rect_filled(rect, tokens::RADIUS_CONTAINER, bg_fill);
+            }
+
+            if self.selected {
+                // Indicador inferior elegante para aba ativa
+                painter.line_segment(
+                    [
+                        egui::pos2(rect.left() + 4.0, rect.bottom() - 1.5),
+                        egui::pos2(rect.right() - 4.0, rect.bottom() - 1.5),
+                    ],
+                    egui::Stroke::new(2.5_f32, self.accent_color),
+                );
+                // Borda sutil de destaque
+                painter.rect_stroke(
+                    rect,
+                    tokens::RADIUS_CONTAINER,
+                    egui::Stroke::new(1.0_f32, self.accent_color.gamma_multiply(0.6)),
+                    StrokeKind::Inside,
+                );
             }
 
             if response.has_focus() {
@@ -173,7 +198,10 @@ impl PetuniaPropertyTabButton {
                 );
             }
 
-            let icon_rect = Rect::from_center_size(rect.center(), vec2(18.0, 18.0));
+            let icon_rect = Rect::from_center_size(
+                rect.center() - vec2(0.0, if self.selected { 1.0 } else { 0.0 }),
+                vec2(19.0, 19.0),
+            );
             IconRegistry::paint(ui.ctx(), &painter, &self.icon, icon_rect, fg_color);
         }
 

@@ -27,6 +27,7 @@ transform-gizmo = "0.7"
 transform-gizmo-egui = "0.7"
 serde = { workspace = true }
 toml = { workspace = true }
+uuid = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = "0.32"

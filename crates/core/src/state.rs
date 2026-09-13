@@ -230,11 +230,16 @@ pub struct AppState {
     pub show_overlays: bool,
     /// Modo de raio-x / transparência no viewport.
     pub show_xray: bool,
-    /// Medições ativas na cena (ferramenta Measure).
-    pub measurements: Vec<Measurement>,
-    pub active_measurement: Option<Measurement>,
-    /// Anotações e rascunhos livres na cena (ferramenta Annotate).
-    pub annotations: Vec<AnnotationStroke>,
+    /// Modo de isolamento de seleção ativo (Local View / Isolate).
+    pub isolate_active: bool,
+    pub isolate_prev_visibilities: Option<Vec<bool>>,
+    /// ID da anotação selecionada atualmente.
+    pub selected_annotation: Option<uuid::Uuid>,
+    /// ID da medição selecionada atualmente.
+    pub selected_measurement: Option<uuid::Uuid>,
+    /// Medição em progresso de arrasto (ferramenta Measure).
+    pub active_measurement: Option<MeasurementItem>,
+    /// Anotação em progresso de desenho (ferramenta Annotate).
     pub active_annotation: Option<AnnotationStroke>,
     /// Modal de configurações ativado.
     pub show_settings: bool,
@@ -250,53 +255,8 @@ pub struct AppState {
     pub active_keymap_id: String,
 }
 
-/// Medição interativa em espaço 3D (ferramenta Measure).
-#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Measurement {
-    pub start: [f32; 3],
-    pub end: [f32; 3],
-    pub distance: f32,
-}
-
-impl Measurement {
-    pub fn new(start: [f32; 3], end: [f32; 3]) -> Self {
-        let dx = end[0] - start[0];
-        let dy = end[1] - start[1];
-        let dz = end[2] - start[2];
-        let distance = (dx * dx + dy * dy + dz * dz).sqrt();
-        Self {
-            start,
-            end,
-            distance,
-        }
-    }
-
-    pub fn deltas(&self) -> [f32; 3] {
-        [
-            (self.end[0] - self.start[0]).abs(),
-            (self.end[1] - self.start[1]).abs(),
-            (self.end[2] - self.start[2]).abs(),
-        ]
-    }
-}
-
-/// Traço de anotação livre em espaço 3D ou tela (ferramenta Annotate).
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct AnnotationStroke {
-    pub points: Vec<[f32; 3]>,
-    pub color: [f32; 4],
-    pub width: f32,
-}
-
-impl Default for AnnotationStroke {
-    fn default() -> Self {
-        Self {
-            points: Vec::new(),
-            color: [0.0, 0.74, 0.83, 1.0], // Ciano característico do Blender
-            width: 2.0,
-        }
-    }
-}
+pub use petunia_project::{AnnotationItem, AnnotationStroke, MeasurementItem};
+pub type Measurement = MeasurementItem;
 
 impl AppState {
     pub fn new(lang: &str) -> Self {
@@ -374,9 +334,11 @@ impl AppState {
             pivot_point: "Median Point".to_string(),
             show_overlays: true,
             show_xray: false,
-            measurements: Vec::new(),
+            isolate_active: false,
+            isolate_prev_visibilities: None,
+            selected_annotation: None,
+            selected_measurement: None,
             active_measurement: None,
-            annotations: Vec::new(),
             active_annotation: None,
             show_settings: false,
             settings_tab: "appearance".to_string(),
@@ -657,5 +619,61 @@ impl AppState {
             return true;
         }
         false
+    }
+
+    /// Alterna o modo de isolamento da seleção atual (Local View / Isolate).
+    pub fn toggle_isolate(&mut self) {
+        if self.isolate_active {
+            // Restaura as visibilidades anteriores
+            if let Some(prev) = self.isolate_prev_visibilities.take() {
+                for (i, &vis) in prev.iter().enumerate() {
+                    if let Some(asset) = self.project.assets.get_mut(i) {
+                        asset.visible = vis;
+                    }
+                }
+            } else {
+                for asset in &mut self.project.assets {
+                    asset.visible = true;
+                }
+            }
+            self.isolate_active = false;
+            self.set_status("Modo de isolamento desativado".to_string());
+        } else {
+            // Salva as visibilidades atuais e isola o ativo
+            let prev: Vec<bool> = self.project.assets.iter().map(|a| a.visible).collect();
+            self.isolate_prev_visibilities = Some(prev);
+            let active = self.project.active;
+            for (i, asset) in self.project.assets.iter_mut().enumerate() {
+                asset.visible = i == active;
+            }
+            self.isolate_active = true;
+            let name = self
+                .project
+                .active()
+                .map(|a| a.name.clone())
+                .unwrap_or_else(|| "Ativo".to_string());
+            self.set_status(format!("Objeto '{name}' isolado na cena"));
+        }
+        self.mark_dirty();
+    }
+
+    /// Verifica se o asset ativo está bloqueado contra transformações.
+    pub fn is_active_locked(&self) -> bool {
+        self.project.active().map(|a| a.locked).unwrap_or(false)
+    }
+
+    /// Alterna o bloqueio do asset ativo.
+    pub fn toggle_lock_active(&mut self) {
+        if let Some(asset) = self.project.active_mut() {
+            asset.locked = !asset.locked;
+            let name = asset.name.clone();
+            let locked = asset.locked;
+            self.set_status(if locked {
+                format!("Objeto '{name}' bloqueado")
+            } else {
+                format!("Objeto '{name}' desbloqueado")
+            });
+            self.mark_dirty();
+        }
     }
 }

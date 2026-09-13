@@ -100,6 +100,8 @@ mod tests {
                 name: "bad".into(),
                 mesh: bad_mesh,
                 visible: true,
+                locked: false,
+                collection: None,
                 base_color: [f32::NAN, 0.0, 0.0],
                 texture: Some(Canvas {
                     w: 0,
@@ -109,6 +111,8 @@ mod tests {
             }],
             active: 42,
             palette: vec![],
+            collections: vec![],
+            ..Default::default()
         };
         let dir = std::env::temp_dir();
         let path = dir.join("petunia_test_hostile.petunia");

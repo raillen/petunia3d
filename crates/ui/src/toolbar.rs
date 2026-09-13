@@ -224,6 +224,28 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
             state.mark_dirty();
         }
     }
+
+    // 3. Ferramentas Especializadas de Modelagem de Malha (Exibidas no Modo de Edição)
+    if state.mode == petunia_core::EditMode::Edit {
+        ui.add_space(3.0);
+        ui.separator();
+        ui.add_space(3.0);
+
+        for (icon, id, label, hint) in MESH_TOOLS {
+            let is_active = state.active_tool == *id;
+            if PetuniaToolbarButton::new(*icon, label)
+                .selected(is_active)
+                .compact(compact)
+                .tooltip(hint)
+                .show(ui)
+                .clicked()
+            {
+                state.active_tool = (*id).into();
+                state.pending_modal = None;
+                state.mark_dirty();
+            }
+        }
+    }
 }
 
 fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {

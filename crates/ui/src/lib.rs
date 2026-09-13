@@ -625,7 +625,7 @@ fn draw_profile_overlay(p: &egui::Painter, rect: egui::Rect, state: &AppState) {
     }
 }
 
-fn load_image_rgba(path: &std::path::Path) -> Result<(u32, u32, Vec<u8>), String> {
+pub fn load_image_rgba(path: &std::path::Path) -> Result<(u32, u32, Vec<u8>), String> {
     let img = image::open(path).map_err(|e| e.to_string())?;
     let mut rgba = img.to_rgba8();
     const MAX: u32 = 2048;
@@ -640,6 +640,33 @@ fn load_image_rgba(path: &std::path::Path) -> Result<(u32, u32, Vec<u8>), String
         );
     }
     Ok((rgba.width(), rgba.height(), rgba.into_raw()))
+}
+
+/// Diálogo para selecionar e adicionar uma imagem de referência à cena.
+pub fn pick_and_add_reference_image(state: &mut AppState) {
+    if let Some(path) = rfd::FileDialog::new()
+        .add_filter("Imagens", &["png", "jpg", "jpeg", "webp"])
+        .pick_file()
+    {
+        match load_image_rgba(&path) {
+            Ok((w, h, rgba)) => {
+                let name = path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("ref")
+                    .to_string();
+                state.refs.push(petunia_core::ReferenceImage::from_rgba(
+                    name.clone(),
+                    w,
+                    h,
+                    rgba,
+                ));
+                state.set_status(format!("Imagem de referência '{name}' adicionada"));
+                state.mark_dirty();
+            }
+            Err(e) => state.set_status(format!("Erro ao carregar imagem: {e}")),
+        }
+    }
 }
 
 #[cfg(test)]

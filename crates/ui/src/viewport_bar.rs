@@ -264,6 +264,11 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             spawn_mesh = Some(("Cone", Mesh::cone(16, 0.5, 1.0)));
             ui.close();
         }
+        ui.separator();
+        if ui.button("🖼 Imagem de Referência...").clicked() {
+            crate::pick_and_add_reference_image(state);
+            ui.close();
+        }
     });
 
     if let Some((name, mut mesh)) = spawn_mesh {

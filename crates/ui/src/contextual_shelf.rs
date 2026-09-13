@@ -147,6 +147,14 @@ fn draw_model_edit_shelf(ui: &mut Ui, state: &mut AppState) {
         state.sync_selection();
         state.emit_mesh_changed();
     }
+
+    ui.add_space(2.0);
+    shelf_separator(ui);
+    ui.add_space(2.0);
+
+    if pill_button(ui, "🖼 Ref", false, "Carregar imagem de referência 3D").clicked() {
+        crate::pick_and_add_reference_image(state);
+    }
 }
 
 fn draw_model_object_shelf(ui: &mut Ui, state: &mut AppState) {
@@ -202,6 +210,21 @@ fn draw_model_object_shelf(ui: &mut Ui, state: &mut AppState) {
         }
         state.sync_selection();
         state.emit_mesh_changed();
+    }
+
+    ui.add_space(2.0);
+    shelf_separator(ui);
+    ui.add_space(2.0);
+
+    if pill_button(
+        ui,
+        "🖼 Referência",
+        false,
+        "Carregar imagem de referência 3D",
+    )
+    .clicked()
+    {
+        crate::pick_and_add_reference_image(state);
     }
 }
 

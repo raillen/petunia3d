@@ -309,6 +309,21 @@ impl Core {
             self.state.mark_dirty();
             return;
         }
+        // Alt+Z: modo Raio-X
+        if physical == PhysicalKey::Code(WKey::KeyZ) && self.alt_down {
+            self.state.show_xray = !self.state.show_xray;
+            self.state.mark_dirty();
+            return;
+        }
+        // NumpadDivide / Slash: Isolar objeto ativo (Local View)
+        if matches!(
+            physical,
+            PhysicalKey::Code(WKey::NumpadDivide | WKey::Slash)
+        ) && !self.ctrl_down
+        {
+            self.state.toggle_isolate();
+            return;
+        }
         let mods = self.mods();
         let ck = to_config_key(physical);
         let action = ck
@@ -567,7 +582,7 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
             viewport,
             glam::Vec2::new(nx, ny),
             mode,
-            core.state.shading == petunia_render::Shading::Wireframe,
+            core.state.shading == petunia_render::Shading::Wireframe || core.state.show_xray,
         )
     });
     if let Some(mesh) = core.state.project.active_mesh_mut() {
@@ -785,6 +800,7 @@ impl WgpuApp {
             &self.core.state.refs,
             &self.core.state.camera,
             self.core.state.shading,
+            self.core.state.show_xray,
         );
         gfx.renderer3d
             .upload_ref_pixels(&gfx.queue, &self.core.state.refs);
