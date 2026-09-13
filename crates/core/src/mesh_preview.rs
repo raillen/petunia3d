@@ -22,8 +22,8 @@ impl AppState {
             return false;
         }
         self.mesh_preview = Some(MeshPreview {
-            original: self.project.clone(),
-            selection: self.selection.clone(),
+            original: self.project.project.clone(),
+            selection: self.session.selection.clone(),
             label,
             changed: false,
         });
@@ -31,7 +31,7 @@ impl AppState {
         true
     }
     pub fn preview_mesh(&mut self, mesh: Mesh) {
-        if let Some(preview) = self.mesh_preview.as_mut() {
+        if let Some(preview) = self.session.tools.mesh_preview.as_mut() {
             if let Some(active) = self.project.active_mesh_mut() {
                 preview.changed = preview.original.active_mesh().is_some_and(|original| {
                     original.verts.len() != mesh.verts.len()
@@ -54,16 +54,18 @@ impl AppState {
         }
     }
     pub fn finish_mesh_preview(&mut self, cancel: bool) {
-        let Some(preview) = self.mesh_preview.take() else {
+        let Some(preview) = self.session.tools.mesh_preview.take() else {
             return;
         };
         if cancel || !preview.changed {
-            self.project = preview.original;
-            self.selection = preview.selection;
+            self.project.project = preview.original;
+            self.session.selection = preview.selection;
         } else {
-            self.undo.checkpoint(preview.label, &preview.original);
+            self.project
+                .undo
+                .checkpoint(preview.label, &preview.original);
         }
-        self.cut_session = None;
+        self.session.tools.cut_session = None;
         self.sync_selection();
         self.emit_mesh_changed();
     }

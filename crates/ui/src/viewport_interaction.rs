@@ -78,7 +78,7 @@ pub fn draw(
         && ctx.input(|i| !i.modifiers.shift && i.pointer.button_clicked(PointerButton::Secondary))
     {
         if let Some(pos) = pointer {
-            state.context_menu_pos = Some([pos.x, pos.y]);
+            state.ui.context_menu_pos = Some([pos.x, pos.y]);
             return true;
         }
     }
@@ -200,7 +200,7 @@ pub fn draw(
                             GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
                         };
                         modal_viewport::start_handle(ctx, state, state.gizmo_mode, constraint, pos);
-                        state.box_select_start = None;
+                        state.ui.box_select_start = None;
                         return true;
                     }
                 }
@@ -464,31 +464,33 @@ fn handle_annotation_gizmo(
                 .or_else(|| ctx.input(|i| i.pointer.interact_pos()))
                 .unwrap_or(drag.start_pointer);
 
+            let delta = cur_pos - drag.start_pointer;
+            let cam_eye = state.session.camera.eye();
+            let cam_forward = state.session.camera.forward();
+            let cam_proj = state.session.camera.proj;
+            let cam_ortho_half_h = state.session.camera.ortho_half_h;
+            let cam_fov_y = state.session.camera.fov_y;
+            let cam_right = state.session.camera.right();
+            let cam_up = state.session.camera.up();
+
             if let Some(ann) = state
                 .project
                 .annotations
                 .iter_mut()
                 .find(|a| a.id == drag.ann_id)
             {
-                let delta = cur_pos - drag.start_pointer;
                 let pivot = Vec3::from_array(ann.center());
-                let depth = (pivot - state.camera.eye())
-                    .dot(state.camera.forward())
-                    .max(0.1);
-                let world_per_pt = match state.camera.proj {
-                    petunia_core::Projection::Ortho => {
-                        2.0 * state.camera.ortho_half_h / rect.height()
-                    }
+                let depth = (pivot - cam_eye).dot(cam_forward).max(0.1);
+                let world_per_pt = match cam_proj {
+                    petunia_core::Projection::Ortho => 2.0 * cam_ortho_half_h / rect.height(),
                     petunia_core::Projection::Perspective => {
-                        2.0 * depth * (state.camera.fov_y * 0.5).tan() / rect.height()
+                        2.0 * depth * (cam_fov_y * 0.5).tan() / rect.height()
                     }
                 };
 
                 match drag.kind {
                     GizmoKind::Translate => {
-                        let world_vec = (state.camera.right() * delta.x
-                            - state.camera.up() * delta.y)
-                            * world_per_pt;
+                        let world_vec = (cam_right * delta.x - cam_up * delta.y) * world_per_pt;
                         let delta_vec = match drag.handle {
                             GizmoHandle::Axis(a) => {
                                 let ax = [Vec3::X, Vec3::Y, Vec3::Z][a as usize];

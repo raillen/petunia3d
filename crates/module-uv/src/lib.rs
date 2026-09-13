@@ -26,10 +26,11 @@ impl UvModule {
 
     /// Move UVs das faces selecionadas (ou todas se vazio).
     pub fn move_selected(state: &mut AppState, du: f32, dv: f32) {
+        let sel_empty = state.session.uv_selected.is_empty();
+        let uv_selected = &state.session.uv_selected;
         if let Some(m) = state.project.active_mesh_mut() {
-            let sel_empty = state.uv_selected.is_empty();
             for (fi, f) in m.faces.iter_mut().enumerate() {
-                if sel_empty || state.uv_selected.contains(&fi) {
+                if sel_empty || uv_selected.contains(&fi) {
                     for uv in &mut f.uv {
                         uv[0] += du;
                         uv[1] += dv;
@@ -42,12 +43,13 @@ impl UvModule {
 
     /// Escala UVs selecionadas em torno do centroide.
     pub fn scale_selected(state: &mut AppState, s: f32) {
+        let sel_empty = state.session.uv_selected.is_empty();
+        let uv_selected = &state.session.uv_selected;
         if let Some(m) = state.project.active_mesh_mut() {
-            let sel_empty = state.uv_selected.is_empty();
             let mut c = [0.0f32; 2];
             let mut n = 0;
             for (fi, f) in m.faces.iter().enumerate() {
-                if sel_empty || state.uv_selected.contains(&fi) {
+                if sel_empty || uv_selected.contains(&fi) {
                     for uv in &f.uv {
                         c[0] += uv[0];
                         c[1] += uv[1];
@@ -61,7 +63,7 @@ impl UvModule {
             c[0] /= n as f32;
             c[1] /= n as f32;
             for (fi, f) in m.faces.iter_mut().enumerate() {
-                if sel_empty || state.uv_selected.contains(&fi) {
+                if sel_empty || uv_selected.contains(&fi) {
                     for uv in &mut f.uv {
                         uv[0] = c[0] + (uv[0] - c[0]) * s;
                         uv[1] = c[1] + (uv[1] - c[1]) * s;
@@ -82,7 +84,8 @@ impl Module for UvModule {
             AppEvent::MeshChanged { .. } | AppEvent::ActiveAssetChanged { .. } => {
                 // seleção UV pode ter morrido com a malha — limpa órfãs
                 if let Some(o) = state.project.assets.get(state.project.active) {
-                    state.uv_selected.retain(|&fi| fi < o.mesh.faces.len());
+                    let max_len = o.mesh.faces.len();
+                    state.session.uv_selected.retain(|&fi| fi < max_len);
                 }
                 self.dirty = true;
             }

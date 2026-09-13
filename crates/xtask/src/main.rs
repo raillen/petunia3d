@@ -302,6 +302,42 @@ fn task_arch_check() -> Result<()> {
     }
     println!("✅ Sessões de ferramentas validadas: CutSession e PointerSession residem exclusivamente no domínio (AppState).");
 
-    println!("🏛️ Progresso de remediação: Gauntlets G0, G1, G2, G3, G4 e G5 (Desacoplamento de Sessões de Ferramentas) CONCLUÍDOS.");
+    println!("🛡️ Validando decomposição do God Object AppState (Gauntlet G6 / F-002)...");
+    let state_rs = root.join("crates/core/src/state.rs");
+    let state_content = std::fs::read_to_string(&state_rs)
+        .with_context(|| format!("Falha ao ler {}", state_rs.display()))?;
+
+    let required_substates = [
+        "pub struct ProjectState",
+        "pub struct EditorSession",
+        "pub struct ToolState",
+        "pub struct UiState",
+        "pub struct RenderResources",
+    ];
+    for sub in required_substates {
+        if !state_content.contains(sub) {
+            bail!("Violação de Decomposição (G6): sub-estado {sub} não encontrado em crates/core/src/state.rs!");
+        }
+    }
+
+    let required_app_state_fields = [
+        "pub project: ProjectState",
+        "pub session: EditorSession",
+        "pub ui: UiState",
+        "pub render: RenderResources",
+        "pub events: EventBus",
+    ];
+    for field in required_app_state_fields {
+        if !state_content.contains(field) {
+            bail!("Violação de Composição de AppState (G6): campo {field} não encontrado em AppState!");
+        }
+    }
+    if !state_content.contains("pub tools: ToolState") {
+        bail!("Violação de Composição (G6): campo pub tools: ToolState não encontrado em EditorSession!");
+    }
+
+    println!("✅ Sub-estados coesos validados: AppState decomposto em ProjectState, EditorSession, ToolState, UiState e RenderResources.");
+
+    println!("🏛️ Progresso de remediação: Gauntlets G0, G1, G2, G3, G4, G5 e G6 (Decomposição do God Object AppState) CONCLUÍDOS.");
     Ok(())
 }

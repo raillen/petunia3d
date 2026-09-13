@@ -161,20 +161,18 @@ flowchart TD
 
 ---
 
-### Gauntlet G6 — Decomposição do God Object `AppState`
-* **Objetivo**: Quebrar a struct monolítica de 60 campos em quatro componentes coesos com ciclos de vida e donos bem delimitados.
+### Gauntlet G6 — Decomposição do God Object `AppState` [CONCLUÍDO]
+* **Objetivo**: Quebrar a struct monolítica de 60 campos em componentes coesos com ciclos de vida e donos bem delimitados (`ProjectState`, `EditorSession`, `ToolState`, `UiState`, `RenderResources`).
 * **Achados Alvo**: **F-002**.
-* **Pré-condições**: Ciclo G5 aprovado.
+* **Status**: **Aprovado e integrado**.
 * **Arquivos Afetados**:
-  * `crates/core/src/state.rs`:
-    * `ProjectState`: `Project`, `UndoStack`.
-    * `EditorSession`: `Selection`, `Camera`, `ModalOp`, `ToolSession`, `LockedAxes`.
-    * `UiState`: Filtros de busca, abas ativas, visibilidade de gavetas/modais.
-    * `RenderResources`: Handles de textura, estatísticas de quadros.
+  * `crates/core/src/state.rs`: Decomposição implementada com delegações `Deref`/`DerefMut` e construtores atômicos.
+  * `crates/core/tests/state_decomposition_tests.rs`: 6 testes unitários provando ciclo de vida e mutabilidade disjunta sem contaminação.
+  * `crates/module-assets`, `crates/module-model`, `crates/module-uv`, `crates/module-paint`, `crates/render-gl`, `crates/ui`, `crates/app`: Alinhamento dos pontos de consumo.
 * **Testes de Segurança**:
-  * 198 testes automatizados do workspace continuam passando.
+  * Mais de 200 testes automatizados do workspace passando 100% (71 em `petunia_core`, 88 em `petunia_ui`, 10 em fitness).
 * **Critério de Saída**:
-  * Nenhuma struct de domínio carrega variáveis de UI ou contadores de GPU.
+  * Nenhuma struct de domínio carrega variáveis de UI ou contadores de GPU. Validado e auditado via `cargo run -p xtask -- arch-check` e `tests/architecture_fitness.rs`.
 
 ---
 

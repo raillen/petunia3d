@@ -80,14 +80,14 @@ fn paint_mouse_drag_release_commits_one_checkpoint() {
     let original = colors(&state);
     start_drag(&ctx, &mut state);
     assert_ne!(colors(&state), original);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     frame(
         &ctx,
         &mut state,
         vec![button(rect().center() + egui::vec2(20.0, 0.0), false)],
     );
     assert!(state.paint_stroke.is_none());
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     state.undo();
     assert_eq!(colors(&state), original);
 }
@@ -101,7 +101,7 @@ fn escape_cancels_paint_without_restarting_held_drag() {
     frame(&ctx, &mut state, vec![key(Key::Escape)]);
     assert!(state.paint_stroke.is_none());
     assert_eq!(colors(&state), original);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     frame(&ctx, &mut state, vec![]);
     assert!(state.paint_stroke.is_none());
     assert_eq!(colors(&state), original);
@@ -151,7 +151,7 @@ fn paint_radius_escape_restores_radius_and_ends_adjustment() {
         )],
     );
     assert_eq!(state.paint_radius, original);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     let mut release = key(Key::F);
     if let Event::Key { pressed, .. } = &mut release {
         *pressed = false;

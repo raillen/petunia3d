@@ -15,13 +15,13 @@ use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::widgets;
 
-/// Renderiza a janela modal de preferências quando `state.show_settings` for verdadeiro.
+/// Renderiza a janela modal de preferências quando `state.ui.show_settings` for verdadeiro.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
-    if !state.show_settings {
+    if !state.ui.show_settings {
         return;
     }
 
-    let mut open = state.show_settings;
+    let mut open = state.ui.show_settings;
     let screen_rect = ctx.screen_rect();
     let default_width = (screen_rect.width() * 0.70).clamp(520.0, 840.0);
     let default_height = (screen_rect.height() * 0.70).clamp(420.0, 680.0);
@@ -42,7 +42,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             draw_settings_content(ctx, ui, state);
         });
 
-    state.show_settings = open;
+    state.ui.show_settings = open;
 }
 
 fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
@@ -74,7 +74,7 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
         ];
 
         for (tab_id, label, hint) in tabs {
-            let is_selected = state.settings_tab == tab_id;
+            let is_selected = state.ui.settings_tab == tab_id;
             let (bg, fg) = if is_selected {
                 (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
             } else {
@@ -86,7 +86,7 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
                 .corner_radius(tokens::RADIUS_CONTROL);
 
             if ui.add(btn).on_hover_text(hint).clicked() {
-                state.settings_tab = tab_id.to_string();
+                state.ui.settings_tab = tab_id.to_string();
                 state.mark_dirty();
             }
         }
@@ -97,7 +97,7 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
     ui.add_space(8.0);
 
     // 2. Conteúdo da Aba Ativa
-    match state.settings_tab.as_str() {
+    match state.ui.settings_tab.as_str() {
         "appearance" => draw_appearance_tab(ctx, ui, state),
         "icons" => draw_icons_tab(ui, state),
         "language" => draw_language_tab(ui, state),
@@ -129,7 +129,7 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             for manifest in themes {
-                let is_active = state.active_theme_id == manifest.id;
+                let is_active = state.ui.active_theme_id == manifest.id;
                 let (card_bg, border_color) = if is_active {
                     (tokens::BG_SURFACE_ACTIVE, tokens::ACCENT_BLUE)
                 } else {
@@ -174,7 +174,7 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
                                         .button(RichText::new("Aplicar Tema").size(11.0))
                                         .clicked()
                                     {
-                                        state.active_theme_id = manifest.id.clone();
+                                        state.ui.active_theme_id = manifest.id.clone();
                                         if let Some(t) = registry.get_theme(&manifest.id) {
                                             tokens::apply_theme_to_egui(t, ctx);
                                         }
@@ -253,7 +253,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             for pack in packs {
-                let is_active = state.active_icon_pack_id == pack.id;
+                let is_active = state.ui.active_icon_pack_id == pack.id;
                 let (card_bg, border_color) = if is_active {
                     (tokens::BG_SURFACE_ACTIVE, tokens::ACCENT_BLUE)
                 } else {
@@ -298,7 +298,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                         .button(RichText::new("Usar este Pacote").size(11.0))
                                         .clicked()
                                     {
-                                        state.active_icon_pack_id = pack.id.clone();
+                                        state.ui.active_icon_pack_id = pack.id.clone();
                                         state.mark_dirty();
                                     }
                                 } else {
@@ -368,7 +368,8 @@ fn draw_language_tab(ui: &mut Ui, state: &mut AppState) {
     ];
 
     for (code, name, file_path) in languages {
-        let is_active = state.i18n.lang == code || (code == "en" && state.i18n.lang == "en-US");
+        let is_active =
+            state.ui.i18n.lang == code || (code == "en" && state.ui.i18n.lang == "en-US");
         let (card_bg, border_color) = if is_active {
             (tokens::BG_SURFACE_ACTIVE, tokens::ACCENT_BLUE)
         } else {
@@ -408,7 +409,7 @@ fn draw_language_tab(ui: &mut Ui, state: &mut AppState) {
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if !is_active {
                             if ui.button(RichText::new("Selecionar").size(11.0)).clicked() {
-                                state.i18n.set_lang(code);
+                                state.ui.i18n.set_lang(code);
                                 state.mark_dirty();
                             }
                         } else {
@@ -444,7 +445,7 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         ui.label(RichText::new("Perfil Ativo:").strong().size(12.0));
         for profile in &profiles {
-            let is_active = state.active_keymap_id == profile.id;
+            let is_active = state.ui.active_keymap_id == profile.id;
             let (bg, fg) = if is_active {
                 (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
             } else {
@@ -456,8 +457,8 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                 .corner_radius(tokens::RADIUS_CONTROL);
 
             if ui.add(btn).on_hover_text(&profile.description).clicked() {
-                state.active_keymap_id = profile.id.clone();
-                state.keybinds = Keybinds::load_profile(&profile.id);
+                state.ui.active_keymap_id = profile.id.clone();
+                state.ui.keybinds = Keybinds::load_profile(&profile.id);
                 state.mark_dirty();
             }
         }
@@ -466,7 +467,7 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(8.0);
 
     // Verificação de Conflitos
-    let conflicts = state.keybinds.detect_conflicts();
+    let conflicts = state.ui.keybinds.detect_conflicts();
     if !conflicts.is_empty() {
         egui::Frame::new()
             .fill(Color32::from_rgba_unmultiplied(239, 83, 80, 30))
@@ -510,7 +511,7 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
 
     ui.add_space(6.0);
 
-    let all_bindings = state.keybinds.all_bindings();
+    let all_bindings = state.ui.keybinds.all_bindings();
 
     ScrollArea::vertical()
         .auto_shrink([false, false])
@@ -585,10 +586,10 @@ mod tests {
     fn test_settings_modal_renders_all_tabs_without_panic() {
         let ctx = egui::Context::default();
         let mut state = AppState::new("en");
-        state.show_settings = true;
+        state.ui.show_settings = true;
 
         for tab in ["appearance", "icons", "language", "keymap"] {
-            state.settings_tab = tab.into();
+            state.ui.settings_tab = tab.into();
             let _ = ctx.run(egui::RawInput::default(), |ctx| {
                 draw(ctx, &mut state);
             });

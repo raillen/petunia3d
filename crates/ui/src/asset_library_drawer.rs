@@ -12,13 +12,13 @@ use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
 use crate::widgets;
 
-/// Renderiza o modal / gaveta da Biblioteca de Assets quando `state.show_asset_library` estiver ativo.
+/// Renderiza o modal / gaveta da Biblioteca de Assets quando `state.ui.show_asset_library` estiver ativo.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
-    if !state.show_asset_library {
+    if !state.ui.show_asset_library {
         return;
     }
 
-    let mut open = state.show_asset_library;
+    let mut open = state.ui.show_asset_library;
     let screen_rect = ctx.screen_rect();
     let default_width = (screen_rect.width() * 0.65).clamp(420.0, 780.0);
     let default_height = (screen_rect.height() * 0.60).clamp(340.0, 600.0);
@@ -39,7 +39,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             draw_contents(ui, state);
         });
 
-    state.show_asset_library = open;
+    state.ui.show_asset_library = open;
 }
 
 fn draw_contents(ui: &mut Ui, state: &mut AppState) {
@@ -301,7 +301,7 @@ mod tests {
     fn test_asset_library_drawer_renders_without_panic() {
         let ctx = egui::Context::default();
         let mut state = AppState::new("en");
-        state.show_asset_library = true;
+        state.ui.show_asset_library = true;
 
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             draw(ctx, &mut state);

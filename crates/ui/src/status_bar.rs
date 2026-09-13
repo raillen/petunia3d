@@ -13,6 +13,7 @@ use crate::tokens;
 /// Renderiza a barra de status inferior estruturada em 3 blocos.
 pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
     let proj_name = state
+        .project
         .project_path
         .as_deref()
         .map(|p| {
@@ -24,7 +25,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
         })
         .unwrap_or_else(|| "Untitled".to_string());
 
-    let is_saved = !state.dirty;
+    let is_saved = !state.render.dirty;
     let (save_indicator, save_color) = if is_saved {
         ("Saved", tokens::ACCENT_GREEN)
     } else {
@@ -40,16 +41,16 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
             .unwrap_or_else(|| "LMB: Select · MMB: Orbit · Shift+MMB: Pan".to_string())
     };
 
-    let status_text = if state.status.is_empty() {
+    let status_text = if state.ui.status.is_empty() {
         hint.clone()
     } else {
-        state.status.clone()
+        state.ui.status.clone()
     };
 
     let scene_tris = state.scene_tris();
     let scene_verts = state.scene_verts();
     let obj_count = state.project.assets.len();
-    let frame_ms = state.stats.frame_ms;
+    let frame_ms = state.render.stats.frame_ms;
 
     TopBottomPanel::bottom("status_bar")
         .exact_height(tokens::STATUS_BAR_HEIGHT)
@@ -108,12 +109,12 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
                     // Botões de Desfazer / Refazer
                     if ui
                         .add_enabled(
-                            !state.is_interacting() && state.undo.can_undo(),
+                            !state.is_interacting() && state.project.undo.can_undo(),
                             egui::Button::new(RichText::new("↩").size(10.5)),
                         )
                         .on_hover_text(format!(
                             "Desfazer · Ctrl+Z · {}",
-                            state.undo.undo_label().unwrap_or("")
+                            state.project.undo.undo_label().unwrap_or("")
                         ))
                         .clicked()
                     {
@@ -122,12 +123,12 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
 
                     if ui
                         .add_enabled(
-                            !state.is_interacting() && state.undo.can_redo(),
+                            !state.is_interacting() && state.project.undo.can_redo(),
                             egui::Button::new(RichText::new("↪").size(10.5)),
                         )
                         .on_hover_text(format!(
                             "Refazer · Ctrl+Shift+Z · {}",
-                            state.undo.redo_label().unwrap_or("")
+                            state.project.undo.redo_label().unwrap_or("")
                         ))
                         .clicked()
                     {
@@ -171,9 +172,9 @@ mod tests {
     #[test]
     fn test_status_bar_displays_dirty_state() {
         let mut state = AppState::new("en");
-        state.dirty = false;
-        assert!(!state.dirty);
+        state.render.dirty = false;
+        assert!(!state.render.dirty);
         state.mark_dirty();
-        assert!(state.dirty);
+        assert!(state.render.dirty);
     }
 }

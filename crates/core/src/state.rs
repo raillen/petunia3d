@@ -38,6 +38,7 @@ impl RefAxis {
 }
 
 /// Imagem de referência: pixels RGBA + posicionamento no espaço.
+#[derive(Debug, Clone)]
 pub struct ReferenceImage {
     pub name: String,
     pub width: u32,
@@ -135,223 +136,74 @@ impl EditMode {
     }
 }
 
-pub struct AppState {
-    pub project: Project,
-    pub undo: UndoStack<Project>,
-    pub events: EventBus,
-    pub selection: Selection,
-    pub mode: EditMode,
-    pub workspace: Workspace,
-    pub select_mode: SelectMode,
-    pub shading: Shading,
-    pub textured: bool,
-    pub active_tool: String,
-    pub camera: Camera,
-    pub camera_frame: Option<(Camera, Camera, f32)>,
-    pub gizmo_mode: crate::ModalKind,
-    pub i18n: I18n,
-    pub keybinds: Keybinds,
-    pub refs: Vec<ReferenceImage>,
-    pub profile: ProfileState,
-    pub uv_selected: HashSet<usize>,
-    pub paint_color: [f32; 3],
-    pub paint_radius: f32,
-    pub paint_strength: f32,
-    pub paint_stroke: Option<Project>,
-    pub mesh_preview: Option<crate::mesh_preview::MeshPreview>,
-    pub palette: Vec<[f32; 3]>,
-    pub canvas_brush: u32,
-    pub transform_delta: [f32; 3],
-    pub transform_rotation: [f32; 3],
-    pub transform_scale: f32,
-    /// Travamento de eixos X, Y, Z para atividades de edição e transformação.
-    pub locked_axes: [bool; 3],
-    pub extrude_dist: f32,
-    pub inset_factor: f32,
-    pub bevel_amount: f32,
-    pub mirror_axis: usize,
-    pub mirror_weld: f32,
-    pub push_dist: f32,
-    pub status: String,
-    pub stats: RenderStats,
-    pub viewport_rect: Option<crate::viewport::LogicalRect>,
-    pub viewport_pixels_per_point: f32,
-    pub pending_pick: Option<(f32, f32)>,
-    pub modal: Option<crate::modal::ModalOp>,
-    pub pending_modal: Option<crate::modal::ModalKind>,
-    pub pointer_session: Option<crate::modal::PointerSession>,
-    pub cut_session: Option<crate::cutting_session::CutSession>,
-    pub box_select_start: Option<[f32; 2]>,
-    pub show_help: bool,
-    pub show_perf: bool,
-    pub dirty: bool,
-    pub project_path: Option<String>,
-    /// Nome do backend ativo (wgpu xxx / OpenGL) p/ status bar.
-    pub backend_name: String,
-    pub canvas_dirty: bool,
-    /// Seleção múltipla p/ export em lote (índices de assets).
-    pub export_selected: Vec<usize>,
-    /// Posição do 3D Cursor no espaço de mundo.
-    pub cursor_3d: [f32; 3],
-    /// Posição de abertura do menu contextual (RMB) no viewport.
-    pub context_menu_pos: Option<[f32; 2]>,
-    /// Formato do export: false = OBJ (pasta), true = GLB (arquivo).
-    pub export_gltf: bool,
-    /// Termo de busca no painel Outliner.
-    pub outliner_search: String,
-    /// Aba ativa no painel Properties (tool, render, object, modifiers, data, material).
-    pub properties_tab: String,
-    /// Frame atual da timeline de animação.
-    pub timeline_frame: i32,
-    /// Frame inicial do intervalo da timeline.
-    pub timeline_start: i32,
-    /// Frame final do intervalo da timeline.
-    pub timeline_end: i32,
-    /// Estado de reprodução da timeline.
-    pub timeline_playing: bool,
-    /// Snapping magnético ativado no viewport.
-    pub snap_enabled: bool,
-    /// Edição proporcional ativada no viewport.
-    pub proportional_editing: bool,
-    /// Orientação de transformação ativa ("Global", "Local", etc.).
-    pub transform_orientation: String,
-    /// Ponto de pivô ativo ("Median Point", "3D Cursor", etc.).
-    pub pivot_point: String,
-    /// Exibição de overlays no viewport (grid, eixos, 3d cursor).
-    pub show_overlays: bool,
-    /// Modo de raio-x / transparência no viewport.
-    pub show_xray: bool,
-    /// Modo de isolamento de seleção ativo (Local View / Isolate).
-    pub isolate_active: bool,
-    pub isolate_prev_visibilities: Option<Vec<bool>>,
-    /// ID da anotação selecionada atualmente.
-    pub selected_annotation: Option<uuid::Uuid>,
-    /// ID da medição selecionada atualmente.
-    pub selected_measurement: Option<uuid::Uuid>,
-    /// Medição em progresso de arrasto (ferramenta Measure).
-    pub active_measurement: Option<MeasurementItem>,
-    /// Anotação em progresso de desenho (ferramenta Annotate).
-    pub active_annotation: Option<AnnotationStroke>,
-    /// Modal de configurações ativado.
-    pub show_settings: bool,
-    pub settings_tab: String,
-    pub show_asset_library: bool,
-    /// Painel retrátil de navegação de assets (lado esquerdo).
-    pub show_asset_browser: bool,
-    /// Tema ativo ("petunia-dark", "petunia-light", "petunia-capuccino", "petunia-tokyo-nights").
-    pub active_theme_id: String,
-    /// Pacote de ícones ativo ("tabler", "iconoir", "phosphor", "lucide").
-    pub active_icon_pack_id: String,
-    /// Perfil de atalhos ativo ("petunia-default", "blender-like", etc.).
-    pub active_keymap_id: String,
-}
-
 pub use petunia_project::{AnnotationItem, AnnotationStroke, MeasurementItem};
 pub type Measurement = MeasurementItem;
 
-impl AppState {
-    pub fn new(lang: &str) -> Self {
+/// 1. DOMÍNIO E PERSISTÊNCIA: estado puro do projeto e histórico (independe de interface e GPU).
+pub struct ProjectState {
+    pub project: Project,
+    pub undo: UndoStack<Project>,
+    pub project_path: Option<String>,
+    pub refs: Vec<ReferenceImage>,
+    pub palette: Vec<[f32; 3]>,
+    pub export_selected: Vec<usize>,
+    pub export_gltf: bool,
+}
+
+pub type DomainState = ProjectState;
+
+impl std::ops::Deref for ProjectState {
+    type Target = Project;
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.project
+    }
+}
+
+impl std::ops::DerefMut for ProjectState {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.project
+    }
+}
+
+impl Default for ProjectState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ProjectState {
+    pub fn new() -> Self {
+        let p = Project::new();
+        let pal = p.palette.clone();
         Self {
-            project: Project::new(),
+            project: p,
             undo: UndoStack::new(),
-            events: EventBus::new(),
-            selection: Selection::default(),
-            mode: EditMode::Object,
-            workspace: Workspace::Model,
-            select_mode: SelectMode::Vertex,
-            shading: Shading::Solid,
-            textured: false,
-            active_tool: "select".to_string(),
-            camera: Camera::default(),
-            camera_frame: None,
-            gizmo_mode: crate::ModalKind::Move,
-            i18n: I18n::load(lang),
-            keybinds: Keybinds::load(),
-            refs: Vec::new(),
-            profile: ProfileState {
-                depth: 1.0,
-                revolve_segments: 12,
-                ..Default::default()
-            },
-            uv_selected: HashSet::new(),
-            paint_color: [1.0, 0.2, 0.2],
-            paint_radius: 0.8,
-            paint_strength: 1.0,
-            paint_stroke: None,
-            mesh_preview: None,
-            palette: vec![
-                [1.0, 0.2, 0.2],
-                [1.0, 0.8, 0.2],
-                [0.2, 0.8, 0.3],
-                [0.3, 0.5, 1.0],
-            ],
-            canvas_brush: 4,
-            transform_delta: [0.0; 3],
-            transform_rotation: [0.0; 3],
-            transform_scale: 1.0,
-            locked_axes: [false; 3],
-            extrude_dist: 0.5,
-            inset_factor: 0.3,
-            bevel_amount: 0.15,
-            mirror_axis: 0,
-            mirror_weld: 0.001,
-            push_dist: 0.5,
-            status: String::new(),
-            stats: RenderStats::default(),
-            viewport_rect: None,
-            viewport_pixels_per_point: 1.0,
-            pending_pick: None,
-            modal: None,
-            pending_modal: None,
-            pointer_session: None,
-            cut_session: None,
-            box_select_start: None,
-            show_help: false,
-            show_perf: false,
-            dirty: true,
             project_path: None,
-            backend_name: String::new(),
-            canvas_dirty: true,
+            refs: Vec::new(),
+            palette: pal,
             export_selected: Vec::new(),
-            cursor_3d: [0.0, 0.0, 0.0],
-            context_menu_pos: None,
             export_gltf: true,
-            outliner_search: String::new(),
-            properties_tab: "object".to_string(),
-            timeline_frame: 1,
-            timeline_start: 1,
-            timeline_end: 250,
-            timeline_playing: false,
-            snap_enabled: false,
-            proportional_editing: false,
-            transform_orientation: "Global".to_string(),
-            pivot_point: "Median Point".to_string(),
-            show_overlays: true,
-            show_xray: false,
-            isolate_active: false,
-            isolate_prev_visibilities: None,
-            selected_annotation: None,
-            selected_measurement: None,
-            active_measurement: None,
-            active_annotation: None,
-            show_settings: false,
-            settings_tab: "appearance".to_string(),
-            show_asset_library: false,
-            show_asset_browser: false,
-            active_theme_id: "petunia-dark".to_string(),
-            active_icon_pack_id: "tabler".to_string(),
-            active_keymap_id: "petunia-default".to_string(),
         }
     }
-}
 
-impl Default for AppState {
-    fn default() -> Self {
-        Self::new("en")
+    pub fn reset(&mut self) {
+        let p = Project::new();
+        self.palette = p.palette.clone();
+        self.project = p;
+        self.undo.clear();
+        self.refs.clear();
+        self.project_path = None;
+        self.export_selected.clear();
+        self.export_gltf = true;
     }
-}
 
-impl AppState {
+    pub fn checkpoint(&mut self, label: &str) {
+        let snap = self.project.clone();
+        self.undo.checkpoint(label, &snap);
+    }
+
     pub fn scene_tris(&self) -> usize {
         self.project.assets.iter().map(|a| a.mesh.tri_count()).sum()
     }
@@ -360,22 +212,212 @@ impl AppState {
         self.project.assets.iter().map(|a| a.mesh.verts.len()).sum()
     }
 
-    pub fn t(&self, key: &str) -> String {
-        self.i18n.t(key)
+    pub fn is_active_locked(&self) -> bool {
+        self.project.active().map(|a| a.locked).unwrap_or(false)
     }
 
-    pub fn set_status(&mut self, msg: impl Into<String>) {
-        self.status = msg.into();
+    pub fn toggle_lock_active(&mut self) -> Option<(String, bool)> {
+        let asset = self.project.active_mut()?;
+        asset.locked = !asset.locked;
+        Some((asset.name.clone(), asset.locked))
     }
 
-    /// Marca para render-on-demand (§33).
-    pub fn mark_dirty(&mut self) {
-        self.dirty = true;
+    pub fn pick_vertex(&self, origin: Vec3, dir: Vec3) -> Option<(usize, Vec3)> {
+        let obj = self.project.assets.get(self.project.active)?;
+        let mut best: Option<(usize, f32, Vec3)> = None;
+        for (i, v) in obj.mesh.verts.iter().enumerate() {
+            let p = v.vec();
+            let to = p - origin;
+            let t = to.dot(dir);
+            if t < 0.0 {
+                continue;
+            }
+            let proj = origin + dir * t;
+            let d = (p - proj).length();
+            let tol = 0.12 * (1.0 + t * 0.15);
+            if d < tol && best.map(|(_, bt, _)| t < bt).unwrap_or(true) {
+                best = Some((i, t, p));
+            }
+        }
+        best.map(|(i, _, p)| (i, p))
     }
 
-    /// Retorna se o eixo especificado (0 = X, 1 = Y, 2 = Z) está travado na atividade de edição atual.
-    pub fn is_axis_locked(&self, axis: usize) -> bool {
-        if let Some(ref modal) = self.modal {
+    pub fn pick_edge(&self, origin: Vec3, dir: Vec3) -> Option<((u32, u32), Vec3)> {
+        let obj = self.project.assets.get(self.project.active)?;
+        let mut best: Option<((u32, u32), f32, f32, Vec3)> = None;
+        for (a, b) in obj.mesh.edges_unique() {
+            let pa = obj.mesh.verts[a as usize].vec();
+            let pb = obj.mesh.verts[b as usize].vec();
+            let mut bd = f32::MAX;
+            let mut bp = pa;
+            for k in 0..=8 {
+                let p = pa.lerp(pb, k as f32 / 8.0);
+                let t = (p - origin).dot(dir);
+                if t < 0.0 {
+                    continue;
+                }
+                let d = (p - (origin + dir * t)).length();
+                if d < bd {
+                    bd = d;
+                    bp = p;
+                }
+            }
+            let t = (bp - origin).dot(dir);
+            let tol = 0.15 * (1.0 + t.max(0.0) * 0.15);
+            if bd < tol && best.map(|(_, bt, _, _)| t < bt).unwrap_or(true) {
+                best = Some(((a, b), t, bd, bp));
+            }
+        }
+        best.map(|(e, _, _, p)| (e, p))
+    }
+}
+
+/// 2. FERRAMENTAS E SESSÕES INTERATIVAS: contexto operacional de modelagem.
+pub struct ToolState {
+    pub active_tool: String,
+    pub gizmo_mode: crate::ModalKind,
+    pub modal: Option<crate::modal::ModalOp>,
+    pub pending_modal: Option<crate::modal::ModalKind>,
+    pub pointer_session: Option<crate::modal::PointerSession>,
+    pub cut_session: Option<crate::cutting_session::CutSession>,
+    pub mesh_preview: Option<crate::mesh_preview::MeshPreview>,
+    pub paint_color: [f32; 3],
+    pub paint_radius: f32,
+    pub paint_strength: f32,
+    pub paint_stroke: Option<Project>,
+    pub canvas_brush: u32,
+    pub transform_delta: [f32; 3],
+    pub transform_rotation: [f32; 3],
+    pub transform_scale: f32,
+    pub extrude_dist: f32,
+    pub inset_factor: f32,
+    pub bevel_amount: f32,
+    pub mirror_axis: usize,
+    pub mirror_weld: f32,
+    pub push_dist: f32,
+    pub profile: ProfileState,
+    pub uv_selected: HashSet<usize>,
+    pub selected_annotation: Option<uuid::Uuid>,
+    pub selected_measurement: Option<uuid::Uuid>,
+    pub active_measurement: Option<MeasurementItem>,
+    pub active_annotation: Option<AnnotationStroke>,
+}
+
+impl Default for ToolState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ToolState {
+    pub fn new() -> Self {
+        Self {
+            active_tool: "select".to_string(),
+            gizmo_mode: crate::ModalKind::Move,
+            modal: None,
+            pending_modal: None,
+            pointer_session: None,
+            cut_session: None,
+            mesh_preview: None,
+            paint_color: [1.0, 0.2, 0.2],
+            paint_radius: 0.8,
+            paint_strength: 1.0,
+            paint_stroke: None,
+            canvas_brush: 4,
+            transform_delta: [0.0; 3],
+            transform_rotation: [0.0; 3],
+            transform_scale: 1.0,
+            extrude_dist: 0.5,
+            inset_factor: 0.3,
+            bevel_amount: 0.15,
+            mirror_axis: 0,
+            mirror_weld: 0.001,
+            push_dist: 0.5,
+            profile: ProfileState {
+                depth: 1.0,
+                revolve_segments: 12,
+                ..Default::default()
+            },
+            uv_selected: HashSet::new(),
+            selected_annotation: None,
+            selected_measurement: None,
+            active_measurement: None,
+            active_annotation: None,
+        }
+    }
+}
+
+/// 3. SESSÃO DO EDITOR: câmera, seleção, modos e viewport settings.
+pub struct EditorSession {
+    pub selection: Selection,
+    pub mode: EditMode,
+    pub workspace: Workspace,
+    pub select_mode: SelectMode,
+    pub shading: Shading,
+    pub textured: bool,
+    pub camera: Camera,
+    pub camera_frame: Option<(Camera, Camera, f32)>,
+    pub cursor_3d: [f32; 3],
+    pub locked_axes: [bool; 3],
+    pub isolate_active: bool,
+    pub isolate_prev_visibilities: Option<Vec<bool>>,
+    pub snap_enabled: bool,
+    pub proportional_editing: bool,
+    pub transform_orientation: String,
+    pub pivot_point: String,
+    pub show_overlays: bool,
+    pub show_xray: bool,
+    pub tools: ToolState,
+}
+
+impl std::ops::Deref for EditorSession {
+    type Target = ToolState;
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.tools
+    }
+}
+
+impl std::ops::DerefMut for EditorSession {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.tools
+    }
+}
+
+impl Default for EditorSession {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EditorSession {
+    pub fn new() -> Self {
+        Self {
+            selection: Selection::default(),
+            mode: EditMode::Object,
+            workspace: Workspace::Model,
+            select_mode: SelectMode::Vertex,
+            shading: Shading::Solid,
+            textured: false,
+            camera: Camera::default(),
+            camera_frame: None,
+            cursor_3d: [0.0, 0.0, 0.0],
+            locked_axes: [false; 3],
+            isolate_active: false,
+            isolate_prev_visibilities: None,
+            snap_enabled: false,
+            proportional_editing: false,
+            transform_orientation: "Global".to_string(),
+            pivot_point: "Median Point".to_string(),
+            show_overlays: true,
+            show_xray: false,
+            tools: ToolState::new(),
+        }
+    }
+
+    pub fn is_axis_locked(&self, axis: usize, modal: Option<&crate::modal::ModalOp>) -> bool {
+        if let Some(modal) = modal {
             match modal.constraint {
                 crate::modal::ModalConstraint::Axis(i) => i == axis,
                 crate::modal::ModalConstraint::Plane(i) => i != axis,
@@ -386,9 +428,11 @@ impl AppState {
         }
     }
 
-    /// Retorna rótulo amigável e cor RGB do eixo ou plano travado atualmente, se houver.
-    pub fn active_axis_constraint_label(&self) -> Option<(&'static str, [u8; 3])> {
-        if let Some(ref modal) = self.modal {
+    pub fn active_axis_constraint_label(
+        &self,
+        modal: Option<&crate::modal::ModalOp>,
+    ) -> Option<(&'static str, [u8; 3])> {
+        if let Some(modal) = modal {
             match modal.constraint {
                 crate::modal::ModalConstraint::Axis(0) => Some(("Eixo X", [235, 75, 75])),
                 crate::modal::ModalConstraint::Axis(1) => Some(("Eixo Y", [85, 195, 100])),
@@ -412,106 +456,9 @@ impl AppState {
         }
     }
 
-    /// Alterna o travamento de um eixo específico (0 = X, 1 = Y, 2 = Z).
-    pub fn toggle_axis_lock(&mut self, axis: usize) {
-        if axis > 2 {
-            return;
-        }
-        if self.modal.is_some() {
-            let current_locked = self.is_axis_locked(axis);
-            let next_constraint = if current_locked {
-                crate::modal::ModalConstraint::Free
-            } else {
-                crate::modal::ModalConstraint::Axis(axis)
-            };
-            if let Err(e) = self.set_modal_constraint(next_constraint) {
-                self.set_status(e.to_string());
-            }
-        } else {
-            self.locked_axes[axis] = !self.locked_axes[axis];
-            self.mark_dirty();
-        }
-    }
-    pub fn consume_dirty(&mut self) -> bool {
-        std::mem::replace(&mut self.dirty, false)
-    }
-
-    /// Despacha um comando através do CommandDispatcher com auto-checkpoint e propagação de eventos.
-    pub fn dispatch(
-        &mut self,
-        cmd: &dyn crate::command::Command,
-    ) -> Result<(), crate::command::CommandError> {
-        crate::command::CommandDispatcher::dispatch(self, cmd)
-    }
-
-    /// Checkpoint de undo ANTES de mutar o projeto + evento.
-    pub fn checkpoint(&mut self, label: &str) {
-        let snap = self.project.clone();
-        self.undo.checkpoint(label, &snap);
-        self.mark_dirty();
-    }
-
-    pub fn undo(&mut self) -> bool {
-        if self.mesh_preview.is_some() {
-            self.finish_mesh_preview(true);
-            return true;
-        }
-        if self.paint_stroke.is_some() {
-            self.finish_paint_stroke(true);
-            return true;
-        }
-        if self.cancel_modal() {
-            return true;
-        }
-        let cur = self.project.clone();
-        if let Some(prev) = self.undo.undo(cur) {
-            self.palette = prev.palette.clone();
-            self.project = prev;
-            self.sync_selection();
-            self.uv_selected.clear();
-            self.mark_dirty();
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn redo(&mut self) -> bool {
-        if self.mesh_preview.is_some() {
-            self.finish_mesh_preview(true);
-            return true;
-        }
-        if self.paint_stroke.is_some() {
-            self.finish_paint_stroke(true);
-            return true;
-        }
-        if self.cancel_modal() {
-            return true;
-        }
-        let cur = self.project.clone();
-        if let Some(next) = self.undo.redo(cur) {
-            self.palette = next.palette.clone();
-            self.project = next;
-            self.sync_selection();
-            self.uv_selected.clear();
-            self.mark_dirty();
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn emit_mesh_changed(&mut self) {
-        let id = self.project.assets.get(self.project.active).map(|a| a.id);
-        if let Some(asset_id) = id {
-            self.events.emit(AppEvent::MeshChanged { asset_id });
-        }
-        self.mark_dirty();
-    }
-
-    pub fn sync_selection(&mut self) {
+    pub fn sync_selection(&mut self, project: &Project, events: &mut EventBus) {
         let mut sel = Selection::default();
-        if let Some(a) = self.project.assets.get(self.project.active) {
+        if let Some(a) = project.assets.get(project.active) {
             sel.asset = Some(a.id);
             sel.verts = a
                 .mesh
@@ -531,18 +478,307 @@ impl AppState {
                 .collect();
         }
         self.selection = sel.clone();
-        self.events.emit(AppEvent::SelectionChanged(sel));
+        events.emit(AppEvent::SelectionChanged(sel));
+    }
+}
+
+/// 4. ESTADO DE APRESENTAÇÃO E WIDGETS UI: campos visuais, abas, pesquisas e preferências.
+pub struct UiState {
+    pub viewport_rect: Option<crate::viewport::LogicalRect>,
+    pub viewport_pixels_per_point: f32,
+    pub pending_pick: Option<(f32, f32)>,
+    pub box_select_start: Option<[f32; 2]>,
+    pub context_menu_pos: Option<[f32; 2]>,
+    pub outliner_search: String,
+    pub properties_tab: String,
+    pub show_settings: bool,
+    pub settings_tab: String,
+    pub show_asset_library: bool,
+    pub show_asset_browser: bool,
+    pub show_help: bool,
+    pub show_perf: bool,
+    pub active_theme_id: String,
+    pub active_icon_pack_id: String,
+    pub active_keymap_id: String,
+    pub timeline_frame: i32,
+    pub timeline_start: i32,
+    pub timeline_end: i32,
+    pub timeline_playing: bool,
+    pub status: String,
+    pub i18n: I18n,
+    pub keybinds: Keybinds,
+}
+
+impl UiState {
+    pub fn new(lang: &str) -> Self {
+        Self {
+            viewport_rect: None,
+            viewport_pixels_per_point: 1.0,
+            pending_pick: None,
+            box_select_start: None,
+            context_menu_pos: None,
+            outliner_search: String::new(),
+            properties_tab: "object".to_string(),
+            show_settings: false,
+            settings_tab: "appearance".to_string(),
+            show_asset_library: false,
+            show_asset_browser: false,
+            show_help: false,
+            show_perf: false,
+            active_theme_id: "petunia-dark".to_string(),
+            active_icon_pack_id: "tabler".to_string(),
+            active_keymap_id: "petunia-default".to_string(),
+            timeline_frame: 1,
+            timeline_start: 1,
+            timeline_end: 250,
+            timeline_playing: false,
+            status: String::new(),
+            i18n: I18n::load(lang),
+            keybinds: Keybinds::load(),
+        }
+    }
+
+    pub fn t(&self, key: &str) -> String {
+        self.i18n.t(key)
+    }
+
+    pub fn set_status(&mut self, msg: impl Into<String>) {
+        self.status = msg.into();
+    }
+}
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self::new("en")
+    }
+}
+
+/// 5. RECURSOS E TELEMETRIA DA GPU: contadores de renderização e sinalizadores de buffer.
+#[derive(Debug, Clone)]
+pub struct RenderResources {
+    pub dirty: bool,
+    pub canvas_dirty: bool,
+    pub backend_name: String,
+    pub stats: RenderStats,
+}
+
+impl Default for RenderResources {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RenderResources {
+    pub fn new() -> Self {
+        Self {
+            dirty: true,
+            canvas_dirty: true,
+            backend_name: String::new(),
+            stats: RenderStats::default(),
+        }
+    }
+
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    pub fn consume_dirty(&mut self) -> bool {
+        std::mem::replace(&mut self.dirty, false)
+    }
+}
+
+/// Coordenador global da aplicação agregando os subsistemas segregados.
+pub struct AppState {
+    pub project: ProjectState,
+    pub session: EditorSession,
+    pub ui: UiState,
+    pub render: RenderResources,
+    pub events: EventBus,
+}
+
+impl std::ops::Deref for AppState {
+    type Target = EditorSession;
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.session
+    }
+}
+
+impl std::ops::DerefMut for AppState {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.session
+    }
+}
+
+impl AppState {
+    pub fn new(lang: &str) -> Self {
+        Self {
+            project: ProjectState::new(),
+            session: EditorSession::new(),
+            ui: UiState::new(lang),
+            render: RenderResources::new(),
+            events: EventBus::new(),
+        }
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new("en")
+    }
+}
+
+impl AppState {
+    pub fn scene_tris(&self) -> usize {
+        self.project.scene_tris()
+    }
+
+    pub fn scene_verts(&self) -> usize {
+        self.project.scene_verts()
+    }
+
+    pub fn t(&self, key: &str) -> String {
+        self.ui.t(key)
+    }
+
+    pub fn set_status(&mut self, msg: impl Into<String>) {
+        self.ui.set_status(msg);
+    }
+
+    /// Marca para render-on-demand (§33).
+    pub fn mark_dirty(&mut self) {
+        self.render.mark_dirty();
+    }
+
+    /// Retorna se o eixo especificado (0 = X, 1 = Y, 2 = Z) está travado na atividade de edição atual.
+    pub fn is_axis_locked(&self, axis: usize) -> bool {
+        self.session
+            .is_axis_locked(axis, self.session.tools.modal.as_ref())
+    }
+
+    /// Retorna rótulo amigável e cor RGB do eixo ou plano travado atualmente, se houver.
+    pub fn active_axis_constraint_label(&self) -> Option<(&'static str, [u8; 3])> {
+        self.session
+            .active_axis_constraint_label(self.session.tools.modal.as_ref())
+    }
+
+    /// Alterna o travamento de um eixo específico (0 = X, 1 = Y, 2 = Z).
+    pub fn toggle_axis_lock(&mut self, axis: usize) {
+        if axis > 2 {
+            return;
+        }
+        if self.session.tools.modal.is_some() {
+            let current_locked = self.is_axis_locked(axis);
+            let next_constraint = if current_locked {
+                crate::modal::ModalConstraint::Free
+            } else {
+                crate::modal::ModalConstraint::Axis(axis)
+            };
+            if let Err(e) = self.set_modal_constraint(next_constraint) {
+                self.set_status(e.to_string());
+            }
+        } else {
+            self.session.locked_axes[axis] = !self.session.locked_axes[axis];
+            self.mark_dirty();
+        }
+    }
+
+    pub fn consume_dirty(&mut self) -> bool {
+        self.render.consume_dirty()
+    }
+
+    /// Despacha um comando através do CommandDispatcher com auto-checkpoint e propagação de eventos.
+    pub fn dispatch(
+        &mut self,
+        cmd: &dyn crate::command::Command,
+    ) -> Result<(), crate::command::CommandError> {
+        crate::command::CommandDispatcher::dispatch(self, cmd)
+    }
+
+    /// Checkpoint de undo ANTES de mutar o projeto + evento.
+    pub fn checkpoint(&mut self, label: &str) {
+        self.project.checkpoint(label);
+        self.mark_dirty();
+    }
+
+    pub fn undo(&mut self) -> bool {
+        if self.session.tools.mesh_preview.is_some() {
+            self.finish_mesh_preview(true);
+            return true;
+        }
+        if self.session.tools.paint_stroke.is_some() {
+            self.finish_paint_stroke(true);
+            return true;
+        }
+        if self.cancel_modal() {
+            return true;
+        }
+        let cur = self.project.project.clone();
+        if let Some(prev) = self.project.undo.undo(cur) {
+            self.project.palette = prev.palette.clone();
+            self.project.project = prev;
+            self.sync_selection();
+            self.session.tools.uv_selected.clear();
+            self.mark_dirty();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn redo(&mut self) -> bool {
+        if self.session.tools.mesh_preview.is_some() {
+            self.finish_mesh_preview(true);
+            return true;
+        }
+        if self.session.tools.paint_stroke.is_some() {
+            self.finish_paint_stroke(true);
+            return true;
+        }
+        if self.cancel_modal() {
+            return true;
+        }
+        let cur = self.project.project.clone();
+        if let Some(next) = self.project.undo.redo(cur) {
+            self.project.palette = next.palette.clone();
+            self.project.project = next;
+            self.sync_selection();
+            self.session.tools.uv_selected.clear();
+            self.mark_dirty();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn emit_mesh_changed(&mut self) {
+        let id = self.project.assets.get(self.project.active).map(|a| a.id);
+        if let Some(asset_id) = id {
+            self.events.emit(AppEvent::MeshChanged { asset_id });
+        }
+        self.mark_dirty();
+    }
+
+    pub fn sync_selection(&mut self) {
+        self.session
+            .sync_selection(&self.project.project, &mut self.events);
         self.mark_dirty();
     }
 
     /// Pinta vértices próximos do ponto 3D (vertex paint).
     pub fn paint_at(&mut self, center: Vec3) {
-        let before = self.paint_stroke.is_none().then(|| self.project.clone());
+        let before = self
+            .session
+            .tools
+            .paint_stroke
+            .is_none()
+            .then(|| self.project.project.clone());
         let (mut n, col, r, k) = (
             0,
-            self.paint_color,
-            self.paint_radius,
-            self.paint_strength.clamp(0.0, 1.0),
+            self.session.tools.paint_color,
+            self.session.tools.paint_radius,
+            self.session.tools.paint_strength.clamp(0.0, 1.0),
         );
         let r2 = r * r;
         if let Some(obj) = self.project.active_mut() {
@@ -558,32 +794,32 @@ impl AppState {
         }
         if n > 0 {
             if let Some(before) = before {
-                self.undo.checkpoint("paint", &before);
+                self.project.undo.checkpoint("paint", &before);
             }
             let id = self.project.assets.get(self.project.active).map(|a| a.id);
             if let Some(asset_id) = id {
                 self.events.emit(AppEvent::TextureChanged { asset_id });
             }
-            self.status = format!("paint: {n} verts");
+            self.ui.status = format!("paint: {n} verts");
             self.mark_dirty();
         }
     }
 
     pub fn begin_paint_stroke(&mut self) {
-        if self.modal.is_some() || self.mesh_preview.is_some() {
+        if self.session.tools.modal.is_some() || self.session.tools.mesh_preview.is_some() {
             return;
         }
-        if self.paint_stroke.is_none() {
-            self.paint_stroke = Some(self.project.clone());
+        if self.session.tools.paint_stroke.is_none() {
+            self.session.tools.paint_stroke = Some(self.project.project.clone());
         }
     }
 
     pub fn finish_paint_stroke(&mut self, cancel: bool) {
-        let Some(original) = self.paint_stroke.take() else {
+        let Some(original) = self.session.tools.paint_stroke.take() else {
             return;
         };
         if cancel {
-            self.project = original;
+            self.project.project = original;
         } else {
             let changed = original
                 .active_mesh()
@@ -595,7 +831,7 @@ impl AppState {
                         .any(|(a, b)| a.color != b.color)
                 });
             if changed {
-                self.undo.checkpoint("Paint stroke", &original);
+                self.project.undo.checkpoint("Paint stroke", &original);
             }
         }
         self.emit_mesh_changed();
@@ -603,54 +839,12 @@ impl AppState {
 
     /// Vértice mais próximo do raio (pick em perspectiva e ortográfica).
     pub fn pick_vertex(&self, origin: Vec3, dir: Vec3) -> Option<(usize, Vec3)> {
-        let obj = self.project.assets.get(self.project.active)?;
-        let mut best: Option<(usize, f32, Vec3)> = None;
-        for (i, v) in obj.mesh.verts.iter().enumerate() {
-            let p = v.vec();
-            let to = p - origin;
-            let t = to.dot(dir);
-            if t < 0.0 {
-                continue;
-            }
-            let proj = origin + dir * t;
-            let d = (p - proj).length();
-            let tol = 0.12 * (1.0 + t * 0.15);
-            if d < tol && best.map(|(_, bt, _)| t < bt).unwrap_or(true) {
-                best = Some((i, t, p));
-            }
-        }
-        best.map(|(i, _, p)| (i, p))
+        self.project.pick_vertex(origin, dir)
     }
 
     /// Aresta mais próxima do raio (modo Edge).
     pub fn pick_edge(&self, origin: Vec3, dir: Vec3) -> Option<((u32, u32), Vec3)> {
-        let obj = self.project.assets.get(self.project.active)?;
-        let mut best: Option<((u32, u32), f32, f32, Vec3)> = None;
-        for (a, b) in obj.mesh.edges_unique() {
-            let pa = obj.mesh.verts[a as usize].vec();
-            let pb = obj.mesh.verts[b as usize].vec();
-            // ponto do segmento mais próximo do raio (amostragem + refinamento)
-            let mut bd = f32::MAX;
-            let mut bp = pa;
-            for k in 0..=8 {
-                let p = pa.lerp(pb, k as f32 / 8.0);
-                let t = (p - origin).dot(dir);
-                if t < 0.0 {
-                    continue;
-                }
-                let d = (p - (origin + dir * t)).length();
-                if d < bd {
-                    bd = d;
-                    bp = p;
-                }
-            }
-            let t = (bp - origin).dot(dir);
-            let tol = 0.15 * (1.0 + t.max(0.0) * 0.15);
-            if bd < tol && best.map(|(_, bt, _, _)| t < bt).unwrap_or(true) {
-                best = Some(((a, b), t, bd, bp));
-            }
-        }
-        best.map(|(e, _, _, p)| (e, p))
+        self.project.pick_edge(origin, dir)
     }
 
     /// Salva o objeto ativo atual como um novo asset permanente na biblioteca do projeto.
@@ -672,7 +866,7 @@ impl AppState {
     pub fn instantiate_asset_at_cursor(&mut self, asset_index: usize) -> bool {
         if let Some(asset) = self.project.assets.get(asset_index) {
             let mut new_asset = asset.duplicate();
-            let cursor = self.cursor_3d;
+            let cursor = self.session.cursor_3d;
             for v in &mut new_asset.mesh.verts {
                 v.pos[0] += cursor[0];
                 v.pos[1] += cursor[1];
@@ -693,9 +887,9 @@ impl AppState {
 
     /// Alterna o modo de isolamento da seleção atual (Local View / Isolate).
     pub fn toggle_isolate(&mut self) {
-        if self.isolate_active {
+        if self.session.isolate_active {
             // Restaura as visibilidades anteriores
-            if let Some(prev) = self.isolate_prev_visibilities.take() {
+            if let Some(prev) = self.session.isolate_prev_visibilities.take() {
                 for (i, &vis) in prev.iter().enumerate() {
                     if let Some(asset) = self.project.assets.get_mut(i) {
                         asset.visible = vis;
@@ -706,17 +900,17 @@ impl AppState {
                     asset.visible = true;
                 }
             }
-            self.isolate_active = false;
+            self.session.isolate_active = false;
             self.set_status("Modo de isolamento desativado".to_string());
         } else {
             // Salva as visibilidades atuais e isola o ativo
             let prev: Vec<bool> = self.project.assets.iter().map(|a| a.visible).collect();
-            self.isolate_prev_visibilities = Some(prev);
+            self.session.isolate_prev_visibilities = Some(prev);
             let active = self.project.active;
             for (i, asset) in self.project.assets.iter_mut().enumerate() {
                 asset.visible = i == active;
             }
-            self.isolate_active = true;
+            self.session.isolate_active = true;
             let name = self
                 .project
                 .active()
@@ -729,15 +923,12 @@ impl AppState {
 
     /// Verifica se o asset ativo está bloqueado contra transformações.
     pub fn is_active_locked(&self) -> bool {
-        self.project.active().map(|a| a.locked).unwrap_or(false)
+        self.project.is_active_locked()
     }
 
     /// Alterna o bloqueio do asset ativo.
     pub fn toggle_lock_active(&mut self) {
-        if let Some(asset) = self.project.active_mut() {
-            asset.locked = !asset.locked;
-            let name = asset.name.clone();
-            let locked = asset.locked;
+        if let Some((name, locked)) = self.project.toggle_lock_active() {
             self.set_status(if locked {
                 format!("Objeto '{name}' bloqueado")
             } else {

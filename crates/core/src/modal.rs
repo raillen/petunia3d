@@ -208,8 +208,8 @@ impl AppState {
             } else {
                 Vec3::ZERO
             },
-            original: self.project.clone(),
-            selection: self.selection.clone(),
+            original: self.project.project.clone(),
+            selection: self.session.selection.clone(),
             source,
             changed: false,
         });
@@ -412,10 +412,12 @@ impl AppState {
             return false;
         };
         if modal.changed {
-            self.undo.checkpoint(modal.kind.label(), &modal.original);
+            self.project
+                .undo
+                .checkpoint(modal.kind.label(), &modal.original);
         } else {
-            self.project = modal.original;
-            self.selection = modal.selection;
+            self.project.project = modal.original;
+            self.session.selection = modal.selection;
         }
         self.pointer_session = None;
         self.pending_modal = None;
@@ -430,11 +432,12 @@ impl AppState {
         let Some(modal) = self.modal.take() else {
             return false;
         };
-        self.project = modal.original;
-        self.selection = modal.selection;
+        self.project.project = modal.original;
+        self.session.selection = modal.selection;
         self.locked_axes = [false; 3];
-        self.events
-            .emit(crate::AppEvent::SelectionChanged(self.selection.clone()));
+        self.events.emit(crate::AppEvent::SelectionChanged(
+            self.session.selection.clone(),
+        ));
         self.emit_mesh_changed();
         true
     }
@@ -553,9 +556,9 @@ mod tests {
                 assert!((after.vec() - expected).length() < 1.0e-5, "{kind:?}");
             }
             assert_eq!(state.modal.as_ref().unwrap().components, values);
-            assert_eq!(state.undo.depth(), (0, 0));
+            assert_eq!(state.project.undo.depth(), (0, 0));
             state.commit_modal();
-            assert_eq!(state.undo.depth(), (1, 0));
+            assert_eq!(state.project.undo.depth(), (1, 0));
             state.undo();
             assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
         }
@@ -580,7 +583,7 @@ mod tests {
             );
             assert_exact_mesh(state.project.active_mesh().unwrap(), &preview);
         }
-        assert_eq!(state.undo.depth(), (0, 0));
+        assert_eq!(state.project.undo.depth(), (0, 0));
     }
 
     #[test]
@@ -609,7 +612,7 @@ mod tests {
             state.update_modal(Vec3::new(0.4, 0.2, 0.0), 0.25).unwrap();
             state.update_modal(Vec3::new(0.8, 0.4, 0.0), 0.5).unwrap();
             assert!(state.cancel_modal());
-            assert_eq!(state.undo.depth(), (1, 0), "{kind:?}");
+            assert_eq!(state.project.undo.depth(), (1, 0), "{kind:?}");
             assert_exact_mesh(
                 state.project.active_mesh().unwrap(),
                 before.active_mesh().unwrap(),
@@ -624,7 +627,7 @@ mod tests {
         state.begin_modal(ModalKind::Move).unwrap();
         for value in [0.2, 0.3, 0.8] {
             state.update_modal(Vec3::X * value, value).unwrap();
-            assert_eq!(state.undo.depth(), (0, 0));
+            assert_eq!(state.project.undo.depth(), (0, 0));
         }
         let result = state.project.active_mesh().unwrap().clone();
         for (before, after) in original.verts.iter().zip(&result.verts) {
@@ -637,7 +640,7 @@ mod tests {
             assert!((after.vec() - expected).length() < 1.0e-6);
         }
         assert!(state.commit_modal());
-        assert_eq!(state.undo.depth(), (1, 0));
+        assert_eq!(state.project.undo.depth(), (1, 0));
         assert!(state.undo());
         assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
         assert!(state.redo());
@@ -673,7 +676,7 @@ mod tests {
         state.begin_modal(ModalKind::Extrude).unwrap();
         state.update_modal(Vec3::ZERO, 1.0).unwrap();
         assert!(state.undo());
-        assert_eq!(state.undo.depth(), (0, 1));
+        assert_eq!(state.project.undo.depth(), (0, 1));
         assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
     }
 
@@ -693,7 +696,7 @@ mod tests {
                 .update_modal(Vec3::ZERO, if kind == ModalKind::Scale { 1.0 } else { 0.0 })
                 .unwrap();
             state.commit_modal();
-            assert_eq!(state.undo.depth(), (0, 0));
+            assert_eq!(state.project.undo.depth(), (0, 0));
             assert_exact_mesh(state.project.active_mesh().unwrap(), &original);
         }
     }
@@ -786,7 +789,7 @@ mod tests {
             Err(ModalError::InvalidInput)
         );
         assert_exact_mesh(state.project.active_mesh().unwrap(), &preview);
-        assert_eq!(state.undo.depth(), (0, 0));
+        assert_eq!(state.project.undo.depth(), (0, 0));
     }
 
     #[test]

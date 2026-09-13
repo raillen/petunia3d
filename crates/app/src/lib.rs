@@ -88,7 +88,7 @@ impl Core {
                         petunia_ui::file_dialog_service::pick_palette_export_file("palette.gpl")
                     {
                         if let Err(e) = petunia_core::ProjectService::export_palette(
-                            &self.state.palette,
+                            &self.state.project.palette,
                             "Petunia Palette",
                             &path,
                         ) {
@@ -200,7 +200,7 @@ impl Core {
         }
         let mut r = petunia_core::ReferenceImage::from_rgba("demo-ref".into(), w, h, rgba);
         r.axis = petunia_core::RefAxis::Front;
-        s.refs.push(r);
+        s.project.refs.push(r);
         // canvas com círculo no CUBO (asset 0, central) + preview texturizado
         s.project.active = 0;
         PaintModule::ensure_canvas(s);
@@ -218,7 +218,7 @@ impl Core {
             }
         }
         s.textured = true;
-        s.canvas_dirty = true;
+        s.render.canvas_dirty = true;
         s.sync_selection();
         s.mark_dirty();
     }
@@ -356,7 +356,7 @@ impl Core {
         let mods = self.mods();
         let ck = to_config_key(physical);
         let action = ck
-            .and_then(|k| self.state.keybinds.find(k, mods))
+            .and_then(|k| self.state.ui.keybinds.find(k, mods))
             .unwrap_or("");
         let action = action.to_string();
         match action.as_str() {
@@ -377,7 +377,7 @@ impl Core {
                 self.state.mark_dirty();
             }
             "global.help" => {
-                self.state.show_help = !self.state.show_help;
+                self.state.ui.show_help = !self.state.ui.show_help;
                 self.state.mark_dirty();
             }
             "global.toggle_projection" => {
@@ -595,10 +595,11 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
     use petunia_core::picking::{pick_mesh, PickComponent};
     let viewport = core
         .state
+        .ui
         .viewport_rect
         .map(|r| glam::Vec2::new(r.width(), r.height()))
         .unwrap_or(glam::Vec2::new(800.0, 600.0))
-        * core.state.viewport_pixels_per_point;
+        * core.state.ui.viewport_pixels_per_point;
     let mode = if core.state.mode == EditMode::Object {
         SelectMode::Face
     } else {
@@ -615,7 +616,7 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
         )
     });
     if let Some(mesh) = core.state.project.active_mesh_mut() {
-        if core.state.mode == EditMode::Object {
+        if core.state.session.mode == EditMode::Object {
             if hit.is_some() {
                 mesh.select_all();
             } else if !core.shift_down {
@@ -721,7 +722,7 @@ impl WgpuApp {
             .map_err(|error| format!("wgpu surface: {error}"))?;
         let adapter = pollster::block_on(pick_adapter(&instance, &surface))?;
         let info = adapter.get_info();
-        self.core.state.backend_name = format!("wgpu {:?} {}", info.backend, info.name);
+        self.core.state.render.backend_name = format!("wgpu {:?} {}", info.backend, info.name);
         eprintln!(
             "petunia3d: GPU: {} ({:?} via {:?}, driver {})",
             info.name, info.device_type, info.backend, info.driver_info
@@ -788,7 +789,7 @@ impl WgpuApp {
         let t0 = std::time::Instant::now();
         let Some(gfx) = self.gfx.as_mut() else { return };
 
-        if let Some(rect) = self.core.state.viewport_rect {
+        if let Some(rect) = self.core.state.ui.viewport_rect {
             if rect.width() > 1.0 && rect.height() > 1.0 {
                 self.core.state.camera.aspect = rect.width() / rect.height();
             }
@@ -814,7 +815,7 @@ impl WgpuApp {
             .handle_platform_output(&gfx.window, full_output.platform_output.clone());
         self.core.dispatch_events();
 
-        if let Some((nx, ny)) = self.core.state.pending_pick.take() {
+        if let Some((nx, ny)) = self.core.state.ui.pending_pick.take() {
             handle_pick(&mut self.core, nx, ny);
         }
         if self.core.save_requested {
@@ -826,13 +827,13 @@ impl WgpuApp {
             &gfx.device,
             &gfx.queue,
             &self.core.state.project,
-            &self.core.state.refs,
+            &self.core.state.project.refs,
             &self.core.state.camera,
             self.core.state.shading,
             self.core.state.show_xray,
         );
         gfx.renderer3d
-            .upload_ref_pixels(&gfx.queue, &self.core.state.refs);
+            .upload_ref_pixels(&gfx.queue, &self.core.state.project.refs);
 
         let paint_jobs = gfx
             .egui_ctx
@@ -894,8 +895,8 @@ impl WgpuApp {
                 occlusion_query_set: None,
             });
             if let Some(viewport) = petunia_core::viewport::PhysicalViewport::from_logical(
-                self.core.state.viewport_rect,
-                self.core.state.viewport_pixels_per_point,
+                self.core.state.ui.viewport_rect,
+                self.core.state.ui.viewport_pixels_per_point,
                 gfx.config.width,
                 gfx.config.height,
             ) {
@@ -908,7 +909,8 @@ impl WgpuApp {
                     1.0,
                 );
                 pass.set_scissor_rect(viewport.x, viewport.y, viewport.width, viewport.height);
-                gfx.renderer3d.render(&mut pass, &self.core.state.refs);
+                gfx.renderer3d
+                    .render(&mut pass, &self.core.state.project.refs);
             }
         }
 
@@ -970,14 +972,21 @@ impl WgpuApp {
             .filter(|a| a.visible)
             .count()
             * 2
-            + self.core.state.refs.iter().filter(|r| r.visible).count()
+            + self
+                .core
+                .state
+                .project
+                .refs
+                .iter()
+                .filter(|r| r.visible)
+                .count()
             + 1;
-        self.core.state.stats.tris = t;
-        self.core.state.stats.verts = v;
-        self.core.state.stats.draws = draws;
+        self.core.state.render.stats.tris = t;
+        self.core.state.render.stats.verts = v;
+        self.core.state.render.stats.draws = draws;
         if self.fps_acc >= 500.0 && self.fps_n > 0 {
-            self.core.state.stats.fps = 1000.0 * self.fps_n as f32 / self.fps_acc;
-            self.core.state.stats.frame_ms = self.fps_acc / self.fps_n as f32;
+            self.core.state.render.stats.fps = 1000.0 * self.fps_n as f32 / self.fps_acc;
+            self.core.state.render.stats.frame_ms = self.fps_acc / self.fps_n as f32;
             self.fps_acc = 0.0;
             self.fps_n = 0;
         }
@@ -1209,7 +1218,8 @@ impl GlApp {
         };
         let gl_window = petunia_render_gl::GlWindow::create(event_loop, attrs)?;
         let caps = gl_window.caps();
-        self.core.state.backend_name = format!("OpenGL {} ({})", caps.gl_version, caps.renderer);
+        self.core.state.render.backend_name =
+            format!("OpenGL {} ({})", caps.gl_version, caps.renderer);
         eprintln!("petunia3d: OpenGL: {} | {}", caps.gl_version, caps.renderer);
 
         let egui_ctx = egui::Context::default();
@@ -1242,7 +1252,7 @@ impl GlApp {
         let t0 = std::time::Instant::now();
         let Some(g) = self.gfx.as_mut() else { return };
 
-        if let Some(rect) = self.core.state.viewport_rect {
+        if let Some(rect) = self.core.state.ui.viewport_rect {
             if rect.width() > 1.0 && rect.height() > 1.0 {
                 self.core.state.camera.aspect = rect.width() / rect.height();
             }
@@ -1269,7 +1279,7 @@ impl GlApp {
             .handle_platform_output(g.gl_window.window(), full_output.platform_output.clone());
         self.core.dispatch_events();
 
-        if let Some((nx, ny)) = self.core.state.pending_pick.take() {
+        if let Some((nx, ny)) = self.core.state.ui.pending_pick.take() {
             handle_pick(&mut self.core, nx, ny);
         }
         if self.core.save_requested {
@@ -1314,9 +1324,9 @@ impl GlApp {
         self.fps_acc += ms;
         self.fps_n += 1;
         let (v, t) = self.core.state.project.totals();
-        self.core.state.stats.tris = t;
-        self.core.state.stats.verts = v;
-        self.core.state.stats.draws = self
+        self.core.state.render.stats.tris = t;
+        self.core.state.render.stats.verts = v;
+        self.core.state.render.stats.draws = self
             .core
             .state
             .project
@@ -1325,18 +1335,25 @@ impl GlApp {
             .filter(|a| a.visible)
             .count()
             * 2
-            + self.core.state.refs.iter().filter(|r| r.visible).count()
+            + self
+                .core
+                .state
+                .project
+                .refs
+                .iter()
+                .filter(|r| r.visible)
+                .count()
             + 1;
         if self.fps_acc >= 500.0 && self.fps_n > 0 {
-            self.core.state.stats.fps = 1000.0 * self.fps_n as f32 / self.fps_acc;
-            self.core.state.stats.frame_ms = self.fps_acc / self.fps_n as f32;
+            self.core.state.render.stats.fps = 1000.0 * self.fps_n as f32 / self.fps_acc;
+            self.core.state.render.stats.frame_ms = self.fps_acc / self.fps_n as f32;
             self.fps_acc = 0.0;
             self.fps_n = 0;
         }
         if std::env::var_os("SIMPLE3D_STATS").is_some() {
             eprintln!(
                 "petunia3d: {:.0} fps {:.1} ms",
-                self.core.state.stats.fps, self.core.state.stats.frame_ms
+                self.core.state.render.stats.fps, self.core.state.render.stats.frame_ms
             );
         }
 
@@ -1711,7 +1728,7 @@ fn run_event_loop() -> Result<(), String> {
             .run_app(&mut app)
             .map_err(|error| format!("Application event loop: {error}"))?;
         if app.gfx.is_none() {
-            return Err(app.core.state.status.clone());
+            return Err(app.core.state.ui.status.clone());
         }
     } else {
         eprintln!("petunia3d: backend wgpu.");
@@ -1720,7 +1737,7 @@ fn run_event_loop() -> Result<(), String> {
             .run_app(&mut app)
             .map_err(|error| format!("Application event loop: {error}"))?;
         if app.gfx.is_none() {
-            return Err(app.core.state.status.clone());
+            return Err(app.core.state.ui.status.clone());
         }
     }
     Ok(())
@@ -1769,7 +1786,7 @@ mod tests {
             core.state.pending_modal,
             Some(petunia_core::ModalKind::Extrude)
         );
-        assert!(!core.state.undo.can_undo());
+        assert!(!core.state.project.undo.can_undo());
     }
 
     #[test]
@@ -1851,7 +1868,7 @@ mod camera_shortcut_tests {
     #[test]
     fn numpad_and_letter_toggle_preserve_scale_and_cancel_frame_animation() {
         let mut core = Core::new();
-        core.state.keybinds = petunia_config::keybinds::Keybinds::defaults();
+        core.state.ui.keybinds = petunia_config::keybinds::Keybinds::defaults();
         let height = core.state.camera.visible_height();
         for key in [WKey::Numpad5, WKey::KeyO] {
             let before = core.state.camera.proj;

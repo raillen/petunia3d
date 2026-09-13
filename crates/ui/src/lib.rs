@@ -158,7 +158,11 @@ pub fn open_project_dialog(state: &mut AppState) {
 
 pub fn save_project_dialog(state: &mut AppState, save_as: bool) {
     let path = if !save_as {
-        state.project_path.clone().map(std::path::PathBuf::from)
+        state
+            .project
+            .project_path
+            .clone()
+            .map(std::path::PathBuf::from)
     } else {
         None
     };
@@ -243,15 +247,15 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                 }
             }
             let mut rm: Option<usize> = None;
-            let n = state.refs.len();
+            let n = state.project.refs.len();
             for i in 0..n {
                 let (tex_id, aspect) = {
-                    let r = &state.refs[i];
+                    let r = &state.project.refs[i];
                     let tex = get_ref_texture(&ctx, r);
                     (Some(tex.id()), r.height as f32 / r.width.max(1) as f32)
                 };
                 {
-                    let r = &mut state.refs[i];
+                    let r = &mut state.project.refs[i];
                     ui.horizontal(|ui| {
                         ui.checkbox(&mut r.visible, "");
                         let mut lock = r.locked;
@@ -268,7 +272,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                     ui.image((tid, egui::vec2(230.0, 230.0 * aspect)));
                 }
                 {
-                    let r = &mut state.refs[i];
+                    let r = &mut state.project.refs[i];
                     ui.horizontal(|ui| {
                         if ui
                             .selectable_label(r.axis == RefAxis::Front, format!("F {l_front}"))
@@ -337,7 +341,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                 ui.separator();
             }
             if let Some(i) = rm {
-                state.refs.remove(i);
+                state.project.refs.remove(i);
                 state.mark_dirty();
             }
         });
@@ -353,15 +357,21 @@ pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.label(l_fmt);
-                if ui.selectable_label(!state.export_gltf, "OBJ").clicked() {
-                    state.export_gltf = false;
+                if ui
+                    .selectable_label(!state.project.export_gltf, "OBJ")
+                    .clicked()
+                {
+                    state.project.export_gltf = false;
                 }
-                if ui.selectable_label(state.export_gltf, "GLB").clicked() {
-                    state.export_gltf = true;
+                if ui
+                    .selectable_label(state.project.export_gltf, "GLB")
+                    .clicked()
+                {
+                    state.project.export_gltf = true;
                 }
             });
             // multi-select
-            let mut sel = state.export_selected.clone();
+            let mut sel = state.project.export_selected.clone();
             if sel.is_empty() {
                 sel = (0..state.project.assets.len()).collect();
             }
@@ -381,10 +391,10 @@ pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
                     new_sel.push(i);
                 }
             }
-            state.export_selected = new_sel.clone();
+            state.project.export_selected = new_sel.clone();
             ui.separator();
             ui.label(l_report);
-            for line in export::export_report(&state.project, &new_sel, state.export_gltf) {
+            for line in export::export_report(&state.project, &new_sel, state.project.export_gltf) {
                 ui.small(line);
             }
             if ui.button(l_go).clicked() {
@@ -394,12 +404,12 @@ pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
 }
 
 pub fn export_active_or_all(state: &mut AppState, glb: bool) {
-    let sel: Vec<usize> = if !state.export_selected.is_empty() {
-        state.export_selected.clone()
+    let sel: Vec<usize> = if !state.project.export_selected.is_empty() {
+        state.project.export_selected.clone()
     } else {
         (0..state.project.assets.len()).collect()
     };
-    state.export_gltf = glb;
+    state.project.export_gltf = glb;
     export_dialog(state, &sel);
 }
 
@@ -408,7 +418,7 @@ fn export_dialog(state: &mut AppState, sel: &[usize]) {
         state.set_status(state.t("export.empty"));
         return;
     }
-    if state.export_gltf {
+    if state.project.export_gltf {
         if let Some(path) = file_dialog_service::pick_export_glb_file("assets.glb") {
             match ProjectService::export_glb(state, sel, &path) {
                 Ok(()) => state.set_status(format!("export {}", path.display())),
@@ -432,8 +442,8 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
         .frame(egui::Frame::new().fill(egui::Color32::TRANSPARENT))
         .show(ctx, |ui| {
             let rect = ui.available_rect_before_wrap();
-            state.viewport_rect = Some(rect_to_logical(rect));
-            state.viewport_pixels_per_point = ctx.pixels_per_point();
+            state.ui.viewport_rect = Some(rect_to_logical(rect));
+            state.ui.viewport_pixels_per_point = ctx.pixels_per_point();
             state.camera.aspect = rect.width() / rect.height().max(1.0);
             let p = ui.painter_at(rect);
             // mira central
@@ -473,17 +483,17 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
             });
 
             if pointer_on_shelf {
-                state.box_select_start = None;
+                state.ui.box_select_start = None;
                 return;
             }
             if resp.drag_started_by(egui::PointerButton::Primary) {
                 if let Some(pos) = resp.interact_pointer_pos() {
-                    state.box_select_start = Some([pos.x, pos.y]);
+                    state.ui.box_select_start = Some([pos.x, pos.y]);
                 }
             }
             if resp.dragged_by(egui::PointerButton::Primary) {
                 if let (Some(start), Some(curr)) =
-                    (state.box_select_start, resp.interact_pointer_pos())
+                    (state.ui.box_select_start, resp.interact_pointer_pos())
                 {
                     let r = egui::Rect::from_two_pos(egui::pos2(start[0], start[1]), curr);
                     p.rect_filled(
@@ -501,9 +511,10 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
                 }
             }
             if resp.drag_stopped_by(egui::PointerButton::Primary) {
-                if let (Some(start), Some(curr)) =
-                    (state.box_select_start.take(), resp.interact_pointer_pos())
-                {
+                if let (Some(start), Some(curr)) = (
+                    state.ui.box_select_start.take(),
+                    resp.interact_pointer_pos(),
+                ) {
                     let dx = (curr.x - start[0]).abs();
                     let dy = (curr.y - start[1]).abs();
                     if dx > 8.0 || dy > 8.0 {
@@ -515,8 +526,9 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
                         let p0 = to_ndc(egui::pos2(start[0], start[1]));
                         let p1 = to_ndc(curr);
                         let shift = ui.input(|i| i.modifiers.shift);
+                        let vp = state.session.camera.view_proj().to_cols_array();
                         if let Some(m) = state.project.active_mesh_mut() {
-                            m.box_select(p0, p1, &state.camera.view_proj().to_cols_array(), shift);
+                            m.box_select(p0, p1, &vp, shift);
                         }
                         state.sync_selection();
                         state.mark_dirty();
@@ -524,11 +536,11 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
                 }
             }
             if resp.clicked() {
-                state.box_select_start = None;
+                state.ui.box_select_start = None;
                 if let Some(pos) = resp.interact_pointer_pos() {
                     let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
                     let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
-                    state.pending_pick = Some((nx, ny));
+                    state.ui.pending_pick = Some((nx, ny));
                     state.mark_dirty();
                 }
             }

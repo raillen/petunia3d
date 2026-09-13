@@ -29,7 +29,7 @@ impl PaintModule {
             }
         }
         if n > 0 {
-            state.undo.checkpoint("fill", &before);
+            state.project.undo.checkpoint("fill", &before);
             state.emit_mesh_changed();
         }
         n
@@ -45,19 +45,18 @@ impl PaintModule {
         }
     }
 
-    /// Registra cor na palette (recentes, máx 16) e sincroniza com o projeto.
+    /// Registra cor na palette (recentes, máx 16) no ProjectState.
     pub fn push_palette(state: &mut AppState, c: [f32; 3]) {
         state
+            .project
             .palette
             .retain(|&x| (x[0] - c[0]).abs() + (x[1] - c[1]).abs() + (x[2] - c[2]).abs() > 1e-3);
-        state.palette.insert(0, c);
-        state.palette.truncate(16);
-        state.project.palette = state.palette.clone();
+        state.project.palette.insert(0, c);
+        state.project.palette.truncate(16);
     }
 
-    /// Substitui a paleta atual e sincroniza com o projeto.
+    /// Substitui a paleta atual no ProjectState.
     pub fn set_palette(state: &mut AppState, pal: Vec<[f32; 3]>) {
-        state.palette = pal.clone();
         state.project.palette = pal;
         state.mark_dirty();
     }
@@ -75,7 +74,11 @@ impl PaintModule {
         state: &AppState,
         path: &std::path::Path,
     ) -> Result<(), petunia_core::ProjectServiceError> {
-        petunia_core::ProjectService::export_palette(&state.palette, "Petunia Palette", path)
+        petunia_core::ProjectService::export_palette(
+            &state.project.palette,
+            "Petunia Palette",
+            path,
+        )
     }
 
     // ---- canvas 2D ----
@@ -193,7 +196,7 @@ impl PaintModule {
                     state.mark_dirty();
                 }
                 // palette
-                let pal = state.palette.clone();
+                let pal = state.project.palette.clone();
                 ui.horizontal_wrapped(|ui| {
                     for col in pal {
                         let (r, gg, b) = (
@@ -287,7 +290,7 @@ impl PaintModule {
                     state.checkpoint("canvas new");
                     PaintModule::ensure_canvas(state);
                 }
-                if state.canvas_dirty {
+                if state.render.canvas_dirty {
                     if let Some(o) = state.project.assets.get(state.project.active) {
                         if let Some(cv) = &o.texture {
                             let img = egui::ColorImage::from_rgba_unmultiplied(
@@ -301,7 +304,7 @@ impl PaintModule {
                             ));
                         }
                     }
-                    state.canvas_dirty = false;
+                    state.render.canvas_dirty = false;
                 }
                 ui.horizontal(|ui| {
                     if ui.button(l_brush).clicked() {
@@ -314,7 +317,7 @@ impl PaintModule {
                     if ui.button(l_cfill).clicked() {
                         state.checkpoint("canvas fill");
                         PaintModule::canvas_fill(state);
-                        state.canvas_dirty = true;
+                        state.render.canvas_dirty = true;
                     }
                     if ui.button(l_clear).clicked() {
                         state.checkpoint("canvas clear");
@@ -323,7 +326,7 @@ impl PaintModule {
                                 cv.fill([0, 0, 0, 0]);
                             }
                         }
-                        state.canvas_dirty = true;
+                        state.render.canvas_dirty = true;
                         state.mark_dirty();
                     }
                 });
@@ -349,7 +352,7 @@ impl PaintModule {
                             ],
                         ));
                     }
-                    state.canvas_dirty = true;
+                    state.render.canvas_dirty = true;
                     state.mark_dirty();
                 }
                 if let Some(tex) = self.canvas_tex.clone() {
@@ -392,7 +395,7 @@ impl PaintModule {
                                 state.checkpoint("canvas paint");
                             }
                             PaintModule::canvas_brush(state, px, py, erase);
-                            state.canvas_dirty = true;
+                            state.render.canvas_dirty = true;
                         }
                     }
                     if resp.drag_stopped() {
@@ -413,18 +416,13 @@ mod tests {
     #[test]
     fn test_push_and_set_palette_sync() {
         let mut state = AppState::new("en");
-        let initial_len = state.palette.len();
-        assert_eq!(state.project.palette.len(), initial_len);
 
         PaintModule::push_palette(&mut state, [0.5, 0.5, 0.5]);
-        assert_eq!(state.palette[0], [0.5, 0.5, 0.5]);
         assert_eq!(state.project.palette[0], [0.5, 0.5, 0.5]);
 
         let p8 = petunia_project::preset_pico8();
         PaintModule::set_palette(&mut state, p8.clone());
-        assert_eq!(state.palette.len(), 16);
         assert_eq!(state.project.palette.len(), 16);
-        assert_eq!(state.palette, p8);
         assert_eq!(state.project.palette, p8);
     }
 }

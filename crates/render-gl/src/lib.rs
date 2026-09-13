@@ -190,8 +190,8 @@ impl GlRenderer {
     /// Desenha a cena inteira (viewport + clear + refs + malha + arestas).
     pub fn draw(&mut self, state: &petunia_core::AppState, width: u32, height: u32) {
         let Some(viewport) = petunia_core::viewport::PhysicalViewport::from_logical(
-            state.viewport_rect,
-            state.viewport_pixels_per_point,
+            state.ui.viewport_rect,
+            state.ui.viewport_pixels_per_point,
             width,
             height,
         ) else {
@@ -510,13 +510,13 @@ impl GlRenderer {
         xray_pass: bool,
     ) {
         if !xray_pass {
-            self.sync_ref_textures(&state.refs);
+            self.sync_ref_textures(&state.project.refs);
         }
         let gl = Arc::clone(&self.gl);
         // quads via matemática compartilhada (V flipado: origem GL é embaixo)
         use petunia_render::scene as S;
         let mut quads: Vec<(usize, [f32; 30])> = Vec::new();
-        for (i, r) in state.refs.iter().enumerate() {
+        for (i, r) in state.project.refs.iter().enumerate() {
             if !r.visible || r.xray != xray_pass {
                 continue;
             }
@@ -555,7 +555,7 @@ impl GlRenderer {
         gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
         gl.active_texture(glow::TEXTURE0);
         for (i, t) in &quads {
-            let (tex, opacity) = match (self.ref_tex.get(*i), state.refs.get(*i)) {
+            let (tex, opacity) = match (self.ref_tex.get(*i), state.project.refs.get(*i)) {
                 (Some(s), Some(r)) => (s.tex, r.opacity),
                 _ => continue,
             };

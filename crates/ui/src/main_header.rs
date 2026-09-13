@@ -39,20 +39,20 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
 
                     // Lado direito do header: Assets e Configurações
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let cfg_resp = widgets::petunia_action_button(
+                        let pref_resp = widgets::petunia_action_button(
                             ui,
                             Some(PetuniaIcon::Settings),
                             "Config",
                             false,
                         );
 
-                        if cfg_resp
+                        if pref_resp
                             .on_hover_text(
                                 "Preferências e Configurações (Tema, Ícones, Idioma, Teclas)",
                             )
                             .clicked()
                         {
-                            state.show_settings = !state.show_settings;
+                            state.ui.show_settings = !state.ui.show_settings;
                             state.mark_dirty();
                         }
 
@@ -67,7 +67,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
                             .on_hover_text("Alternar Painel de Assets do Projeto")
                             .clicked()
                         {
-                            state.show_asset_browser = !state.show_asset_browser;
+                            state.ui.show_asset_browser = !state.ui.show_asset_browser;
                             state.mark_dirty();
                         }
                     });
@@ -149,7 +149,7 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
     ui.menu_button(state.t("menu.edit"), |ui| {
         if ui
             .add_enabled(
-                state.undo.can_undo(),
+                state.project.undo.can_undo(),
                 egui::Button::new(state.t("edit.undo")),
             )
             .clicked()
@@ -159,7 +159,7 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
         }
         if ui
             .add_enabled(
-                state.undo.can_redo(),
+                state.project.undo.can_redo(),
                 egui::Button::new(state.t("edit.redo")),
             )
             .clicked()
@@ -170,20 +170,20 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
     });
 
     ui.menu_button(
-        if state.i18n.lang == "en" {
+        if state.ui.i18n.lang == "en" {
             "Window"
         } else {
             "Janela"
         },
         |ui| {
-            ui.checkbox(&mut state.show_perf, "Performance HUD (FPS & Overlays)");
+            ui.checkbox(&mut state.ui.show_perf, "Performance HUD (FPS & Overlays)");
             ui.separator();
             for lang in petunia_config::I18n::available() {
                 if ui
-                    .selectable_label(state.i18n.lang == lang, &lang)
+                    .selectable_label(state.ui.i18n.lang == lang, &lang)
                     .clicked()
                 {
-                    state.i18n.set_lang(&lang);
+                    state.ui.i18n.set_lang(&lang);
                     state.mark_dirty();
                 }
             }
@@ -191,7 +191,7 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
     );
 
     if ui.button(state.t("menu.help")).clicked() {
-        state.show_help = !state.show_help;
+        state.ui.show_help = !state.ui.show_help;
     }
 }
 

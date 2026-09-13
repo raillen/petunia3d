@@ -120,7 +120,7 @@ fn begin_loop_slide(ctx: &egui::Context, state: &mut AppState) -> Pos2 {
         "first click creates a real loop preview"
     );
     assert!(state.mesh_preview.is_some());
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     anchor
 }
 
@@ -141,7 +141,7 @@ fn loop_cut_first_click_slide_then_escape_restores_exact_mesh() {
     assert_mesh(state.project.active_mesh().unwrap(), &original);
     assert!(state.mesh_preview.is_none());
     assert_eq!(state.active_tool, "select");
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
 }
 
 #[test]
@@ -155,7 +155,7 @@ fn loop_cut_second_click_commits_one_checkpoint() {
     let preview = state.project.active_mesh().unwrap().clone();
     click(&ctx, &mut state, end);
     assert!(state.mesh_preview.is_none());
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     assert_mesh(state.project.active_mesh().unwrap(), &preview);
     state.undo();
     assert_mesh(state.project.active_mesh().unwrap(), &original);
@@ -189,7 +189,7 @@ fn loop_cut_right_click_outside_viewport_centers_and_commits() {
         state.mesh_preview.is_none(),
         "RMB must finish even outside the viewport"
     );
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     assert_mesh(state.project.active_mesh().unwrap(), &expected);
 }
 
@@ -207,7 +207,7 @@ fn knife_two_edge_clicks_then_enter_commit_connected_cut() {
         state.project.active_mesh().unwrap().faces.len(),
         source.faces.len() + 1
     );
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     assert!(
         state
             .project
@@ -218,7 +218,7 @@ fn knife_two_edge_clicks_then_enter_commit_connected_cut() {
     );
     frame(&ctx, &mut state, vec![key(Key::Enter)]);
     assert!(state.mesh_preview.is_none());
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     state.undo();
     assert_mesh(state.project.active_mesh().unwrap(), &source);
 }
@@ -248,9 +248,9 @@ fn slice_drag_then_escape_restores_source_without_checkpoint() {
         vec![button(end, PointerButton::Primary, false)],
     );
     assert!(state.mesh_preview.is_some());
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     frame(&ctx, &mut state, vec![key(Key::Escape)]);
     assert_mesh(state.project.active_mesh().unwrap(), &source);
     assert!(state.mesh_preview.is_none());
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
 }

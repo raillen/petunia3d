@@ -7,7 +7,7 @@
 use std::path::Path;
 
 use petunia_mesh::Mesh;
-use petunia_project::{export, format, palette, Project};
+use petunia_project::{export, format, palette};
 
 use crate::state::AppState;
 use crate::{AppEvent, ReferenceImage};
@@ -37,12 +37,8 @@ pub struct ProjectService;
 impl ProjectService {
     /// Reinicia a sessão para um projeto vazio padrão.
     pub fn new_project(state: &mut AppState) {
-        state.project = Project::new();
-        state.palette = state.project.palette.clone();
-        state.undo.clear();
-        state.refs.clear();
-        state.uv_selected.clear();
-        state.project_path = None;
+        state.project.reset();
+        state.session.tools.uv_selected.clear();
         state.sync_selection();
         state.set_status("new".to_string());
         state.events.emit(AppEvent::ProjectLoaded);
@@ -52,11 +48,11 @@ impl ProjectService {
     /// Carrega um arquivo de projeto (.petunia) e sincroniza o estado da aplicação.
     pub fn load_project(state: &mut AppState, path: &Path) -> Result<(), ProjectServiceError> {
         let p = format::load(path).map_err(|e| ProjectServiceError::Format(e.to_string()))?;
-        state.palette = p.palette.clone();
-        state.project = p;
-        state.undo.clear();
-        state.uv_selected.clear();
-        state.project_path = Some(path.to_string_lossy().to_string());
+        state.project.palette = p.palette.clone();
+        state.project.project = p;
+        state.project.undo.clear();
+        state.session.tools.uv_selected.clear();
+        state.project.project_path = Some(path.to_string_lossy().to_string());
         state.events.emit(AppEvent::ProjectLoaded);
         state.sync_selection();
         state.set_status(format!("open {}", path.display()));
@@ -66,10 +62,10 @@ impl ProjectService {
 
     /// Salva o estado atual do projeto no arquivo especificado (.petunia).
     pub fn save_project(state: &mut AppState, path: &Path) -> Result<(), ProjectServiceError> {
-        state.project.palette = state.palette.clone();
-        format::save(&state.project, path)
+        state.project.project.palette = state.project.palette.clone();
+        format::save(&state.project.project, path)
             .map_err(|e| ProjectServiceError::Format(e.to_string()))?;
-        state.project_path = Some(path.to_string_lossy().to_string());
+        state.project.project_path = Some(path.to_string_lossy().to_string());
         state.set_status(format!("saved {}", path.display()));
         state.mark_dirty();
         Ok(())
@@ -156,8 +152,8 @@ impl ProjectService {
         }
 
         let count = colors.len();
-        state.palette = colors.clone();
-        state.project.palette = colors;
+        state.project.palette = colors.clone();
+        state.project.project.palette = colors;
         state.set_status(format!("imported {count} colors"));
         state.mark_dirty();
         Ok(count)
@@ -183,6 +179,7 @@ impl ProjectService {
         rgba: Vec<u8>,
     ) {
         state
+            .project
             .refs
             .push(ReferenceImage::from_rgba(name.clone(), width, height, rgba));
         state.set_status(format!("ref {name}"));

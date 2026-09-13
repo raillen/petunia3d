@@ -461,7 +461,7 @@ pub fn handle_3d_cursor_placement(
 
 /// Draws the RMB Context Menu if active.
 pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
-    let Some(menu_pos) = state.context_menu_pos else {
+    let Some(menu_pos) = state.ui.context_menu_pos else {
         return;
     };
 
@@ -562,7 +562,7 @@ pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
             i.key_pressed(egui::Key::Escape) || i.pointer.button_pressed(PointerButton::Primary)
         })
     {
-        state.context_menu_pos = None;
+        state.ui.context_menu_pos = None;
     }
 }
 
@@ -651,7 +651,7 @@ mod tests {
     fn test_context_menu_pos_lifecycle() {
         let ctx = egui::Context::default();
         let mut state = AppState::new("pt-BR");
-        state.context_menu_pos = Some([200.0, 200.0]);
+        state.ui.context_menu_pos = Some([200.0, 200.0]);
 
         // Simulate Escape key
         let mut raw_input = egui::RawInput::default();
@@ -668,6 +668,6 @@ mod tests {
         });
 
         // Menu should be closed by Escape
-        assert_eq!(state.context_menu_pos, None);
+        assert_eq!(state.ui.context_menu_pos, None);
     }
 }

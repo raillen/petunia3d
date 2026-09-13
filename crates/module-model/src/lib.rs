@@ -146,7 +146,12 @@ mod tests {
             );
             assert_eq!(after.verts.len(), vertices, "{} adds vertices", tool.id());
             assert_eq!(after.faces.len(), faces, "{} adds faces", tool.id());
-            assert_eq!(state.undo.depth(), (0, 0), "{} pollutes history", tool.id());
+            assert_eq!(
+                state.project.undo.depth(),
+                (0, 0),
+                "{} pollutes history",
+                tool.id()
+            );
         }
     }
 }

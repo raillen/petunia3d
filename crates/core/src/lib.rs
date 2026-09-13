@@ -29,8 +29,9 @@ pub use events::{AppEvent, EventBus};
 pub use module::{Module, ModuleRegistry};
 pub use selection::{SelectMode, Selection, Workspace};
 pub use state::{
-    AnnotationItem, AnnotationStroke, AppState, EditMode, Measurement, MeasurementItem,
-    ProfileState, RefAxis, ReferenceImage, RenderStats,
+    AnnotationItem, AnnotationStroke, AppState, DomainState, EditMode, EditorSession, Measurement,
+    MeasurementItem, ProfileState, ProjectState, RefAxis, ReferenceImage, RenderResources,
+    RenderStats, ToolState, UiState,
 };
 pub use viewport::{
     unproject_cursor_or_vertex_snap, unproject_to_surface_or_cursor_plane, LogicalRect,

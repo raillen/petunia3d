@@ -58,7 +58,7 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
             .on_hover_text("Jump to First Frame · Shift+Left")
             .clicked()
         {
-            state.timeline_frame = state.timeline_start;
+            state.ui.timeline_frame = state.ui.timeline_start;
             state.mark_dirty();
         }
         if ui
@@ -66,19 +66,23 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
             .on_hover_text("Step 1 Frame Backward · Left")
             .clicked()
         {
-            state.timeline_frame = (state.timeline_frame - 1).max(state.timeline_start);
+            state.ui.timeline_frame = (state.ui.timeline_frame - 1).max(state.ui.timeline_start);
             state.mark_dirty();
         }
 
-        let play_icon = if state.timeline_playing { "⏸" } else { "▶" };
+        let play_icon = if state.ui.timeline_playing {
+            "⏸"
+        } else {
+            "▶"
+        };
         let play_btn = egui::Button::new(egui::RichText::new(play_icon).size(11.0).color(
-            if state.timeline_playing {
+            if state.ui.timeline_playing {
                 tokens::TEXT_ACTIVE
             } else {
                 tokens::TEXT_PRIMARY
             },
         ))
-        .fill(if state.timeline_playing {
+        .fill(if state.ui.timeline_playing {
             tokens::ACCENT_BLUE
         } else {
             tokens::BG_SURFACE
@@ -90,7 +94,7 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
             .on_hover_text("Play / Pause Animation · Space")
             .clicked()
         {
-            state.timeline_playing = !state.timeline_playing;
+            state.ui.timeline_playing = !state.ui.timeline_playing;
             state.mark_dirty();
         }
 
@@ -99,7 +103,7 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
             .on_hover_text("Step 1 Frame Forward · Right")
             .clicked()
         {
-            state.timeline_frame = (state.timeline_frame + 1).min(state.timeline_end);
+            state.ui.timeline_frame = (state.ui.timeline_frame + 1).min(state.ui.timeline_end);
             state.mark_dirty();
         }
         if ui
@@ -107,7 +111,7 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
             .on_hover_text("Jump to Last Frame · Shift+Right")
             .clicked()
         {
-            state.timeline_frame = state.timeline_end;
+            state.ui.timeline_frame = state.ui.timeline_end;
             state.mark_dirty();
         }
 
@@ -119,23 +123,23 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
                 .size(11.0)
                 .color(tokens::TEXT_SECONDARY),
         );
-        let mut curr_frame = state.timeline_frame;
+        let mut curr_frame = state.ui.timeline_frame;
         if ui
             .add(
                 egui::DragValue::new(&mut curr_frame)
-                    .range(state.timeline_start..=state.timeline_end)
+                    .range(state.ui.timeline_start..=state.ui.timeline_end)
                     .speed(1.0),
             )
             .changed()
         {
-            state.timeline_frame = curr_frame;
+            state.ui.timeline_frame = curr_frame;
             state.mark_dirty();
         }
 
         // Intervalo: Start / End
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.add(
-                egui::DragValue::new(&mut state.timeline_end)
+                egui::DragValue::new(&mut state.ui.timeline_end)
                     .range(1..=10000)
                     .speed(1.0),
             );
@@ -146,7 +150,7 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
             );
 
             ui.add(
-                egui::DragValue::new(&mut state.timeline_start)
+                egui::DragValue::new(&mut state.ui.timeline_start)
                     .range(0..=10000)
                     .speed(1.0),
             );
@@ -175,8 +179,8 @@ fn draw_timeline_ruler(ui: &mut Ui, state: &mut AppState) {
             egui::StrokeKind::Inside,
         );
 
-        let start = state.timeline_start as f32;
-        let end = state.timeline_end.max(state.timeline_start + 1) as f32;
+        let start = state.ui.timeline_start as f32;
+        let end = state.ui.timeline_end.max(state.ui.timeline_start + 1) as f32;
         let total_frames = end - start;
 
         // Desenha marcações de frames a cada 20 frames
@@ -206,7 +210,7 @@ fn draw_timeline_ruler(ui: &mut Ui, state: &mut AppState) {
         }
 
         // Indicador do Frame Atual (Cursor Azul)
-        let curr_t = ((state.timeline_frame as f32 - start) / total_frames).clamp(0.0, 1.0);
+        let curr_t = ((state.ui.timeline_frame as f32 - start) / total_frames).clamp(0.0, 1.0);
         let cursor_x = rect.min.x + curr_t * rect.width();
 
         painter.line_segment(
@@ -229,9 +233,9 @@ fn draw_timeline_ruler(ui: &mut Ui, state: &mut AppState) {
     if response.clicked() || response.dragged() {
         if let Some(pos) = response.interact_pointer_pos() {
             let t = ((pos.x - rect.min.x) / rect.width().max(1.0)).clamp(0.0, 1.0);
-            let frame = state.timeline_start as f32
-                + t * (state.timeline_end - state.timeline_start) as f32;
-            state.timeline_frame = frame.round() as i32;
+            let frame = state.ui.timeline_start as f32
+                + t * (state.ui.timeline_end - state.ui.timeline_start) as f32;
+            state.ui.timeline_frame = frame.round() as i32;
             state.mark_dirty();
         }
     }
@@ -254,10 +258,10 @@ mod tests {
     #[test]
     fn test_timeline_scrub_clamps_within_bounds() {
         let mut state = AppState::new("en");
-        state.timeline_start = 10;
-        state.timeline_end = 100;
-        state.timeline_frame = 50;
+        state.ui.timeline_start = 10;
+        state.ui.timeline_end = 100;
+        state.ui.timeline_frame = 50;
 
-        assert_eq!(state.timeline_frame, 50);
+        assert_eq!(state.ui.timeline_frame, 50);
     }
 }

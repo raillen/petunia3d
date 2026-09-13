@@ -192,11 +192,11 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(2.0);
 
     // Campo de busca com ícone e botão de limpar
-    widgets::petunia_search_box(ui, &mut state.outliner_search, "Search...");
+    widgets::petunia_search_box(ui, &mut state.ui.outliner_search, "Search...");
 }
 
 fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
-    let search = state.outliner_search.trim().to_lowercase();
+    let search = state.ui.outliner_search.trim().to_lowercase();
     let n_assets = state.project.assets.len();
     let active_idx = state.project.active;
     let collections = state.project.collections.clone();
@@ -1096,7 +1096,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         // =========================================================================
         // SEÇÃO 4: IMAGENS DE REFERÊNCIA
         // =========================================================================
-        if !state.refs.is_empty() {
+        if !state.project.refs.is_empty() {
             let open_refs = builder.node(
                 NodeBuilder::dir(OutlinerNodeId::ReferenceImages)
                     .default_open(true)
@@ -1111,7 +1111,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             ui.label(
                                 egui::RichText::new(format!(
                                     "Reference Images ({})",
-                                    state.refs.len()
+                                    state.project.refs.len()
                                 ))
                                 .size(11.5)
                                 .color(tokens::TEXT_PRIMARY),
@@ -1121,11 +1121,14 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             );
 
             if open_refs {
-                for r_idx in 0..state.refs.len() {
-                    let r_vis = state.refs[r_idx].visible;
-                    let r_xray = state.refs[r_idx].xray;
-                    let r_axis = format!("{:?}", state.refs[r_idx].axis);
-                    let r_dim = format!("{}x{}", state.refs[r_idx].width, state.refs[r_idx].height);
+                for r_idx in 0..state.project.refs.len() {
+                    let r_vis = state.project.refs[r_idx].visible;
+                    let r_xray = state.project.refs[r_idx].xray;
+                    let r_axis = format!("{:?}", state.project.refs[r_idx].axis);
+                    let r_dim = format!(
+                        "{}x{}",
+                        state.project.refs[r_idx].width, state.project.refs[r_idx].height
+                    );
 
                     builder.node(
                         NodeBuilder::leaf(OutlinerNodeId::ReferenceImage(r_idx)).label_ui(|ui| {
@@ -1397,20 +1400,20 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
     // Ações de referências
     if let Some(idx) = ref_toggle_vis {
-        if let Some(r) = state.refs.get_mut(idx) {
+        if let Some(r) = state.project.refs.get_mut(idx) {
             r.visible = !r.visible;
             state.mark_dirty();
         }
     }
     if let Some(idx) = ref_toggle_xray {
-        if let Some(r) = state.refs.get_mut(idx) {
+        if let Some(r) = state.project.refs.get_mut(idx) {
             r.xray = !r.xray;
             state.mark_dirty();
         }
     }
     if let Some(idx) = ref_delete {
-        if idx < state.refs.len() {
-            state.refs.remove(idx);
+        if idx < state.project.refs.len() {
+            state.project.refs.remove(idx);
             state.mark_dirty();
         }
     }
@@ -1568,7 +1571,7 @@ mod tests {
         state.project.add("TargetCube", Mesh::cube(1.0));
         state.project.add("OtherObject", Mesh::cube(1.0));
 
-        state.outliner_search = "target".to_string();
+        state.ui.outliner_search = "target".to_string();
         assert_eq!(state.project.assets.len(), 3); // Default cube + 2 novos
     }
 

@@ -15,12 +15,12 @@ fn repeated_paint_samples_commit_a_single_undo_and_redo_restores_colors() {
     state.begin_paint_stroke();
     for point in [Vec3::ZERO, Vec3::X, Vec3::Y] {
         state.paint_at(point);
-        assert_eq!(state.undo.depth(), (0, 0));
+        assert_eq!(state.project.undo.depth(), (0, 0));
     }
     let result = snapshot(&state);
     assert_ne!(result, original);
     state.finish_paint_stroke(false);
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     state.undo();
     assert_eq!(snapshot(&state), original);
     state.redo();
@@ -43,7 +43,7 @@ fn paint_cancel_restores_colors_without_discarding_redo() {
     state.paint_at(Vec3::ZERO);
     state.finish_paint_stroke(true);
     assert_eq!(snapshot(&state), original);
-    assert_eq!(state.undo.depth(), (0, 1));
+    assert_eq!(state.project.undo.depth(), (0, 1));
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn cut_preview_cancel_restores_topology_and_commit_is_atomic() {
         let mut preview = original.clone();
         preview.slice_plane(Vec3::Y * offset, Vec3::Y, true);
         state.preview_mesh(preview);
-        assert_eq!(state.undo.depth(), (0, 0));
+        assert_eq!(state.project.undo.depth(), (0, 0));
     }
     state.finish_mesh_preview(true);
     assert_eq!(snapshot(&state), original_snapshot);
@@ -66,7 +66,7 @@ fn cut_preview_cancel_restores_topology_and_commit_is_atomic() {
     state.preview_mesh(preview);
     let result = snapshot(&state);
     state.finish_mesh_preview(false);
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     state.undo();
     assert_eq!(snapshot(&state), original_snapshot);
     state.redo();
@@ -80,7 +80,7 @@ fn identity_cut_preview_does_not_pollute_history() {
     assert!(state.begin_mesh_preview("Slice"));
     state.preview_mesh(original);
     state.finish_mesh_preview(false);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
 }
 
 #[test]

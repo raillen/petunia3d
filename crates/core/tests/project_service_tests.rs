@@ -12,29 +12,32 @@ use petunia_mesh::Mesh;
 fn test_new_project_resets_state() {
     let mut state = AppState::default();
     state.project.add("CustomAsset", Mesh::plane(2.0));
-    state.project_path = Some("/tmp/fake_project.petunia".to_string());
-    state.refs.push(petunia_core::ReferenceImage::from_rgba(
-        "ref".to_string(),
-        10,
-        10,
-        vec![0u8; 400],
-    ));
+    state.project.project_path = Some("/tmp/fake_project.petunia".to_string());
+    state
+        .project
+        .refs
+        .push(petunia_core::ReferenceImage::from_rgba(
+            "ref".to_string(),
+            10,
+            10,
+            vec![0u8; 400],
+        ));
     assert_eq!(state.project.assets.len(), 2);
 
     ProjectService::new_project(&mut state);
 
     assert_eq!(state.project.assets.len(), 1);
     assert_eq!(state.project.assets[0].name, "Cube");
-    assert!(state.project_path.is_none());
-    assert!(state.refs.is_empty());
-    assert!(state.dirty);
+    assert!(state.project.project_path.is_none());
+    assert!(state.project.refs.is_empty());
+    assert!(state.render.dirty);
 }
 
 #[test]
 fn test_save_and_load_project_roundtrip() {
     let mut state = AppState::default();
     state.project.add("Pyramid", Mesh::cube(3.0));
-    state.palette = vec![[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]];
+    state.project.palette = vec![[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]];
 
     let temp_dir = std::env::temp_dir();
     let file_path = temp_dir.join(format!(
@@ -45,7 +48,7 @@ fn test_save_and_load_project_roundtrip() {
     // Salva o projeto
     ProjectService::save_project(&mut state, &file_path).expect("deve salvar projeto");
     assert_eq!(
-        state.project_path.as_deref(),
+        state.project.project_path.as_deref(),
         Some(file_path.to_str().unwrap())
     );
 
@@ -59,9 +62,12 @@ fn test_save_and_load_project_roundtrip() {
         loaded_state.project.assets[1].id,
         state.project.assets[1].id
     );
-    assert_eq!(loaded_state.palette, vec![[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]);
     assert_eq!(
-        loaded_state.project_path.as_deref(),
+        loaded_state.project.palette,
+        vec![[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+    );
+    assert_eq!(
+        loaded_state.project.project_path.as_deref(),
         Some(file_path.to_str().unwrap())
     );
 
@@ -154,8 +160,8 @@ fn test_palette_import_and_export() {
 
     let count = ProjectService::import_palette(&mut state, &gpl_path).expect("importar gpl");
     assert_eq!(count, 3);
-    assert_eq!(state.palette.len(), 3);
     assert_eq!(state.project.palette.len(), 3);
+    assert_eq!(state.project.project.palette.len(), 3);
 
     // Testa formato HEX
     let hex_path = temp_dir.join(format!("palette_{}.hex", uuid::Uuid::new_v4()));
@@ -163,7 +169,7 @@ fn test_palette_import_and_export() {
 
     let count_hex = ProjectService::import_palette(&mut state, &hex_path).expect("importar hex");
     assert_eq!(count_hex, 2);
-    assert_eq!(state.palette.len(), 2);
+    assert_eq!(state.project.palette.len(), 2);
 
     let _ = std::fs::remove_file(&gpl_path);
     let _ = std::fs::remove_file(&hex_path);
@@ -172,7 +178,7 @@ fn test_palette_import_and_export() {
 #[test]
 fn test_add_reference_image() {
     let mut state = AppState::default();
-    assert!(state.refs.is_empty());
+    assert!(state.project.refs.is_empty());
 
     ProjectService::add_reference_image(
         &mut state,
@@ -182,10 +188,10 @@ fn test_add_reference_image() {
         vec![255u8; 100 * 100 * 4],
     );
 
-    assert_eq!(state.refs.len(), 1);
-    assert_eq!(state.refs[0].name, "blueprint");
-    assert_eq!(state.refs[0].width, 100);
-    assert_eq!(state.refs[0].height, 100);
+    assert_eq!(state.project.refs.len(), 1);
+    assert_eq!(state.project.refs[0].name, "blueprint");
+    assert_eq!(state.project.refs[0].width, 100);
+    assert_eq!(state.project.refs[0].height, 100);
 }
 
 #[test]

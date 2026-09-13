@@ -3,6 +3,31 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.16.0] - 2026-09-13 — Architectural Decoupling: AppState God Object Decomposition (Gauntlet G6, F-002)
+
+### Adicionado
+- **Segregação do God Object `AppState` em Sub-estados Coesos (`crates/core/src/state.rs`)**:
+  - `ProjectState`: Modelo de domínio puro, histórico transacional undo/redo, paleta de cores e imagens de referência (`project`, `undo`, `palette`, `refs`, `project_path`, `export_selected`, `export_gltf`).
+  - `EditorSession`: Câmera de visualização, transformações, modos de seleção, visibilidade de overlays e configurações de visualização de viewport (`selection`, `mode`, `workspace`, `select_mode`, `shading`, `textured`, `camera`, `camera_frame`, `cursor_3d`, `locked_axes`, `snap_enabled`, `proportional_editing`, `transform_orientation`, `pivot_point`, `show_overlays`, `show_xray`).
+  - `ToolState`: Sessões de ferramentas ativas e parâmetros voláteis (`active_tool`, `gizmo_mode`, `modal`, `pending_modal`, `pointer_session`, `cut_session`, `mesh_preview`, `paint_*`, `extrude_dist`, `profile`, `uv_selected`, anotações e medições).
+  - `UiState`: Estado de apresentação visual, preferências de interface e modais (`viewport_rect`, `viewport_pixels_per_point`, `outliner_search`, `properties_tab`, `show_settings`, `settings_tab`, `show_asset_library`, `show_asset_browser`, `show_help`, `show_perf`, `active_theme_id`, `active_icon_pack_id`, `active_keymap_id`, `i18n`, `keybinds`, `timeline_*`, `status`, `box_select_start`, `pending_pick`, `context_menu_pos`).
+  - `RenderResources`: Telemetria de backend de renderização e dirty flags de GPU (`dirty`, `canvas_dirty`, `backend_name`, `stats`).
+- **Delegação Ergonômica transparente via `Deref` e `DerefMut`**:
+  - `AppState -> EditorSession -> ToolState`: Permite que acessos a propriedades de sessão e ferramentas permaneçam ergonômicos sem quebras de compatibilidade sintática (`state.mode`, `state.camera`, `state.active_tool`).
+  - `ProjectState -> Project`: Permite acesso direto aos métodos do modelo de malha (`state.project.assets`, `state.project.active_mesh()`).
+- **Suíte de Testes de Desacoplamento de Estado (`crates/core/tests/state_decomposition_tests.rs`)**:
+  - 6 testes unitários que exercitam mutações simultâneas de sub-estados isolados sem locks globais, validando a autonomia de ciclo de vida de `ProjectState`, `EditorSession`, `ToolState`, `UiState` e `RenderResources`.
+- **Governança Automatizada de Invariantes em Fitness e CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita de que nenhum campo de apresentação (ex: `viewport_rect`, `stats`, `show_settings`, `keybinds`, `canvas_dirty`) vaza para as estruturas de domínio (`ProjectState`, `EditorSession`, `ToolState`).
+
+### Modificado
+- **Erradicação do Dual-Storage de Paletas em `crates/module-paint`**:
+  - A paleta de cores reside exclusivamente no modelo de domínio (`state.project.palette`).
+- **Alinhamento de Chamadas em todo o Workspace**:
+  - Atualização dos módulos `crates/module-assets`, `crates/module-model`, `crates/module-uv`, `crates/render-gl`, `crates/ui` e `crates/app` para consumir os sub-estados segregados.
+
+---
+
 ## [0.15.0] - 2026-09-13 — Architectural Decoupling: Tool Sessions Decoupling (Cutting, Modal & Math Normalization) (Gauntlet G5)
 
 ### Adicionado

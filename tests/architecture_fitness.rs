@@ -184,3 +184,92 @@ fn tool_and_pointer_sessions_isolated_from_egui_memory() {
         );
     }
 }
+
+#[test]
+fn app_state_decomposed_into_cohesive_substates() {
+    let state_rs = root_dir().join("crates/core/src/state.rs");
+    let content = fs::read_to_string(&state_rs).expect("crates/core/src/state.rs");
+
+    // Valida que as 5 sub-estruturas coesas existem no módulo de estado
+    assert!(
+        content.contains("pub struct ProjectState"),
+        "ProjectState deve existir"
+    );
+    assert!(
+        content.contains("pub struct EditorSession"),
+        "EditorSession deve existir"
+    );
+    assert!(
+        content.contains("pub struct ToolState"),
+        "ToolState deve existir"
+    );
+    assert!(
+        content.contains("pub struct UiState"),
+        "UiState deve existir"
+    );
+    assert!(
+        content.contains("pub struct RenderResources"),
+        "RenderResources deve existir"
+    );
+
+    // Valida que AppState é composto exclusivamente pelas sub-estruturas + EventBus
+    assert!(
+        content.contains("pub project: ProjectState"),
+        "AppState deve conter project: ProjectState"
+    );
+    assert!(
+        content.contains("pub session: EditorSession"),
+        "AppState deve conter session: EditorSession"
+    );
+    assert!(
+        content.contains("pub ui: UiState"),
+        "AppState deve conter ui: UiState"
+    );
+    assert!(
+        content.contains("pub render: RenderResources"),
+        "AppState deve conter render: RenderResources"
+    );
+    assert!(
+        content.contains("pub events: EventBus"),
+        "AppState deve conter events: EventBus"
+    );
+    assert!(
+        content.contains("pub tools: ToolState"),
+        "EditorSession deve conter tools: ToolState"
+    );
+
+    // Valida isolamento de domínio: ProjectState, EditorSession e ToolState não contêm campos de UI/GPU
+    let check_no_leaked_ui_gpu_fields = |struct_name: &str, forbidden: &[&str]| {
+        let start = content
+            .find(struct_name)
+            .unwrap_or_else(|| panic!("struct {struct_name} not found"));
+        let end = content[start..]
+            .find('}')
+            .unwrap_or_else(|| panic!("closing brace for {struct_name} not found"))
+            + start;
+        let body = &content[start..end];
+        for f in forbidden {
+            assert!(
+                !body.contains(f),
+                "VIOLAÇÃO ARQUITETURAL (G6 / F-002): {struct_name} contém campo '{f}' de apresentação/GPU vazado no domínio!"
+            );
+        }
+    };
+
+    let forbidden_in_domain = [
+        "viewport_rect",
+        "viewport_pixels_per_point",
+        "backend_name",
+        "stats",
+        "show_settings",
+        "show_help",
+        "show_asset_library",
+        "keybinds",
+        "active_theme_id",
+        "canvas_dirty",
+    ];
+
+    check_no_leaked_ui_gpu_fields("pub struct ProjectState {", &forbidden_in_domain);
+    check_no_leaked_ui_gpu_fields("pub struct EditorSession {", &forbidden_in_domain);
+    check_no_leaked_ui_gpu_fields("pub struct ToolState {", &forbidden_in_domain);
+}

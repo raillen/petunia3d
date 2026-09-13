@@ -145,10 +145,12 @@ fn draw_mode_and_targets_cluster(ui: &mut Ui, state: &mut AppState) {
                 .color(tokens::TEXT_PRIMARY),
             |ui| {
                 let sc_obj = state
+                    .ui
                     .keybinds
                     .shortcut_for("model.select_object")
                     .unwrap_or_else(|| "0".into());
                 let sc_edit = state
+                    .ui
                     .keybinds
                     .shortcut_for("global.cycle_mode")
                     .unwrap_or_else(|| "Tab".into());
@@ -253,6 +255,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     // Menu View
     ui.menu_button("View ▾", |ui| {
         let sc_frame = state
+            .ui
             .keybinds
             .shortcut_for("model.frame_selection")
             .unwrap_or_else(|| "Numpad .".into());
@@ -267,6 +270,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         petunia_menu_separator(ui);
 
         let sc_proj = state
+            .ui
             .keybinds
             .shortcut_for("global.toggle_projection")
             .unwrap_or_else(|| "Numpad 5".into());
@@ -405,6 +409,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     if state.mode == EditMode::Object {
         ui.menu_button("Object ▾", |ui| {
             let sc_dup = state
+                .ui
                 .keybinds
                 .shortcut_for("model.duplicate")
                 .unwrap_or_else(|| "Shift+D".into());
@@ -419,6 +424,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             }
 
             let sc_del = state
+                .ui
                 .keybinds
                 .shortcut_for("model.delete")
                 .unwrap_or_else(|| "Delete".into());
@@ -445,6 +451,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     } else {
         ui.menu_button("Mesh ▾", |ui| {
             let sc_ext = state
+                .ui
                 .keybinds
                 .shortcut_for("model.extrude")
                 .unwrap_or_else(|| "E".into());
@@ -460,6 +467,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             }
 
             let sc_ins = state
+                .ui
                 .keybinds
                 .shortcut_for("model.inset")
                 .unwrap_or_else(|| "I".into());
@@ -475,6 +483,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             }
 
             let sc_bev = state
+                .ui
                 .keybinds
                 .shortcut_for("model.bevel")
                 .unwrap_or_else(|| "Ctrl+B".into());

@@ -10,7 +10,7 @@ use crate::widgets;
 
 /// Renderiza o painel lateral retrátil do Asset Browser.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
-    if !state.show_asset_browser {
+    if !state.ui.show_asset_browser {
         return;
     }
 
@@ -59,7 +59,7 @@ fn draw_header(ui: &mut Ui, state: &mut AppState) {
                 .on_hover_text("Fechar Asset Browser")
                 .clicked()
             {
-                state.show_asset_browser = false;
+                state.ui.show_asset_browser = false;
                 state.mark_dirty();
             }
         });

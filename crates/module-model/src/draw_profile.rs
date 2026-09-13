@@ -62,11 +62,14 @@ pub fn profile_add_point(state: &mut AppState, nx: f32, ny: f32) {
 
 /// Captura o frame 2D da câmera atual (chamar ao ativar).
 pub fn profile_capture_frame(state: &mut AppState) {
-    let cam = &state.camera;
-    state.profile.right = cam.right().to_array();
-    state.profile.up = cam.up().to_array();
-    state.profile.origin = cam.target.to_array();
-    state.profile.normal = (-cam.forward()).to_array();
+    let right = state.camera.right().to_array();
+    let up = state.camera.up().to_array();
+    let origin = state.camera.target.to_array();
+    let normal = (-state.camera.forward()).to_array();
+    state.profile.right = right;
+    state.profile.up = up;
+    state.profile.origin = origin;
+    state.profile.normal = normal;
     state.profile.points.clear();
     state.profile.closed = false;
 }

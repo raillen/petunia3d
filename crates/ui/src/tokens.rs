@@ -86,7 +86,7 @@ pub fn rgba_to_color32(c: petunia_config::ColorRgba) -> Color32 {
 /// Obtém dinamicamente a cor correspondente a um ThemeToken para o tema ativo no AppState.
 pub fn color(state: &petunia_core::AppState, token: ThemeToken) -> Color32 {
     let registry = petunia_config::ThemeRegistry::global();
-    if let Some(theme) = registry.get_theme(&state.active_theme_id) {
+    if let Some(theme) = registry.get_theme(&state.ui.active_theme_id) {
         rgba_to_color32(theme.colors.get_token_color(token))
     } else {
         match token {

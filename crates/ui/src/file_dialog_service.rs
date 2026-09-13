@@ -187,7 +187,11 @@ impl PetuniaFileDialogService {
                 }
             }
             FileDialogAction::ExportPalette => {
-                match ProjectService::export_palette(&state.palette, "Petunia Palette", &path) {
+                match ProjectService::export_palette(
+                    &state.project.palette,
+                    "Petunia Palette",
+                    &path,
+                ) {
                     Ok(()) => state.set_status(format!("exported palette to {}", path.display())),
                     Err(e) => state.set_status(format!("export palette err: {e}")),
                 }

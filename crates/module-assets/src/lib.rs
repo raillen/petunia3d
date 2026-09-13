@@ -45,7 +45,8 @@ impl AssetsModule {
 
     pub fn delete_active(state: &mut AppState) {
         state.checkpoint("delete asset");
-        state.project.remove(state.project.active);
+        let active = state.project.active;
+        state.project.remove(active);
         let id = state
             .project
             .assets

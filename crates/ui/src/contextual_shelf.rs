@@ -338,11 +338,11 @@ fn draw_animate_shelf(ui: &mut Ui, state: &mut AppState) {
     )
     .clicked()
     {
-        state.timeline_frame = state.timeline_start;
+        state.ui.timeline_frame = state.ui.timeline_start;
         state.mark_dirty();
     }
 
-    let (play_icon, play_label) = if state.timeline_playing {
+    let (play_icon, play_label) = if state.ui.timeline_playing {
         (PetuniaIcon::Pause, "Pause")
     } else {
         (PetuniaIcon::Play, "Play")
@@ -351,17 +351,17 @@ fn draw_animate_shelf(ui: &mut Ui, state: &mut AppState) {
         ui,
         Some(play_icon),
         play_label,
-        state.timeline_playing,
+        state.ui.timeline_playing,
         "Iniciar/Pausar animação",
     )
     .clicked()
     {
-        state.timeline_playing = !state.timeline_playing;
+        state.ui.timeline_playing = !state.ui.timeline_playing;
         state.mark_dirty();
     }
 
     if pill_button(ui, Some(PetuniaIcon::JumpEnd), "", false, "Último Frame").clicked() {
-        state.timeline_frame = state.timeline_end;
+        state.ui.timeline_frame = state.ui.timeline_end;
         state.mark_dirty();
     }
 
@@ -375,8 +375,8 @@ fn draw_animate_shelf(ui: &mut Ui, state: &mut AppState) {
             .color(tokens::TEXT_SECONDARY),
     );
     ui.add(
-        egui::DragValue::new(&mut state.timeline_frame)
-            .range(state.timeline_start..=state.timeline_end),
+        egui::DragValue::new(&mut state.ui.timeline_frame)
+            .range(state.ui.timeline_start..=state.ui.timeline_end),
     );
 }
 

@@ -70,7 +70,7 @@ fn keyboard_session_mouse_preview_then_escape_restores_mesh() {
         vec![Event::PointerMoved(egui::pos2(450.0, 350.0))],
     );
     assert!(state.modal.is_some());
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     frame(
         &ctx,
         &mut state,
@@ -80,7 +80,7 @@ fn keyboard_session_mouse_preview_then_escape_restores_mesh() {
     frame(&ctx, &mut state, vec![key(Key::Escape)]);
     assert!(state.modal.is_none());
     assert_eq!(mesh_snapshot(&state), original);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn numeric_axis_session_enter_commits_one_checkpoint() {
     );
     frame(&ctx, &mut state, vec![key(Key::Enter)]);
     assert!(state.modal.is_none());
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
     for (before, after) in original
         .verts
         .iter()
@@ -133,7 +133,7 @@ fn empty_redraw_does_not_reapply_preview_or_emit_mesh_events() {
     assert_eq!(mesh_snapshot(&state), preview);
     assert_eq!(state.events.pending(), 0);
     assert!(!state.consume_dirty());
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn invalid_number_cannot_confirm_last_valid_preview() {
     frame(&ctx, &mut state, vec![key(Key::Enter)]);
     assert!(state.modal.is_some());
     assert_eq!(mesh_snapshot(&state), valid_preview);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     frame(&ctx, &mut state, vec![key(Key::Backspace)]);
     frame(&ctx, &mut state, vec![Event::Text("2".into())]);
     // Release before pressing Enter again to model a real second keystroke.
@@ -165,7 +165,7 @@ fn invalid_number_cannot_confirm_last_valid_preview() {
     frame(&ctx, &mut state, vec![release]);
     frame(&ctx, &mut state, vec![key(Key::Enter)]);
     assert!(state.modal.is_none());
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
 }
 
 #[test]
@@ -183,7 +183,7 @@ fn right_click_cancels_and_left_click_confirms_keyboard_sessions() {
         frame(&ctx, &mut state, vec![Event::PointerMoved(pos)]);
         frame(&ctx, &mut state, vec![button(pos, button_kind, true)]);
         assert!(state.modal.is_none());
-        assert_eq!(state.undo.depth(), (usize::from(commits), 0));
+        assert_eq!(state.project.undo.depth(), (usize::from(commits), 0));
         if !commits {
             assert_eq!(mesh_snapshot(&state), original);
         }
@@ -219,7 +219,7 @@ fn gizmo_drag_commits_on_release_without_extra_click() {
         vec![button(pos, PointerButton::Primary, false)],
     );
     assert!(state.modal.is_none());
-    assert_eq!(state.undo.depth(), (1, 0));
+    assert_eq!(state.project.undo.depth(), (1, 0));
 }
 
 #[test]
@@ -238,7 +238,7 @@ fn pending_tool_waits_for_viewport_and_escape_cancels_without_history() {
     frame(&ctx, &mut state, vec![key(Key::Escape)]);
     assert!(state.pending_modal.is_none());
     assert_eq!(mesh_snapshot(&state), original);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
 }
 
 fn text_position(shapes: &[egui::epaint::ClippedShape], text: &str) -> Option<Pos2> {
@@ -289,7 +289,7 @@ fn sidebar_duplicate_button_is_disabled_during_modal_preview() {
     );
     panel_frame(&mut state, vec![button(pos, PointerButton::Primary, false)]);
     assert_eq!(mesh_snapshot(&state), preview);
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     assert!(state.modal.is_some());
 }
 
@@ -310,7 +310,7 @@ fn pointer_leaving_window_keeps_last_preview_until_cancel() {
     frame(&ctx, &mut state, vec![Event::PointerGone]);
     assert_eq!(mesh_snapshot(&state), preview);
     assert!(state.modal.is_some());
-    assert_eq!(state.undo.depth(), (0, 0));
+    assert_eq!(state.project.undo.depth(), (0, 0));
     frame(&ctx, &mut state, vec![key(Key::Escape)]);
     assert!(state.modal.is_none());
 }

@@ -72,16 +72,16 @@ pub fn draw(
                         egui::CollapsingHeader::new("Animation Properties")
                             .default_open(true)
                             .show(ui, |ui| {
-                                ui.label(format!("Current Frame: {}", state.timeline_frame));
+                                ui.label(format!("Current Frame: {}", state.ui.timeline_frame));
                                 ui.label(format!(
                                     "Range: {}..={}",
-                                    state.timeline_start, state.timeline_end
+                                    state.ui.timeline_start, state.ui.timeline_end
                                 ));
                             });
                     }
                 }
 
-                if state.show_help {
+                if state.ui.show_help {
                     egui::CollapsingHeader::new(state.t("ui.help"))
                         .default_open(false)
                         .show(ui, |ui| {
@@ -125,14 +125,14 @@ fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
                 for (tab_id, icon, hint) in tabs {
-                    let is_active = state.properties_tab == tab_id;
+                    let is_active = state.ui.properties_tab == tab_id;
                     if PetuniaPropertyTabButton::new(icon, is_active)
                         .accent_color(tokens::ACCENT_BLUE)
                         .tooltip(hint)
                         .show(ui)
                         .clicked()
                     {
-                        state.properties_tab = tab_id.to_string();
+                        state.ui.properties_tab = tab_id.to_string();
                         state.mark_dirty();
                     }
                 }
@@ -147,7 +147,7 @@ fn draw_active_tab_content(
     tools: &ToolRegistry,
     fields: bool,
 ) {
-    match state.properties_tab.as_str() {
+    match state.ui.properties_tab.as_str() {
         "tool" => draw_tab_tool(ctx, ui, state, tools, fields),
         "modifiers" => draw_tab_modifiers(ui, state),
         "data" => draw_tab_data(ui, state),
@@ -822,7 +822,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
             );
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing = vec2(4.0, 4.0);
-                let palette_colors = state.palette.clone();
+                let palette_colors = state.project.palette.clone();
                 for (pal_idx, pal_col) in palette_colors.iter().enumerate() {
                     let color32 = egui::Color32::from_rgb(
                         (pal_col[0] * 255.0) as u8,
@@ -897,7 +897,7 @@ mod tests {
         let ann_id = ann.id;
         state.project.add_annotation(ann);
         state.selected_annotation = Some(ann_id);
-        state.properties_tab = "object".to_string();
+        state.ui.properties_tab = "object".to_string();
 
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| {
@@ -921,7 +921,7 @@ mod tests {
         let meas_id = meas.id;
         state.project.add_measurement(meas);
         state.selected_measurement = Some(meas_id);
-        state.properties_tab = "object".to_string();
+        state.ui.properties_tab = "object".to_string();
 
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| {

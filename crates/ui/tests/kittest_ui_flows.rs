@@ -50,7 +50,7 @@ fn test_kittest_viewport_bar_flow() {
 #[test]
 fn test_kittest_outliner_tree_flow() {
     let mut state = AppState::new("en");
-    state.outliner_search = "Cube".to_string();
+    state.ui.outliner_search = "Cube".to_string();
 
     let mut harness = Harness::builder().build_ui(|ui| {
         outliner::draw(ui, &mut state);
@@ -58,7 +58,7 @@ fn test_kittest_outliner_tree_flow() {
 
     harness.run();
     drop(harness);
-    assert_eq!(state.outliner_search, "Cube");
+    assert_eq!(state.ui.outliner_search, "Cube");
 }
 
 #[test]
