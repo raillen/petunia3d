@@ -4,6 +4,7 @@ use std::sync::Arc;
 use petunia_mesh::Mesh;
 use petunia_project::Asset;
 
+use crate::camera::ViewPreset;
 use crate::docs::DocsTopic;
 use crate::state::{AppState, EditMode};
 
@@ -601,6 +602,126 @@ impl CommandDispatcher {
             .with_docs(DocsTopic::Navigation),
             ToggleProjectionCmd,
         );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.frame_all",
+                "Frame All",
+                "Center 3D camera on all visible scene geometry",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            FrameAllCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.toggle_nav_hud",
+                "Toggle Navigation HUD",
+                "Toggle display of viewport orientation angle badge",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            ToggleNavHudCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.front",
+                "View Front",
+                "Align camera to Front orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::Front),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.back",
+                "View Back",
+                "Align camera to Back orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::Back),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.left",
+                "View Left",
+                "Align camera to Left orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::Left),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.right",
+                "View Right",
+                "Align camera to Right orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::Right),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.top",
+                "View Top",
+                "Align camera to Top orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::Top),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.bottom",
+                "View Bottom",
+                "Align camera to Bottom orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::Bottom),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.isometric_ne",
+                "Isometric NE",
+                "Align camera to North-East isometric view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::IsometricNE),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.isometric_nw",
+                "Isometric NW",
+                "Align camera to North-West isometric view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::IsometricNW),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.isometric_se",
+                "Isometric SE",
+                "Align camera to South-East isometric view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::IsometricSE),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.isometric_sw",
+                "Isometric SW",
+                "Align camera to South-West isometric view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            SetViewPresetCmd(ViewPreset::IsometricSW),
+        );
 
         // 6. Janela e Interface (Window)
         d.register_with_meta(
@@ -612,6 +733,16 @@ impl CommandDispatcher {
             )
             .with_docs(DocsTopic::Interface),
             ToggleCommandPaletteCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "window.reference_manager",
+                "Reference Set Manager",
+                "Open reference images manager window",
+                CommandCategory::Window,
+            )
+            .with_docs(DocsTopic::Interface),
+            ToggleReferenceManagerCmd,
         );
         d.register_with_meta(
             CommandMetadata::new(
@@ -1838,6 +1969,98 @@ impl Command for ToggleProjectionCmd {
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         state.camera_frame = None;
         state.camera.toggle_projection();
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para enquadrar todo o conteúdo relevante da cena (Frame All, P3D-008).
+#[derive(Debug, Clone, Default)]
+pub struct FrameAllCmd;
+
+impl Command for FrameAllCmd {
+    fn label(&self) -> &'static str {
+        "frame all"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.frame_all();
+        Ok(())
+    }
+}
+
+/// Comando para alternar exibição do Navigation HUD no viewport (P3D-005).
+#[derive(Debug, Clone, Default)]
+pub struct ToggleNavHudCmd;
+
+impl Command for ToggleNavHudCmd {
+    fn label(&self) -> &'static str {
+        "toggle nav hud"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.session.show_nav_hud = !state.session.show_nav_hud;
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para alinhar a câmera a um preset canônico ou isométrico (P3D-004, P3D-006).
+#[derive(Debug, Clone)]
+pub struct SetViewPresetCmd(pub ViewPreset);
+
+impl Command for SetViewPresetCmd {
+    fn label(&self) -> &'static str {
+        match self.0 {
+            ViewPreset::Front => "view front",
+            ViewPreset::Back => "view back",
+            ViewPreset::Left => "view left",
+            ViewPreset::Right => "view right",
+            ViewPreset::Top => "view top",
+            ViewPreset::Bottom => "view bottom",
+            ViewPreset::IsometricNE => "view isometric ne",
+            ViewPreset::IsometricNW => "view isometric nw",
+            ViewPreset::IsometricSE => "view isometric se",
+            ViewPreset::IsometricSW => "view isometric sw",
+            ViewPreset::Persp => "view perspective",
+        }
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.camera_frame = None;
+        state.camera.set_preset(self.0);
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para alternar exibição do Reference Set Manager (P3D-013).
+#[derive(Debug, Clone, Default)]
+pub struct ToggleReferenceManagerCmd;
+
+impl Command for ToggleReferenceManagerCmd {
+    fn label(&self) -> &'static str {
+        "reference manager"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.ui.show_reference_manager = !state.ui.show_reference_manager;
         state.mark_dirty();
         Ok(())
     }

@@ -184,6 +184,12 @@ selected = "sel faces"
 hint = "Click: select face. Drag: move UVs. Wheel: scale."
 
 [refs]
+manager_title = "Reference Set Manager"
+manager_desc = "Configure independent reference images for the 6 canonical orthographic slots."
+clear_all = "Clear All"
+clear_all_tooltip = "Remove all reference images from scene"
+add_custom = "Add Unassigned…"
+add_custom_tooltip = "Load a reference image without pinning to a canonical slot"
 load = "Load image…"
 front = "Front"
 back = "Back"

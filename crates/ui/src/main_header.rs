@@ -308,6 +308,14 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
             state.mark_dirty();
         }
 
+        if PetuniaMenuCheckboxItem::new("Reference Set Manager", state.ui.show_reference_manager)
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_reference_manager = !state.ui.show_reference_manager;
+            state.mark_dirty();
+        }
+
         petunia_menu_separator(ui);
 
         // Language Submenu

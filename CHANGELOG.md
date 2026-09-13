@@ -3,6 +3,40 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.25.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 4 (Viewport, Navigation & Reference Workflow)
+
+### Adicionado
+- **P3D-004 / P3D-006 — Projeção e Vistas Canônicas & Isométricas (`crates/core/src/camera.rs`, `crates/core/src/command.rs`)**:
+  - Implementação dos presets isométricos canônicos para workflows de jogos e visualização técnica: `IsometricNE`, `IsometricNW`, `IsometricSE`, `IsometricSW` com ângulo de inclinação matematicamente exato ($\arcsin(\tan(30^\circ)) \approx 35.264^\circ$).
+  - Detecção e classificação em tempo real da orientação da câmera via `Camera::nominal_view(&self) -> (&'static str, f32, f32)` com normalização angular e tolerância a drift.
+  - Registro canônico de comandos semânticos de navegação no `CommandDispatcher`: `view.front`, `view.back`, `view.left`, `view.right`, `view.top`, `view.bottom`, `view.isometric_ne`, `view.isometric_nw`, `view.isometric_se`, `view.isometric_sw`.
+- **P3D-005 / P3D-075 — Navigation HUD no Viewport (`crates/ui/src/nav_gizmo.rs`, `crates/ui/src/viewport_interaction.rs`)**:
+  - Badge translúcido moderno de visualização nominal exibido no canto superior esquerdo do Viewport 3D com leitura clara do nome da vista e ângulos (ex: `Front Ortho · Pitch +0° Yaw +0°` ou `Isometric NE`).
+  - Flag de configuração `show_nav_hud: bool` no `EditorSession` e comando `view.toggle_nav_hud` para ativar/desativar exibição.
+- **P3D-008 — Frame Selected & Frame All (`crates/core/src/state.rs`, `crates/core/src/command.rs`)**:
+  - Implementação pura de `AppState::frame_all(&mut self)` que computa a caixa delimitadora (AABB) agregada de todos os assets e referências visíveis na cena.
+  - Comando semântico `view.frame_all` (`FrameAllCmd`) registrado no dispatcher e mapeado para a tecla `Home` nos keybinds padrão.
+  - Invariante rigorosamente garantido: enquadramentos de câmera (`frame_selection` e `frame_all`) animam o viewport sem modificar o dirty state do projeto.
+- **P3D-013 / P3D-014 — Gerenciador de Conjuntos de Referências (Reference Sets) (`crates/ui/src/reference_manager.rs`, `crates/core/src/project_service.rs`)**:
+  - Nova janela utilitária modal `Reference Set Manager` (`window.reference_manager`, atalho `Shift+R`).
+  - 6 slots ortográficos canônicos independentes: `Front`, `Back`, `Left`, `Right`, `Top` e `Bottom`.
+  - Pré-visualização em miniaturas geradas por textura cacheada na GPU, nome e dimensões em pixels.
+  - Controles de calibração fina independentes por referência: opacidade (0.0..1.0), escala/tamanho (0.1..20.0), offset (-20.0..20.0), rotação (-180°..180°), bloqueio de edição (`locked`) e modo X-Ray.
+  - Botão de alinhamento rápido da câmera 3D com o ângulo de referência do slot selecionado.
+  - Ações de substituição individual de imagem sem recriação do conjunto e remoção atômica por slot.
+  - Métodos puros no `ProjectService`: `set_reference_slot`, `remove_reference` e `clear_references`.
+- **P3D-009 / P3D-010 — Popover de Overlays no Viewport Context Bar (`crates/ui/src/viewport_bar.rs`, `crates/render-wgpu/src/lib.rs`)**:
+  - Botão segmentado de alternância geral de overlays integrado a um popover dropdown compacto (`▾`).
+  - Opções centralizadas no popover: Grade 3D (Grid), Eixos Mundiais (Axes), Cursor 3D, Aramado (Wireframe Overlay), Triangulação (Diagonais) e Navigation HUD.
+  - Acesso direto ao Gerenciador de Referências no popover.
+  - Renderizador WebGPU e controle de cena adaptados para respeitar `show_overlays` e `show_grid` sem consumo de draw calls desnecessárias.
+- **Qualidade & Testes**:
+  - Testes unitários para projeções isométricas, detecção de vistas nominais, `frame_all` e ciclo de vida de slots de referência.
+  - Testes de fluxo UI com `egui_kittest` cobrindo o Gerenciador de Referências e o Navigation HUD.
+  - 100% de conformidade com todos os Quality Gates do workspace.
+
+---
+
 ## [0.24.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 3 (UI Infrastructure, Customization & Input)
 
 ### Adicionado

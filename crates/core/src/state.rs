@@ -404,6 +404,11 @@ pub struct EditorSession {
     pub show_overlays: bool,
     pub show_xray: bool,
     pub show_triangulation: bool,
+    pub show_nav_hud: bool,
+    pub show_grid: bool,
+    pub show_axes: bool,
+    pub show_wireframe_overlay: bool,
+    pub show_cursor: bool,
     pub tools: ToolState,
 }
 
@@ -450,6 +455,11 @@ impl EditorSession {
             show_overlays: true,
             show_xray: false,
             show_triangulation: false,
+            show_nav_hud: true,
+            show_grid: true,
+            show_axes: true,
+            show_wireframe_overlay: false,
+            show_cursor: true,
             tools: ToolState::new(),
         }
     }
@@ -536,6 +546,7 @@ pub struct UiState {
     pub show_help: bool,
     pub show_perf: bool,
     pub show_command_palette: bool,
+    pub show_reference_manager: bool,
     pub command_palette_query: String,
     pub command_palette_selected_index: usize,
     pub active_theme_id: String,
@@ -567,6 +578,7 @@ impl UiState {
             show_help: false,
             show_perf: false,
             show_command_palette: false,
+            show_reference_manager: false,
             command_palette_query: String::new(),
             command_palette_selected_index: 0,
             active_theme_id: "petunia-dark".to_string(),
@@ -955,6 +967,62 @@ impl AppState {
             self.camera_frame = Some((self.camera.clone(), goal, 0.0));
             self.mark_dirty();
         }
+    }
+
+    /// Centraliza e enquadra a câmera 3D em todo o conteúdo visível da cena (P3D-008).
+    /// Não altera o estado de dirty do projeto.
+    pub fn frame_all(&mut self) {
+        let mut min = glam::Vec3::splat(f32::INFINITY);
+        let mut max = glam::Vec3::splat(f32::NEG_INFINITY);
+        let mut count = 0;
+
+        for asset in &self.project.assets {
+            if !asset.visible {
+                continue;
+            }
+            for v in &asset.mesh.verts {
+                let p = v.vec();
+                min = min.min(p);
+                max = max.max(p);
+                count += 1;
+            }
+        }
+
+        for r in &self.project.refs {
+            if !r.visible {
+                continue;
+            }
+            let half = r.size * 0.5;
+            let offset = r.offset;
+            match r.axis {
+                RefAxis::Front | RefAxis::Back => {
+                    min = min.min(glam::Vec3::new(-half, -half, offset));
+                    max = max.max(glam::Vec3::new(half, half, offset));
+                }
+                RefAxis::Left | RefAxis::Right | RefAxis::Side => {
+                    min = min.min(glam::Vec3::new(offset, -half, -half));
+                    max = max.max(glam::Vec3::new(offset, half, half));
+                }
+                RefAxis::Top | RefAxis::Bottom => {
+                    min = min.min(glam::Vec3::new(-half, offset, -half));
+                    max = max.max(glam::Vec3::new(half, offset, half));
+                }
+            }
+            count += 1;
+        }
+
+        let (center, radius) = if count > 0 && min.is_finite() && max.is_finite() {
+            let c = (min + max) * 0.5;
+            let r = (max - min).length() * 0.5;
+            (c, r.max(0.2))
+        } else {
+            (glam::Vec3::ZERO, 1.0)
+        };
+
+        let mut goal = self.camera.clone();
+        goal.frame(center, radius);
+        self.camera_frame = Some((self.camera.clone(), goal, 0.0));
+        self.mark_dirty();
     }
 
     /// Despacha um comando registrado no CommandDispatcher da aplicação.

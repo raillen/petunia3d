@@ -637,3 +637,75 @@ fn test_app_state_dispatch_command_string_id() {
     let err = state.dispatch_command("invalid.command.id");
     assert!(err.is_err());
 }
+
+#[test]
+fn test_view_preset_commands_and_hud() {
+    let mut state = AppState::default();
+
+    // 1. View front
+    state.dispatch_command("view.front").expect("view.front");
+    let (name, _, _) = state.camera.nominal_view();
+    assert_eq!(name, "Front Ortho");
+    assert_eq!(state.camera.proj, petunia_core::camera::Projection::Ortho);
+
+    // 2. View top
+    state.dispatch_command("view.top").expect("view.top");
+    let (name, _, _) = state.camera.nominal_view();
+    assert_eq!(name, "Top Ortho");
+
+    // 3. View isometric NE
+    state
+        .dispatch_command("view.isometric_ne")
+        .expect("view.isometric_ne");
+    let (name, _, _) = state.camera.nominal_view();
+    assert_eq!(name, "Isometric NE");
+
+    // 4. View isometric SW
+    state
+        .dispatch_command("view.isometric_sw")
+        .expect("view.isometric_sw");
+    let (name, _, _) = state.camera.nominal_view();
+    assert_eq!(name, "Isometric SW");
+
+    // 5. Toggle Nav HUD
+    assert!(state.show_nav_hud);
+    state
+        .dispatch_command("view.toggle_nav_hud")
+        .expect("toggle nav hud");
+    assert!(!state.show_nav_hud);
+    state
+        .dispatch_command("view.toggle_nav_hud")
+        .expect("toggle nav hud back");
+    assert!(state.show_nav_hud);
+
+    // 6. Toggle Reference Manager
+    assert!(!state.ui.show_reference_manager);
+    state
+        .dispatch_command("window.reference_manager")
+        .expect("toggle reference manager");
+    assert!(state.ui.show_reference_manager);
+}
+
+#[test]
+fn test_frame_all_and_selection_dont_dirty_project() {
+    let mut state = AppState::default();
+    assert!(!state.project.is_dirty());
+
+    // Frame Selection
+    state
+        .dispatch_command("view.frame_selection")
+        .expect("frame selection");
+    assert!(state.camera_frame.is_some());
+    assert!(
+        !state.project.is_dirty(),
+        "frame_selection must not mark project dirty"
+    );
+
+    // Frame All
+    state.dispatch_command("view.frame_all").expect("frame all");
+    assert!(state.camera_frame.is_some());
+    assert!(
+        !state.project.is_dirty(),
+        "frame_all must not mark project dirty"
+    );
+}

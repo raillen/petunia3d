@@ -66,6 +66,7 @@ pub fn draw(
     }
 
     // Overlays 3D e controles de navegação do viewport (Blender.svg Golden Reference)
+    crate::nav_gizmo::draw_nav_hud(state, rect, painter);
     crate::nav_gizmo::draw_3d_cursor(state, rect, painter);
     if crate::nav_gizmo::handle_3d_cursor_placement(ctx, state, rect) {
         return true;

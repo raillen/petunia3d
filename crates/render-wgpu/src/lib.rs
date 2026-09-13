@@ -82,6 +82,8 @@ pub struct Renderer {
     ref_vb: Option<wgpu::Buffer>,
     ref_count: u32,
     ref_gpu: Vec<RefGpu>,
+    pub show_overlays: bool,
+    pub show_grid: bool,
 }
 
 const MESH_WGSL: &str = r#"
@@ -591,7 +593,14 @@ impl Renderer {
             ref_vb: None,
             ref_count: 0,
             ref_gpu: Vec::new(),
+            show_overlays: true,
+            show_grid: true,
         }
+    }
+
+    pub fn set_overlays(&mut self, show_overlays: bool, show_grid: bool) {
+        self.show_overlays = show_overlays;
+        self.show_grid = show_grid;
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
@@ -893,24 +902,29 @@ impl Renderer {
 
     pub fn render(&self, pass: &mut wgpu::RenderPass<'_>, refs: &[petunia_core::ReferenceImage]) {
         pass.set_bind_group(0, &self.cam_bind_group, &[]);
-        // grid
-        pass.set_pipeline(&self.line_pipeline);
-        pass.set_vertex_buffer(0, self.grid_vb.slice(..));
-        pass.draw(0..self.grid_count, 0..1);
+
+        // Grid 3D condicional aos overlays
+        if self.show_overlays && self.show_grid {
+            pass.set_pipeline(&self.line_pipeline);
+            pass.set_vertex_buffer(0, self.grid_vb.slice(..));
+            pass.draw(0..self.grid_count, 0..1);
+        }
 
         // Referências padrão (não X-Ray): desenhadas ANTES da geometria sólida com depth test
-        if let Some(vb) = &self.ref_vb {
-            pass.set_pipeline(&self.ref_pipeline);
-            pass.set_vertex_buffer(0, vb.slice(..));
-            let mut start = 0u32;
-            for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
-                if !r.xray {
-                    if let Some(slot) = self.ref_gpu.get(i) {
-                        pass.set_bind_group(1, &slot.bind_group, &[]);
-                        pass.draw(start..start + 6, 0..1);
+        if self.show_overlays {
+            if let Some(vb) = &self.ref_vb {
+                pass.set_pipeline(&self.ref_pipeline);
+                pass.set_vertex_buffer(0, vb.slice(..));
+                let mut start = 0u32;
+                for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
+                    if !r.xray {
+                        if let Some(slot) = self.ref_gpu.get(i) {
+                            pass.set_bind_group(1, &slot.bind_group, &[]);
+                            pass.draw(start..start + 6, 0..1);
+                        }
                     }
+                    start += 6;
                 }
-                start += 6;
             }
         }
 
@@ -936,18 +950,20 @@ impl Renderer {
         }
 
         // Referências X-Ray: overlay pass desenhado APÓS a geometria com depth test bypass
-        if let Some(vb) = &self.ref_vb {
-            pass.set_pipeline(&self.ref_xray_pipeline);
-            pass.set_vertex_buffer(0, vb.slice(..));
-            let mut start = 0u32;
-            for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
-                if r.xray {
-                    if let Some(slot) = self.ref_gpu.get(i) {
-                        pass.set_bind_group(1, &slot.bind_group, &[]);
-                        pass.draw(start..start + 6, 0..1);
+        if self.show_overlays {
+            if let Some(vb) = &self.ref_vb {
+                pass.set_pipeline(&self.ref_xray_pipeline);
+                pass.set_vertex_buffer(0, vb.slice(..));
+                let mut start = 0u32;
+                for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
+                    if r.xray {
+                        if let Some(slot) = self.ref_gpu.get(i) {
+                            pass.set_bind_group(1, &slot.bind_group, &[]);
+                            pass.draw(start..start + 6, 0..1);
+                        }
                     }
+                    start += 6;
                 }
-                start += 6;
             }
         }
 

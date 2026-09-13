@@ -31,6 +31,7 @@ pub mod nav_gizmo;
 pub mod outliner;
 pub mod properties_panel;
 pub mod recovery_dialog;
+pub mod reference_manager;
 pub mod settings_modal;
 pub mod status_bar;
 pub mod tiles_workspace;
@@ -106,6 +107,7 @@ pub fn draw(
     asset_library_drawer::draw(ctx, state);
     settings_modal::draw(ctx, state);
     command_palette::draw(ctx, state);
+    reference_manager::draw(ctx, state);
 }
 
 fn viewport_bar_panel(ctx: &egui::Context, state: &mut AppState) {

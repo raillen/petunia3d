@@ -75,3 +75,44 @@ fn test_kittest_tiles_workspace_flow() {
     drop(harness);
     assert!(tree.root().is_some());
 }
+
+#[test]
+fn test_kittest_reference_manager_flow() {
+    let mut state = AppState::new("pt-BR");
+    state.ui.show_reference_manager = true;
+
+    // Adiciona uma imagem para validar rendering de slot preenchido
+    state
+        .project
+        .refs
+        .push(petunia_core::ReferenceImage::from_rgba(
+            "test_ref.png".to_string(),
+            64,
+            64,
+            vec![255u8; 64 * 64 * 4],
+        ));
+
+    let mut harness = Harness::builder().build(|ctx| {
+        petunia_ui::reference_manager::draw(ctx, &mut state);
+    });
+
+    harness.run_steps(2);
+    drop(harness);
+    assert!(state.ui.show_reference_manager);
+    assert_eq!(state.project.refs.len(), 1);
+}
+
+#[test]
+fn test_kittest_nav_hud_flow() {
+    let state = AppState::new("en");
+    assert!(state.show_nav_hud);
+    assert!(state.show_overlays);
+
+    let mut harness = Harness::builder().build_ui(|ui| {
+        let rect = ui.max_rect();
+        petunia_ui::nav_gizmo::draw_nav_hud(&state, rect, ui.painter());
+    });
+
+    harness.run();
+    drop(harness);
+}

@@ -10,7 +10,7 @@ use petunia_mesh::Mesh;
 use petunia_project::{export, format, palette};
 
 use crate::state::AppState;
-use crate::{AppEvent, ReferenceImage};
+use crate::{AppEvent, RefAxis, ReferenceImage};
 
 /// Erros estruturados ocorridos durante operações de I/O de projetos e assets.
 #[derive(Debug, thiserror::Error)]
@@ -238,6 +238,48 @@ impl ProjectService {
             .refs
             .push(ReferenceImage::from_rgba(name.clone(), width, height, rgba));
         state.set_status(format!("ref {name}"));
+        state.mark_dirty();
+    }
+
+    /// Define ou substitui a imagem de referência associada a um determinado slot ortográfico (P3D-013).
+    pub fn set_reference_slot(
+        state: &mut AppState,
+        axis: RefAxis,
+        name: String,
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+    ) {
+        if let Some(existing) = state.project.refs.iter_mut().find(|r| r.axis == axis) {
+            existing.name = name.clone();
+            existing.width = width;
+            existing.height = height;
+            existing.rgba = rgba;
+        } else {
+            let mut img = ReferenceImage::from_rgba(name.clone(), width, height, rgba);
+            img.axis = axis;
+            state.project.refs.push(img);
+        }
+        state.set_status(format!("Slot {axis:?} atualizado com '{name}'"));
+        state.mark_dirty();
+    }
+
+    /// Remove uma imagem de referência pelo índice.
+    pub fn remove_reference(state: &mut AppState, index: usize) -> bool {
+        if index < state.project.refs.len() {
+            let r = state.project.refs.remove(index);
+            state.set_status(format!("Referência '{}' removida", r.name));
+            state.mark_dirty();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Remove todas as imagens de referência da cena.
+    pub fn clear_references(state: &mut AppState) {
+        state.project.refs.clear();
+        state.set_status("Todas as referências foram removidas");
         state.mark_dirty();
     }
 }

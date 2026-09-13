@@ -21,6 +21,28 @@ pub enum ViewPreset {
     Right,
     Top,
     Bottom,
+    IsometricNE,
+    IsometricNW,
+    IsometricSE,
+    IsometricSW,
+}
+
+impl ViewPreset {
+    pub fn title(&self) -> &'static str {
+        match self {
+            Self::Persp => "Perspective",
+            Self::Front => "Front",
+            Self::Back => "Back",
+            Self::Left => "Left",
+            Self::Right => "Right",
+            Self::Top => "Top",
+            Self::Bottom => "Bottom",
+            Self::IsometricNE => "Isometric NE",
+            Self::IsometricNW => "Isometric NW",
+            Self::IsometricSE => "Isometric SE",
+            Self::IsometricSW => "Isometric SW",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -161,6 +183,22 @@ impl Camera {
                 self.yaw = 0.0;
                 self.pitch = -std::f32::consts::FRAC_PI_2;
             }
+            ViewPreset::IsometricNE => {
+                self.yaw = std::f32::consts::FRAC_PI_4;
+                self.pitch = 0.6154797; // arcsin(tan(30°))
+            }
+            ViewPreset::IsometricNW => {
+                self.yaw = std::f32::consts::FRAC_PI_4 * 3.0;
+                self.pitch = 0.6154797;
+            }
+            ViewPreset::IsometricSE => {
+                self.yaw = -std::f32::consts::FRAC_PI_4;
+                self.pitch = 0.6154797;
+            }
+            ViewPreset::IsometricSW => {
+                self.yaw = -std::f32::consts::FRAC_PI_4 * 3.0;
+                self.pitch = 0.6154797;
+            }
         }
     }
 
@@ -226,9 +264,14 @@ impl Camera {
         });
     }
 
-    /// Returns an axis-aligned view, including after changing projection.
+    /// Returns an axis-aligned or isometric view preset if current forward matches closely.
     pub fn view_preset(&self) -> Option<ViewPreset> {
         let forward = self.forward();
+        let iso_ne_fwd = -Vec3::new(1.0, 1.0, 1.0).normalize();
+        let iso_nw_fwd = -Vec3::new(1.0, 1.0, -1.0).normalize();
+        let iso_se_fwd = -Vec3::new(-1.0, 1.0, 1.0).normalize();
+        let iso_sw_fwd = -Vec3::new(-1.0, 1.0, -1.0).normalize();
+
         [
             (Vec3::NEG_Z, ViewPreset::Front),
             (Vec3::Z, ViewPreset::Back),
@@ -236,11 +279,60 @@ impl Camera {
             (Vec3::X, ViewPreset::Left),
             (Vec3::NEG_Y, ViewPreset::Top),
             (Vec3::Y, ViewPreset::Bottom),
+            (iso_ne_fwd, ViewPreset::IsometricNE),
+            (iso_nw_fwd, ViewPreset::IsometricNW),
+            (iso_se_fwd, ViewPreset::IsometricSE),
+            (iso_sw_fwd, ViewPreset::IsometricSW),
         ]
         .into_iter()
         .find_map(|(direction, preset)| {
-            (forward.distance_squared(direction) < 1e-8).then_some(preset)
+            (forward.distance_squared(direction) < 1e-4).then_some(preset)
         })
+    }
+
+    /// Identifica a vista nominal atual (ex: "Front Ortho", "Isometric NE", "User Persp")
+    /// e retorna os ângulos yaw e pitch em graus no intervalo [-180, 180].
+    pub fn nominal_view(&self) -> (&'static str, f32, f32) {
+        let yaw_deg = (self.yaw.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
+        let pitch_deg = self.pitch.to_degrees();
+
+        if self.proj == Projection::Perspective {
+            return ("User Persp", yaw_deg, pitch_deg);
+        }
+
+        const ANGULAR_EPS: f32 = 1.0;
+
+        if pitch_deg.abs() < ANGULAR_EPS {
+            if yaw_deg.abs() < ANGULAR_EPS {
+                ("Front Ortho", yaw_deg, pitch_deg)
+            } else if (yaw_deg.abs() - 180.0).abs() < ANGULAR_EPS {
+                ("Back Ortho", yaw_deg, pitch_deg)
+            } else if (yaw_deg - 90.0).abs() < ANGULAR_EPS {
+                ("Right Ortho", yaw_deg, pitch_deg)
+            } else if (yaw_deg + 90.0).abs() < ANGULAR_EPS {
+                ("Left Ortho", yaw_deg, pitch_deg)
+            } else {
+                ("User Ortho", yaw_deg, pitch_deg)
+            }
+        } else if (pitch_deg - 90.0).abs() < ANGULAR_EPS {
+            ("Top Ortho", yaw_deg, pitch_deg)
+        } else if (pitch_deg + 90.0).abs() < ANGULAR_EPS {
+            ("Bottom Ortho", yaw_deg, pitch_deg)
+        } else if (pitch_deg - 35.264).abs() < 1.5 {
+            if (yaw_deg - 45.0).abs() < 1.5 {
+                ("Isometric NE", yaw_deg, pitch_deg)
+            } else if (yaw_deg - 135.0).abs() < 1.5 {
+                ("Isometric NW", yaw_deg, pitch_deg)
+            } else if (yaw_deg + 45.0).abs() < 1.5 {
+                ("Isometric SE", yaw_deg, pitch_deg)
+            } else if (yaw_deg + 135.0).abs() < 1.5 {
+                ("Isometric SW", yaw_deg, pitch_deg)
+            } else {
+                ("User Ortho", yaw_deg, pitch_deg)
+            }
+        } else {
+            ("User Ortho", yaw_deg, pitch_deg)
+        }
     }
 
     pub fn opposite_view(&mut self) {
@@ -444,5 +536,37 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn isometric_presets_and_nominal_views() {
+        let presets = [
+            (ViewPreset::Front, "Front Ortho"),
+            (ViewPreset::Back, "Back Ortho"),
+            (ViewPreset::Left, "Left Ortho"),
+            (ViewPreset::Right, "Right Ortho"),
+            (ViewPreset::Top, "Top Ortho"),
+            (ViewPreset::Bottom, "Bottom Ortho"),
+            (ViewPreset::IsometricNE, "Isometric NE"),
+            (ViewPreset::IsometricNW, "Isometric NW"),
+            (ViewPreset::IsometricSE, "Isometric SE"),
+            (ViewPreset::IsometricSW, "Isometric SW"),
+        ];
+
+        for (preset, expected_name) in presets {
+            let mut camera = Camera::default();
+            camera.set_preset(preset);
+            assert_eq!(camera.proj, Projection::Ortho);
+            let detected_preset = camera.view_preset();
+            assert_eq!(detected_preset, Some(preset), "Preset {preset:?} mismatch");
+            let (name, _, _) = camera.nominal_view();
+            assert_eq!(name, expected_name, "Nominal view mismatch for {preset:?}");
+        }
+
+        let mut persp_camera = Camera::default();
+        persp_camera.set_preset(ViewPreset::Persp);
+        assert_eq!(persp_camera.proj, Projection::Perspective);
+        let (name, _, _) = persp_camera.nominal_view();
+        assert_eq!(name, "User Persp");
     }
 }

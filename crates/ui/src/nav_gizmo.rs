@@ -347,8 +347,48 @@ pub fn draw_nav_gizmo(
     hovered || zoom_hovered || pan_hovered || ortho_hovered
 }
 
+/// Renders the Navigation HUD badge (nominal view name + pitch/yaw orientation) in the top-left of the viewport (P3D-005).
+pub fn draw_nav_hud(state: &AppState, viewport_rect: Rect, painter: &egui::Painter) {
+    if !state.show_nav_hud || !state.show_overlays {
+        return;
+    }
+    if viewport_rect.width() < 160.0 || viewport_rect.height() < 100.0 {
+        return;
+    }
+
+    let (nominal_name, yaw_deg, pitch_deg) = state.camera.nominal_view();
+    let text = format!("{nominal_name}  ·  Pitch {pitch_deg:+.0}°  Yaw {yaw_deg:+.0}°");
+
+    let font_id = egui::FontId::monospace(11.0);
+    let galley = painter.layout_no_wrap(text, font_id, Color32::from_rgb(220, 224, 230));
+
+    let pad = Vec2::new(8.0, 4.0);
+    let badge_pos = Pos2::new(viewport_rect.left() + 14.0, viewport_rect.top() + 14.0);
+    let badge_rect = Rect::from_min_size(badge_pos, galley.size() + pad * 2.0);
+
+    // Subtle translucent dark pill background with border
+    painter.rect_filled(
+        badge_rect,
+        crate::tokens::RADIUS_PILL,
+        Color32::from_black_alpha(160),
+    );
+    painter.rect_stroke(
+        badge_rect,
+        crate::tokens::RADIUS_PILL,
+        Stroke::new(1.0_f32, Color32::from_white_alpha(40)),
+        egui::StrokeKind::Inside,
+    );
+
+    // Text inside badge padding
+    let text_pos = badge_pos + pad;
+    painter.galley(text_pos, galley, Color32::from_rgb(220, 224, 230));
+}
+
 /// Renders the 3D Cursor overlay at `state.cursor_3d`.
 pub fn draw_3d_cursor(state: &AppState, viewport_rect: Rect, painter: &egui::Painter) {
+    if !state.show_cursor || !state.show_overlays {
+        return;
+    }
     let cursor_pos = Vec3::from_array(state.cursor_3d);
     let clip = state.camera.view_proj() * cursor_pos.extend(1.0);
     if !clip.is_finite() || clip.w <= 0.0 || clip.z < 0.0 || clip.z > clip.w {

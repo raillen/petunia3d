@@ -184,6 +184,12 @@ selected = "faces sel"
 hint = "Clique: seleciona face. Arraste: move UVs. Scroll: escala."
 
 [refs]
+manager_title = "Gerenciador de Conjunto de Referências"
+manager_desc = "Configure imagens de referência independentes para os 6 slots ortográficos canônicos."
+clear_all = "Limpar Todas"
+clear_all_tooltip = "Remover todas as imagens de referência da cena"
+add_custom = "Adicionar Avulsa…"
+add_custom_tooltip = "Carregar uma imagem de referência sem fixá-la a um slot canônico"
 load = "Carregar imagem…"
 front = "Frente"
 back = "Trás"

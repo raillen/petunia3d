@@ -11,7 +11,7 @@
 use egui::{pos2, vec2, Color32, CornerRadius, Rect, Ui};
 use petunia_core::{
     AddPrimitiveCmd, AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode,
-    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, Projection, SelectAllCmd, SelectMode,
+    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SelectMode,
     SubdivideSelectionCmd,
 };
 use petunia_render::Shading;
@@ -257,41 +257,81 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         let sc_frame = state
             .ui
             .keybinds
-            .shortcut_for("model.frame_selection")
-            .unwrap_or_else(|| "Numpad .".into());
+            .shortcut_for("view.frame_selection")
+            .unwrap_or_else(|| "F".into());
         if PetuniaMenuItem::new(&state.t("view.frame"))
             .shortcut(Some(&sc_frame))
             .show(ui)
             .clicked()
         {
-            crate::frame_selection(state);
+            state.frame_selection();
             ui.close();
         }
+
+        let sc_frame_all = state
+            .ui
+            .keybinds
+            .shortcut_for("view.frame_all")
+            .unwrap_or_else(|| "Home".into());
+        if PetuniaMenuItem::new("Frame All")
+            .shortcut(Some(&sc_frame_all))
+            .show(ui)
+            .clicked()
+        {
+            state.frame_all();
+            ui.close();
+        }
+
+        let sc_reset = state
+            .ui
+            .keybinds
+            .shortcut_for("view.reset_camera")
+            .unwrap_or_else(|| "Shift+Home".into());
+        if PetuniaMenuItem::new("Reset Camera")
+            .shortcut(Some(&sc_reset))
+            .show(ui)
+            .clicked()
+        {
+            state.camera_frame = None;
+            state.camera.reset();
+            state.mark_dirty();
+            ui.close();
+        }
+
         petunia_menu_separator(ui);
 
         let sc_proj = state
             .ui
             .keybinds
-            .shortcut_for("global.toggle_projection")
-            .unwrap_or_else(|| "Numpad 5".into());
+            .shortcut_for("view.toggle_projection")
+            .unwrap_or_else(|| "O".into());
         if PetuniaMenuItem::new(&state.t("camera.projection"))
             .shortcut(Some(&sc_proj))
             .show(ui)
             .clicked()
         {
-            state.camera.proj = match state.camera.proj {
-                Projection::Perspective => Projection::Ortho,
-                Projection::Ortho => Projection::Perspective,
-            };
+            state.camera.toggle_projection();
             state.mark_dirty();
             ui.close();
         }
+
+        petunia_menu_separator(ui);
+
         if PetuniaMenuItem::new(&state.t("camera.front"))
             .shortcut(Some("Numpad 1"))
             .show(ui)
             .clicked()
         {
             state.camera.set_preset(petunia_core::ViewPreset::Front);
+            state.mark_dirty();
+            ui.close();
+        }
+        if PetuniaMenuItem::new("Back")
+            .shortcut(Some("Ctrl+Numpad 1"))
+            .show(ui)
+            .clicked()
+        {
+            state.camera.set_preset(petunia_core::ViewPreset::Back);
             state.mark_dirty();
             ui.close();
         }
@@ -304,12 +344,81 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
             ui.close();
         }
+        if PetuniaMenuItem::new("Left")
+            .shortcut(Some("Ctrl+Numpad 3"))
+            .show(ui)
+            .clicked()
+        {
+            state.camera.set_preset(petunia_core::ViewPreset::Left);
+            state.mark_dirty();
+            ui.close();
+        }
         if PetuniaMenuItem::new(&state.t("camera.top"))
             .shortcut(Some("Numpad 7"))
             .show(ui)
             .clicked()
         {
             state.camera.set_preset(petunia_core::ViewPreset::Top);
+            state.mark_dirty();
+            ui.close();
+        }
+        if PetuniaMenuItem::new("Bottom")
+            .shortcut(Some("Ctrl+Numpad 7"))
+            .show(ui)
+            .clicked()
+        {
+            state.camera.set_preset(petunia_core::ViewPreset::Bottom);
+            state.mark_dirty();
+            ui.close();
+        }
+
+        petunia_menu_separator(ui);
+
+        ui.menu_button("Isometric ▾", |ui| {
+            if PetuniaMenuItem::new("Isometric NE").show(ui).clicked() {
+                state
+                    .camera
+                    .set_preset(petunia_core::ViewPreset::IsometricNE);
+                state.mark_dirty();
+                ui.close();
+            }
+            if PetuniaMenuItem::new("Isometric NW").show(ui).clicked() {
+                state
+                    .camera
+                    .set_preset(petunia_core::ViewPreset::IsometricNW);
+                state.mark_dirty();
+                ui.close();
+            }
+            if PetuniaMenuItem::new("Isometric SE").show(ui).clicked() {
+                state
+                    .camera
+                    .set_preset(petunia_core::ViewPreset::IsometricSE);
+                state.mark_dirty();
+                ui.close();
+            }
+            if PetuniaMenuItem::new("Isometric SW").show(ui).clicked() {
+                state
+                    .camera
+                    .set_preset(petunia_core::ViewPreset::IsometricSW);
+                state.mark_dirty();
+                ui.close();
+            }
+        });
+
+        petunia_menu_separator(ui);
+
+        let sc_ref = state
+            .ui
+            .keybinds
+            .shortcut_for("window.reference_manager")
+            .unwrap_or_else(|| "Shift+R".into());
+        if PetuniaMenuItem::new("Gerenciador de Referências...")
+            .icon(PetuniaIcon::ReferenceImage)
+            .shortcut(Some(&sc_ref))
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_reference_manager = true;
             state.mark_dirty();
             ui.close();
         }
@@ -389,10 +498,12 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         petunia_menu_separator(ui);
         if PetuniaMenuItem::new(&state.t("ui.refs"))
             .icon(PetuniaIcon::ReferenceImage)
+            .shortcut(Some("Shift+R"))
             .show(ui)
             .clicked()
         {
-            crate::pick_and_add_reference_image(state);
+            state.ui.show_reference_manager = true;
+            state.mark_dirty();
             ui.close();
         }
     });
@@ -817,39 +928,118 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
 
 /// Cluster 6: Alternâncias de visualização de cena (Overlays e X-Ray com ícones vetoriais).
 fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
-    // Overlays
-    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
-    if ui.is_rect_visible(rect) {
-        let is_active = state.show_overlays;
-        let bg = if is_active {
-            tokens::ACCENT_BLUE
-        } else if resp.hovered() {
-            tokens::BG_SURFACE_HOVER
-        } else {
-            tokens::BG_SURFACE
-        };
-        let fg = if is_active {
-            tokens::TEXT_ACTIVE
-        } else {
-            tokens::TEXT_SECONDARY
-        };
-        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
-        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
-        IconRegistry::paint(
-            ui.ctx(),
-            ui.painter(),
-            &PetuniaIcon::Overlays,
-            icon_rect,
-            fg,
-        );
-    }
-    if resp
-        .on_hover_text("Alternar Exibição de Overlays (Grade 3D e Eixos)")
-        .clicked()
-    {
-        state.show_overlays = !state.show_overlays;
-        state.mark_dirty();
-    }
+    // Overlays (Segmented Toggle + Popover Dropdown, P3D-010)
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(1.0, 0.0);
+
+        let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+        if ui.is_rect_visible(rect) {
+            let is_active = state.show_overlays;
+            let bg = if is_active {
+                tokens::ACCENT_BLUE
+            } else if resp.hovered() {
+                tokens::BG_SURFACE_HOVER
+            } else {
+                tokens::BG_SURFACE
+            };
+            let fg = if is_active {
+                tokens::TEXT_ACTIVE
+            } else {
+                tokens::TEXT_SECONDARY
+            };
+            ui.painter().rect_filled(
+                rect,
+                CornerRadius {
+                    nw: 4,
+                    sw: 4,
+                    ne: 0,
+                    se: 0,
+                },
+                bg,
+            );
+            let icon_rect = Rect::from_center_size(rect.center(), vec2(15.0, 15.0));
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &PetuniaIcon::Overlays,
+                icon_rect,
+                fg,
+            );
+        }
+        if resp
+            .on_hover_text("Alternar Exibição de Overlays")
+            .clicked()
+        {
+            state.show_overlays = !state.show_overlays;
+            state.mark_dirty();
+        }
+
+        ui.menu_button("▾", |ui| {
+            ui.set_min_width(210.0);
+            ui.label(
+                egui::RichText::new("Opções de Overlay")
+                    .strong()
+                    .size(12.0)
+                    .color(tokens::TEXT_PRIMARY),
+            );
+            ui.separator();
+
+            let mut dirty = false;
+            if ui
+                .checkbox(&mut state.show_grid, "Grade 3D (Grid)")
+                .changed()
+            {
+                dirty = true;
+            }
+            if ui
+                .checkbox(&mut state.show_axes, "Eixos Mundiais (Axes)")
+                .changed()
+            {
+                dirty = true;
+            }
+            if ui.checkbox(&mut state.show_cursor, "Cursor 3D").changed() {
+                dirty = true;
+            }
+            if ui
+                .checkbox(
+                    &mut state.show_wireframe_overlay,
+                    "Aramado (Wireframe Overlay)",
+                )
+                .changed()
+            {
+                dirty = true;
+            }
+            if ui
+                .checkbox(&mut state.show_triangulation, "Triangulação (Diagonais)")
+                .changed()
+            {
+                dirty = true;
+            }
+            if ui
+                .checkbox(&mut state.show_nav_hud, "Navigation HUD (Orientação)")
+                .changed()
+            {
+                dirty = true;
+            }
+
+            ui.separator();
+
+            if PetuniaMenuItem::new("Gerenciador de Referências...")
+                .icon(PetuniaIcon::ReferenceImage)
+                .shortcut(Some("Shift+R"))
+                .show(ui)
+                .clicked()
+            {
+                state.ui.show_reference_manager = true;
+                dirty = true;
+                ui.close();
+            }
+
+            if dirty {
+                state.mark_dirty();
+            }
+        });
+    });
 
     // X-Ray
     let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());

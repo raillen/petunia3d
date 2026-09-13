@@ -923,6 +923,8 @@ impl WgpuApp {
             self.core.state.show_triangulation,
         );
         gfx.renderer3d
+            .set_overlays(self.core.state.show_overlays, self.core.state.show_grid);
+        gfx.renderer3d
             .upload_ref_pixels(&gfx.queue, &self.core.state.project.refs);
 
         let paint_jobs = gfx

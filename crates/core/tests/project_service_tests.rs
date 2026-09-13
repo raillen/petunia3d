@@ -327,3 +327,62 @@ fn test_recovery_from_snapshot() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn test_reference_slot_lifecycle_and_frame_all() {
+    let mut state = AppState::default();
+    assert_eq!(state.project.refs.len(), 0);
+
+    // 1. Atribui slot Front
+    ProjectService::set_reference_slot(
+        &mut state,
+        petunia_core::RefAxis::Front,
+        "blueprint_front.png".to_string(),
+        512,
+        512,
+        vec![255u8; 512 * 512 * 4],
+    );
+    assert_eq!(state.project.refs.len(), 1);
+    assert_eq!(state.project.refs[0].axis, petunia_core::RefAxis::Front);
+    assert_eq!(state.project.refs[0].name, "blueprint_front.png");
+
+    // 2. Atribui slot Right
+    ProjectService::set_reference_slot(
+        &mut state,
+        petunia_core::RefAxis::Right,
+        "blueprint_right.png".to_string(),
+        256,
+        256,
+        vec![200u8; 256 * 256 * 4],
+    );
+    assert_eq!(state.project.refs.len(), 2);
+
+    // 3. Substitui slot Front sem recriar o set
+    ProjectService::set_reference_slot(
+        &mut state,
+        petunia_core::RefAxis::Front,
+        "blueprint_front_v2.png".to_string(),
+        1024,
+        1024,
+        vec![128u8; 1024 * 1024 * 4],
+    );
+    assert_eq!(state.project.refs.len(), 2); // Não adiciona outro, substitui o existente
+    assert_eq!(state.project.refs[0].name, "blueprint_front_v2.png");
+    assert_eq!(state.project.refs[0].width, 1024);
+
+    // 4. Frame all enquadra o cubo + referências
+    state.frame_all();
+    assert!(state.camera_frame.is_some());
+    let (_, goal_cam, _) = state.camera_frame.as_ref().unwrap();
+    assert!(goal_cam.distance > 0.0);
+
+    // 5. Remove referência por índice
+    let removed = ProjectService::remove_reference(&mut state, 0);
+    assert!(removed);
+    assert_eq!(state.project.refs.len(), 1);
+    assert_eq!(state.project.refs[0].name, "blueprint_right.png");
+
+    // 6. Limpa todas as referências
+    ProjectService::clear_references(&mut state);
+    assert_eq!(state.project.refs.len(), 0);
+}
