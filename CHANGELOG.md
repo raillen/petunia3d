@@ -3,6 +3,33 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.12.0] - 2026-09-13 — Deep Interface Revision: Canonical Vector Iconography, Deduplicated Controls, Unified Menus, and Blender-Standard Properties & Outliner
+
+### Adicionado
+- **Iconografia Vetorial Canônica e Eliminação Total de Emojis (`crates/ui/src/icons.rs`, `crates/ui/src/icon_registry.rs`)**:
+  - Implementação de mais de 20 novos ícones vetoriais procedurais via egui Painter (`draw_eye_open`, `draw_eye_closed`, `draw_lock_locked`, `draw_lock_unlocked`, `draw_duplicate`, `draw_trash`, `draw_add`, `draw_annotate`, `draw_measure`, `draw_reference_image`, `draw_primitive_cube`, `draw_primitive_cylinder`, `draw_primitive_sphere`, `draw_primitive_plane`, `draw_primitive_cone`, `draw_primitive_capsule`, `draw_chevron_right`, `draw_filter`, `draw_collection`, `draw_object`).
+  - Mapeamento completo no enum semântico `PetuniaIcon` e no `IconRegistry`.
+  - Erradicação de todos os emojis Unicode na interface (`🧊`, `🕸`, `📋`, `🗑`, `📝`, `🖼`, `⌖`, `⚪`, `🛢`, `▭`, `▲`, `🔒`, `🔓`, `⚙`, `📦`, `🔍`, `➕`, `🎯`) em favor de ícones vetoriais nítidos que respeitam o DPI, tema ativo e tokens de cor.
+- **Widgets Padronizados de Menu e Ação (`crates/ui/src/widgets.rs`, `crates/config/src/keybinds.rs`)**:
+  - `PetuniaMenuItem`: Layout profissional padrão Blender `[Ícone] Rótulo ... [Atalho] ›` com alinhamento dinâmico e separadores estilizados (`petunia_menu_separator`).
+  - Método `shortcut_for(&self, action: &str)` no `Keybinds` para resolução em tempo de execução dos atalhos do perfil ativo.
+  - `petunia_action_button`: Botão compacto de ação com ícone vetorial opcional, feedback hover/active e suporte a estilo perigoso/destrutivo.
+- **Reorganização Estrutural da Barra Superior da Viewport (`crates/ui/src/viewport_bar.rs`)**:
+  - Divisão em 7 clusters funcionais responsivos:
+    - *Cluster 1*: Seletor de Modo de Interação (Object / Edit / Paint) com pílula de destaque.
+    - *Cluster 2*: Modos de Seleção de Malha (Vértice, Aresta, Face) com atalhos numéricos canônicos `1`, `2`, `3`.
+    - *Cluster 3*: Transformação, Pivot e Travamento de Eixos (`X`, `Y`, `Z`).
+    - *Cluster 4*: Controles de Câmera da Viewport (Vistas axiais, Projeção, Enquadramento, Reset).
+    - *Cluster 5*: Snapping Magnético e Edição Proporcional.
+    - *Cluster 6*: Overlays e Modo Raio-X.
+    - *Cluster 7*: Modos de Sombreamento esféricos estilo Blender (Wireframe, Solid, Material Preview, Rendered).
+- **Outliner e Painel de Propriedades Refinados (`crates/ui/src/outliner.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Outliner: Remoção de botões textuais volumosos no cabeçalho em favor de botões de ícone compactos; ícones vetoriais por tipo de nó; botões reutilizáveis de visibilidade (`👁`) e bloqueio (`🔒`).
+  - Properties: Substituição das 5 cores arco-íris das abas por tokens semânticos (`tokens::ACCENT_BLUE`); inspetor de Transform completo (Location X/Y/Z, Rotation X/Y/Z em graus, Scale); botão de duplicar e ação de deletar estilizada em vermelho.
+- **Unificação e Fonte Única da Verdade (`crates/ui/src/contextual_shelf.rs`)**:
+  - Remoção de controles duplicados de seleção de vértices/arestas/faces da shelf flutuante contextual, centralizando os modos exclusivamente no cabeçalho do viewport.
+  - Eliminação de rótulos bilíngues de depuração (`Posição (Location)`, `Escala (Scale)`) em prol de nomenclatura limpa e consistente.
+
 ## [0.11.0] - 2026-09-13 — Petunia3D Living Documentation Website, xtask Automation, and GitHub Actions CI/CD
 
 ### Adicionado

@@ -3,12 +3,13 @@
 //! suporte a coleções/pastas de geometria, bloqueio de transformação, isolamento de visualização,
 //! imagens de referência e estatísticas.
 
-use egui::{vec2, Color32, Id, ScrollArea, Ui};
+use egui::{vec2, Color32, Id, Rect, Response, ScrollArea, Ui};
 use egui_ltreeview::{Action, NodeBuilder, TreeView, TreeViewSettings};
 use petunia_core::{AnnotationItem, AppState};
 use petunia_mesh::Mesh;
 use uuid::Uuid;
 
+use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::widgets;
 
@@ -49,11 +50,61 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
         });
 }
 
+fn outliner_node_icon(ui: &mut Ui, icon: &PetuniaIcon, fg: Color32) {
+    let (rect, _) = ui.allocate_exact_size(vec2(14.0, 14.0), egui::Sense::hover());
+    if ui.is_rect_visible(rect) {
+        IconRegistry::paint(ui.ctx(), ui.painter(), icon, rect, fg);
+    }
+}
+
+fn outliner_icon_button(ui: &mut Ui, icon: &PetuniaIcon, fg: Color32, tooltip: &str) -> Response {
+    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let fill = if resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            Color32::TRANSPARENT
+        };
+        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+        IconRegistry::paint(ui.ctx(), ui.painter(), icon, icon_rect, fg);
+    }
+    resp.on_hover_text(tooltip)
+}
+
+fn outliner_eye_button(ui: &mut Ui, visible: bool, tooltip: &str) -> Response {
+    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let (icon, fg) = if visible {
+            (PetuniaIcon::Eye, tokens::TEXT_PRIMARY)
+        } else {
+            (PetuniaIcon::EyeHidden, tokens::TEXT_MUTED)
+        };
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+        IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
+    }
+    resp.on_hover_text(tooltip)
+}
+
+fn outliner_lock_button(ui: &mut Ui, locked: bool, tooltip: &str) -> Response {
+    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let (icon, fg) = if locked {
+            (PetuniaIcon::Lock, Color32::from_rgb(0xe6, 0x7e, 0x22))
+        } else {
+            (PetuniaIcon::Unlock, tokens::TEXT_MUTED)
+        };
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+        IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
+    }
+    resp.on_hover_text(tooltip)
+}
+
 fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
     let n_assets = state.project.assets.len();
 
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
         // Título de Objetos da Cena com contador
         ui.label(
@@ -68,59 +119,73 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
                 .color(tokens::TEXT_MUTED),
         );
 
-        // Botão de Isolar Objeto
-        let is_iso = state.isolate_active;
-        let iso_btn = egui::Button::new(
-            egui::RichText::new(if is_iso {
-                "⌖ Isolar [Ativo]"
-            } else {
-                "⌖ Isolar"
-            })
-            .size(10.0)
-            .color(if is_iso {
-                Color32::WHITE
-            } else {
-                tokens::TEXT_SECONDARY
-            }),
-        )
-        .fill(if is_iso {
-            tokens::ACCENT_BLUE
-        } else {
-            tokens::BG_SURFACE
-        });
-        if ui
-            .add(iso_btn)
-            .on_hover_text(if is_iso {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            // Botão Nova Coleção com ícone vetorial
+            let (rect, resp) = ui.allocate_exact_size(vec2(22.0, 20.0), egui::Sense::click());
+            if ui.is_rect_visible(rect) {
+                let fill = if resp.hovered() {
+                    tokens::BG_SURFACE_HOVER
+                } else {
+                    tokens::BG_SURFACE
+                };
+                ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
+                let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
+                IconRegistry::paint(
+                    ui.ctx(),
+                    ui.painter(),
+                    &PetuniaIcon::Folder,
+                    icon_rect,
+                    tokens::TEXT_SECONDARY,
+                );
+            }
+            if resp
+                .on_hover_text("Criar nova Coleção para organizar modelos")
+                .clicked()
+            {
+                let mut num = state.project.collections.len() + 1;
+                let mut name = format!("Coleção {num}");
+                while state.project.collections.contains(&name) {
+                    num += 1;
+                    name = format!("Coleção {num}");
+                }
+                state.project.add_collection(&name);
+                state.mark_dirty();
+            }
+
+            // Botão de Isolar Objeto Ativo
+            let is_iso = state.isolate_active;
+            let (rect, resp) = ui.allocate_exact_size(vec2(22.0, 20.0), egui::Sense::click());
+            if ui.is_rect_visible(rect) {
+                let bg = if is_iso {
+                    tokens::ACCENT_BLUE
+                } else if resp.hovered() {
+                    tokens::BG_SURFACE_HOVER
+                } else {
+                    tokens::BG_SURFACE
+                };
+                let fg = if is_iso {
+                    Color32::WHITE
+                } else {
+                    tokens::TEXT_SECONDARY
+                };
+                ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
+                let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
+                IconRegistry::paint(
+                    ui.ctx(),
+                    ui.painter(),
+                    &PetuniaIcon::Cursor3D,
+                    icon_rect,
+                    fg,
+                );
+            }
+            if resp.on_hover_text(if is_iso {
                 "Isolar Ativo (Numpad /): Restaurar visibilidade de todos os objetos"
             } else {
                 "Isolar Objeto Ativo (Numpad /): Esconder todos os outros e focar no selecionado"
-            })
-            .clicked()
-        {
-            state.toggle_isolate();
-        }
-
-        // Botão de Nova Coleção de Malha
-        let new_col_btn = egui::Button::new(
-            egui::RichText::new("📁+ Pasta")
-                .size(10.0)
-                .color(tokens::TEXT_SECONDARY),
-        )
-        .fill(tokens::BG_SURFACE);
-        if ui
-            .add(new_col_btn)
-            .on_hover_text("Criar nova Pasta/Coleção para organizar modelos")
-            .clicked()
-        {
-            let mut num = state.project.collections.len() + 1;
-            let mut name = format!("Coleção {num}");
-            while state.project.collections.contains(&name) {
-                num += 1;
-                name = format!("Coleção {num}");
+            }).clicked() {
+                state.toggle_isolate();
             }
-            state.project.add_collection(&name);
-            state.mark_dirty();
-        }
+        });
     });
 
     ui.add_space(2.0);
@@ -188,7 +253,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
     let (_, actions) = tree.show(ui, |builder| {
         // =========================================================================
-        // SEÇÃO 1: 📝 ANOTAÇÕES (Acima das existentes, tipo dedicado, cor ciano)
+        // SEÇÃO 1: ANOTAÇÕES (Acima das existentes, tipo dedicado, cor ciano)
         // =========================================================================
         if show_ann_collection {
             let n_anns = state.project.annotations.len();
@@ -201,35 +266,40 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                     .label_ui(|ui| {
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                            outliner_node_icon(
+                                ui,
+                                &PetuniaIcon::Annotate,
+                                Color32::from_rgb(0, 210, 211),
+                            );
                             let col_resp = ui.label(
-                                egui::RichText::new(format!("📝 Anotações ({n_anns})"))
+                                egui::RichText::new(format!("Annotations ({n_anns})"))
                                     .size(11.5)
                                     .strong()
                                     .color(Color32::from_rgb(0, 210, 211)),
                             );
 
                             col_resp.context_menu(|ui| {
-                                if ui.button("📁+ Novo Subgrupo...").clicked() {
+                                if ui.button("New Subgroup...").clicked() {
                                     let mut num = state.project.annotation_groups.len() + 1;
-                                    let mut name = format!("Subgrupo {num}");
+                                    let mut name = format!("Subgroup {num}");
                                     while state.project.annotation_groups.contains(&name) {
                                         num += 1;
-                                        name = format!("Subgrupo {num}");
+                                        name = format!("Subgroup {num}");
                                     }
                                     add_ann_subgroup = Some(name);
                                     ui.close();
                                 }
                                 ui.separator();
-                                if ui.button("👁 Alternar Visibilidade da Coleção").clicked() {
+                                if ui.button("Toggle Collection Visibility").clicked() {
                                     toggle_all_ann_vis = true;
                                     ui.close();
                                 }
-                                if ui.button("🔒 Alternar Bloqueio da Coleção").clicked() {
+                                if ui.button("Toggle Collection Lock").clicked() {
                                     toggle_all_ann_lock = true;
                                     ui.close();
                                 }
                                 ui.separator();
-                                if ui.button("🗑 Limpar Todas as Anotações").clicked() {
+                                if ui.button("Clear All Annotations").clicked() {
                                     clear_all_ann = true;
                                     ui.close();
                                 }
@@ -238,44 +308,22 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    // 1. Visibilidade de toda a coleção de anotações
-                                    let (eye_icon, eye_col) = if all_ann_vis {
-                                        ("👁", tokens::TEXT_PRIMARY)
-                                    } else {
-                                        ("⊘", tokens::TEXT_MUTED)
-                                    };
-                                    if ui
-                                        .add(
-                                            egui::Button::new(
-                                                egui::RichText::new(eye_icon)
-                                                    .size(10.5)
-                                                    .color(eye_col),
-                                            )
-                                            .fill(Color32::TRANSPARENT),
-                                        )
-                                        .on_hover_text("Ocultar/Exibir todas as anotações")
-                                        .clicked()
+                                    if outliner_eye_button(
+                                        ui,
+                                        all_ann_vis,
+                                        "Toggle visibility of all annotations",
+                                    )
+                                    .clicked()
                                     {
                                         toggle_all_ann_vis = true;
                                     }
 
-                                    // 2. Bloqueio de toda a coleção de anotações
-                                    let (lock_icon, lock_col) = if all_ann_lock {
-                                        ("🔒", Color32::from_rgb(0xe6, 0x7e, 0x22))
-                                    } else {
-                                        ("🔓", tokens::TEXT_MUTED)
-                                    };
-                                    if ui
-                                        .add(
-                                            egui::Button::new(
-                                                egui::RichText::new(lock_icon)
-                                                    .size(10.5)
-                                                    .color(lock_col),
-                                            )
-                                            .fill(Color32::TRANSPARENT),
-                                        )
-                                        .on_hover_text("Bloquear/Desbloquear todas as anotações")
-                                        .clicked()
+                                    if outliner_lock_button(
+                                        ui,
+                                        all_ann_lock,
+                                        "Toggle lock of all annotations",
+                                    )
+                                    .clicked()
                                     {
                                         toggle_all_ann_lock = true;
                                     }
@@ -305,15 +353,20 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             .label_ui(|ui| {
                                 ui.horizontal(|ui| {
                                     ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                                    outliner_node_icon(
+                                        ui,
+                                        &PetuniaIcon::Folder,
+                                        Color32::from_rgb(0, 180, 180),
+                                    );
                                     let resp = ui.label(
                                         egui::RichText::new(format!(
-                                            "📁 {group_for_closure} ({count})"
+                                            "{group_for_closure} ({count})"
                                         ))
                                         .size(11.0)
                                         .color(Color32::from_rgb(0, 180, 180)),
                                     );
                                     resp.context_menu(|ui| {
-                                        if ui.button("🗑 Excluir Subgrupo").clicked() {
+                                        if ui.button("Delete Subgroup").clicked() {
                                             delete_ann_subgroup = Some(group_for_closure.clone());
                                             ui.close();
                                         }
@@ -341,8 +394,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                                 Color32::from_rgb(0, 210, 211)
                                             };
 
+                                            outliner_node_icon(ui, &PetuniaIcon::Annotate, fg);
                                             let label_resp = ui.label(
-                                                egui::RichText::new(format!("✏ {name}"))
+                                                egui::RichText::new(&name)
                                                     .size(11.0)
                                                     .color(fg)
                                                     .background_color(if is_selected {
@@ -353,41 +407,31 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             );
 
                                             label_resp.context_menu(|ui| {
-                                                ui.menu_button(
-                                                    "📁 Agrupar em Subgrupo ▾",
-                                                    |ui| {
-                                                        if ui.button("Nenhum (Raiz)").clicked() {
+                                                ui.menu_button("Move to Subgroup ›", |ui| {
+                                                    if ui.button("None (Root)").clicked() {
+                                                        ann_move_to_group = Some((ann_id, None));
+                                                        ui.close();
+                                                    }
+                                                    for g in &state.project.annotation_groups {
+                                                        if ui.button(g).clicked() {
                                                             ann_move_to_group =
-                                                                Some((ann_id, None));
+                                                                Some((ann_id, Some(g.clone())));
                                                             ui.close();
                                                         }
-                                                        for g in &state.project.annotation_groups {
-                                                            if ui
-                                                                .button(format!("📁 {g}"))
-                                                                .clicked()
-                                                            {
-                                                                ann_move_to_group =
-                                                                    Some((ann_id, Some(g.clone())));
-                                                                ui.close();
-                                                            }
-                                                        }
-                                                    },
-                                                );
+                                                    }
+                                                });
                                                 ui.separator();
-                                                let lock_txt = if locked {
-                                                    "🔓 Desbloquear"
-                                                } else {
-                                                    "🔒 Bloquear"
-                                                };
+                                                let lock_txt =
+                                                    if locked { "Unlock" } else { "Lock" };
                                                 if ui.button(lock_txt).clicked() {
                                                     toggle_ann_lock = Some(ann_id);
                                                     ui.close();
                                                 }
-                                                if ui.button("📋 Duplicar").clicked() {
+                                                if ui.button("Duplicate").clicked() {
                                                     dup_ann = Some(ann_id);
                                                     ui.close();
                                                 }
-                                                if ui.button("🗑 Deletar · Delete").clicked() {
+                                                if ui.button("Delete").clicked() {
                                                     delete_ann = Some(ann_id);
                                                     ui.close();
                                                 }
@@ -396,42 +440,22 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             ui.with_layout(
                                                 egui::Layout::right_to_left(egui::Align::Center),
                                                 |ui| {
-                                                    // Visibilidade
-                                                    let (eye_icon, eye_col) = if visible {
-                                                        ("👁", tokens::TEXT_PRIMARY)
-                                                    } else {
-                                                        ("⊘", tokens::TEXT_MUTED)
-                                                    };
-                                                    if ui
-                                                        .add(
-                                                            egui::Button::new(
-                                                                egui::RichText::new(eye_icon)
-                                                                    .size(10.5)
-                                                                    .color(eye_col),
-                                                            )
-                                                            .fill(Color32::TRANSPARENT),
-                                                        )
-                                                        .clicked()
+                                                    if outliner_eye_button(
+                                                        ui,
+                                                        visible,
+                                                        "Toggle annotation visibility",
+                                                    )
+                                                    .clicked()
                                                     {
                                                         toggle_ann_vis = Some(ann_id);
                                                     }
 
-                                                    // Bloqueio
-                                                    let (lock_icon, lock_col) = if locked {
-                                                        ("🔒", Color32::from_rgb(0xe6, 0x7e, 0x22))
-                                                    } else {
-                                                        ("🔓", tokens::TEXT_MUTED)
-                                                    };
-                                                    if ui
-                                                        .add(
-                                                            egui::Button::new(
-                                                                egui::RichText::new(lock_icon)
-                                                                    .size(10.5)
-                                                                    .color(lock_col),
-                                                            )
-                                                            .fill(Color32::TRANSPARENT),
-                                                        )
-                                                        .clicked()
+                                                    if outliner_lock_button(
+                                                        ui,
+                                                        locked,
+                                                        "Toggle annotation lock",
+                                                    )
+                                                    .clicked()
                                                     {
                                                         toggle_ann_lock = Some(ann_id);
                                                     }
@@ -470,8 +494,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     Color32::from_rgb(0, 210, 211)
                                 };
 
+                                outliner_node_icon(ui, &PetuniaIcon::Annotate, fg);
                                 let label_resp = ui.label(
-                                    egui::RichText::new(format!("✏ {name}"))
+                                    egui::RichText::new(&name)
                                         .size(11.0)
                                         .color(fg)
                                         .background_color(if is_selected {
@@ -483,9 +508,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                                 label_resp.context_menu(|ui| {
                                     if !state.project.annotation_groups.is_empty() {
-                                        ui.menu_button("📁 Agrupar em Subgrupo ▾", |ui| {
+                                        ui.menu_button("Move to Subgroup ›", |ui| {
                                             for g in &state.project.annotation_groups {
-                                                if ui.button(format!("📁 {g}")).clicked() {
+                                                if ui.button(g).clicked() {
                                                     ann_move_to_group =
                                                         Some((ann_id, Some(g.clone())));
                                                     ui.close();
@@ -494,20 +519,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                         });
                                         ui.separator();
                                     }
-                                    let lock_txt = if locked {
-                                        "🔓 Desbloquear"
-                                    } else {
-                                        "🔒 Bloquear"
-                                    };
+                                    let lock_txt = if locked { "Unlock" } else { "Lock" };
                                     if ui.button(lock_txt).clicked() {
                                         toggle_ann_lock = Some(ann_id);
                                         ui.close();
                                     }
-                                    if ui.button("📋 Duplicar").clicked() {
+                                    if ui.button("Duplicate").clicked() {
                                         dup_ann = Some(ann_id);
                                         ui.close();
                                     }
-                                    if ui.button("🗑 Deletar · Delete").clicked() {
+                                    if ui.button("Delete").clicked() {
                                         delete_ann = Some(ann_id);
                                         ui.close();
                                     }
@@ -516,42 +537,22 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        // Visibilidade
-                                        let (eye_icon, eye_col) = if visible {
-                                            ("👁", tokens::TEXT_PRIMARY)
-                                        } else {
-                                            ("⊘", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(eye_icon)
-                                                        .size(10.5)
-                                                        .color(eye_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .clicked()
+                                        if outliner_eye_button(
+                                            ui,
+                                            visible,
+                                            "Toggle annotation visibility",
+                                        )
+                                        .clicked()
                                         {
                                             toggle_ann_vis = Some(ann_id);
                                         }
 
-                                        // Bloqueio
-                                        let (lock_icon, lock_col) = if locked {
-                                            ("🔒", Color32::from_rgb(0xe6, 0x7e, 0x22))
-                                        } else {
-                                            ("🔓", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(lock_icon)
-                                                        .size(10.5)
-                                                        .color(lock_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .clicked()
+                                        if outliner_lock_button(
+                                            ui,
+                                            locked,
+                                            "Toggle annotation lock",
+                                        )
+                                        .clicked()
                                         {
                                             toggle_ann_lock = Some(ann_id);
                                         }
@@ -567,7 +568,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         }
 
         // =========================================================================
-        // SEÇÃO 2: 📏 MEDIDAS (Acima das de malha, tipo dedicado, cor amarela)
+        // SEÇÃO 2: MEDIDAS (Acima das de malha, tipo dedicado, cor amarela)
         // =========================================================================
         if show_meas_collection {
             let n_meas = state.project.measurements.len();
@@ -579,20 +580,25 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                     .label_ui(|ui| {
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                            outliner_node_icon(
+                                ui,
+                                &PetuniaIcon::Measure,
+                                Color32::from_rgb(254, 202, 87),
+                            );
                             let col_resp = ui.label(
-                                egui::RichText::new(format!("📏 Medidas ({n_meas})"))
+                                egui::RichText::new(format!("Measurements ({n_meas})"))
                                     .size(11.5)
                                     .strong()
                                     .color(Color32::from_rgb(254, 202, 87)),
                             );
 
                             col_resp.context_menu(|ui| {
-                                if ui.button("👁 Alternar Visibilidade da Coleção").clicked() {
+                                if ui.button("Toggle Collection Visibility").clicked() {
                                     toggle_all_meas_vis = true;
                                     ui.close();
                                 }
                                 ui.separator();
-                                if ui.button("🗑 Limpar Todas as Medidas").clicked() {
+                                if ui.button("Clear All Measurements").clicked() {
                                     clear_all_meas = true;
                                     ui.close();
                                 }
@@ -601,22 +607,12 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    let (eye_icon, eye_col) = if all_meas_vis {
-                                        ("👁", tokens::TEXT_PRIMARY)
-                                    } else {
-                                        ("⊘", tokens::TEXT_MUTED)
-                                    };
-                                    if ui
-                                        .add(
-                                            egui::Button::new(
-                                                egui::RichText::new(eye_icon)
-                                                    .size(10.5)
-                                                    .color(eye_col),
-                                            )
-                                            .fill(Color32::TRANSPARENT),
-                                        )
-                                        .on_hover_text("Ocultar/Exibir todas as medidas")
-                                        .clicked()
+                                    if outliner_eye_button(
+                                        ui,
+                                        all_meas_vis,
+                                        "Toggle visibility of all measurements",
+                                    )
+                                    .clicked()
                                     {
                                         toggle_all_meas_vis = true;
                                     }
@@ -644,8 +640,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     Color32::from_rgb(254, 202, 87)
                                 };
 
+                                outliner_node_icon(ui, &PetuniaIcon::Measure, fg);
                                 let label_resp = ui.label(
-                                    egui::RichText::new(format!("📏 {name} ({dist:.2}m)"))
+                                    egui::RichText::new(format!("{name} ({dist:.2}m)"))
                                         .size(11.0)
                                         .color(fg)
                                         .background_color(if is_selected {
@@ -656,7 +653,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 );
 
                                 label_resp.context_menu(|ui| {
-                                    if ui.button("🗑 Deletar · Delete").clicked() {
+                                    if ui.button("Delete").clicked() {
                                         delete_meas = Some(m_id);
                                         ui.close();
                                     }
@@ -665,38 +662,23 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        // Visibilidade (único controle além de deletar)
-                                        let (eye_icon, eye_col) = if visible {
-                                            ("👁", tokens::TEXT_PRIMARY)
-                                        } else {
-                                            ("⊘", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(eye_icon)
-                                                        .size(10.5)
-                                                        .color(eye_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .clicked()
+                                        if outliner_eye_button(
+                                            ui,
+                                            visible,
+                                            "Toggle measurement visibility",
+                                        )
+                                        .clicked()
                                         {
                                             toggle_meas_vis = Some(m_id);
                                         }
 
-                                        // Botão explícito de deletar
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new("🗑")
-                                                        .size(10.0)
-                                                        .color(tokens::TEXT_MUTED),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text("Excluir medida")
-                                            .clicked()
+                                        if outliner_icon_button(
+                                            ui,
+                                            &PetuniaIcon::Delete,
+                                            tokens::TEXT_MUTED,
+                                            "Delete measurement",
+                                        )
+                                        .clicked()
                                         {
                                             delete_meas = Some(m_id);
                                         }
@@ -712,17 +694,21 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         }
 
         // =========================================================================
-        // SEÇÃO 3: 📁 SCENE COLLECTION (Malhas 3D e Coleções de Objetos)
+        // SEÇÃO 3: SCENE COLLECTION (Malhas 3D e Coleções de Objetos)
         // =========================================================================
         let open_scene = builder.node(
             NodeBuilder::dir(OutlinerNodeId::SceneCollection)
                 .default_open(true)
                 .label_ui(|ui| {
-                    ui.label(
-                        egui::RichText::new("📁 Scene Collection")
-                            .size(11.5)
-                            .color(tokens::TEXT_PRIMARY),
-                    );
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                        outliner_node_icon(ui, &PetuniaIcon::Collection, tokens::TEXT_PRIMARY);
+                        ui.label(
+                            egui::RichText::new("Scene Collection")
+                                .size(11.5)
+                                .color(tokens::TEXT_PRIMARY),
+                        );
+                    });
                 }),
         );
 
@@ -789,15 +775,18 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                         });
                                     }
                                 } else {
+                                    outliner_node_icon(
+                                        ui,
+                                        &PetuniaIcon::Folder,
+                                        tokens::TEXT_PRIMARY,
+                                    );
                                     let col_resp = ui.label(
-                                        egui::RichText::new(format!(
-                                            "📁 {col_for_closure} ({count})"
-                                        ))
-                                        .size(11.0)
-                                        .color(tokens::TEXT_PRIMARY),
+                                        egui::RichText::new(format!("{col_for_closure} ({count})"))
+                                            .size(11.0)
+                                            .color(tokens::TEXT_PRIMARY),
                                     );
                                     col_resp.context_menu(|ui| {
-                                        if ui.button("✏ Renomear Pasta").clicked() {
+                                        if ui.button("Rename Collection").clicked() {
                                             ui.data_mut(|d| {
                                                 d.insert_temp(rename_id, col_for_closure.clone());
                                                 d.insert_temp(
@@ -807,17 +796,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             });
                                             ui.close();
                                         }
-                                        if ui.button("🗑 Excluir Pasta").clicked() {
+                                        if ui.button("Delete Collection").clicked() {
                                             delete_col = Some(col_for_closure.clone());
                                             ui.close();
                                         }
                                         ui.separator();
-                                        if ui.button("👁 Alternar Visibilidade da Pasta").clicked()
-                                        {
+                                        if ui.button("Toggle Collection Visibility").clicked() {
                                             toggle_col_vis = Some(col_for_closure.clone());
                                             ui.close();
                                         }
-                                        if ui.button("🔒 Alternar Bloqueio da Pasta").clicked() {
+                                        if ui.button("Toggle Collection Lock").clicked() {
                                             toggle_col_lock = Some(col_for_closure.clone());
                                             ui.close();
                                         }
@@ -827,46 +815,22 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        // Visibilidade coletiva
-                                        let (eye_icon, eye_col) = if all_visible {
-                                            ("👁", tokens::TEXT_PRIMARY)
-                                        } else {
-                                            ("⊘", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(eye_icon)
-                                                        .size(10.5)
-                                                        .color(eye_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text(
-                                                "Alternar visibilidade de todos nesta pasta",
-                                            )
-                                            .clicked()
+                                        if outliner_eye_button(
+                                            ui,
+                                            all_visible,
+                                            "Toggle visibility of all objects in collection",
+                                        )
+                                        .clicked()
                                         {
                                             toggle_col_vis = Some(col_for_closure.clone());
                                         }
 
-                                        // Bloqueio coletivo
-                                        let (lock_icon, lock_col) = if all_locked {
-                                            ("🔒", Color32::from_rgb(0xe6, 0x7e, 0x22))
-                                        } else {
-                                            ("🔓", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(lock_icon)
-                                                        .size(10.5)
-                                                        .color(lock_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text("Alternar bloqueio de todos nesta pasta")
-                                            .clicked()
+                                        if outliner_lock_button(
+                                            ui,
+                                            all_locked,
+                                            "Toggle lock of all objects in collection",
+                                        )
+                                        .clicked()
                                         {
                                             toggle_col_lock = Some(col_for_closure.clone());
                                         }
@@ -901,7 +865,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     tokens::TEXT_PRIMARY
                                 };
 
-                                let item_label = format!("🧊 {name} ({vc}v, {fc}f)");
+                                outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
+                                let item_label = format!("{name} ({vc}v, {fc}f)");
                                 let label_resp = ui.label(
                                     egui::RichText::new(item_label)
                                         .size(11.0)
@@ -914,8 +879,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 );
 
                                 label_resp.context_menu(|ui| {
-                                    ui.menu_button("📁 Mover para Coleção ▾", |ui| {
-                                        if ui.button("📁 Nenhuma (Raiz)").clicked() {
+                                    ui.menu_button("Move to Collection ›", |ui| {
+                                        if ui.button("None (Root)").clicked() {
                                             move_to_col = Some((i, None));
                                             ui.close();
                                         }
@@ -925,9 +890,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                                 state.project.assets[i].collection.as_deref()
                                                     == Some(col);
                                             let label = if is_cur {
-                                                format!("✓ 📁 {col}")
+                                                format!("✓ {col}")
                                             } else {
-                                                format!("📁 {col}")
+                                                col.clone()
                                             };
                                             if ui.button(label).clicked() {
                                                 move_to_col = Some((i, Some(col.clone())));
@@ -937,18 +902,18 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     });
                                     ui.separator();
                                     let lock_txt = if locked {
-                                        "🔓 Desbloquear Objeto"
+                                        "Unlock Object"
                                     } else {
-                                        "🔒 Bloquear Objeto"
+                                        "Lock Object"
                                     };
                                     if ui.button(lock_txt).clicked() {
                                         toggle_lock_idx = Some(i);
                                         ui.close();
                                     }
                                     let iso_txt = if state.isolate_active && is_selected {
-                                        "⌖ Desativar Isolar"
+                                        "Restore Visibility (Exit Isolate)"
                                     } else {
-                                        "⌖ Isolar Este Objeto (Numpad /)"
+                                        "Isolate Object (Numpad /)"
                                     };
                                     if ui.button(iso_txt).clicked() {
                                         isolate_idx = Some(i);
@@ -968,52 +933,30 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        // 1. Visibilidade
-                                        let (eye_icon, eye_col) = if visible {
-                                            ("👁", tokens::TEXT_PRIMARY)
-                                        } else {
-                                            ("⊘", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(eye_icon)
-                                                        .size(10.5)
-                                                        .color(eye_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text(if visible {
-                                                "Ocultar da Visualização 3D"
+                                        if outliner_eye_button(
+                                            ui,
+                                            visible,
+                                            if visible {
+                                                "Hide in 3D Viewport"
                                             } else {
-                                                "Exibir na Visualização 3D"
-                                            })
-                                            .clicked()
+                                                "Show in 3D Viewport"
+                                            },
+                                        )
+                                        .clicked()
                                         {
                                             toggle_vis_idx = Some(i);
                                         }
 
-                                        // 2. Bloqueio
-                                        let (lock_icon, lock_col) = if locked {
-                                            ("🔒", Color32::from_rgb(0xe6, 0x7e, 0x22))
-                                        } else {
-                                            ("🔓", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(lock_icon)
-                                                        .size(10.5)
-                                                        .color(lock_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text(if locked {
-                                                "Desbloquear Objeto (está fixado)"
+                                        if outliner_lock_button(
+                                            ui,
+                                            locked,
+                                            if locked {
+                                                "Unlock Object (currently fixed)"
                                             } else {
-                                                "Bloquear Objeto (impede movimentação)"
-                                            })
-                                            .clicked()
+                                                "Lock Object (prevents transform)"
+                                            },
+                                        )
+                                        .clicked()
                                         {
                                             toggle_lock_idx = Some(i);
                                         }
@@ -1059,7 +1002,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             tokens::TEXT_PRIMARY
                         };
 
-                        let item_label = format!("🧊 {name} ({vc}v, {fc}f)");
+                        outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
+                        let item_label = format!("{name} ({vc}v, {fc}f)");
                         let label_resp = ui.label(
                             egui::RichText::new(item_label)
                                 .size(11.0)
@@ -1073,9 +1017,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                         label_resp.context_menu(|ui| {
                             if !collections.is_empty() {
-                                ui.menu_button("📁 Mover para Coleção ▾", |ui| {
+                                ui.menu_button("Move to Collection ›", |ui| {
                                     for col in &collections {
-                                        if ui.button(format!("📁 {col}")).clicked() {
+                                        if ui.button(col).clicked() {
                                             move_to_col = Some((i, Some(col.clone())));
                                             ui.close();
                                         }
@@ -1084,18 +1028,18 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.separator();
                             }
                             let lock_txt = if locked {
-                                "🔓 Desbloquear Objeto"
+                                "Unlock Object"
                             } else {
-                                "🔒 Bloquear Objeto"
+                                "Lock Object"
                             };
                             if ui.button(lock_txt).clicked() {
                                 toggle_lock_idx = Some(i);
                                 ui.close();
                             }
                             let iso_txt = if state.isolate_active && is_selected {
-                                "⌖ Desativar Isolar"
+                                "Restore Visibility (Exit Isolate)"
                             } else {
-                                "⌖ Isolar Este Objeto (Numpad /)"
+                                "Isolate Object (Numpad /)"
                             };
                             if ui.button(iso_txt).clicked() {
                                 isolate_idx = Some(i);
@@ -1113,48 +1057,30 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                         });
 
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            // 1. Visibilidade
-                            let (eye_icon, eye_col) = if visible {
-                                ("👁", tokens::TEXT_PRIMARY)
-                            } else {
-                                ("⊘", tokens::TEXT_MUTED)
-                            };
-                            if ui
-                                .add(
-                                    egui::Button::new(
-                                        egui::RichText::new(eye_icon).size(10.5).color(eye_col),
-                                    )
-                                    .fill(Color32::TRANSPARENT),
-                                )
-                                .on_hover_text(if visible {
-                                    "Ocultar da Visualização 3D"
+                            if outliner_eye_button(
+                                ui,
+                                visible,
+                                if visible {
+                                    "Hide in 3D Viewport"
                                 } else {
-                                    "Exibir na Visualização 3D"
-                                })
-                                .clicked()
+                                    "Show in 3D Viewport"
+                                },
+                            )
+                            .clicked()
                             {
                                 toggle_vis_idx = Some(i);
                             }
 
-                            // 2. Bloqueio
-                            let (lock_icon, lock_col) = if locked {
-                                ("🔒", Color32::from_rgb(0xe6, 0x7e, 0x22))
-                            } else {
-                                ("🔓", tokens::TEXT_MUTED)
-                            };
-                            if ui
-                                .add(
-                                    egui::Button::new(
-                                        egui::RichText::new(lock_icon).size(10.5).color(lock_col),
-                                    )
-                                    .fill(Color32::TRANSPARENT),
-                                )
-                                .on_hover_text(if locked {
-                                    "Desbloquear Objeto (está fixado)"
+                            if outliner_lock_button(
+                                ui,
+                                locked,
+                                if locked {
+                                    "Unlock Object (currently fixed)"
                                 } else {
-                                    "Bloquear Objeto (impede movimentação)"
-                                })
-                                .clicked()
+                                    "Lock Object (prevents transform)"
+                                },
+                            )
+                            .clicked()
                             {
                                 toggle_lock_idx = Some(i);
                             }
@@ -1167,21 +1093,29 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         }
 
         // =========================================================================
-        // SEÇÃO 4: 🖼 IMAGENS DE REFERÊNCIA
+        // SEÇÃO 4: IMAGENS DE REFERÊNCIA
         // =========================================================================
         if !state.refs.is_empty() {
             let open_refs = builder.node(
                 NodeBuilder::dir(OutlinerNodeId::ReferenceImages)
                     .default_open(true)
                     .label_ui(|ui| {
-                        ui.label(
-                            egui::RichText::new(format!(
-                                "🖼 Imagens de Referência ({})",
-                                state.refs.len()
-                            ))
-                            .size(11.5)
-                            .color(tokens::TEXT_PRIMARY),
-                        );
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+                            outliner_node_icon(
+                                ui,
+                                &PetuniaIcon::ReferenceImage,
+                                tokens::TEXT_PRIMARY,
+                            );
+                            ui.label(
+                                egui::RichText::new(format!(
+                                    "Reference Images ({})",
+                                    state.refs.len()
+                                ))
+                                .size(11.5)
+                                .color(tokens::TEXT_PRIMARY),
+                            );
+                        });
                     }),
             );
 
@@ -1196,7 +1130,12 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                         NodeBuilder::leaf(OutlinerNodeId::ReferenceImage(r_idx)).label_ui(|ui| {
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
-                                let item_label = format!("🖼 {r_axis} ({r_dim})");
+                                outliner_node_icon(
+                                    ui,
+                                    &PetuniaIcon::ReferenceImage,
+                                    tokens::TEXT_PRIMARY,
+                                );
+                                let item_label = format!("{r_axis} ({r_dim})");
                                 let label_resp = ui.label(
                                     egui::RichText::new(item_label)
                                         .size(11.0)
@@ -1204,15 +1143,15 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 );
                                 label_resp.context_menu(|ui| {
                                     let xray_txt = if r_xray {
-                                        "⚡ Desativar Raio-X"
+                                        "Disable X-Ray"
                                     } else {
-                                        "⚡ Ativar Raio-X"
+                                        "Enable X-Ray"
                                     };
                                     if ui.button(xray_txt).clicked() {
                                         ref_toggle_xray = Some(r_idx);
                                         ui.close();
                                     }
-                                    if ui.button("🗑 Remover Imagem").clicked() {
+                                    if ui.button("Remove Image").clicked() {
                                         ref_delete = Some(r_idx);
                                         ui.close();
                                     }
@@ -1221,52 +1160,36 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        // Visibilidade
-                                        let (eye_icon, eye_col) = if r_vis {
-                                            ("👁", tokens::TEXT_PRIMARY)
-                                        } else {
-                                            ("⊘", tokens::TEXT_MUTED)
-                                        };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(eye_icon)
-                                                        .size(10.5)
-                                                        .color(eye_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text(if r_vis {
-                                                "Ocultar Imagem de Referência"
+                                        if outliner_eye_button(
+                                            ui,
+                                            r_vis,
+                                            if r_vis {
+                                                "Hide Reference Image"
                                             } else {
-                                                "Exibir Imagem de Referência"
-                                            })
-                                            .clicked()
+                                                "Show Reference Image"
+                                            },
+                                        )
+                                        .clicked()
                                         {
                                             ref_toggle_vis = Some(r_idx);
                                         }
 
-                                        // Raio-X
-                                        let (xray_txt, xray_col) = if r_xray {
-                                            ("⚡", tokens::ACCENT_BLUE)
+                                        let xray_col = if r_xray {
+                                            tokens::ACCENT_BLUE
                                         } else {
-                                            ("⚡", tokens::TEXT_MUTED)
+                                            tokens::TEXT_MUTED
                                         };
-                                        if ui
-                                            .add(
-                                                egui::Button::new(
-                                                    egui::RichText::new(xray_txt)
-                                                        .size(10.5)
-                                                        .color(xray_col),
-                                                )
-                                                .fill(Color32::TRANSPARENT),
-                                            )
-                                            .on_hover_text(if r_xray {
-                                                "Raio-X Ativo (visível sobre malhas)"
+                                        if outliner_icon_button(
+                                            ui,
+                                            &PetuniaIcon::XRay,
+                                            xray_col,
+                                            if r_xray {
+                                                "X-Ray Active (visible over meshes)"
                                             } else {
-                                                "Ativar Raio-X"
-                                            })
-                                            .clicked()
+                                                "Enable X-Ray"
+                                            },
+                                        )
+                                        .clicked()
                                         {
                                             ref_toggle_xray = Some(r_idx);
                                         }

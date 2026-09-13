@@ -13,6 +13,7 @@ use petunia_core::AppState;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
+use crate::widgets;
 
 /// Renderiza a janela modal de preferências quando `state.show_settings` for verdadeiro.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
@@ -25,25 +26,21 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let default_width = (screen_rect.width() * 0.70).clamp(520.0, 840.0);
     let default_height = (screen_rect.height() * 0.70).clamp(420.0, 680.0);
 
-    Window::new(
-        RichText::new(format!("⚙ {}", state.t("settings.title")))
-            .strong()
-            .size(14.0),
-    )
-    .open(&mut open)
-    .default_size(vec2(default_width, default_height))
-    .min_size(vec2(460.0, 360.0))
-    .resizable(true)
-    .collapsible(false)
-    .frame(
-        egui::Frame::window(&ctx.style())
-            .fill(tokens::BG_PANEL)
-            .stroke(tokens::stroke_border())
-            .inner_margin(egui::Margin::same(12)),
-    )
-    .show(ctx, |ui| {
-        draw_settings_content(ctx, ui, state);
-    });
+    Window::new(RichText::new(state.t("settings.title")).strong().size(14.0))
+        .open(&mut open)
+        .default_size(vec2(default_width, default_height))
+        .min_size(vec2(460.0, 360.0))
+        .resizable(true)
+        .collapsible(false)
+        .frame(
+            egui::Frame::window(&ctx.style())
+                .fill(tokens::BG_PANEL)
+                .stroke(tokens::stroke_border())
+                .inner_margin(egui::Margin::same(12)),
+        )
+        .show(ctx, |ui| {
+            draw_settings_content(ctx, ui, state);
+        });
 
     state.show_settings = open;
 }
@@ -498,11 +495,10 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
         .data_mut(|d| d.get_temp::<String>(search_id).unwrap_or_default());
 
     ui.horizontal(|ui| {
-        ui.label(RichText::new("🔍").size(12.0));
-        let resp = ui.add(
-            egui::TextEdit::singleline(&mut search_query)
-                .hint_text("Buscar atalhos por ação ou tecla...")
-                .desired_width(260.0),
+        let resp = widgets::petunia_search_box(
+            ui,
+            &mut search_query,
+            "Filter shortcuts by action or key...",
         );
         if resp.changed() {
             ui.ctx()

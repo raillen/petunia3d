@@ -250,6 +250,11 @@ impl Keybinds {
             .map(|(a, _)| a.as_str())
     }
 
+    /// Retorna a representação textual do atalho para uma ação (ex: `"model.extrude"` -> `"E"`).
+    pub fn shortcut_for(&self, action: &str) -> Option<String> {
+        self.map.get(action).map(|b| b.to_shortcut_string())
+    }
+
     /// Retorna a lista de todas as ações e seus atalhos formatados como string, ordenados.
     pub fn all_bindings(&self) -> Vec<(String, String)> {
         let mut list: Vec<(String, String)> = self

@@ -22,22 +22,22 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
                 .unwrap_or(p)
                 .to_string()
         })
-        .unwrap_or_else(|| "Sem Título".to_string());
+        .unwrap_or_else(|| "Untitled".to_string());
 
     let is_saved = !state.dirty;
     let (save_indicator, save_color) = if is_saved {
-        ("● Salvo", tokens::ACCENT_GREEN)
+        ("Saved", tokens::ACCENT_GREEN)
     } else {
-        ("○ Não salvo", tokens::ACCENT_AMBER)
+        ("Unsaved", tokens::ACCENT_AMBER)
     };
 
     let hint = if state.is_interacting() {
-        "Enter / LMB: Confirmar · Esc / RMB: Cancelar".to_string()
+        "Enter / LMB: Confirm · Esc / RMB: Cancel".to_string()
     } else {
         tools
             .get(&state.active_tool)
             .map(|t| state.t(t.hint_key()))
-            .unwrap_or_else(|| "🖱 LMB: Selecionar · MMB: Orbitar · Shift+MMB: Pan".to_string())
+            .unwrap_or_else(|| "LMB: Select · MMB: Orbit · Shift+MMB: Pan".to_string())
     };
 
     let status_text = if state.status.is_empty() {

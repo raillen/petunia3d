@@ -8,7 +8,9 @@
 use egui::{vec2, Align, Color32, CornerRadius, Layout, RichText, ScrollArea, Stroke, Ui, Window};
 use petunia_core::AppState;
 
+use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
+use crate::widgets;
 
 /// Renderiza o modal / gaveta da Biblioteca de Assets quando `state.show_asset_library` estiver ativo.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
@@ -21,25 +23,21 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let default_width = (screen_rect.width() * 0.65).clamp(420.0, 780.0);
     let default_height = (screen_rect.height() * 0.60).clamp(340.0, 600.0);
 
-    Window::new(
-        RichText::new("📦 Biblioteca de Assets do Projeto")
-            .strong()
-            .size(14.0),
-    )
-    .open(&mut open)
-    .default_size(vec2(default_width, default_height))
-    .min_size(vec2(380.0, 280.0))
-    .resizable(true)
-    .collapsible(false)
-    .frame(
-        egui::Frame::window(&ctx.style())
-            .fill(tokens::BG_PANEL)
-            .stroke(tokens::stroke_border())
-            .inner_margin(egui::Margin::same(12)),
-    )
-    .show(ctx, |ui| {
-        draw_contents(ui, state);
-    });
+    Window::new(RichText::new("Project Asset Library").strong().size(14.0))
+        .open(&mut open)
+        .default_size(vec2(default_width, default_height))
+        .min_size(vec2(380.0, 280.0))
+        .resizable(true)
+        .collapsible(false)
+        .frame(
+            egui::Frame::window(&ctx.style())
+                .fill(tokens::BG_PANEL)
+                .stroke(tokens::stroke_border())
+                .inner_margin(egui::Margin::same(12)),
+        )
+        .show(ctx, |ui| {
+            draw_contents(ui, state);
+        });
 
     state.show_asset_library = open;
 }
@@ -47,12 +45,16 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 fn draw_contents(ui: &mut Ui, state: &mut AppState) {
     // 1. Barra de Ações Superior (Distinção clara: Salvar Asset vs Salvar Projeto)
     ui.horizontal(|ui| {
-        ui.label(RichText::new("Biblioteca interna do projeto").color(tokens::TEXT_SECONDARY).size(11.5));
+        ui.label(
+            RichText::new("Project internal library")
+                .color(tokens::TEXT_SECONDARY)
+                .size(11.5),
+        );
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             // Botão: Salvar Projeto Completo
             let save_proj_btn = egui::Button::new(
-                RichText::new("💾 Salvar Projeto (.petunia)")
+                RichText::new("Save Project (.petunia)")
                     .size(11.0)
                     .color(tokens::TEXT_PRIMARY),
             )
@@ -62,7 +64,9 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
 
             if ui
                 .add(save_proj_btn)
-                .on_hover_text("Salva o projeto completo com todos os assets, câmera, paleta e estado em disco (.petunia)")
+                .on_hover_text(
+                    "Save project with all assets, camera, palette and state to disk (.petunia)",
+                )
                 .clicked()
             {
                 crate::save_project_dialog(state, false);
@@ -70,7 +74,7 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
 
             // Botão: Salvar Ativo como Asset
             let save_asset_btn = egui::Button::new(
-                RichText::new("📥 Salvar Modelo Ativo como Asset")
+                RichText::new("Save Active Model as Asset")
                     .size(11.0)
                     .color(tokens::TEXT_ACTIVE),
             )
@@ -79,7 +83,7 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
 
             if ui
                 .add(save_asset_btn)
-                .on_hover_text("Salva uma cópia do modelo 3D atualmente selecionado dentro da biblioteca interna deste projeto")
+                .on_hover_text("Save a copy of the active 3D model into this project's library")
                 .clicked()
             {
                 state.save_active_as_asset();
@@ -98,12 +102,7 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
         .data_mut(|d| d.get_temp::<String>(filter_id).unwrap_or_default());
 
     ui.horizontal(|ui| {
-        ui.label(RichText::new("🔍").size(12.0));
-        let resp = ui.add(
-            egui::TextEdit::singleline(&mut search_query)
-                .hint_text("Filtrar assets por nome...")
-                .desired_width(260.0),
-        );
+        let resp = widgets::petunia_search_box(ui, &mut search_query, "Filter assets...");
         if resp.changed() {
             ui.ctx()
                 .data_mut(|d| d.insert_temp(filter_id, search_query.clone()));
@@ -136,7 +135,10 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
 
                     // Aplica filtro de busca
                     if !search_query.is_empty()
-                        && !asset.name.to_lowercase().contains(&search_query.to_lowercase())
+                        && !asset
+                            .name
+                            .to_lowercase()
+                            .contains(&search_query.to_lowercase())
                     {
                         continue;
                     }
@@ -159,10 +161,15 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
 
                             // Cabeçalho do Card: Nome e Tag Ativo
                             ui.horizontal(|ui| {
-                                ui.label(RichText::new(&asset.name).strong().size(12.5).color(tokens::TEXT_PRIMARY));
+                                ui.label(
+                                    RichText::new(&asset.name)
+                                        .strong()
+                                        .size(12.5)
+                                        .color(tokens::TEXT_PRIMARY),
+                                );
                                 if is_active {
                                     ui.label(
-                                        RichText::new("● Ativo")
+                                        RichText::new("● Active")
                                             .size(10.0)
                                             .color(tokens::ACCENT_BLUE),
                                     );
@@ -177,9 +184,15 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
                                     (asset.base_color[1] * 255.0) as u8,
                                     (asset.base_color[2] * 255.0) as u8,
                                 );
-                                let (chip_rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+                                let (chip_rect, _) =
+                                    ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
                                 ui.painter().rect_filled(chip_rect, 3.0, c);
-                                ui.painter().rect_stroke(chip_rect, 3.0, Stroke::new(1.0_f32, tokens::BORDER_SUBTLE), egui::StrokeKind::Inside);
+                                ui.painter().rect_stroke(
+                                    chip_rect,
+                                    3.0,
+                                    Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
+                                    egui::StrokeKind::Inside,
+                                );
 
                                 ui.label(
                                     RichText::new(format!(
@@ -198,35 +211,56 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
 
                             // Botões de Ação do Card
                             ui.horizontal(|ui| {
-                                if ui
-                                    .button(RichText::new("➕ Instanciar").size(10.5))
-                                    .on_hover_text("Cria uma cópia deste modelo na posição atual do Cursor 3D")
-                                    .clicked()
+                                if widgets::petunia_action_button(
+                                    ui,
+                                    Some(PetuniaIcon::Cursor3D),
+                                    "Instantiate",
+                                    false,
+                                )
+                                .on_hover_text("Spawn an instance at 3D Cursor position")
+                                .clicked()
                                 {
                                     to_instantiate = Some(i);
                                 }
 
-                                if !is_active && ui
-                                    .button(RichText::new("🎯 Editar").size(10.5))
-                                    .on_hover_text("Torna este asset o modelo ativo no viewport para edição")
+                                if !is_active
+                                    && widgets::petunia_action_button(
+                                        ui,
+                                        Some(PetuniaIcon::ModeEdit),
+                                        "Edit",
+                                        false,
+                                    )
+                                    .on_hover_text(
+                                        "Set this asset as active in viewport for editing",
+                                    )
                                     .clicked()
                                 {
                                     to_activate = Some(i);
                                 }
                             });
 
+                            ui.add_space(2.0);
                             ui.horizontal(|ui| {
-                                if ui
-                                    .button(RichText::new("📋 Duplicar").size(10.0))
-                                    .on_hover_text("Cria uma cópia deste asset na biblioteca")
-                                    .clicked()
+                                if widgets::petunia_action_button(
+                                    ui,
+                                    Some(PetuniaIcon::Duplicate),
+                                    "Duplicate",
+                                    false,
+                                )
+                                .on_hover_text("Duplicate this asset in the library")
+                                .clicked()
                                 {
                                     to_duplicate = Some(i);
                                 }
 
-                                if total_assets > 1 && ui
-                                    .button(RichText::new("🗑").size(10.0).color(Color32::from_rgb(255, 100, 100)))
-                                    .on_hover_text("Remove este asset da biblioteca do projeto")
+                                if total_assets > 1
+                                    && widgets::petunia_action_button(
+                                        ui,
+                                        Some(PetuniaIcon::Trash),
+                                        "Delete",
+                                        true,
+                                    )
+                                    .on_hover_text("Remove this asset from project library")
                                     .clicked()
                                 {
                                     to_remove = Some(i);

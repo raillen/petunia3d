@@ -13,6 +13,7 @@ pub const BG_SURFACE_HOVER: Color32 = Color32::from_rgb(0x38, 0x38, 0x38);
 pub const BG_SURFACE_ACTIVE: Color32 = Color32::from_rgb(0x31, 0x69, 0xe3);
 pub const BG_INPUT: Color32 = Color32::from_rgb(0x16, 0x16, 0x16);
 pub const BG_DROPDOWN: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
+pub const BG_SHELF: Color32 = Color32::from_rgba_premultiplied(0x1e, 0x1e, 0x1e, 0xf0);
 
 // ------------------------------------------------------------- Cores de Destaque
 pub const ACCENT_BLUE: Color32 = Color32::from_rgb(0x31, 0x69, 0xe3);

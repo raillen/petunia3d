@@ -639,6 +639,377 @@ pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color3
                 );
             }
         }
+        "mode_object" => {
+            // Cubo isométrico vazado em laranja/neutro indicando modo de objeto
+            let p_top = p(12.0, 4.0);
+            let p_right = p(19.0, 8.0);
+            let p_mid = p(12.0, 12.0);
+            let p_left = p(5.0, 8.0);
+            let p_bot_left = p(5.0, 16.0);
+            let p_bot = p(12.0, 20.0);
+            let p_bot_right = p(19.0, 16.0);
+
+            // Face superior levemente preenchida
+            painter.add(egui::Shape::convex_polygon(
+                vec![p_top, p_right, p_mid, p_left],
+                c_orange.linear_multiply(0.25),
+                Stroke::new(1.8_f32, c_orange),
+            ));
+
+            let stroke = Stroke::new(1.8_f32, c_orange);
+            painter.line_segment([p_left, p_bot_left], stroke);
+            painter.line_segment([p_mid, p_bot], stroke);
+            painter.line_segment([p_right, p_bot_right], stroke);
+            painter.line_segment([p_bot_left, p_bot], stroke);
+            painter.line_segment([p_bot, p_bot_right], stroke);
+        }
+        "mode_edit" => {
+            // Cubo isométrico com vértices destacados (autêntico Blender Edit Mode)
+            let p_top = p(12.0, 4.0);
+            let p_right = p(19.0, 8.0);
+            let p_mid = p(12.0, 12.0);
+            let p_left = p(5.0, 8.0);
+            let p_bot_left = p(5.0, 16.0);
+            let p_bot = p(12.0, 20.0);
+            let p_bot_right = p(19.0, 16.0);
+
+            let stroke = Stroke::new(1.5_f32, c_neutral);
+            // Face superior
+            painter.line_segment([p_top, p_right], stroke);
+            painter.line_segment([p_right, p_mid], stroke);
+            painter.line_segment([p_mid, p_left], stroke);
+            painter.line_segment([p_left, p_top], stroke);
+
+            // Arestas verticais e inferiores
+            painter.line_segment([p_left, p_bot_left], stroke);
+            painter.line_segment([p_mid, p_bot], stroke);
+            painter.line_segment([p_right, p_bot_right], stroke);
+            painter.line_segment([p_bot_left, p_bot], stroke);
+            painter.line_segment([p_bot, p_bot_right], stroke);
+
+            // Vértices amarelos destacados com núcleo brilhante
+            let verts = [
+                p_top,
+                p_right,
+                p_mid,
+                p_left,
+                p_bot_left,
+                p_bot,
+                p_bot_right,
+            ];
+            for v in verts {
+                painter.circle_filled(v, 2.0, c_yellow);
+                painter.circle_stroke(v, 2.0, Stroke::new(1.0_f32, c_dark));
+            }
+        }
+        "select_vertex" => {
+            // Alvo de Seleção de Vértice: malha wireframe discreta com ponto destacado no centro
+            let stroke_bg = Stroke::new(1.2_f32, c_neutral.linear_multiply(0.4));
+            painter.line_segment([p(4.0, 12.0), p(20.0, 12.0)], stroke_bg);
+            painter.line_segment([p(12.0, 4.0), p(12.0, 20.0)], stroke_bg);
+            painter.rect_stroke(
+                Rect::from_min_max(p(6.0, 6.0), p(18.0, 18.0)),
+                1.0,
+                stroke_bg,
+                egui::StrokeKind::Inside,
+            );
+
+            // Vértice central amarelo destacado
+            let center = p(12.0, 12.0);
+            painter.circle_filled(center, 3.2, c_yellow);
+            painter.circle_stroke(center, 3.2, Stroke::new(1.2_f32, c_white));
+        }
+        "select_edge" => {
+            // Alvo de Seleção de Aresta: malha discreta com aresta diagonal reforçada
+            let stroke_bg = Stroke::new(1.2_f32, c_neutral.linear_multiply(0.4));
+            painter.rect_stroke(
+                Rect::from_min_max(p(6.0, 6.0), p(18.0, 18.0)),
+                1.0,
+                stroke_bg,
+                egui::StrokeKind::Inside,
+            );
+
+            // Aresta diagonal reforçada com marcadores nas pontas
+            let p1 = p(6.0, 18.0);
+            let p2 = p(18.0, 6.0);
+            painter.line_segment([p1, p2], Stroke::new(2.8_f32, c_yellow));
+            painter.circle_filled(p1, 2.0, c_white);
+            painter.circle_filled(p2, 2.0, c_white);
+        }
+        "select_face" => {
+            // Alvo de Seleção de Face: polígono quad preenchido com realce
+            let face_pts = vec![p(6.0, 6.0), p(18.0, 6.0), p(18.0, 18.0), p(6.0, 18.0)];
+            painter.add(egui::Shape::convex_polygon(
+                face_pts,
+                c_yellow.linear_multiply(0.4),
+                Stroke::new(2.0_f32, c_yellow),
+            ));
+            // Pequeno ponto no baricentro da face
+            painter.circle_filled(p(12.0, 12.0), 1.8, c_white);
+        }
+        "shading_wireframe" => {
+            // Esfera de Shading Wireframe estilo canônico do Blender
+            let center = p(12.0, 12.0);
+            let r = side * 0.38;
+            painter.circle_stroke(center, r, Stroke::new(1.8_f32, c_neutral));
+
+            // Equador e meridiano elípticos
+            painter.line_segment(
+                [p(4.0, 12.0), p(20.0, 12.0)],
+                Stroke::new(1.2_f32, c_neutral),
+            );
+            let mut arc = Vec::new();
+            for i in 0..=12 {
+                let a = (i as f32 / 12.0) * std::f32::consts::PI;
+                arc.push(Pos2::new(
+                    center.x + a.cos() * (r * 0.35),
+                    center.y - a.sin() * r,
+                ));
+            }
+            for w in arc.windows(2) {
+                painter.line_segment([w[0], w[1]], Stroke::new(1.2_f32, c_neutral));
+            }
+        }
+        "shading_solid" => {
+            // Esfera sólida preenchida com volume suave
+            let center = p(12.0, 12.0);
+            let r = side * 0.38;
+            painter.circle_filled(center, r, c_neutral);
+            // Ponto de luz superior esquerdo
+            painter.circle_filled(p(10.0, 10.0), r * 0.45, c_white.linear_multiply(0.4));
+            painter.circle_stroke(
+                center,
+                r,
+                Stroke::new(1.5_f32, c_white.linear_multiply(0.6)),
+            );
+        }
+        "shading_material" => {
+            // Esfera Material Preview: metade sólida colorida, metade contorno
+            let center = p(12.0, 12.0);
+            let r = side * 0.38;
+            // Base circular
+            painter.circle_filled(center, r, c_dark);
+
+            // Semicírculo direito preenchido com laranja quente
+            let mut semi_pts = vec![center];
+            for i in -6..=6 {
+                let a = (i as f32 / 6.0) * (std::f32::consts::PI * 0.5);
+                semi_pts.push(Pos2::new(center.x + a.cos() * r, center.y + a.sin() * r));
+            }
+            painter.add(egui::Shape::convex_polygon(
+                semi_pts,
+                c_orange,
+                Stroke::NONE,
+            ));
+
+            painter.line_segment([p(12.0, 3.5), p(12.0, 20.5)], Stroke::new(1.2_f32, c_white));
+            painter.circle_stroke(
+                center,
+                r,
+                Stroke::new(1.5_f32, c_white.linear_multiply(0.8)),
+            );
+        }
+        "shading_rendered" => {
+            // Esfera Rendered: núcleo brilhante com raios solares sutis
+            let center = p(12.0, 12.0);
+            let r = side * 0.32;
+            painter.circle_filled(center, r, c_yellow);
+            painter.circle_filled(center, r * 0.5, c_white);
+
+            // 4 raios cardeais
+            let ray_stroke = Stroke::new(1.5_f32, c_yellow);
+            painter.line_segment([p(12.0, 2.5), p(12.0, 5.0)], ray_stroke);
+            painter.line_segment([p(12.0, 19.0), p(12.0, 21.5)], ray_stroke);
+            painter.line_segment([p(2.5, 12.0), p(5.0, 12.0)], ray_stroke);
+            painter.line_segment([p(19.0, 12.0), p(21.5, 12.0)], ray_stroke);
+        }
+        "snap_magnet" => {
+            // Ímã de ferradura técnico com polos vermelho e azul
+            let p_left_top = p(6.0, 6.0);
+            let p_right_top = p(18.0, 6.0);
+
+            // Arco em U
+            let stroke_base = Stroke::new(3.2_f32, c_neutral);
+            let mut u_pts = Vec::new();
+            for i in 0..=12 {
+                let a = (i as f32 / 12.0) * std::f32::consts::PI;
+                u_pts.push(Pos2::new(
+                    12.0 + (a.cos() * 6.0 / 24.0) * grid_rect.width(),
+                    13.0 + (a.sin() * 6.0 / 24.0) * grid_rect.height(),
+                ));
+            }
+            painter.line_segment([p(6.0, 9.0), p(6.0, 13.0)], stroke_base);
+            painter.line_segment([p(18.0, 9.0), p(18.0, 13.0)], stroke_base);
+            for w in u_pts.windows(2) {
+                painter.line_segment([w[0], w[1]], stroke_base);
+            }
+
+            // Polos nas pontas: vermelho à esquerda, azul à direita
+            painter.line_segment([p_left_top, p(6.0, 9.0)], Stroke::new(3.2_f32, c_red));
+            painter.line_segment([p_right_top, p(18.0, 9.0)], Stroke::new(3.2_f32, c_blue));
+        }
+        "proportional_editing" => {
+            // Edição proporcional: anéis concêntricos e curva de decaimento suave
+            let center = p(12.0, 12.0);
+            painter.circle_stroke(center, side * 0.38, Stroke::new(1.5_f32, c_neutral));
+            painter.circle_stroke(center, side * 0.22, Stroke::new(1.2_f32, c_cyan));
+            painter.circle_filled(center, 2.0, c_white);
+        }
+        "xray" => {
+            // Dois planos translúcidos sobrepostos
+            let b1 = Rect::from_min_max(p(4.0, 4.0), p(15.0, 15.0));
+            let b2 = Rect::from_min_max(p(9.0, 9.0), p(20.0, 20.0));
+            painter.rect_filled(b1, 1.0, c_cyan.linear_multiply(0.2));
+            painter.rect_stroke(
+                b1,
+                1.0,
+                Stroke::new(1.4_f32, c_cyan.linear_multiply(0.7)),
+                egui::StrokeKind::Inside,
+            );
+            painter.rect_filled(b2, 1.0, c_cyan.linear_multiply(0.3));
+            painter.rect_stroke(
+                b2,
+                1.0,
+                Stroke::new(1.6_f32, c_cyan),
+                egui::StrokeKind::Inside,
+            );
+        }
+        "overlays" => {
+            // Grade de eixos de viewport
+            let stroke_grid = Stroke::new(1.0_f32, c_neutral.linear_multiply(0.5));
+            painter.line_segment([p(4.0, 8.0), p(20.0, 8.0)], stroke_grid);
+            painter.line_segment([p(4.0, 16.0), p(20.0, 16.0)], stroke_grid);
+            painter.line_segment([p(8.0, 4.0), p(8.0, 20.0)], stroke_grid);
+            painter.line_segment([p(16.0, 4.0), p(16.0, 20.0)], stroke_grid);
+
+            // Eixo X vermelho e Y verde centrais
+            painter.line_segment([p(4.0, 12.0), p(20.0, 12.0)], Stroke::new(1.8_f32, c_red));
+            painter.line_segment([p(12.0, 4.0), p(12.0, 20.0)], Stroke::new(1.8_f32, c_green));
+        }
+        "orientation_global" => {
+            // Três eixos coordenados XYZ saindo de uma origem
+            let origin = p(10.0, 14.0);
+            painter.line_segment([origin, p(19.0, 14.0)], Stroke::new(2.0_f32, c_red)); // X
+            painter.line_segment([origin, p(14.0, 8.0)], Stroke::new(2.0_f32, c_green)); // Y
+            painter.line_segment([origin, p(10.0, 4.0)], Stroke::new(2.0_f32, c_blue)); // Z
+            painter.circle_filled(origin, 2.0, c_white);
+        }
+        "pivot_median" => {
+            // Dois pontos e um marcador destacado no ponto médio
+            let p1 = p(6.0, 12.0);
+            let p2 = p(18.0, 12.0);
+            let mid = p(12.0, 12.0);
+            painter.line_segment(
+                [p1, p2],
+                Stroke::new(1.2_f32, c_neutral.linear_multiply(0.5)),
+            );
+            painter.circle_filled(p1, 2.0, c_neutral);
+            painter.circle_filled(p2, 2.0, c_neutral);
+
+            // Ponto médio destacado
+            painter.circle_filled(mid, 3.0, c_yellow);
+            painter.circle_stroke(mid, 3.0, Stroke::new(1.2_f32, c_white));
+        }
+        "object_mesh" => {
+            // Malha de objeto 3D canônica: cubo isométrico laranja
+            let p_top = p(12.0, 4.0);
+            let p_right = p(19.0, 8.0);
+            let p_mid = p(12.0, 12.0);
+            let p_left = p(5.0, 8.0);
+            let p_bot_left = p(5.0, 16.0);
+            let p_bot = p(12.0, 20.0);
+            let p_bot_right = p(19.0, 16.0);
+
+            painter.add(egui::Shape::convex_polygon(
+                vec![p_top, p_right, p_mid, p_left],
+                c_orange.linear_multiply(0.35),
+                Stroke::new(1.6_f32, c_orange),
+            ));
+
+            let stroke = Stroke::new(1.6_f32, c_orange);
+            painter.line_segment([p_left, p_bot_left], stroke);
+            painter.line_segment([p_mid, p_bot], stroke);
+            painter.line_segment([p_right, p_bot_right], stroke);
+            painter.line_segment([p_bot_left, p_bot], stroke);
+            painter.line_segment([p_bot, p_bot_right], stroke);
+        }
+        "reference_image" => {
+            // Moldura fotográfica com paisagem (sol e montanhas)
+            let frame = Rect::from_min_max(p(4.0, 5.0), p(20.0, 19.0));
+            painter.rect_filled(frame, 2.0, c_dark);
+            painter.rect_stroke(
+                frame,
+                2.0,
+                Stroke::new(1.5_f32, c_cyan),
+                egui::StrokeKind::Inside,
+            );
+
+            // Sol
+            painter.circle_filled(p(8.0, 9.0), 1.8, c_yellow);
+
+            // Montanha
+            let mtn = vec![
+                p(5.5, 17.5),
+                p(11.0, 11.5),
+                p(15.0, 15.5),
+                p(17.5, 13.5),
+                p(18.5, 17.5),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                mtn,
+                c_cyan.linear_multiply(0.4),
+                Stroke::new(1.2_f32, c_cyan),
+            ));
+        }
+        "collection" => {
+            // Pasta de Coleção técnica de Outliner
+            let p_tab = vec![
+                p(4.0, 7.0),
+                p(10.0, 7.0),
+                p(12.0, 9.0),
+                p(20.0, 9.0),
+                p(20.0, 18.0),
+                p(4.0, 18.0),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                p_tab,
+                c_white.linear_multiply(0.12),
+                Stroke::new(1.5_f32, c_neutral),
+            ));
+        }
+        "duplicate" => {
+            // Dois retângulos sobrepostos
+            let r1 = Rect::from_min_max(p(4.0, 4.0), p(15.0, 15.0));
+            let r2 = Rect::from_min_max(p(9.0, 9.0), p(20.0, 20.0));
+            painter.rect_stroke(
+                r1,
+                1.5,
+                Stroke::new(1.4_f32, c_neutral),
+                egui::StrokeKind::Inside,
+            );
+            painter.rect_filled(r2, 1.5, c_dark);
+            painter.rect_stroke(
+                r2,
+                1.5,
+                Stroke::new(1.6_f32, c_white),
+                egui::StrokeKind::Inside,
+            );
+        }
+        "delete" => {
+            // Lixeira técnica
+            let lid_stroke = Stroke::new(1.6_f32, c_red);
+            painter.line_segment([p(5.0, 6.0), p(19.0, 6.0)], lid_stroke);
+            painter.line_segment([p(10.0, 4.0), p(14.0, 4.0)], lid_stroke);
+
+            let body = vec![p(7.0, 7.5), p(17.0, 7.5), p(15.5, 19.5), p(8.5, 19.5)];
+            painter.add(egui::Shape::convex_polygon(
+                body,
+                c_red.linear_multiply(0.15),
+                Stroke::new(1.5_f32, c_red),
+            ));
+            painter.line_segment([p(10.0, 10.0), p(9.5, 17.0)], Stroke::new(1.2_f32, c_red));
+            painter.line_segment([p(14.0, 10.0), p(14.5, 17.0)], Stroke::new(1.2_f32, c_red));
+        }
         _ => {
             // Fallback genérico: losango geométrico
             let top = p(12.0, 4.0);
@@ -776,6 +1147,26 @@ mod tests {
             "camera",
             "undo",
             "redo",
+            "mode_object",
+            "mode_edit",
+            "select_vertex",
+            "select_edge",
+            "select_face",
+            "shading_wireframe",
+            "shading_solid",
+            "shading_material",
+            "shading_rendered",
+            "snap_magnet",
+            "proportional_editing",
+            "xray",
+            "overlays",
+            "orientation_global",
+            "pivot_median",
+            "object_mesh",
+            "reference_image",
+            "collection",
+            "duplicate",
+            "delete",
             "unknown_tool",
         ];
 

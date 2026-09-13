@@ -4,7 +4,9 @@
 use egui::{vec2, Color32, Context, Ui};
 use petunia_core::{AppState, Workspace};
 
+use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
+use crate::widgets;
 use crate::UiAction;
 
 /// Renderiza o cabeçalho superior completo da aplicação.
@@ -24,36 +26,27 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-                    // Ícone/Logo de branding Petunia3D
+                    // 1. Logotipo e Identidade visual Petunia
                     draw_app_brand(ui);
 
-                    ui.separator();
-
-                    // Menus da aplicação com visual flat limpo
+                    // 2. Menus do sistema no padrão de aplicação criativa (File, Edit, Window, Help)
                     draw_menus(ui, state, action);
 
                     ui.separator();
 
-                    // Abas de Workspaces em pílulas arredondadas (estilo Blender.svg)
+                    // 3. Abas de Workspaces em pílulas elegantes (Model, Paint, UV, Animate)
                     draw_workspace_pills(ui, state);
 
                     // Lado direito do header: Assets e Configurações
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let cfg_color = if state.show_settings {
-                            tokens::ACCENT_BLUE
-                        } else {
-                            tokens::BG_SURFACE
-                        };
-                        let cfg_btn = egui::Button::new(
-                            egui::RichText::new("⚙ Config")
-                                .size(11.0)
-                                .color(tokens::TEXT_PRIMARY),
-                        )
-                        .fill(cfg_color)
-                        .corner_radius(tokens::RADIUS_CONTROL);
+                        let cfg_resp = widgets::petunia_action_button(
+                            ui,
+                            Some(PetuniaIcon::Settings),
+                            "Config",
+                            false,
+                        );
 
-                        if ui
-                            .add(cfg_btn)
+                        if cfg_resp
                             .on_hover_text(
                                 "Preferências e Configurações (Tema, Ícones, Idioma, Teclas)",
                             )
@@ -63,21 +56,14 @@ pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
                             state.mark_dirty();
                         }
 
-                        let asset_color = if state.show_asset_browser || state.show_asset_library {
-                            tokens::ACCENT_BLUE
-                        } else {
-                            tokens::BG_SURFACE
-                        };
-                        let asset_btn = egui::Button::new(
-                            egui::RichText::new("📦 Assets")
-                                .size(11.0)
-                                .color(tokens::TEXT_PRIMARY),
-                        )
-                        .fill(asset_color)
-                        .corner_radius(tokens::RADIUS_CONTROL);
+                        let asset_resp = widgets::petunia_action_button(
+                            ui,
+                            Some(PetuniaIcon::Folder),
+                            "Assets",
+                            false,
+                        );
 
-                        if ui
-                            .add(asset_btn)
+                        if asset_resp
                             .on_hover_text("Alternar Painel de Assets do Projeto")
                             .clicked()
                         {
@@ -136,9 +122,9 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
             ("file.quit", 5),
         ] {
             let label = match key {
-                "file.save_asset" => "📥 Salvar Modelo Ativo como Asset".to_string(),
-                "file.export_obj" => "📦 Exportar OBJ (.obj)...".to_string(),
-                "file.export_glb" => "🌐 Exportar GLB (.glb)...".to_string(),
+                "file.save_asset" => "Save Active Model as Asset".to_string(),
+                "file.export_obj" => "Export OBJ (.obj)...".to_string(),
+                "file.export_glb" => "Export GLB (.glb)...".to_string(),
                 _ => state.t(key),
             };
             if ui.button(label).clicked() {

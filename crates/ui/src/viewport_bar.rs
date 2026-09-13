@@ -1,18 +1,21 @@
 //! Barra de contexto superior do Viewport 3D (`3D View Bar`).
-//! Organizada em 6 clusters semânticos coerentes:
-//! 1. Modo de Trabalho (`[ Object Mode ▾ ]` ou `[ Edit Mode ▾ ]`) com alvos contextuais (`⬝ Vértice`, `╱ Aresta`, `▨ Face`) exibidos apenas em Edit Mode;
-//! 2. Menus Rápidos (`👁 View ▾`, `▢ Select ▾`, `➕ Add+ ▾`, e menu contextual de `Objeto` / `Malha`);
-//! 3. Orientação de Transformação e Ponto de Pivô;
-//! 4. Snapping Magnético e Edição Proporcional;
-//! 5. Diagnóstico de Cena (Overlays e X-Ray);
-//! 6. 4 Modos de Sombreamento no estilo esférico canônico do Blender.
+//! Organizada em 7 clusters semânticos coerentes:
+//! 1. Seletor de Modo (`Object` vs `Edit`) com dropdown estilizado e ícone vetorial;
+//! 2. Alvos de Seleção de Malha segmentados (`Vértice`, `Aresta`, `Face`) exibidos exclusivamente em Edit Mode;
+//! 3. Menus Rápidos Padronizados (`View ▾`, `Select ▾`, `Add ▾`, `Mesh ▾` / `Object ▾`) com atalhos dinâmicos;
+//! 4. Orientação de Transformação, Ponto de Pivô e Travamento de Eixos [X][Y][Z];
+//! 5. Auxiliares de Edição (Snapping Magnético e Edição Proporcional com ícones canônicos);
+//! 6. Diagnóstico de Cena (Overlays e X-Ray com ícones vetoriais dedicados);
+//! 7. 4 Esferas de Sombreamento no estilo canônico do Blender (Wireframe, Solid, Material, Rendered).
 
-use egui::{vec2, Color32, CornerRadius, Ui};
+use egui::{pos2, vec2, Color32, CornerRadius, Rect, Ui};
 use petunia_core::{AppState, EditMode, Projection, SelectMode};
 use petunia_mesh::Mesh;
 use petunia_render::Shading;
 
+use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
+use crate::widgets::{petunia_menu_separator, PetuniaMenuItem};
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
@@ -22,40 +25,40 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-        // CLUSTER 1: Seletor de Modo e Alvos de Seleção Contextuais (Apenas em Edit Mode)
+        // CLUSTER 1 & 2: Seletor de Modo e Alvos de Seleção Segmentados (Apenas em Edit Mode)
         draw_mode_and_targets_cluster(ui, state);
 
         ui.add_space(2.0);
         ui.separator();
         ui.add_space(2.0);
 
-        // CLUSTER 2: Menus Rápidos com Ícones (View, Select, Add+, Objeto/Malha)
+        // CLUSTER 3: Menus Rápidos Padronizados com Ícones (View, Select, Add, Objeto/Malha)
         draw_viewport_actions_cluster(ui, state);
 
         ui.add_space(2.0);
         ui.separator();
         ui.add_space(2.0);
 
-        // CLUSTER 3: Orientação e Ponto de Pivô
+        // CLUSTER 4: Orientação, Ponto de Pivô e Travamento de Eixos
         draw_transform_cluster(ui, state);
 
         ui.add_space(2.0);
         ui.separator();
         ui.add_space(2.0);
 
-        // CLUSTER 4: Snapping Magnético e Edição Proporcional
+        // CLUSTER 5: Snapping Magnético e Edição Proporcional
         draw_snap_and_prop_cluster(ui, state);
 
-        // CLUSTER 5 & 6: Controles do lado direito (Overlays, X-Ray e 4 Esferas de Sombreamento)
+        // CLUSTERS 6 & 7: Controles do lado direito (Overlays, X-Ray e 4 Esferas de Sombreamento)
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // CLUSTER 6: 4 Modos de Sombreamento no Estilo Canônico do Blender
+            // CLUSTER 7: 4 Modos de Sombreamento no Estilo Canônico do Blender
             draw_shading_spheres_cluster(ui, state);
 
             ui.add_space(4.0);
             ui.separator();
             ui.add_space(4.0);
 
-            // CLUSTER 5: Diagnóstico de Visualização (Overlays e X-Ray)
+            // CLUSTER 6: Diagnóstico de Visualização (Overlays e X-Ray)
             draw_display_toggles_cluster(ui, state);
         });
     });
@@ -109,71 +112,134 @@ fn handle_keyboard_shortcuts(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-/// Cluster 1: Seletor de Modo (`Object` vs `Edit`) + Alvos de Seleção (`⬝ Vértice`, `╱ Aresta`, `▨ Face`)
+/// Cluster 1 & 2: Seletor de Modo (`Object` vs `Edit`) + Alvos de Seleção Segmentados
 /// exibidos exclusivamente no modo de edição.
 fn draw_mode_and_targets_cluster(ui: &mut Ui, state: &mut AppState) {
-    let mode_text = match state.mode {
-        EditMode::Object => "🧊 Object Mode ▾",
-        EditMode::Edit => "🕸 Edit Mode ▾",
-        _ => "Modo ▾",
+    let (mode_icon, mode_label) = match state.mode {
+        EditMode::Object => (PetuniaIcon::ModeObject, state.t("modes.object")),
+        EditMode::Edit => (PetuniaIcon::ModeEdit, state.t("modes.edit")),
+        _ => (PetuniaIcon::ModeObject, "Mode".to_string()),
     };
 
-    ui.menu_button(
-        egui::RichText::new(mode_text)
-            .strong()
-            .size(11.0)
-            .color(tokens::TEXT_PRIMARY),
-        |ui| {
-            if ui.button("🧊 Object Mode · Tab").clicked() {
-                state.mode = EditMode::Object;
-                state.active_tool = "select".into();
-                state.mark_dirty();
-                ui.close();
-            }
-            if ui.button("🕸 Edit Mode · Tab").clicked() {
-                state.mode = EditMode::Edit;
-                state.sync_selection();
-                state.mark_dirty();
-                ui.close();
-            }
-        },
-    );
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
-    // Botões de alvo de seleção: visíveis EXCLUSIVAMENTE em modo de edição
+        let (rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+        if ui.is_rect_visible(rect) {
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &mode_icon,
+                rect,
+                tokens::TEXT_PRIMARY,
+            );
+        }
+
+        ui.menu_button(
+            egui::RichText::new(format!("{mode_label} ▾"))
+                .strong()
+                .size(11.0)
+                .color(tokens::TEXT_PRIMARY),
+            |ui| {
+                let sc_obj = state
+                    .keybinds
+                    .shortcut_for("model.select_object")
+                    .unwrap_or_else(|| "0".into());
+                let sc_edit = state
+                    .keybinds
+                    .shortcut_for("global.cycle_mode")
+                    .unwrap_or_else(|| "Tab".into());
+
+                if PetuniaMenuItem::new(&state.t("modes.object"))
+                    .icon(PetuniaIcon::ModeObject)
+                    .shortcut(Some(&sc_obj))
+                    .show(ui)
+                    .clicked()
+                {
+                    state.mode = EditMode::Object;
+                    state.active_tool = "select".into();
+                    state.mark_dirty();
+                    ui.close();
+                }
+                if PetuniaMenuItem::new(&state.t("modes.edit"))
+                    .icon(PetuniaIcon::ModeEdit)
+                    .shortcut(Some(&sc_edit))
+                    .show(ui)
+                    .clicked()
+                {
+                    state.mode = EditMode::Edit;
+                    state.sync_selection();
+                    state.mark_dirty();
+                    ui.close();
+                }
+            },
+        );
+    });
+
+    // Botões de alvo de seleção segmentados: visíveis EXCLUSIVAMENTE em modo de edição
     if state.mode == EditMode::Edit {
         ui.add_space(2.0);
         let targets = [
-            (SelectMode::Vertex, "⬝ Vértice", "1", "Seleção de Vértices"),
-            (SelectMode::Edge, "╱ Aresta", "2", "Seleção de Arestas"),
-            (SelectMode::Face, "▨ Face", "3", "Seleção de Faces"),
+            (
+                SelectMode::Vertex,
+                PetuniaIcon::SelectVertex,
+                "1",
+                state.t("modes.vertex"),
+            ),
+            (
+                SelectMode::Edge,
+                PetuniaIcon::SelectEdge,
+                "2",
+                state.t("modes.edge"),
+            ),
+            (
+                SelectMode::Face,
+                PetuniaIcon::SelectFace,
+                "3",
+                state.t("modes.face"),
+            ),
         ];
 
-        for (mode, label, shortcut, hint) in targets {
-            let is_active = state.select_mode == mode;
-            let (bg, fg) = if is_active {
-                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
-            } else {
-                (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
-            };
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+            for (mode, icon, shortcut, name) in targets {
+                let is_active = state.select_mode == mode;
+                let (bg, fg) = if is_active {
+                    (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
+                } else {
+                    (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
+                };
 
-            let btn = egui::Button::new(egui::RichText::new(label).size(11.0).color(fg))
-                .fill(bg)
-                .corner_radius(tokens::RADIUS_CONTROL);
+                let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+                if ui.is_rect_visible(rect) {
+                    let painter = ui.painter();
+                    let fill = if is_active {
+                        bg
+                    } else if resp.hovered() {
+                        tokens::BG_SURFACE_HOVER
+                    } else {
+                        bg
+                    };
+                    painter.rect_filled(rect, tokens::RADIUS_CONTROL, fill);
 
-            if ui
-                .add(btn)
-                .on_hover_text(format!("{hint} · [{shortcut}]"))
-                .clicked()
-            {
-                state.select_mode = mode;
-                state.sync_selection();
-                state.mark_dirty();
+                    let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+                    IconRegistry::paint(ui.ctx(), painter, &icon, icon_rect, fg);
+                }
+
+                if resp
+                    .on_hover_text(format!("{name} · [{shortcut}]"))
+                    .clicked()
+                {
+                    state.select_mode = mode;
+                    state.sync_selection();
+                    state.mark_dirty();
+                }
             }
-        }
+        });
     }
 }
 
-/// Cluster 2: Menus rápidos com ícones (View, Select, Add+, Objeto/Malha).
+/// Cluster 3: Menus rápidos padronizados com ícones (View, Select, Add, Objeto/Malha).
 fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     let visuals = ui.visuals_mut();
     visuals.widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
@@ -181,15 +247,29 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     visuals.widgets.hovered.weak_bg_fill = tokens::BG_SURFACE_HOVER;
     visuals.widgets.active.weak_bg_fill = tokens::ACCENT_BLUE;
 
-    // Menu View com ícone
-    ui.menu_button("👁 View ▾", |ui| {
-        if ui.button("Centralizar Seleção · Numpad .").clicked() {
+    // Menu View
+    ui.menu_button("View ▾", |ui| {
+        let sc_frame = state
+            .keybinds
+            .shortcut_for("model.frame_selection")
+            .unwrap_or_else(|| "Numpad .".into());
+        if PetuniaMenuItem::new(&state.t("view.frame"))
+            .shortcut(Some(&sc_frame))
+            .show(ui)
+            .clicked()
+        {
             crate::frame_selection(state);
             ui.close();
         }
-        ui.separator();
-        if ui
-            .button("Alternar Perspectiva / Ortho · Numpad 5")
+        petunia_menu_separator(ui);
+
+        let sc_proj = state
+            .keybinds
+            .shortcut_for("global.toggle_projection")
+            .unwrap_or_else(|| "Numpad 5".into());
+        if PetuniaMenuItem::new(&state.t("camera.projection"))
+            .shortcut(Some(&sc_proj))
+            .show(ui)
             .clicked()
         {
             state.camera.proj = match state.camera.proj {
@@ -199,40 +279,64 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
             ui.close();
         }
-        if ui.button("Frente (Front) · Numpad 1").clicked() {
+        if PetuniaMenuItem::new(&state.t("camera.front"))
+            .shortcut(Some("Numpad 1"))
+            .show(ui)
+            .clicked()
+        {
             state.camera.set_preset(petunia_core::ViewPreset::Front);
             state.mark_dirty();
             ui.close();
         }
-        if ui.button("Direita (Right) · Numpad 3").clicked() {
+        if PetuniaMenuItem::new(&state.t("camera.right"))
+            .shortcut(Some("Numpad 3"))
+            .show(ui)
+            .clicked()
+        {
             state.camera.set_preset(petunia_core::ViewPreset::Right);
             state.mark_dirty();
             ui.close();
         }
-        if ui.button("Topo (Top) · Numpad 7").clicked() {
+        if PetuniaMenuItem::new(&state.t("camera.top"))
+            .shortcut(Some("Numpad 7"))
+            .show(ui)
+            .clicked()
+        {
             state.camera.set_preset(petunia_core::ViewPreset::Top);
             state.mark_dirty();
             ui.close();
         }
     });
 
-    // Menu Select com ícone
-    ui.menu_button("▢ Select ▾", |ui| {
-        if ui.button("Selecionar Tudo · A").clicked() {
+    // Menu Select
+    ui.menu_button("Select ▾", |ui| {
+        if PetuniaMenuItem::new(&state.t("actions.select_all"))
+            .shortcut(Some("A"))
+            .show(ui)
+            .clicked()
+        {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.select_all();
             }
             state.sync_selection();
             ui.close();
         }
-        if ui.button("Desmarcar Tudo · Alt+A").clicked() {
+        if PetuniaMenuItem::new(&state.t("actions.deselect"))
+            .shortcut(Some("Alt+A"))
+            .show(ui)
+            .clicked()
+        {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.deselect_all();
             }
             state.sync_selection();
             ui.close();
         }
-        if ui.button("Inverter Seleção · Ctrl+I").clicked() {
+        if PetuniaMenuItem::new(&state.t("actions.invert"))
+            .shortcut(Some("Ctrl+I"))
+            .show(ui)
+            .clicked()
+        {
             if let Some(m) = state.project.active_mesh_mut() {
                 m.invert_selection();
             }
@@ -241,31 +345,55 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
-    // Menu Add+ explícito conforme solicitado pelo usuário
+    // Menu Add
     let mut spawn_mesh: Option<(&'static str, Mesh)> = None;
-    ui.menu_button("➕ Add+ ▾", |ui| {
-        if ui.button("🧊 Cubo").clicked() {
+    ui.menu_button("Add ▾", |ui| {
+        if PetuniaMenuItem::new(&state.t("prims.cube"))
+            .icon(PetuniaIcon::AddPrimitive)
+            .show(ui)
+            .clicked()
+        {
             spawn_mesh = Some(("Cube", Mesh::cube(1.0)));
             ui.close();
         }
-        if ui.button("⚪ Esfera UV").clicked() {
+        if PetuniaMenuItem::new(&state.t("prims.sphere"))
+            .icon(PetuniaIcon::AddPrimitive)
+            .show(ui)
+            .clicked()
+        {
             spawn_mesh = Some(("Sphere", Mesh::sphere_low(16, 12, 0.5)));
             ui.close();
         }
-        if ui.button("🛢 Cilindro").clicked() {
+        if PetuniaMenuItem::new(&state.t("prims.cylinder"))
+            .icon(PetuniaIcon::AddPrimitive)
+            .show(ui)
+            .clicked()
+        {
             spawn_mesh = Some(("Cylinder", Mesh::cylinder(16, 0.5, 1.0)));
             ui.close();
         }
-        if ui.button("▭ Plano").clicked() {
+        if PetuniaMenuItem::new(&state.t("prims.plane"))
+            .icon(PetuniaIcon::AddPrimitive)
+            .show(ui)
+            .clicked()
+        {
             spawn_mesh = Some(("Plane", Mesh::plane(2.0)));
             ui.close();
         }
-        if ui.button("▲ Cone").clicked() {
+        if PetuniaMenuItem::new(&state.t("prims.cone"))
+            .icon(PetuniaIcon::AddPrimitive)
+            .show(ui)
+            .clicked()
+        {
             spawn_mesh = Some(("Cone", Mesh::cone(16, 0.5, 1.0)));
             ui.close();
         }
-        ui.separator();
-        if ui.button("🖼 Imagem de Referência...").clicked() {
+        petunia_menu_separator(ui);
+        if PetuniaMenuItem::new(&state.t("ui.refs"))
+            .icon(PetuniaIcon::ReferenceImage)
+            .show(ui)
+            .clicked()
+        {
             crate::pick_and_add_reference_image(state);
             ui.close();
         }
@@ -287,8 +415,17 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
     // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
     if state.mode == EditMode::Object {
-        ui.menu_button("🧊 Object ▾", |ui| {
-            if ui.button("📋 Duplicar Objeto · Shift+D").clicked() {
+        ui.menu_button("Object ▾", |ui| {
+            let sc_dup = state
+                .keybinds
+                .shortcut_for("model.duplicate")
+                .unwrap_or_else(|| "Shift+D".into());
+            if PetuniaMenuItem::new(&state.t("actions.duplicate"))
+                .icon(PetuniaIcon::Duplicate)
+                .shortcut(Some(&sc_dup))
+                .show(ui)
+                .clicked()
+            {
                 if let Some(active) = state.project.active() {
                     let dup = active.duplicate();
                     state.checkpoint("duplicate object");
@@ -300,7 +437,17 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 }
                 ui.close();
             }
-            if ui.button("🗑 Deletar Objeto · Delete").clicked() {
+
+            let sc_del = state
+                .keybinds
+                .shortcut_for("model.delete")
+                .unwrap_or_else(|| "Delete".into());
+            if PetuniaMenuItem::new(&state.t("actions.delete"))
+                .icon(PetuniaIcon::Delete)
+                .shortcut(Some(&sc_del))
+                .show(ui)
+                .clicked()
+            {
                 if state.project.assets.len() > 1 {
                     let idx = state.project.active;
                     state.checkpoint("delete object");
@@ -312,42 +459,93 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 }
                 ui.close();
             }
-            ui.separator();
-            if ui.button("🎯 Cursor para a Origem").clicked() {
+            petunia_menu_separator(ui);
+            if PetuniaMenuItem::new("Cursor to World Origin")
+                .icon(PetuniaIcon::Cursor3D)
+                .show(ui)
+                .clicked()
+            {
                 state.cursor_3d = [0.0, 0.0, 0.0];
                 state.mark_dirty();
                 ui.close();
             }
         });
     } else {
-        ui.menu_button("🕸 Mesh ▾", |ui| {
-            if ui.button("Extrusão (Extrude) · E").clicked() {
+        ui.menu_button("Mesh ▾", |ui| {
+            let sc_ext = state
+                .keybinds
+                .shortcut_for("model.extrude")
+                .unwrap_or_else(|| "E".into());
+            if PetuniaMenuItem::new(&state.t("tools.extrude"))
+                .icon(PetuniaIcon::Extrude)
+                .shortcut(Some(&sc_ext))
+                .show(ui)
+                .clicked()
+            {
                 state.active_tool = "extrude".into();
                 state.mark_dirty();
                 ui.close();
             }
-            if ui.button("Inserção (Inset) · I").clicked() {
+
+            let sc_ins = state
+                .keybinds
+                .shortcut_for("model.inset")
+                .unwrap_or_else(|| "I".into());
+            if PetuniaMenuItem::new(&state.t("tools.inset"))
+                .icon(PetuniaIcon::Inset)
+                .shortcut(Some(&sc_ins))
+                .show(ui)
+                .clicked()
+            {
                 state.active_tool = "inset".into();
                 state.mark_dirty();
                 ui.close();
             }
-            if ui.button("Chanfro (Bevel) · Ctrl+B").clicked() {
+
+            let sc_bev = state
+                .keybinds
+                .shortcut_for("model.bevel")
+                .unwrap_or_else(|| "Ctrl+B".into());
+            if PetuniaMenuItem::new(&state.t("tools.bevel"))
+                .icon(PetuniaIcon::Bevel)
+                .shortcut(Some(&sc_bev))
+                .show(ui)
+                .clicked()
+            {
                 state.active_tool = "bevel".into();
                 state.mark_dirty();
                 ui.close();
             }
-            if ui.button("Corte em Anel (Loop Cut) · Ctrl+R").clicked() {
+
+            if PetuniaMenuItem::new("Loop Cut")
+                .icon(PetuniaIcon::LoopCut)
+                .shortcut(Some("Ctrl+R"))
+                .show(ui)
+                .clicked()
+            {
                 state.active_tool = "loop_cut".into();
                 state.mark_dirty();
                 ui.close();
             }
-            if ui.button("Faca Topológica (Knife) · K").clicked() {
+
+            if PetuniaMenuItem::new("Knife")
+                .icon(PetuniaIcon::Knife)
+                .shortcut(Some("K"))
+                .show(ui)
+                .clicked()
+            {
                 state.active_tool = "knife".into();
                 state.mark_dirty();
                 ui.close();
             }
-            ui.separator();
-            if ui.button("Subdividir Seleção").clicked() {
+
+            petunia_menu_separator(ui);
+
+            if PetuniaMenuItem::new(&state.t("actions.subdivide"))
+                .icon(PetuniaIcon::Subdivide)
+                .show(ui)
+                .clicked()
+            {
                 state.checkpoint("subdivide");
                 if let Some(m) = state.project.active_mesh_mut() {
                     m.subdivide_selected();
@@ -356,7 +554,12 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 state.emit_mesh_changed();
                 ui.close();
             }
-            if ui.button("Fundir no Centro (Merge)").clicked() {
+
+            if PetuniaMenuItem::new(&state.t("actions.merge_center"))
+                .icon(PetuniaIcon::Custom("merge"))
+                .show(ui)
+                .clicked()
+            {
                 state.checkpoint("merge");
                 if let Some(m) = state.project.active_mesh_mut() {
                     m.merge_center();
@@ -369,51 +572,79 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-/// Cluster 3: Orientação de transformação e Ponto de pivô.
+/// Cluster 4: Orientação de transformação, Ponto de pivô e Travamento de Eixos.
 fn draw_transform_cluster(ui: &mut Ui, state: &mut AppState) {
-    egui::ComboBox::from_id_salt("transform_orientation")
-        .selected_text(
-            egui::RichText::new(&state.transform_orientation)
-                .size(11.0)
-                .color(tokens::TEXT_PRIMARY),
-        )
-        .width(64.0)
-        .show_ui(ui, |ui| {
-            for orient in ["Global", "Local", "Normal", "View", "Cursor"] {
-                if ui
-                    .selectable_label(state.transform_orientation == orient, orient)
-                    .clicked()
-                {
-                    state.transform_orientation = orient.to_string();
-                    state.mark_dirty();
-                }
-            }
-        });
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
 
-    egui::ComboBox::from_id_salt("pivot_point")
-        .selected_text(
-            egui::RichText::new(&state.pivot_point)
-                .size(11.0)
-                .color(tokens::TEXT_PRIMARY),
-        )
-        .width(92.0)
-        .show_ui(ui, |ui| {
-            for pivot in [
-                "Median Point",
-                "3D Cursor",
-                "Bounding Box",
-                "Individual Origins",
-                "Active Element",
-            ] {
-                if ui
-                    .selectable_label(state.pivot_point == pivot, pivot)
-                    .clicked()
-                {
-                    state.pivot_point = pivot.to_string();
-                    state.mark_dirty();
+        let (rect, _) = ui.allocate_exact_size(vec2(14.0, 14.0), egui::Sense::hover());
+        if ui.is_rect_visible(rect) {
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &PetuniaIcon::OrientationGlobal,
+                rect,
+                tokens::TEXT_SECONDARY,
+            );
+        }
+
+        egui::ComboBox::from_id_salt("transform_orientation")
+            .selected_text(
+                egui::RichText::new(&state.transform_orientation)
+                    .size(11.0)
+                    .color(tokens::TEXT_PRIMARY),
+            )
+            .width(62.0)
+            .show_ui(ui, |ui| {
+                for orient in ["Global", "Local", "Normal", "View", "Cursor"] {
+                    if ui
+                        .selectable_label(state.transform_orientation == orient, orient)
+                        .clicked()
+                    {
+                        state.transform_orientation = orient.to_string();
+                        state.mark_dirty();
+                    }
                 }
-            }
-        });
+            });
+
+        ui.add_space(2.0);
+
+        let (rect, _) = ui.allocate_exact_size(vec2(14.0, 14.0), egui::Sense::hover());
+        if ui.is_rect_visible(rect) {
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &PetuniaIcon::PivotMedian,
+                rect,
+                tokens::TEXT_SECONDARY,
+            );
+        }
+
+        egui::ComboBox::from_id_salt("pivot_point")
+            .selected_text(
+                egui::RichText::new(&state.pivot_point)
+                    .size(11.0)
+                    .color(tokens::TEXT_PRIMARY),
+            )
+            .width(88.0)
+            .show_ui(ui, |ui| {
+                for pivot in [
+                    "Median Point",
+                    "3D Cursor",
+                    "Bounding Box",
+                    "Individual Origins",
+                    "Active Element",
+                ] {
+                    if ui
+                        .selectable_label(state.pivot_point == pivot, pivot)
+                        .clicked()
+                    {
+                        state.pivot_point = pivot.to_string();
+                        state.mark_dirty();
+                    }
+                }
+            });
+    });
 
     ui.add_space(2.0);
 
@@ -423,16 +654,25 @@ fn draw_transform_cluster(ui: &mut Ui, state: &mut AppState) {
 
 fn draw_axis_lock_controls(ui: &mut Ui, state: &mut AppState) {
     let any_locked = state.is_axis_locked(0) || state.is_axis_locked(1) || state.is_axis_locked(2);
-    let (lock_icon, lock_col) = if any_locked {
-        ("🔒", tokens::TEXT_ACTIVE)
+    let lock_icon = if any_locked {
+        PetuniaIcon::Lock
     } else {
-        ("🔓", tokens::TEXT_MUTED)
+        PetuniaIcon::Unlock
+    };
+    let lock_col = if any_locked {
+        tokens::TEXT_ACTIVE
+    } else {
+        tokens::TEXT_MUTED
     };
 
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+        ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
 
-        ui.label(egui::RichText::new(lock_icon).size(11.0).color(lock_col));
+        let (rect, _) = ui.allocate_exact_size(vec2(14.0, 18.0), egui::Sense::hover());
+        if ui.is_rect_visible(rect) {
+            let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+            IconRegistry::paint(ui.ctx(), ui.painter(), &lock_icon, icon_rect, lock_col);
+        }
 
         for (axis_idx, label, color) in [
             (0, "X", tokens::AXIS_X),
@@ -471,15 +711,26 @@ fn draw_axis_lock_controls(ui: &mut Ui, state: &mut AppState) {
             ui.add_space(2.0);
             let badge_bg = Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
             let (rect, _) = ui.allocate_exact_size(
-                vec2(14.0 + (label.len() as f32) * 6.5, 18.0),
+                vec2(20.0 + (label.len() as f32) * 6.5, 18.0),
                 egui::Sense::hover(),
             );
             ui.painter()
                 .rect_filled(rect, tokens::RADIUS_CONTROL, badge_bg);
+
+            let icon_rect =
+                Rect::from_min_size(pos2(rect.min.x + 3.0, rect.min.y + 2.5), vec2(13.0, 13.0));
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &PetuniaIcon::Lock,
+                icon_rect,
+                Color32::WHITE,
+            );
+
             ui.painter().text(
-                rect.center(),
-                egui::Align2::CENTER_CENTER,
-                format!("🔒 {label}"),
+                pos2(rect.min.x + 18.0, rect.center().y),
+                egui::Align2::LEFT_CENTER,
+                label,
                 egui::FontId::monospace(10.0),
                 Color32::WHITE,
             );
@@ -487,24 +738,35 @@ fn draw_axis_lock_controls(ui: &mut Ui, state: &mut AppState) {
     });
 }
 
-/// Cluster 4: Snapping magnético e Edição proporcional.
+/// Cluster 5: Snapping magnético e Edição proporcional com ícones canônicos.
 fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
-    // Botão Snap (Ímã)
-    let snap_bg = if state.snap_enabled {
-        tokens::ACCENT_BLUE
-    } else {
-        tokens::BG_SURFACE
-    };
-    let snap_btn = egui::Button::new(
-        egui::RichText::new("🧲 Snap")
-            .size(10.5)
-            .color(tokens::TEXT_ACTIVE),
-    )
-    .fill(snap_bg)
-    .corner_radius(tokens::RADIUS_CONTROL);
-
-    if ui
-        .add(snap_btn)
+    // Botão Snap (Ímã Vetorial)
+    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let is_active = state.snap_enabled;
+        let bg = if is_active {
+            tokens::ACCENT_BLUE
+        } else if resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            tokens::BG_SURFACE
+        };
+        let fg = if is_active {
+            tokens::TEXT_ACTIVE
+        } else {
+            tokens::TEXT_SECONDARY
+        };
+        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::SnapMagnet,
+            icon_rect,
+            fg,
+        );
+    }
+    if resp
         .on_hover_text("Snapping Magnético · Shift+Tab")
         .clicked()
     {
@@ -512,48 +774,67 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
         state.mark_dirty();
     }
 
-    // Botão Edição Proporcional
-    let prop_bg = if state.proportional_editing {
-        tokens::ACCENT_BLUE
-    } else {
-        tokens::BG_SURFACE
-    };
-    let prop_btn = egui::Button::new(
-        egui::RichText::new("◎ Prop")
-            .size(10.5)
-            .color(tokens::TEXT_ACTIVE),
-    )
-    .fill(prop_bg)
-    .corner_radius(tokens::RADIUS_CONTROL);
-
-    if ui
-        .add(prop_btn)
-        .on_hover_text("Edição Proporcional · O")
-        .clicked()
-    {
+    // Botão Edição Proporcional (Ícone Vetorial Círculos Concêntricos - Nunca 'Prop')
+    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let is_active = state.proportional_editing;
+        let bg = if is_active {
+            tokens::ACCENT_BLUE
+        } else if resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            tokens::BG_SURFACE
+        };
+        let fg = if is_active {
+            tokens::TEXT_ACTIVE
+        } else {
+            tokens::TEXT_SECONDARY
+        };
+        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::ProportionalEditing,
+            icon_rect,
+            fg,
+        );
+    }
+    if resp.on_hover_text("Edição Proporcional · O").clicked() {
         state.proportional_editing = !state.proportional_editing;
         state.mark_dirty();
     }
 }
 
-/// Cluster 5: Alternâncias de visualização de cena (Overlays e X-Ray).
+/// Cluster 6: Alternâncias de visualização de cena (Overlays e X-Ray com ícones vetoriais).
 fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
-    let ov_bg = if state.show_overlays {
-        tokens::ACCENT_BLUE
-    } else {
-        tokens::BG_SURFACE
-    };
-    let ov_btn = egui::Button::new(
-        egui::RichText::new("⊞ Overlays")
-            .size(10.5)
-            .color(tokens::TEXT_ACTIVE),
-    )
-    .min_size(vec2(24.0, 22.0))
-    .fill(ov_bg)
-    .corner_radius(tokens::RADIUS_CONTROL);
-
-    if ui
-        .add(ov_btn)
+    // Overlays
+    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let is_active = state.show_overlays;
+        let bg = if is_active {
+            tokens::ACCENT_BLUE
+        } else if resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            tokens::BG_SURFACE
+        };
+        let fg = if is_active {
+            tokens::TEXT_ACTIVE
+        } else {
+            tokens::TEXT_SECONDARY
+        };
+        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::Overlays,
+            icon_rect,
+            fg,
+        );
+    }
+    if resp
         .on_hover_text("Alternar Exibição de Overlays (Grade 3D e Eixos)")
         .clicked()
     {
@@ -561,22 +842,27 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
         state.mark_dirty();
     }
 
-    let xray_bg = if state.show_xray {
-        tokens::ACCENT_BLUE
-    } else {
-        tokens::BG_SURFACE
-    };
-    let xray_btn = egui::Button::new(
-        egui::RichText::new("⧉ X-Ray")
-            .size(10.5)
-            .color(tokens::TEXT_ACTIVE),
-    )
-    .min_size(vec2(24.0, 22.0))
-    .fill(xray_bg)
-    .corner_radius(tokens::RADIUS_CONTROL);
-
-    if ui
-        .add(xray_btn)
+    // X-Ray
+    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let is_active = state.show_xray;
+        let bg = if is_active {
+            tokens::ACCENT_BLUE
+        } else if resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            tokens::BG_SURFACE
+        };
+        let fg = if is_active {
+            tokens::TEXT_ACTIVE
+        } else {
+            tokens::TEXT_SECONDARY
+        };
+        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+        IconRegistry::paint(ui.ctx(), ui.painter(), &PetuniaIcon::XRay, icon_rect, fg);
+    }
+    if resp
         .on_hover_text("Modo Raio-X / Transparência de Malha · Alt+Z")
         .clicked()
     {
@@ -585,31 +871,54 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
-/// Cluster 6: Os 4 modos canônicos de sombreamento no estilo esférico do Blender.
+/// Cluster 7: Os 4 modos canônicos de sombreamento no estilo esférico do Blender com ícones vetoriais.
 fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
     let modes = [
-        (Shading::Wireframe, "○", "Wireframe (Z 4)"),
-        (Shading::Solid, "●", "Solid / Clay (Z 6)"),
-        (Shading::Smooth, "◐", "Material Preview (Z 2)"),
-        (Shading::Unlit, "☼", "Rendered View (Z 8)"),
+        (
+            Shading::Wireframe,
+            PetuniaIcon::ShadingWireframe,
+            "Wireframe (Z 4)",
+        ),
+        (
+            Shading::Solid,
+            PetuniaIcon::ShadingSolid,
+            "Solid / Clay (Z 6)",
+        ),
+        (
+            Shading::Smooth,
+            PetuniaIcon::ShadingMaterial,
+            "Material Preview (Z 2)",
+        ),
+        (
+            Shading::Unlit,
+            PetuniaIcon::ShadingRendered,
+            "Rendered View (Z 8)",
+        ),
     ];
 
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
-        for (shading, label, hint) in modes {
+        for (shading, icon, hint) in modes {
             let is_active = state.shading == shading;
-            let (bg, fg) = if is_active {
-                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
-            } else {
-                (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
-            };
-
-            let btn = egui::Button::new(egui::RichText::new(label).size(13.0).strong().color(fg))
-                .min_size(vec2(22.0, 22.0))
-                .fill(bg)
-                .corner_radius(CornerRadius::same(11));
-
-            if ui.add(btn).on_hover_text(hint).clicked() {
+            let (rect, resp) = ui.allocate_exact_size(vec2(22.0, 22.0), egui::Sense::click());
+            if ui.is_rect_visible(rect) {
+                let bg = if is_active {
+                    tokens::ACCENT_BLUE
+                } else if resp.hovered() {
+                    tokens::BG_SURFACE_HOVER
+                } else {
+                    tokens::BG_SURFACE
+                };
+                let fg = if is_active {
+                    tokens::TEXT_ACTIVE
+                } else {
+                    tokens::TEXT_SECONDARY
+                };
+                ui.painter().rect_filled(rect, CornerRadius::same(11), bg);
+                let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+                IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
+            }
+            if resp.on_hover_text(hint).clicked() {
                 state.shading = shading;
                 state.mark_dirty();
             }

@@ -39,7 +39,7 @@ pub enum PetuniaIcon {
     Subdivide,
     DrawProfile,
 
-    // --------------------------------------------- Abas de Propriedades (Assets Figma 1..15)
+    // ---------------------------------------------------- Abas de Propriedades (Assets Figma 1..15)
     PropertyTab(u8),
     PropTool,
     PropRender,
@@ -52,6 +52,32 @@ pub enum PetuniaIcon {
     PropModifiers,
     PropData,
     PropMaterial,
+
+    // --------------------------------------------------------------- Modos e Alvos de Seleção
+    ModeObject,
+    ModeEdit,
+    SelectVertex,
+    SelectEdge,
+    SelectFace,
+
+    // ------------------------------------------------------------------- Modos de Sombreamento
+    ShadingWireframe,
+    ShadingSolid,
+    ShadingMaterial,
+    ShadingRendered,
+
+    // ----------------------------------------------------------- Auxiliares de Viewport e Cena
+    SnapMagnet,
+    ProportionalEditing,
+    XRay,
+    Overlays,
+    OrientationGlobal,
+    PivotMedian,
+    ObjectMesh,
+    ReferenceImage,
+    Collection,
+    Duplicate,
+    Delete,
 
     // ---------------------------------------------------- Utilitários (Phosphor / Vetoriais)
     Search,
@@ -122,6 +148,29 @@ impl PetuniaIcon {
             PetuniaIcon::PropModifiers => "data_tab_09".into(),
             PetuniaIcon::PropData => "data_tab_10".into(),
             PetuniaIcon::PropMaterial => "data_tab_11".into(),
+
+            PetuniaIcon::ModeObject => "mode_object".into(),
+            PetuniaIcon::ModeEdit => "mode_edit".into(),
+            PetuniaIcon::SelectVertex => "select_vertex".into(),
+            PetuniaIcon::SelectEdge => "select_edge".into(),
+            PetuniaIcon::SelectFace => "select_face".into(),
+
+            PetuniaIcon::ShadingWireframe => "shading_wireframe".into(),
+            PetuniaIcon::ShadingSolid => "shading_solid".into(),
+            PetuniaIcon::ShadingMaterial => "shading_material".into(),
+            PetuniaIcon::ShadingRendered => "shading_rendered".into(),
+
+            PetuniaIcon::SnapMagnet => "snap_magnet".into(),
+            PetuniaIcon::ProportionalEditing => "proportional_editing".into(),
+            PetuniaIcon::XRay => "xray".into(),
+            PetuniaIcon::Overlays => "overlays".into(),
+            PetuniaIcon::OrientationGlobal => "orientation_global".into(),
+            PetuniaIcon::PivotMedian => "pivot_median".into(),
+            PetuniaIcon::ObjectMesh => "object_mesh".into(),
+            PetuniaIcon::ReferenceImage => "reference_image".into(),
+            PetuniaIcon::Collection => "collection".into(),
+            PetuniaIcon::Duplicate => "duplicate".into(),
+            PetuniaIcon::Delete => "delete".into(),
 
             PetuniaIcon::Search => "search".into(),
             PetuniaIcon::Folder => "folder".into(),
@@ -467,6 +516,26 @@ pub fn is_toolbar_vector_tool(id: &str) -> bool {
             | "subdivide"
             | "draw_profile"
             | "paint"
+            | "mode_object"
+            | "mode_edit"
+            | "select_vertex"
+            | "select_edge"
+            | "select_face"
+            | "shading_wireframe"
+            | "shading_solid"
+            | "shading_material"
+            | "shading_rendered"
+            | "snap_magnet"
+            | "proportional_editing"
+            | "xray"
+            | "overlays"
+            | "orientation_global"
+            | "pivot_median"
+            | "object_mesh"
+            | "reference_image"
+            | "collection"
+            | "duplicate"
+            | "delete"
     )
 }
 
@@ -497,6 +566,26 @@ mod tests {
             PetuniaIcon::Slice,
             PetuniaIcon::Subdivide,
             PetuniaIcon::DrawProfile,
+            PetuniaIcon::ModeObject,
+            PetuniaIcon::ModeEdit,
+            PetuniaIcon::SelectVertex,
+            PetuniaIcon::SelectEdge,
+            PetuniaIcon::SelectFace,
+            PetuniaIcon::ShadingWireframe,
+            PetuniaIcon::ShadingSolid,
+            PetuniaIcon::ShadingMaterial,
+            PetuniaIcon::ShadingRendered,
+            PetuniaIcon::SnapMagnet,
+            PetuniaIcon::ProportionalEditing,
+            PetuniaIcon::XRay,
+            PetuniaIcon::Overlays,
+            PetuniaIcon::OrientationGlobal,
+            PetuniaIcon::PivotMedian,
+            PetuniaIcon::ObjectMesh,
+            PetuniaIcon::ReferenceImage,
+            PetuniaIcon::Collection,
+            PetuniaIcon::Duplicate,
+            PetuniaIcon::Delete,
             PetuniaIcon::PropertyTab(1),
             PetuniaIcon::PropRender,
             PetuniaIcon::Search,

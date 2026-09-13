@@ -41,7 +41,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 fn draw_header(ui: &mut Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         ui.label(
-            RichText::new("📦 Asset Browser")
+            RichText::new("Asset Browser")
                 .strong()
                 .size(12.5)
                 .color(tokens::TEXT_PRIMARY),
@@ -220,7 +220,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                             ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
 
                             let inst_btn = egui::Button::new(
-                                RichText::new("➕ Instanciar")
+                                RichText::new("Instantiate")
                                     .size(10.0)
                                     .color(tokens::TEXT_ACTIVE),
                             )
@@ -237,7 +237,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
 
                             if !is_active {
                                 let act_btn = egui::Button::new(
-                                    RichText::new("🎯 Ativar")
+                                    RichText::new("Activate")
                                         .size(10.0)
                                         .color(tokens::TEXT_PRIMARY),
                                 )
@@ -254,7 +254,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                             }
 
                             let dup_btn = egui::Button::new(
-                                RichText::new("📋")
+                                RichText::new("Duplicate")
                                     .size(10.0)
                                     .color(tokens::TEXT_SECONDARY),
                             )
@@ -271,9 +271,9 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
 
                             if n > 1 {
                                 let del_btn = egui::Button::new(
-                                    RichText::new("🗑")
+                                    RichText::new("Delete")
                                         .size(10.0)
-                                        .color(tokens::TEXT_MUTED),
+                                        .color(Color32::from_rgb(255, 100, 100)),
                                 )
                                 .fill(tokens::BG_PANEL)
                                 .corner_radius(tokens::RADIUS_SMALL);
@@ -324,7 +324,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
 fn draw_footer_actions(ui: &mut Ui, state: &mut AppState) {
     ui.vertical_centered_justified(|ui| {
         let save_active_btn = egui::Button::new(
-            RichText::new("📥 Salvar Modelo Ativo como Asset")
+            RichText::new("Save Active Model as Asset")
                 .size(11.0)
                 .color(tokens::TEXT_ACTIVE),
         )

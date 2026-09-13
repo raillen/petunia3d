@@ -158,11 +158,11 @@ impl PetuniaPropertyTabButton {
 
         if ui.is_rect_visible(rect) {
             let (bg_fill, fg_color) = if self.selected {
-                (self.accent_color.gamma_multiply(0.35), Color32::WHITE)
+                (self.accent_color.gamma_multiply(0.25), tokens::TEXT_ACTIVE)
             } else if response.hovered() {
-                (self.accent_color.gamma_multiply(0.20), Color32::WHITE)
+                (tokens::BG_SURFACE_HOVER, tokens::TEXT_PRIMARY)
             } else {
-                (Color32::TRANSPARENT, self.accent_color)
+                (Color32::TRANSPARENT, tokens::TEXT_SECONDARY)
             };
 
             let painter = ui.painter().with_clip_rect(rect);
@@ -178,13 +178,13 @@ impl PetuniaPropertyTabButton {
                         egui::pos2(rect.left() + 4.0, rect.bottom() - 1.5),
                         egui::pos2(rect.right() - 4.0, rect.bottom() - 1.5),
                     ],
-                    egui::Stroke::new(2.5_f32, self.accent_color),
+                    egui::Stroke::new(2.0_f32, self.accent_color),
                 );
                 // Borda sutil de destaque
                 painter.rect_stroke(
                     rect,
                     tokens::RADIUS_CONTAINER,
-                    egui::Stroke::new(1.0_f32, self.accent_color.gamma_multiply(0.6)),
+                    egui::Stroke::new(1.0_f32, self.accent_color.gamma_multiply(0.5)),
                     StrokeKind::Inside,
                 );
             }
@@ -279,6 +279,243 @@ pub fn petunia_search_box(ui: &mut Ui, query: &mut String, hint: &str) -> Respon
     .inner
 }
 
+/// Item padronizado de menu suspenso ou popup do Petunia3D (`[Icon] Label ... [Shortcut] ›`).
+pub struct PetuniaMenuItem<'a> {
+    pub icon: Option<PetuniaIcon>,
+    pub label: &'a str,
+    pub shortcut: Option<&'a str>,
+    pub has_submenu: bool,
+    pub enabled: bool,
+}
+
+impl<'a> PetuniaMenuItem<'a> {
+    pub fn new(label: &'a str) -> Self {
+        Self {
+            icon: None,
+            label,
+            shortcut: None,
+            has_submenu: false,
+            enabled: true,
+        }
+    }
+
+    pub fn icon(mut self, icon: PetuniaIcon) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+
+    pub fn shortcut(mut self, shortcut: Option<&'a str>) -> Self {
+        self.shortcut = shortcut;
+        self
+    }
+
+    pub fn submenu(mut self, has_submenu: bool) -> Self {
+        self.has_submenu = has_submenu;
+        self
+    }
+
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    pub fn show(self, ui: &mut Ui) -> Response {
+        let width = ui.available_width().max(180.0);
+        let desired_size = vec2(width, 24.0);
+        let (rect, response) = ui.allocate_exact_size(
+            desired_size,
+            if self.enabled {
+                Sense::click()
+            } else {
+                Sense::hover()
+            },
+        );
+
+        if ui.is_rect_visible(rect) {
+            let painter = ui.painter().with_clip_rect(rect);
+
+            // Fundo ao passar o mouse
+            if self.enabled && response.hovered() {
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+            }
+
+            // Cores
+            let (fg_color, shortcut_color) = if !self.enabled {
+                (tokens::TEXT_MUTED, tokens::TEXT_MUTED.gamma_multiply(0.6))
+            } else if response.hovered() {
+                (tokens::TEXT_ACTIVE, tokens::TEXT_SECONDARY)
+            } else {
+                (tokens::TEXT_PRIMARY, tokens::TEXT_MUTED)
+            };
+
+            // 1. Ícone à esquerda
+            let mut text_start_x = rect.min.x + 8.0;
+            if let Some(ref icon) = self.icon {
+                let icon_rect = Rect::from_min_size(
+                    egui::pos2(rect.min.x + 6.0, rect.min.y + (rect.height() - 16.0) * 0.5),
+                    vec2(16.0, 16.0),
+                );
+                IconRegistry::paint(ui.ctx(), &painter, icon, icon_rect, fg_color);
+                text_start_x += 22.0;
+            }
+
+            // 2. Rótulo textual
+            let text_pos = egui::pos2(text_start_x, rect.min.y + (rect.height() - 13.0) * 0.5);
+            painter.text(
+                text_pos,
+                Align2::LEFT_TOP,
+                self.label,
+                FontId::proportional(12.0),
+                fg_color,
+            );
+
+            // 3. Seta de submenu ou atalho à direita
+            let right_padding = if self.has_submenu { 18.0 } else { 8.0 };
+            if let Some(sc) = self.shortcut {
+                let sc_pos = egui::pos2(
+                    rect.max.x - right_padding,
+                    rect.min.y + (rect.height() - 12.0) * 0.5,
+                );
+                painter.text(
+                    sc_pos,
+                    Align2::RIGHT_TOP,
+                    sc,
+                    FontId::monospace(10.5),
+                    shortcut_color,
+                );
+            }
+
+            if self.has_submenu {
+                let arrow_pos = egui::pos2(rect.max.x - 8.0, rect.center().y);
+                painter.text(
+                    arrow_pos,
+                    Align2::RIGHT_CENTER,
+                    "›",
+                    FontId::proportional(14.0),
+                    shortcut_color,
+                );
+            }
+        }
+
+        response
+    }
+}
+
+/// Separador de menu fino e discreto com margens calibradas.
+pub fn petunia_menu_separator(ui: &mut Ui) {
+    ui.add_space(2.0);
+    let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
+    if ui.is_rect_visible(rect) {
+        ui.painter().line_segment(
+            [rect.left_top(), rect.right_top()],
+            egui::Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
+        );
+    }
+    ui.add_space(2.0);
+}
+
+/// Botão de ação padrão para painéis (Properties, Outliner, Modais), suportando ícone opcional e tint de perigo.
+pub fn petunia_action_button(
+    ui: &mut Ui,
+    icon: Option<PetuniaIcon>,
+    label: &str,
+    danger: bool,
+) -> Response {
+    let height = 24.0;
+    let padding_x = 8.0;
+    let icon_size = 14.0;
+    let font_size = 11.5;
+
+    let text_w = ui.fonts(|f| {
+        f.layout_no_wrap(
+            label.to_string(),
+            FontId::proportional(font_size),
+            Color32::WHITE,
+        )
+        .size()
+        .x
+    });
+    let width = if icon.is_some() {
+        padding_x * 2.0 + icon_size + 6.0 + text_w
+    } else {
+        padding_x * 2.0 + text_w
+    };
+
+    let (rect, resp) = ui.allocate_exact_size(vec2(width, height), Sense::click());
+
+    if ui.is_rect_visible(rect) {
+        let (bg, border, fg) = if resp.is_pointer_button_down_on() {
+            if danger {
+                (
+                    Color32::from_rgb(0x80, 0x18, 0x18),
+                    Color32::from_rgb(0xc0, 0x39, 0x2b),
+                    Color32::WHITE,
+                )
+            } else {
+                (
+                    tokens::BG_SURFACE_ACTIVE,
+                    tokens::ACCENT_BORDER,
+                    Color32::WHITE,
+                )
+            }
+        } else if resp.hovered() {
+            if danger {
+                (
+                    Color32::from_rgb(0x5a, 0x18, 0x18),
+                    Color32::from_rgb(0xa0, 0x20, 0x20),
+                    Color32::from_rgb(0xff, 0x90, 0x90),
+                )
+            } else {
+                (
+                    tokens::BG_SURFACE_HOVER,
+                    tokens::BORDER_LIGHT,
+                    tokens::TEXT_PRIMARY,
+                )
+            }
+        } else if danger {
+            (
+                tokens::BG_SURFACE,
+                tokens::BORDER_SUBTLE,
+                Color32::from_rgb(0xe0, 0x60, 0x60),
+            )
+        } else {
+            (
+                tokens::BG_SURFACE,
+                tokens::BORDER_SUBTLE,
+                tokens::TEXT_PRIMARY,
+            )
+        };
+
+        ui.painter().rect(
+            rect,
+            tokens::RADIUS_CONTROL,
+            bg,
+            egui::Stroke::new(1.0_f32, border),
+            StrokeKind::Inside,
+        );
+
+        let mut cur_x = rect.left() + padding_x;
+        if let Some(ic) = icon {
+            let icon_rect = Rect::from_center_size(
+                egui::pos2(cur_x + icon_size * 0.5, rect.center().y),
+                vec2(icon_size, icon_size),
+            );
+            IconRegistry::paint(ui.ctx(), ui.painter(), &ic, icon_rect, fg);
+            cur_x += icon_size + 6.0;
+        }
+
+        ui.painter().text(
+            egui::pos2(cur_x, rect.center().y),
+            Align2::LEFT_CENTER,
+            label,
+            FontId::proportional(font_size),
+            fg,
+        );
+    }
+
+    resp
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -333,6 +570,20 @@ mod tests {
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| {
                 let _resp = petunia_search_box(ui, &mut query, "Search Scene...");
+            });
+        });
+    }
+
+    #[test]
+    fn test_menu_item_widget_rendering() {
+        let ctx = Context::default();
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                let item = PetuniaMenuItem::new("Extrude")
+                    .icon(PetuniaIcon::Extrude)
+                    .shortcut(Some("E"));
+                let _resp = item.show(ui);
+                petunia_menu_separator(ui);
             });
         });
     }

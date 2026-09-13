@@ -1,7 +1,7 @@
 //! Overlays e arbitragem: modal > gizmo > navegação > seleção.
 use crate::{
     gizmo::{draw_gizmo, GizmoHandle, GizmoKind},
-    modal_viewport,
+    modal_viewport, tokens,
 };
 use egui::{Color32, PointerButton, Pos2, Rect};
 use glam::{Vec2, Vec3};
@@ -209,7 +209,11 @@ pub fn draw(
     }
     response.context_menu(|ui| {
         if state.is_active_locked() {
-            ui.label(egui::RichText::new("🔒 Objeto Bloqueado").italics());
+            ui.label(
+                egui::RichText::new("Object Locked")
+                    .italics()
+                    .color(tokens::TEXT_MUTED),
+            );
             return;
         }
         ui.label("Modelagem");

@@ -7,10 +7,10 @@ use petunia_core::{AppState, ModuleRegistry, Workspace};
 use petunia_module_model::ToolRegistry;
 use uuid::Uuid;
 
-use crate::icon_registry::PetuniaIcon;
+use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::tool_fields;
-use crate::widgets::PetuniaPropertyTabButton;
+use crate::widgets::{self, PetuniaPropertyTabButton};
 
 /// Renderiza o painel de propriedades completo com abas e seções sanfonadas.
 pub fn draw(
@@ -91,36 +91,27 @@ pub fn draw(
 }
 
 fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
-    let tabs: [(&str, PetuniaIcon, &str, Color32); 5] = [
-        (
-            "tool",
-            PetuniaIcon::PropTool,
-            "Active Tool & Settings",
-            Color32::from_rgb(0x31, 0x69, 0xe3),
-        ),
+    let tabs: [(&str, PetuniaIcon, &str); 5] = [
+        ("tool", PetuniaIcon::PropTool, "Active Tool & Settings"),
         (
             "object",
             PetuniaIcon::PropObject,
             "Object Transform & Properties",
-            Color32::from_rgb(0xe6, 0x7e, 0x22),
         ),
         (
             "modifiers",
             PetuniaIcon::PropModifiers,
             "Modifiers & Geometry Tools",
-            Color32::from_rgb(0x00, 0xa8, 0xff),
         ),
         (
             "data",
             PetuniaIcon::PropData,
             "Mesh Data & Reference Images",
-            Color32::from_rgb(0x2e, 0xcc, 0x71),
         ),
         (
             "material",
             PetuniaIcon::PropMaterial,
             "Material & Surface Color",
-            Color32::from_rgb(0xe8, 0x43, 0x93),
         ),
     ];
 
@@ -131,10 +122,10 @@ fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
-                for (tab_id, icon, hint, color) in tabs {
+                for (tab_id, icon, hint) in tabs {
                     let is_active = state.properties_tab == tab_id;
                     if PetuniaPropertyTabButton::new(icon, is_active)
-                        .accent_color(color)
+                        .accent_color(tokens::ACCENT_BLUE)
                         .tooltip(hint)
                         .show(ui)
                         .clicked()
@@ -195,7 +186,7 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
     }
 
     if state.project.assets.is_empty() {
-        ui.label("Nenhum objeto ativo na cena");
+        ui.label("No active object in scene");
         return;
     }
 
@@ -203,16 +194,50 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
 
     // Identidade do Objeto
     let asset_name = state.project.assets[idx].name.clone();
-    let mut visible = state.project.assets[idx].visible;
+    let visible = state.project.assets[idx].visible;
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("🧊").size(14.0));
+        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+        let (icon_rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::ObjectMesh,
+            icon_rect,
+            tokens::ACCENT_BLUE,
+        );
         ui.label(egui::RichText::new(&asset_name).strong().size(12.0));
-        if ui.checkbox(&mut visible, "Visível").changed() {
-            if let Some(o) = state.project.assets.get_mut(idx) {
-                o.visible = visible;
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let (rect, resp) = ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::click());
+            if ui.is_rect_visible(rect) {
+                let fill = if resp.hovered() {
+                    tokens::BG_SURFACE_HOVER
+                } else {
+                    Color32::TRANSPARENT
+                };
+                ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
+                let (icon, fg) = if visible {
+                    (PetuniaIcon::Eye, tokens::TEXT_PRIMARY)
+                } else {
+                    (PetuniaIcon::EyeHidden, tokens::TEXT_MUTED)
+                };
+                let icon_rect = egui::Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
+                IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
             }
-            state.mark_dirty();
-        }
+            if resp
+                .on_hover_text(if visible {
+                    "Hide Object in 3D Viewport"
+                } else {
+                    "Show Object in 3D Viewport"
+                })
+                .clicked()
+            {
+                if let Some(o) = state.project.assets.get_mut(idx) {
+                    o.visible = !visible;
+                }
+                state.mark_dirty();
+            }
+        });
     });
 
     ui.add_space(4.0);
@@ -222,7 +247,11 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
         .default_open(true)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.label("Nome");
+                ui.label(
+                    egui::RichText::new("Name")
+                        .size(11.0)
+                        .color(tokens::TEXT_SECONDARY),
+                );
                 if let Some(o) = state.project.assets.get_mut(idx) {
                     ui.text_edit_singleline(&mut o.name);
                 }
@@ -231,11 +260,7 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
             ui.add_space(4.0);
 
             // Location X, Y, Z com cores semânticas nos rótulos
-            ui.label(
-                egui::RichText::new("Posição (Location)")
-                    .strong()
-                    .size(11.0),
-            );
+            ui.label(egui::RichText::new("Location").strong().size(11.0));
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
                 ui.add(egui::DragValue::new(&mut state.transform_delta[0]).speed(0.05));
@@ -247,10 +272,39 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
 
             ui.add_space(2.0);
 
-            // Scale
-            ui.label(egui::RichText::new("Escala (Scale)").strong().size(11.0));
+            // Rotation X, Y, Z (graus)
+            ui.label(egui::RichText::new("Rotation").strong().size(11.0));
             ui.horizontal(|ui| {
-                ui.label("Uniforme");
+                ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
+                ui.add(
+                    egui::DragValue::new(&mut state.transform_rotation[0])
+                        .speed(1.0)
+                        .suffix("°"),
+                );
+                ui.label(egui::RichText::new("Y").color(tokens::AXIS_Y).strong());
+                ui.add(
+                    egui::DragValue::new(&mut state.transform_rotation[1])
+                        .speed(1.0)
+                        .suffix("°"),
+                );
+                ui.label(egui::RichText::new("Z").color(tokens::AXIS_Z).strong());
+                ui.add(
+                    egui::DragValue::new(&mut state.transform_rotation[2])
+                        .speed(1.0)
+                        .suffix("°"),
+                );
+            });
+
+            ui.add_space(2.0);
+
+            // Scale
+            ui.label(egui::RichText::new("Scale").strong().size(11.0));
+            ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new("Uniform")
+                        .size(11.0)
+                        .color(tokens::TEXT_SECONDARY),
+                );
                 ui.add(
                     egui::DragValue::new(&mut state.transform_scale)
                         .speed(0.02)
@@ -261,7 +315,14 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
             ui.separator();
 
             ui.horizontal(|ui| {
-                if ui.button("📋 Duplicar · Shift+D").clicked() {
+                if widgets::petunia_action_button(
+                    ui,
+                    Some(PetuniaIcon::Duplicate),
+                    "Duplicate · Shift+D",
+                    false,
+                )
+                .clicked()
+                {
                     state.checkpoint("duplicate");
                     if let Some(mesh) = state.project.active_mesh_mut() {
                         mesh.duplicate_selected();
@@ -269,7 +330,10 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
                     state.sync_selection();
                     state.emit_mesh_changed();
                 }
-                if ui.button("🗑 Deletar · Delete").clicked() {
+
+                if widgets::petunia_action_button(ui, Some(PetuniaIcon::Delete), "Delete · X", true)
+                    .clicked()
+                {
                     state.checkpoint("delete");
                     if let Some(mesh) = state.project.active_mesh_mut() {
                         mesh.delete_selected();
@@ -296,13 +360,17 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
 
     // 1. Identidade da Anotação (Header ciano)
     ui.horizontal(|ui| {
-        ui.label(
-            egui::RichText::new("📝")
-                .size(16.0)
-                .color(Color32::from_rgb(0, 210, 211)),
+        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+        let (icon_rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::Annotate,
+            icon_rect,
+            Color32::from_rgb(0, 210, 211),
         );
         ui.label(
-            egui::RichText::new("Anotação")
+            egui::RichText::new("Annotation")
                 .color(Color32::from_rgb(0, 210, 211))
                 .strong(),
         );
@@ -310,8 +378,12 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
 
     let mut name = state.project.annotations[ann_idx].name.clone();
     ui.horizontal(|ui| {
-        ui.label("Nome:");
-        let name_resp = ui.add(egui::TextEdit::singleline(&mut name).hint_text("Nome da Anotação"));
+        ui.label(
+            egui::RichText::new("Name")
+                .size(11.0)
+                .color(tokens::TEXT_SECONDARY),
+        );
+        let name_resp = ui.add(egui::TextEdit::singleline(&mut name).hint_text("Annotation Name"));
         if name_resp.changed() {
             state.project.annotations[ann_idx].name = name;
             state.mark_dirty();
@@ -326,14 +398,14 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
     // 2. Visibilidade e Bloqueio
     ui.horizontal(|ui| {
         let mut vis = state.project.annotations[ann_idx].visible;
-        if ui.checkbox(&mut vis, "Visível").changed() {
+        if ui.checkbox(&mut vis, "Visible").changed() {
             state.checkpoint("toggle annotation visibility");
             state.project.annotations[ann_idx].visible = vis;
             state.mark_dirty();
         }
 
         let mut locked = state.project.annotations[ann_idx].locked;
-        if ui.checkbox(&mut locked, "🔒 Bloquear (Lock)").changed() {
+        if ui.checkbox(&mut locked, "Locked").changed() {
             state.checkpoint("toggle annotation lock");
             state.project.annotations[ann_idx].locked = locked;
             state.mark_dirty();
@@ -343,19 +415,19 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
     // Subgrupo dentro da collection de Anotações
     ui.horizontal(|ui| {
         ui.label(
-            egui::RichText::new("Subgrupo:")
+            egui::RichText::new("Subgroup:")
                 .size(11.0)
                 .color(tokens::TEXT_MUTED),
         );
         let current_group = state.project.annotations[ann_idx].group.clone();
-        let current_label = current_group.as_deref().unwrap_or("(Raiz / Sem subgrupo)");
+        let current_label = current_group.as_deref().unwrap_or("(Root / No subgroup)");
 
         let groups = state.project.annotation_groups.clone();
         egui::ComboBox::from_id_salt("annotation_group_selector")
             .selected_text(current_label)
             .show_ui(ui, |ui| {
                 if ui
-                    .selectable_label(current_group.is_none(), "(Raiz / Sem subgrupo)")
+                    .selectable_label(current_group.is_none(), "(Root / No subgroup)")
                     .clicked()
                 {
                     state.checkpoint("move annotation to root");
@@ -364,7 +436,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
                 }
                 for grp in groups {
                     let is_sel = current_group.as_deref() == Some(&grp);
-                    if ui.selectable_label(is_sel, format!("📁 {grp}")).clicked() {
+                    if ui.selectable_label(is_sel, &grp).clicked() {
                         state.checkpoint("change annotation group");
                         state.project.annotations[ann_idx].group = Some(grp);
                         state.mark_dirty();
@@ -376,7 +448,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
     ui.add_space(4.0);
 
     // 3. Aparência do Traço
-    egui::CollapsingHeader::new("Aparência do Traço")
+    egui::CollapsingHeader::new("Stroke Style")
         .default_open(true)
         .show(ui, |ui| {
             let ann = &state.project.annotations[ann_idx];
@@ -391,7 +463,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
             let mut width_changed = false;
 
             ui.horizontal(|ui| {
-                ui.label("Cor:");
+                ui.label("Color:");
                 let resp = ui.color_edit_button_rgba_unmultiplied(&mut color);
                 if resp.changed() {
                     color_changed = true;
@@ -402,7 +474,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
             });
 
             ui.horizontal(|ui| {
-                ui.label("Espessura:");
+                ui.label("Width:");
                 let resp = ui.add(egui::Slider::new(&mut width, 0.5..=10.0).suffix(" px"));
                 if resp.changed() {
                     width_changed = true;
@@ -429,12 +501,12 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
     ui.add_space(4.0);
 
     // 4. Seção de Transformação (Location, Rotation, Scale)
-    egui::CollapsingHeader::new("Transform (Transformação)")
+    egui::CollapsingHeader::new("Transform")
         .default_open(true)
         .show(ui, |ui| {
             if is_locked {
                 ui.label(
-                    egui::RichText::new("🔒 Anotação bloqueada contra transformações")
+                    egui::RichText::new("Annotation locked against transformations")
                         .italics()
                         .color(tokens::TEXT_MUTED),
                 );
@@ -449,11 +521,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
                 let mut stopped = false;
 
                 // Location X, Y, Z
-                ui.label(
-                    egui::RichText::new("Posição (Location)")
-                        .strong()
-                        .size(11.0),
-                );
+                ui.label(egui::RichText::new("Location").strong().size(11.0));
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
                     let r0 = ui.add(egui::DragValue::new(&mut trans[0]).speed(0.05));
@@ -473,11 +541,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
                 ui.add_space(2.0);
 
                 // Rotation X, Y, Z (graus)
-                ui.label(
-                    egui::RichText::new("Rotação (Rotation)")
-                        .strong()
-                        .size(11.0),
-                );
+                ui.label(egui::RichText::new("Rotation").strong().size(11.0));
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
                     let r0 = ui.add(egui::DragValue::new(&mut rot[0]).speed(1.0).suffix("°"));
@@ -497,7 +561,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
                 ui.add_space(2.0);
 
                 // Scale X, Y, Z
-                ui.label(egui::RichText::new("Escala (Scale)").strong().size(11.0));
+                ui.label(egui::RichText::new("Scale").strong().size(11.0));
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
                     let r0 = ui.add(
@@ -528,7 +592,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
 
                 ui.add_space(4.0);
 
-                if ui.button("↺ Redefinir Transformação").clicked() {
+                if widgets::petunia_action_button(ui, None, "Reset Transform", false).clicked() {
                     state.checkpoint("reset annotation transform");
                     state.project.annotations[ann_idx].translation = [0.0, 0.0, 0.0];
                     state.project.annotations[ann_idx].rotation = [0.0, 0.0, 0.0];
@@ -553,11 +617,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
 
     // 5. Ações (Deletar Anotação)
     ui.horizontal(|ui| {
-        if ui
-            .button(
-                egui::RichText::new("🗑 Deletar Anotação · Delete")
-                    .color(Color32::from_rgb(255, 100, 100)),
-            )
+        if widgets::petunia_action_button(ui, Some(PetuniaIcon::Delete), "Delete Annotation", true)
             .clicked()
         {
             state.checkpoint("delete annotation");
@@ -575,7 +635,7 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
         .iter()
         .position(|m| m.id == meas_id)
     else {
-        ui.label(egui::RichText::new("Medição selecionada não encontrada").italics());
+        ui.label(egui::RichText::new("Measurement not found").italics());
         return;
     };
 
@@ -588,21 +648,29 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
 
     // 1. Identidade da Medição (Header amarelo)
     ui.horizontal(|ui| {
-        ui.label(
-            egui::RichText::new("📏")
-                .size(16.0)
-                .color(Color32::from_rgb(0xfe, 0xca, 0x57)),
+        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+        let (icon_rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::Measure,
+            icon_rect,
+            Color32::from_rgb(0xfe, 0xca, 0x57),
         );
         ui.label(
-            egui::RichText::new("Medição")
+            egui::RichText::new("Measurement")
                 .color(Color32::from_rgb(0xfe, 0xca, 0x57))
                 .strong(),
         );
     });
 
     ui.horizontal(|ui| {
-        ui.label("Nome:");
-        let name_resp = ui.add(egui::TextEdit::singleline(&mut name).hint_text("Nome da Medição"));
+        ui.label(
+            egui::RichText::new("Name")
+                .size(11.0)
+                .color(tokens::TEXT_SECONDARY),
+        );
+        let name_resp = ui.add(egui::TextEdit::singleline(&mut name).hint_text("Measurement Name"));
         if name_resp.changed() {
             state.project.measurements[meas_idx].name = name;
             state.mark_dirty();
@@ -617,7 +685,7 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
     // 2. Opções: estritamente apenas ocultar ou deletar
     ui.horizontal(|ui| {
         let mut vis = state.project.measurements[meas_idx].visible;
-        if ui.checkbox(&mut vis, "Visível").changed() {
+        if ui.checkbox(&mut vis, "Visible").changed() {
             state.checkpoint("toggle measurement visibility");
             state.project.measurements[meas_idx].visible = vis;
             state.mark_dirty();
@@ -627,11 +695,11 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
     ui.add_space(4.0);
 
     // 3. Leituras de Medição (Readouts)
-    egui::CollapsingHeader::new("Valores de Medição")
+    egui::CollapsingHeader::new("Measurement Values")
         .default_open(true)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("Distância Total:").strong());
+                ui.label(egui::RichText::new("Total Distance:").strong());
                 ui.label(
                     egui::RichText::new(format!("{distance:.3} m"))
                         .color(Color32::from_rgb(0xfe, 0xca, 0x57))
@@ -642,7 +710,7 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
             ui.add_space(2.0);
 
             ui.label(
-                egui::RichText::new("Deltas Cartesianos (|Δ|)")
+                egui::RichText::new("Cartesian Deltas (|Δ|)")
                     .size(11.0)
                     .color(tokens::TEXT_MUTED),
             );
@@ -658,16 +726,16 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
             ui.add_space(2.0);
 
             ui.label(
-                egui::RichText::new("Coordenadas dos Pontos")
+                egui::RichText::new("Coordinates")
                     .size(11.0)
                     .color(tokens::TEXT_MUTED),
             );
             ui.label(format!(
-                "Início: ({:.2}, {:.2}, {:.2})",
+                "Start: ({:.2}, {:.2}, {:.2})",
                 start[0], start[1], start[2]
             ));
             ui.label(format!(
-                "Fim:    ({:.2}, {:.2}, {:.2})",
+                "End:   ({:.2}, {:.2}, {:.2})",
                 end[0], end[1], end[2]
             ));
         });
@@ -677,11 +745,7 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
 
     // 4. Ações: estritamente deletar
     ui.horizontal(|ui| {
-        if ui
-            .button(
-                egui::RichText::new("🗑 Deletar Medida · Delete")
-                    .color(Color32::from_rgb(255, 100, 100)),
-            )
+        if widgets::petunia_action_button(ui, Some(PetuniaIcon::Delete), "Delete Measurement", true)
             .clicked()
         {
             state.checkpoint("delete measurement");

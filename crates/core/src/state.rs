@@ -174,6 +174,7 @@ pub struct AppState {
     pub palette: Vec<[f32; 3]>,
     pub canvas_brush: u32,
     pub transform_delta: [f32; 3],
+    pub transform_rotation: [f32; 3],
     pub transform_scale: f32,
     /// Travamento de eixos X, Y, Z para atividades de edição e transformação.
     pub locked_axes: [bool; 3],
@@ -298,6 +299,7 @@ impl AppState {
             ],
             canvas_brush: 4,
             transform_delta: [0.0; 3],
+            transform_rotation: [0.0; 3],
             transform_scale: 1.0,
             locked_axes: [false; 3],
             extrude_dist: 0.5,

@@ -279,7 +279,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                     ui.horizontal(|ui| {
                         ui.checkbox(&mut r.visible, "");
                         let mut lock = r.locked;
-                        if ui.checkbox(&mut lock, "🔒").changed() {
+                        if ui.checkbox(&mut lock, "Lock").changed() {
                             r.locked = lock;
                         }
                         ui.label(&r.name);

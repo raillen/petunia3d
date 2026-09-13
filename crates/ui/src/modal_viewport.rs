@@ -508,13 +508,13 @@ fn draw_modal_hud(painter: &egui::Painter, rect: Rect, info: ModalHudInfo<'_>) {
     };
 
     let (badge_text, badge_color) = match info.constraint {
-        ModalConstraint::Axis(0) => ("🔒 EIXO X", crate::tokens::AXIS_X),
-        ModalConstraint::Axis(1) => ("🔒 EIXO Y", crate::tokens::AXIS_Y),
-        ModalConstraint::Axis(2) => ("🔒 EIXO Z", crate::tokens::AXIS_Z),
-        ModalConstraint::Plane(0) => ("🔒 PLANO YZ (Shift+X)", Color32::from_rgb(30, 144, 180)),
-        ModalConstraint::Plane(1) => ("🔒 PLANO XZ (Shift+Y)", Color32::from_rgb(142, 68, 173)),
-        ModalConstraint::Plane(2) => ("🔒 PLANO XY (Shift+Z)", Color32::from_rgb(211, 84, 0)),
-        _ => ("🔓 LIVRE", Color32::from_rgb(80, 85, 95)),
+        ModalConstraint::Axis(0) => ("AXIS X", crate::tokens::AXIS_X),
+        ModalConstraint::Axis(1) => ("AXIS Y", crate::tokens::AXIS_Y),
+        ModalConstraint::Axis(2) => ("AXIS Z", crate::tokens::AXIS_Z),
+        ModalConstraint::Plane(0) => ("PLANE YZ (Shift+X)", Color32::from_rgb(30, 144, 180)),
+        ModalConstraint::Plane(1) => ("PLANE XZ (Shift+Y)", Color32::from_rgb(142, 68, 173)),
+        ModalConstraint::Plane(2) => ("PLANE XY (Shift+Z)", Color32::from_rgb(211, 84, 0)),
+        _ => ("FREE", Color32::from_rgb(80, 85, 95)),
     };
 
     let line1 = format!("{label}: {value_label}{}   [{badge_text}]", info.unit);
