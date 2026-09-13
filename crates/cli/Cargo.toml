@@ -1,0 +1,19 @@
+[package]
+name = "petunia_cli"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Petunia3D CLI — Utilitário headless para automação, pipelines e conversão 3D"
+
+[[bin]]
+name = "petunia-cli"
+path = "src/main.rs"
+
+[dependencies]
+petunia_core = { workspace = true }
+petunia_mesh = { workspace = true }
+petunia_project = { workspace = true }
+petunia_commands = { workspace = true }
+petunia_module_model = { workspace = true }
+anyhow = { workspace = true }
+glam = { workspace = true }

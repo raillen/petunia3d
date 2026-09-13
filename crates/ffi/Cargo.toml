@@ -1,0 +1,19 @@
+[package]
+name = "petunia_ffi"
+version = "0.1.0"
+edition = "2021"
+description = "C-ABI / FFI Dynamic and Static Library for Petunia3D External Frontends"
+
+[lib]
+name = "petunia_ffi"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+petunia_core = { workspace = true }
+petunia_mesh = { workspace = true }
+petunia_project = { workspace = true }
+petunia_module_model = { workspace = true }
+uuid = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

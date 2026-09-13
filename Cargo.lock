@@ -2796,6 +2796,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "petunia_cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "glam 0.27.0",
+ "petunia_commands",
+ "petunia_core",
+ "petunia_mesh",
+ "petunia_module_model",
+ "petunia_project",
+]
+
+[[package]]
 name = "petunia_commands"
 version = "0.1.0"
 
@@ -2819,6 +2832,20 @@ dependencies = [
  "petunia_render",
  "serde",
  "thiserror 2.0.20",
+ "uuid",
+]
+
+[[package]]
+name = "petunia_ffi"
+version = "0.1.0"
+dependencies = [
+ "glam 0.27.0",
+ "petunia_core",
+ "petunia_mesh",
+ "petunia_module_model",
+ "petunia_project",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 

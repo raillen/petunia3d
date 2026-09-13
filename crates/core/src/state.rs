@@ -1,10 +1,12 @@
 //! Estado global do editor (vive em `core`, sem conhecer backends).
 //! Renderers/módulos/UI operam sobre este estado + eventos.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use glam::Vec3;
 use petunia_commands::UndoStack;
+use uuid::Uuid;
 use petunia_config::{I18n, Keybinds};
 use petunia_project::Project;
 use petunia_render::Shading;
@@ -118,7 +120,7 @@ pub struct RenderStats {
     pub draws: usize,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum EditMode {
     #[default]
     Object,
@@ -146,7 +148,7 @@ pub struct ProjectState {
     pub project_path: Option<String>,
     pub refs: Vec<ReferenceImage>,
     pub palette: Vec<[f32; 3]>,
-    pub export_selected: Vec<usize>,
+    pub export_selected: Vec<Uuid>,
     pub export_gltf: bool,
 }
 
@@ -202,6 +204,18 @@ impl ProjectState {
     pub fn checkpoint(&mut self, label: &str) {
         let snap = self.project.clone();
         self.undo.checkpoint(label, &snap);
+    }
+
+    /// Retorna os índices resolvidos válidos dos assets selecionados para exportação.
+    pub fn export_selected_indices(&self) -> Vec<usize> {
+        if self.export_selected.is_empty() {
+            (0..self.project.assets.len()).collect()
+        } else {
+            self.export_selected
+                .iter()
+                .filter_map(|id| self.project.find(*id))
+                .collect()
+        }
     }
 
     pub fn scene_tris(&self) -> usize {

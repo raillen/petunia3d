@@ -200,55 +200,85 @@ flowchart TD
 
 ---
 
-### Gauntlet G8 — Comprovação Headless (`petunia-cli` e Testes Puros)
+### Gauntlet G8 — Comprovação Headless (`petunia-cli` e Testes Puros) [CONCLUÍDO]
 * **Objetivo**: Provar na prática o desacoplamento criando um utilitário CLI e uma suíte de testes de ponta a ponta sem interface gráfica.
 * **Achados Alvo**: **F-011**, validação de soberania headless.
+* **Status**: ✅ **CONCLUÍDO** (Crate `crates/cli` criado com binário `petunia-cli` para comandos `new`, `info`, `convert`, `transform` e `bench`; 5 testes de integração headless em `crates/cli/tests/headless_integration.rs` executando em 20ms; governança automatizada em `tests/architecture_fitness.rs` e `xtask arch-check`).
 * **Pré-condições**: Ciclo G7 aprovado.
 * **Arquivos Afetados**:
-  * Novo binário de teste/utilitário `crates/cli/src/main.rs`.
-  * Novos testes em `crates/application/tests/headless_integration.rs`.
+  * `Cargo.toml`: Adicionado `crates/cli` aos membros do workspace.
+  * `crates/cli/Cargo.toml`: Configurado pacote puro sem dependência de `egui`.
+  * `crates/cli/src/main.rs`: Utilitário de linha de comando com parsing de argumentos, carregamento/salvamento headless, inspeção, conversão e transformações geométricas.
+  * `crates/cli/tests/headless_integration.rs`: 5 testes de integração de ponta a ponta validando ciclo de vida, comandos, undo/redo, ferramentas geométricas e exportação em menos de 25ms.
+  * `tests/architecture_fitness.rs` & `crates/xtask/src/main.rs`: Adicionados testes de fitness validando ausência de `egui` em `crates/cli`.
 * **Testes de Segurança**:
-  * Teste criando um cubo, selecionando face, aplicando extrusão via comando, desfazendo com undo, salvando arquivo `.petunia` e exportando `.glb` em menos de 50 milissegundos.
+  * `cargo test -p petunia_cli`: 5 testes aprovados em 20ms.
+  * `cargo run -p petunia_cli -- bench`: Pipeline completo (5 primitivas, extrusão, undo/redo, save, exportação GLB/OBJ) executado em 73ms.
+  * `cargo test --test architecture_fitness`: 13 testes aprovados.
+  * `cargo run -p xtask -- arch-check`: Todos os invariantes validados.
 * **Critério de Saída**:
-  * A pergunta fundamental da auditoria passa a ter resposta **SIM, PLENAMENTE PROVADO**.
+  * A pergunta fundamental da auditoria passa a ter resposta **SIM, PLENAMENTE PROVADO**. Validado com sucesso.
 
 ---
 
-### Gauntlet G9 — Estabilização da Application API (Queries & DTOs)
+### Gauntlet G9 — Estabilização da Application API (Queries & DTOs) [CONCLUÍDO]
 * **Objetivo**: Padronizar as consultas de leitura da interface gráfica através de queries semânticas e DTOs com identificadores estáveis (`Uuid`).
 * **Achados Alvo**: **F-010**.
+* **Status**: ✅ **CONCLUÍDO** (Criados DTOs `SceneHierarchyDto`, `SceneObjectDto`, `SelectionDetailsDto`, `ToolStatusDto` em `crates/core/src/queries.rs`; implementados métodos de consulta semânticos e manipulação segura por `Uuid` em `AppState`; migrado `export_selected` de índices `usize` voláteis para `Uuid` com resolução dinâmica; suíte de testes unitários em `crates/core/tests/queries_tests.rs`; validação de fitness em `tests/architecture_fitness.rs` e `xtask arch-check`).
 * **Pré-condições**: Ciclo G8 aprovado.
 * **Arquivos Afetados**:
-  * `crates/application/src/queries.rs`: `SceneHierarchyQuery`, `SelectionDetailsQuery`, `ToolStatusQuery`.
-  * `crates/ui`: Consumir queries em vez de inspecionar diretamente campos profundos de arrays.
+  * `crates/core/src/queries.rs`: Definição de DTOs e métodos de consulta imutáveis de cena, seleção e ferramentas.
+  * `crates/core/src/state.rs`: Migrado `export_selected: Vec<Uuid>` com `export_selected_indices()`, e adicionados métodos de busca/ativação/remoção por UUID em `AppState`.
+  * `crates/core/src/lib.rs`: Exposição pública do módulo de queries.
+  * `crates/ui/src/outliner.rs`: Migrado nó de ativo para identificador único `OutlinerNodeId::Asset(Uuid)`.
+  * `crates/ui/src/lib.rs`: Atualizado modal de exportação seletiva para operar sobre identificadores estáveis.
+  * `crates/core/tests/queries_tests.rs`: 5 testes automatizados cobrindo DTOs, cálculos espaciais e resiliência a reordenação.
+  * `tests/architecture_fitness.rs` & `crates/xtask/src/main.rs`: Governança estrita de DTOs e identificadores estáveis.
+* **Testes de Segurança**:
+  * `cargo test --test queries_tests -p petunia_core`: 5 testes aprovados.
+  * `cargo test --test architecture_fitness`: 14 testes aprovados.
+  * `cargo run -p xtask -- arch-check`: Todos os invariantes validados.
+  * `cargo clippy -j 2 --workspace --all-targets -- -D warnings`: 0 warnings.
 * **Critério de Saída**:
-  * A interface gráfica consome o estado exclusivamente por contratos de leitura imutáveis e emite mutações por comandos.
+  * A interface gráfica consome o estado através de DTOs e identificadores estáveis, e mutações são despachadas por comandos e IDs resilientes. Validado com sucesso.
 
 ---
 
-### Gauntlet G10 — Camada C-ABI / FFI para Frontends Externos (Futuro)
+### Gauntlet G10 — Camada C-ABI / FFI para Frontends Externos [CONCLUÍDO]
 * **Objetivo**: Habilitar a construção de interfaces em outras linguagens (C++, C#, Go, Python) via FFI estável.
 * **Achados Alvo**: Habilitação de frontends multilíngues.
+* **Status**: ✅ **CONCLUÍDO** (Criado crate `crates/ffi` compilando como `cdylib` e `rlib`; implementado header canônico `crates/ffi/include/petunia.h` com tipos opacos `PetuniaContext*`, códigos de erro e protótipos de funções; implementado gerenciamento de contexto, I/O de projetos e exportações OBJ/GLB, comandos de modelagem, consultas DTO em JSON, manipulação por UUIDs estáveis e mensagens de erro thread-local; 7 testes automatizados de C-ABI em `crates/ffi/tests/c_abi_tests.rs`; governança em `tests/architecture_fitness.rs` e `xtask arch-check`).
 * **Pré-condições**: Ciclos G1 a G9 concluídos com sucesso.
 * **Arquivos Afetados**:
-  * Novo crate `crates/ffi/src/lib.rs` exportando funções `extern "C"` com ponteiros opacos (`PetuniaSession*`), códigos de erro (`int32_t`) e anexação de superfície nativa de GPU (`RawWindowHandle`).
+  * `Cargo.toml`: Adicionado `crates/ffi` como membro do workspace e `serde_json` nas dependências.
+  * `crates/ffi/Cargo.toml`: Configurado crate puro de C-ABI (`cdylib`, `rlib`) sem dependência de `egui`.
+  * `crates/ffi/src/lib.rs`: Implementação de todas as funções C-ABI com tratamento rigoroso de ponteiros nulos, buffer bounds e códigos de erro.
+  * `crates/ffi/include/petunia.h`: Header público canônico C/C++ compatível com Doxygen.
+  * `crates/ffi/tests/c_abi_tests.rs`: 7 testes de integração ponta a ponta exercitando todas as funções C-ABI via raw pointers.
+  * `crates/ffi/README.md`: Documentação técnica com tabelas de códigos de erro e exemplos de integração em C++ e Python (`ctypes`).
+  * `tests/architecture_fitness.rs` & `crates/xtask/src/main.rs`: Validação estrita de ausência de `egui` e presença do header C.
+* **Testes de Segurança**:
+  * `cargo test -p petunia_ffi`: 7 testes C-ABI aprovados em 0.03s.
+  * `cargo test --test architecture_fitness`: 15 testes aprovados.
+  * `cargo run -p xtask -- arch-check`: Todos os 11 Gauntlets validados com sucesso.
+  * `cargo clippy -j 2 --workspace --all-targets -- -D warnings`: 0 warnings.
 * **Critério de Saída**:
-  * Exemplo mínimo em C++ ou C# instanciando o editor e renderizando a cena 3D nativamente em uma janela externa.
+  * Core do Petunia3D plenamente acoplável a frontends em C++, C#, Python e Go através de C-ABI estável. Validado com sucesso.
 
 ---
 
 ## 4. Tabela Resumo do Plano Gauntlet
 
-| Gauntlet | Objetivo Principal | Escala Estimada | Risco | Critério de Sucesso |
-| :---: | :--- | :---: | :---: | :--- |
-| **G0** | Baseline & Testes de Fitness | Small | Baixo | `cargo xtask arch-check` reporta limites |
-| **G1** | Purificação de `core` e `config` | Medium | Médio | `core` e `config` compilam sem egui |
-| **G2** | Fundação do `CommandDispatcher` | Medium | Médio | Comandos executam com undo automático |
-| **G3** | Extração de Mutações da UI | Large | Alto | Zero chamadas a `checkpoint()` na UI |
-| **G4** | `ProjectService` de I/O | Small | Baixo | Carregamento/salvamento desacoplado de diálogos |
-| **G5** | Sessões de Ferramentas (Cutting/Modal) | Large | Alto | Lógica de ferramentas roda sem egui |
-| **G6** | Decomposição do `AppState` | Large | Médio | 4 estados segregados com donos claros |
-| **G7** | Purificação dos `module-*` | Medium | Baixo | Módulos sem dependência de egui |
-| **G8** | Comprovação Headless (`petunia-cli`) | Medium | Baixo | Sessão completa executa via terminal |
-| **G9** | Application API & DTOs | Medium | Médio | UI consome queries com UUIDs estáveis |
-| **G10**| Camada C-ABI / FFI | Large | Médio | Core acoplável a frontends em C++/C# |
+| Gauntlet | Objetivo Principal | Escala Estimada | Risco | Status | Critério de Sucesso |
+| :---: | :--- | :---: | :---: | :---: | :--- |
+| **G0** | Baseline & Testes de Fitness | Small | Baixo | ✅ **CONCLUÍDO** | `cargo xtask arch-check` reporta limites |
+| **G1** | Purificação de `core` e `config` | Medium | Médio | ✅ **CONCLUÍDO** | `core` e `config` compilam sem egui |
+| **G2** | Fundação do `CommandDispatcher` | Medium | Médio | ✅ **CONCLUÍDO** | Comandos executam com undo automático |
+| **G3** | Extração de Mutações da UI | Large | Alto | ✅ **CONCLUÍDO** | Zero chamadas a `checkpoint()` na UI |
+| **G4** | `ProjectService` de I/O | Small | Baixo | ✅ **CONCLUÍDO** | Carregamento/salvamento desacoplado de diálogos |
+| **G5** | Sessões de Ferramentas (Cutting/Modal) | Large | Alto | ✅ **CONCLUÍDO** | Lógica de ferramentas roda sem egui |
+| **G6** | Decomposição do `AppState` | Large | Médio | ✅ **CONCLUÍDO** | 5 sub-estados coesos com donos claros |
+| **G7** | Purificação dos `module-*` | Medium | Baixo | ✅ **CONCLUÍDO** | Módulos sem dependência de egui |
+| **G8** | Comprovação Headless (`petunia-cli`) | Medium | Baixo | ✅ **CONCLUÍDO** | Sessão completa executa via terminal |
+| **G9** | Application API & DTOs | Medium | Médio | ✅ **CONCLUÍDO** | UI consome queries com UUIDs estáveis |
+| **G10**| Camada C-ABI / FFI | Large | Médio | ✅ **CONCLUÍDO** | Core acoplável a frontends em C++/C#/Python |

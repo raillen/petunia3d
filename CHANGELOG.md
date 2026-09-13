@@ -3,6 +3,70 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.20.0] - 2026-09-13 — Architectural Decoupling: C-ABI / FFI Layer (Gauntlet G10, Cross-Language Frontends)
+
+### Adicionado
+- **Biblioteca Dinâmica e Estática C-ABI / FFI (`crates/ffi/`)**:
+  - `petunia_ffi`: Compilado como `cdylib` (`libpetunia_ffi.so` / `.dll` / `.dylib`) e `rlib` para interoperabilidade direta com linguagens externas sem dependência de `egui`.
+  - Header canônico C/C++ (`crates/ffi/include/petunia.h`): Definições de tipos opacos (`PetuniaContext`), códigos de retorno (`PETUNIA_OK`, `PETUNIA_ERR_*`) e protótipos de funções exportadas com documentação Doxygen.
+  - Funções de ciclo de vida seguro de contexto: `petunia_context_create(lang)` e `petunia_context_destroy(ctx)`.
+  - Funções de I/O de projeto e conversão de formatos: `petunia_new_project`, `petunia_load_project`, `petunia_save_project`, `petunia_import_obj`, `petunia_export_obj`, `petunia_export_glb`.
+  - Funções de comandos de modelagem: `petunia_add_primitive`, `petunia_undo`, `petunia_redo`, `petunia_select_all`, `petunia_clear_selection`, `petunia_delete_selection`, `petunia_duplicate_selection`, `petunia_extrude_selection`, `petunia_subdivide_selection`, `petunia_scale_selection`.
+  - Funções de consultas semânticas e telemetria: `petunia_get_asset_count`, `petunia_get_scene_summary`, `petunia_get_active_asset_name`, `petunia_get_active_asset_stats`.
+  - Manipulação por UUIDs canônicos: `petunia_set_active_asset_by_id`, `petunia_delete_asset_by_id`.
+  - Serialização JSON de DTOs para clientes de alto nível (Python, C#, JS): `petunia_query_scene_hierarchy_json`, `petunia_query_selection_details_json`, `petunia_query_tool_status_json`.
+  - Diagnóstico seguro de erros: `petunia_last_error_message(buffer, len)`.
+- **Suíte de Testes C-ABI de Ponta a Ponta (`crates/ffi/tests/c_abi_tests.rs`)**:
+  - 7 testes automatizados exercitando segurança com ponteiros nulos, criação/destruição de contexto, despacho de comandos com undo/redo, consultas JSON, exportações para OBJ e GLB (com validação de magic bytes `glTF`) e manipulação por UUIDs estáveis.
+- **Governança de Invariantes em CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita de que `crates/ffi` não depende de `egui` e de que o header C canônico está presente.
+  - `cargo run -p xtask -- arch-check` atualizado confirmando a conclusão dos 11 Gauntlets arquiteturais (G0 a G10).
+
+---
+
+## [0.19.0] - 2026-09-13 — Architectural Decoupling: Application API Stabilization (Gauntlet G9, F-010)
+
+### Adicionado
+- **Application Query API e DTOs Imutáveis (`crates/core/src/queries.rs`)**:
+  - `SceneObjectDto`: Snapshot imutável de objeto de cena contendo `id: Uuid`, `name: String`, contagem de vértices, faces, visibilidade, travamento e se é o objeto ativo.
+  - `SceneHierarchyDto`: DTO de visão geral da cena contendo lista de `SceneObjectDto`, `active_id: Option<Uuid>`, total global de vértices e faces.
+  - `SelectionDetailsDto`: Snapshot da seleção corrente contendo contagem de vértices/arestas/faces selecionados, centro ponderado da seleção 3D (`selection_center: Option<Vec3>`) e modo de seleção.
+  - `ToolStatusDto`: Snapshot do estado atual da ferramenta ativa contendo nome da ferramenta, se há operação modal ativa e mensagem de status do editor.
+- **Métodos de Consulta e Manipulação por Identificador Estável em `AppState`**:
+  - `state.query_scene_hierarchy() -> SceneHierarchyDto`
+  - `state.query_selection_details() -> SelectionDetailsDto`
+  - `state.query_tool_status() -> ToolStatusDto`
+  - `state.set_active_asset_by_id(id: Uuid) -> bool`
+  - `state.delete_asset_by_id(id: Uuid) -> bool`
+  - `state.find_asset_by_id(id: Uuid) -> Option<&Asset3D>`
+  - `state.find_asset_by_id_mut(id: Uuid) -> Option<&mut Asset3D>`
+- **Resiliência a Reordenação de Ativos por UUIDs (`crates/core/src/state.rs`)**:
+  - Migração de `export_selected: Vec<usize>` para `export_selected: Vec<Uuid>`, eliminando fragilidade de índices instáveis em exportações seletivas.
+  - Método auxiliar `export_selected_indices(&self) -> Vec<usize>` que resolve dinamicamente os índices com base na ordem atual de ativos no projeto.
+- **Suíte de Testes Automatizados da Application API (`crates/core/tests/queries_tests.rs`)**:
+  - 5 testes cobrindo geração de DTOs, cálculos de centro de seleção, resiliência de UUIDs frente a remoções intermediárias de objetos e ativação/remoção segura por identificadores únicos.
+- **Governança de Invariantes em CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita da presença dos DTOs de queries e do armazenamento por `Uuid` em `export_selected` e na árvore do `outliner`.
+
+---
+
+## [0.18.0] - 2026-09-13 — Architectural Decoupling: Headless Sovereignty (Gauntlet G8, F-011)
+
+### Adicionado
+- **Utilitário de Linha de Comando `petunia-cli` (`crates/cli/`)**:
+  - `petunia-cli new <arquivo.petunia> [primitiva]`: Cria projetos limpos com primitivas canônicas (`Cube`, `Plane`, `Sphere`, `Cylinder8`, `Capsule`).
+  - `petunia-cli info <arquivo>`: Inspeciona assets, hierarquia, totais de vértices/faces e coleções de arquivos `.petunia` e `.obj`.
+  - `petunia-cli convert <entrada> <saida>`: Converte formatos 3D bidirecionalmente entre `.petunia`, `.obj` e `.glb`.
+  - `petunia-cli transform <entrada.petunia> <saida> [opções]`: Aplica pipelines de comandos e ferramentas (`--select-all`, `--extrude`, `--subdivide`, `--scale`, `--add-primitive`) sem interface gráfica.
+  - `petunia-cli bench`: Benchmark integrado que executa um ciclo completo de 5 primitivas, extrusão, undo/redo, salvamento e exportações em menos de 80 milissegundos.
+- **Suíte de Testes de Integração Headless (`crates/cli/tests/headless_integration.rs`)**:
+  - 5 testes automatizados de ponta a ponta validando persistência, despacho de comandos com undo/redo, ferramentas de modelagem, exportação para OBJ e GLB (com validação de magic bytes `glTF`) e tempo de resposta (< 25ms).
+- **Governança de Fitness Arquitetural em CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita de que `crates/cli` não depende nem referencia `egui`.
+  - Validação integrada ao comando `cargo run -p xtask -- arch-check`.
+
+---
+
 ## [0.17.0] - 2026-09-13 — Architectural Decoupling: Module Crates Purification (Gauntlet G7, F-008)
 
 ### Adicionado

@@ -334,3 +334,64 @@ fn module_crates_sources_must_not_reference_egui() {
         );
     }
 }
+
+#[test]
+fn petunia_cli_must_be_pure_headless() {
+    let manifest_path = root_dir().join("crates/cli/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/cli/Cargo.toml");
+    assert!(
+        !content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL (G8 / F-011): crates/cli não pode depender de egui!"
+    );
+
+    let src_path = root_dir().join("crates/cli/src/main.rs");
+    let src_content = fs::read_to_string(&src_path).expect("crates/cli/src/main.rs");
+    assert!(
+        !src_content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL (G8 / F-011): crates/cli/src/main.rs não pode referenciar egui!"
+    );
+}
+
+#[test]
+fn application_api_dtos_and_stable_uuids_enforced() {
+    let queries_rs = root_dir().join("crates/core/src/queries.rs");
+    let content = fs::read_to_string(&queries_rs).expect("crates/core/src/queries.rs");
+
+    assert!(content.contains("pub struct SceneHierarchyDto"));
+    assert!(content.contains("pub struct SceneObjectDto"));
+    assert!(content.contains("pub struct SelectionDetailsDto"));
+    assert!(content.contains("pub struct ToolStatusDto"));
+
+    let state_rs = root_dir().join("crates/core/src/state.rs");
+    let state_content = fs::read_to_string(&state_rs).expect("crates/core/src/state.rs");
+    assert!(
+        state_content.contains("pub export_selected: Vec<Uuid>"),
+        "export_selected deve armazenar Vec<Uuid> estável, e não usize instável"
+    );
+
+    let outliner_rs = root_dir().join("crates/ui/src/outliner.rs");
+    let outliner_content = fs::read_to_string(&outliner_rs).expect("crates/ui/src/outliner.rs");
+    assert!(
+        outliner_content.contains("Asset(Uuid)"),
+        "OutlinerNodeId::Asset deve referenciar Uuid estável"
+    );
+}
+
+#[test]
+fn petunia_ffi_must_be_pure_headless() {
+    let manifest_path = root_dir().join("crates/ffi/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/ffi/Cargo.toml");
+    assert!(
+        !content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL (G10): crates/ffi não pode depender de egui!"
+    );
+
+    let src_path = root_dir().join("crates/ffi/src/lib.rs");
+    let src_content = fs::read_to_string(&src_path).expect("crates/ffi/src/lib.rs");
+    assert!(
+        !src_content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL (G10): crates/ffi/src/lib.rs não pode referenciar egui!"
+    );
+}
+
+

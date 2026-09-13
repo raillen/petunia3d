@@ -372,44 +372,47 @@ pub fn export_section(ui: &mut egui::Ui, state: &mut AppState) {
                 }
             });
             // multi-select
-            let mut sel = state.project.export_selected.clone();
-            if sel.is_empty() {
-                sel = (0..state.project.assets.len()).collect();
+            let mut sel_ids = state.project.export_selected.clone();
+            if sel_ids.is_empty() {
+                sel_ids = state.project.assets.iter().map(|a| a.id).collect();
             }
-            let mut new_sel = Vec::new();
-            let names: Vec<String> = state
+            let mut new_sel_ids = Vec::new();
+            let mut new_sel_indices = Vec::new();
+            let asset_items: Vec<(usize, uuid::Uuid, String)> = state
                 .project
                 .assets
                 .iter()
-                .map(|a| a.name.clone())
+                .enumerate()
+                .map(|(i, a)| (i, a.id, a.name.clone()))
                 .collect();
-            for (i, name) in names.iter().enumerate() {
-                let mut on = sel.contains(&i);
-                if ui.checkbox(&mut on, name).changed() {
-                    state.mark_dirty();
+            let mut changed = false;
+            for (i, asset_id, name) in asset_items {
+                let mut on = sel_ids.contains(&asset_id);
+                if ui.checkbox(&mut on, &name).changed() {
+                    changed = true;
                 }
                 if on {
-                    new_sel.push(i);
+                    new_sel_ids.push(asset_id);
+                    new_sel_indices.push(i);
                 }
             }
-            state.project.export_selected = new_sel.clone();
+            if changed {
+                state.mark_dirty();
+            }
+            state.project.export_selected = new_sel_ids;
             ui.separator();
             ui.label(l_report);
-            for line in export::export_report(&state.project, &new_sel, state.project.export_gltf) {
+            for line in export::export_report(&state.project, &new_sel_indices, state.project.export_gltf) {
                 ui.small(line);
             }
             if ui.button(l_go).clicked() {
-                export_dialog(state, &new_sel);
+                export_dialog(state, &new_sel_indices);
             }
         });
 }
 
 pub fn export_active_or_all(state: &mut AppState, glb: bool) {
-    let sel: Vec<usize> = if !state.project.export_selected.is_empty() {
-        state.project.export_selected.clone()
-    } else {
-        (0..state.project.assets.len()).collect()
-    };
+    let sel = state.project.export_selected_indices();
     state.project.export_gltf = glb;
     export_dialog(state, &sel);
 }

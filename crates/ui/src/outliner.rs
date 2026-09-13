@@ -26,7 +26,7 @@ pub enum OutlinerNodeId {
     Collection(String),
     Camera,
     Light,
-    Asset(usize),
+    Asset(Uuid),
     ReferenceImages,
     ReferenceImage(usize),
 }
@@ -855,8 +855,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                         );
                         let visible = state.project.assets[i].visible;
                         let locked = state.project.assets[i].locked;
-
-                        builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(i)).label_ui(|ui| {
+                        let asset_id = state.project.assets[i].id;
+                        builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(|ui| {
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
@@ -992,8 +992,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                 );
                 let visible = state.project.assets[i].visible;
                 let locked = state.project.assets[i].locked;
-
-                builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(i)).label_ui(|ui| {
+                let asset_id = state.project.assets[i].id;
+                builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(|ui| {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
@@ -1434,14 +1434,10 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             Action::SetSelected(nodes) => {
                 for node in nodes {
                     match node {
-                        OutlinerNodeId::Asset(idx) => {
-                            if idx < state.project.assets.len() && state.project.active != idx {
-                                state.project.active = idx;
-                                state.selected_annotation = None;
-                                state.selected_measurement = None;
-                                state.sync_selection();
-                                state.mark_dirty();
-                            }
+                        OutlinerNodeId::Asset(id) => {
+                            state.set_active_asset_by_id(id);
+                            state.selected_annotation = None;
+                            state.selected_measurement = None;
                         }
                         OutlinerNodeId::Annotation(id) => {
                             state.selected_annotation = Some(id);
@@ -1460,14 +1456,10 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             Action::Activate(act) => {
                 for node in act.selected {
                     match node {
-                        OutlinerNodeId::Asset(idx) => {
-                            if idx < state.project.assets.len() && state.project.active != idx {
-                                state.project.active = idx;
-                                state.selected_annotation = None;
-                                state.selected_measurement = None;
-                                state.sync_selection();
-                                state.mark_dirty();
-                            }
+                        OutlinerNodeId::Asset(id) => {
+                            state.set_active_asset_by_id(id);
+                            state.selected_annotation = None;
+                            state.selected_measurement = None;
                         }
                         OutlinerNodeId::Annotation(id) => {
                             state.selected_annotation = Some(id);

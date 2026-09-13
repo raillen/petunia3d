@@ -240,6 +240,16 @@ fn task_arch_check() -> Result<()> {
             &["egui"][..],
             "petunia_module_assets não pode depender de egui (G7)",
         ),
+        (
+            "crates/cli/Cargo.toml",
+            &["egui"][..],
+            "petunia_cli não pode depender de egui (G8)",
+        ),
+        (
+            "crates/ffi/Cargo.toml",
+            &["egui"][..],
+            "petunia_ffi não pode depender de egui (G10)",
+        ),
     ];
 
     for (rel_path, forbidden, reason) in checks {
@@ -375,6 +385,58 @@ fn task_arch_check() -> Result<()> {
     }
     println!("✅ Módulos purificados: module-model, module-paint, module-uv e module-assets são 100% livres de egui.");
 
-    println!("🏛️ Progresso de remediação: Gauntlets G0, G1, G2, G3, G4, G5, G6 e G7 (Purificação dos Crates de Módulo) CONCLUÍDOS.");
+    println!("🛡️ Validando soberania headless do crate CLI (Gauntlet G8 / F-011)...");
+    for file_path in &rs_files {
+        let rel = file_path
+            .strip_prefix(&root)
+            .unwrap_or(file_path)
+            .to_string_lossy();
+
+        if rel.starts_with("crates/cli") {
+            let content = std::fs::read_to_string(file_path)
+                .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+            if content.contains("egui::") || content.contains("use egui") {
+                bail!("Violação de Soberania Headless (G8 / F-011): {rel} contém referência direta a egui!");
+            }
+        }
+    }
+    println!(
+        "✅ Crate CLI validado: petunia-cli é 100% puro e opera sem qualquer dependência de UI."
+    );
+
+    println!("🛡️ Validando estabilização da Application API (Gauntlet G9 / F-010)...");
+    let queries_path = root.join("crates/core/src/queries.rs");
+    if !queries_path.exists() {
+        bail!("Violação de Application API (G9 / F-010): crates/core/src/queries.rs não encontrado!");
+    }
+    let state_path = root.join("crates/core/src/state.rs");
+    let state_content = std::fs::read_to_string(&state_path)?;
+    if !state_content.contains("pub export_selected: Vec<Uuid>") {
+        bail!("Violação de Application API (G9 / F-010): export_selected deve ser Vec<Uuid>!");
+    }
+    println!("✅ Application API validada: DTOs e identificadores estáveis (UUID) ativos.");
+
+    println!("🛡️ Validando soberania da camada C-ABI / FFI (Gauntlet G10)...");
+    for file_path in &rs_files {
+        let rel = file_path
+            .strip_prefix(&root)
+            .unwrap_or(file_path)
+            .to_string_lossy();
+
+        if rel.starts_with("crates/ffi") {
+            let content = std::fs::read_to_string(file_path)
+                .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+            if content.contains("egui::") || content.contains("use egui") {
+                bail!("Violação de C-ABI (G10): {rel} contém referência direta a egui!");
+            }
+        }
+    }
+    let header_path = root.join("crates/ffi/include/petunia.h");
+    if !header_path.exists() {
+        bail!("Violação de C-ABI (G10): header crates/ffi/include/petunia.h ausente!");
+    }
+    println!("✅ Camada C-ABI / FFI validada: petunia_ffi e include/petunia.h são 100% autônomos.");
+
+    println!("🏛️ Progresso de remediação: TODOS OS 11 GAUNTLETS (G0 a G10) 100% CONCLUÍDOS COM SUCESSO!");
     Ok(())
 }

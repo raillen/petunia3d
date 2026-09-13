@@ -11,11 +11,13 @@ pub mod modal;
 pub mod module;
 pub mod picking;
 pub mod project_service;
+pub mod queries;
 pub mod selection;
 pub mod state;
 pub mod viewport;
 
 pub use cutting_session::CutSession;
+pub use queries::{SceneHierarchyDto, SceneObjectDto, SelectionDetailsDto, ToolStatusDto};
 
 pub use command::{
     AddPrimitiveCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError, DeleteAssetCmd,
