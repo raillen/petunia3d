@@ -14,6 +14,7 @@ pub mod app_icons;
 pub mod asset_browser;
 pub mod asset_library_drawer;
 pub mod camera_controls;
+pub mod command_palette;
 pub mod contextual_shelf;
 mod cutting;
 pub mod file_dialog_service;
@@ -104,6 +105,7 @@ pub fn draw(
     viewport(ctx, state);
     asset_library_drawer::draw(ctx, state);
     settings_modal::draw(ctx, state);
+    command_palette::draw(ctx, state);
 }
 
 fn viewport_bar_panel(ctx: &egui::Context, state: &mut AppState) {

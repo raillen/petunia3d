@@ -255,6 +255,11 @@ impl Keybinds {
         self.map.get(action).map(|b| b.to_shortcut_string())
     }
 
+    /// Alias ergonômico para shortcut_for.
+    pub fn format_shortcut(&self, action: &str) -> Option<String> {
+        self.shortcut_for(action)
+    }
+
     /// Retorna a lista de todas as ações e seus atalhos formatados como string, ordenados.
     pub fn all_bindings(&self) -> Vec<(String, String)> {
         let mut list: Vec<(String, String)> = self
@@ -266,17 +271,86 @@ impl Keybinds {
         list
     }
 
-    /// Detecta conflitos de atalho (duas ações diferentes usando a mesma combinação de teclas).
-    pub fn detect_conflicts(&self) -> Vec<(String, String, String)> {
+    /// Adiciona ou atualiza um atalho para uma ação.
+    pub fn set_binding(&mut self, action: impl Into<String>, binding: Binding) {
+        self.map.insert(action.into(), binding);
+    }
+
+    /// Remove um atalho de uma ação.
+    pub fn remove_binding(&mut self, action: &str) -> Option<Binding> {
+        self.map.remove(action)
+    }
+
+    /// Exporta o mapa de atalhos para formato TOML legível agrupado por seções.
+    pub fn export_to_toml(&self) -> String {
+        use std::collections::BTreeMap;
+        let mut sections: BTreeMap<&str, BTreeMap<&str, String>> = BTreeMap::new();
+
+        for (action, binding) in &self.map {
+            let mut parts = action.splitn(2, '.');
+            let section = parts.next().unwrap_or("global");
+            let subaction = parts.next().unwrap_or(action);
+            sections
+                .entry(section)
+                .or_default()
+                .insert(subaction, binding.to_shortcut_string());
+        }
+
+        let mut out = String::new();
+        for (sec, entries) in sections {
+            out.push_str(&format!("[{sec}]\n"));
+            for (act, key) in entries {
+                out.push_str(&format!("{act} = \"{key}\"\n"));
+            }
+            out.push('\n');
+        }
+        out
+    }
+
+    /// Detecta conflitos de atalho com discernimento de contexto (P3D-091).
+    /// Conflitos exatos e sobreposições de escopo global são apontados,
+    /// enquanto contextos disjuntos (ex: model vs paint) não colidem.
+    pub fn detect_conflicts(&self) -> Vec<KeyConflict> {
         let mut conflicts = Vec::new();
         let items: Vec<(&String, &Binding)> = self.map.iter().collect();
 
+        // 1. Teclas protegidas do sistema
+        for (act, bind) in &self.map {
+            if bind.key == KeyCode::Escape && !bind.mods.ctrl && !bind.mods.alt {
+                conflicts.push(KeyConflict {
+                    action_a: act.clone(),
+                    action_b: "system.escape".to_string(),
+                    shortcut: bind.to_shortcut_string(),
+                    kind: ConflictKind::Reserved,
+                });
+            }
+        }
+
+        // 2. Colisões entre ações
         for i in 0..items.len() {
             for j in (i + 1)..items.len() {
                 let (act_a, bind_a) = items[i];
                 let (act_b, bind_b) = items[j];
                 if bind_a == bind_b {
-                    conflicts.push((act_a.clone(), act_b.clone(), bind_a.to_shortcut_string()));
+                    let ctx_a = act_a.split('.').next().unwrap_or("global");
+                    let ctx_b = act_b.split('.').next().unwrap_or("global");
+
+                    if ctx_a == ctx_b {
+                        conflicts.push(KeyConflict {
+                            action_a: act_a.clone(),
+                            action_b: act_b.clone(),
+                            shortcut: bind_a.to_shortcut_string(),
+                            kind: ConflictKind::Exact,
+                        });
+                    } else if ctx_a == "global" || ctx_b == "global" {
+                        conflicts.push(KeyConflict {
+                            action_a: act_a.clone(),
+                            action_b: act_b.clone(),
+                            shortcut: bind_a.to_shortcut_string(),
+                            kind: ConflictKind::ContextOverlap,
+                        });
+                    }
+                    // Contextos disjuntos (ex: "model" e "paint") não colidem!
                 }
             }
         }
@@ -289,6 +363,7 @@ impl Keybinds {
             ("global.undo", "Ctrl+Z"),
             ("global.redo", "Ctrl+Shift+Z"),
             ("global.save_project", "Ctrl+S"),
+            ("global.command_palette", "Ctrl+P"),
             ("global.toggle_wireframe", "Z"),
             ("global.help", "H"),
             ("global.reset_camera", "Home"),
@@ -330,6 +405,36 @@ impl Keybinds {
         }
         kb
     }
+}
+
+/// Tipos de conflito de atalhos detectados no sistema (P3D-091).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum ConflictKind {
+    /// Mesmo contexto de trabalho usando o mesmo atalho.
+    Exact,
+    /// Atalho global sobrepõe atalho de modo contextual específico.
+    ContextOverlap,
+    /// Uso de tecla protegida de sistema (ex: Escape sem modificadores).
+    Reserved,
+}
+
+impl ConflictKind {
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::Exact => "Conflito Exato (mesmo contexto)",
+            Self::ContextOverlap => "Sobreposição Global (shadowing)",
+            Self::Reserved => "Tecla Reservada do Sistema",
+        }
+    }
+}
+
+/// Detalhes de um conflito detectado entre duas ações ou com o sistema.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct KeyConflict {
+    pub action_a: String,
+    pub action_b: String,
+    pub shortcut: String,
+    pub kind: ConflictKind,
 }
 
 // Os tipos winit são convertidos em `app`; aqui ficam tipos próprios para
@@ -491,13 +596,57 @@ mod tests {
     #[test]
     fn test_conflict_detection_logic() {
         let mut kb = Keybinds::default();
-        kb.map
-            .insert("model.extrude".into(), parse_binding("E").unwrap());
-        kb.map
-            .insert("model.push_pull".into(), parse_binding("E").unwrap());
+        // Exact conflict within same context
+        kb.set_binding("model.extrude", parse_binding("E").unwrap());
+        kb.set_binding("model.push_pull", parse_binding("E").unwrap());
+
+        // Disjoint contexts: model vs paint (not a conflict!)
+        kb.set_binding("paint.brush", parse_binding("B").unwrap());
+        kb.set_binding("model.connect", parse_binding("B").unwrap());
+
+        // Context overlap: global shadows model
+        kb.set_binding("global.save_project", parse_binding("Ctrl+S").unwrap());
+        kb.set_binding("model.scale_special", parse_binding("Ctrl+S").unwrap());
+
+        // Reserved key: Escape without modifiers
+        kb.set_binding("model.cancel_op", parse_binding("Escape").unwrap());
 
         let conflicts = kb.detect_conflicts();
-        assert_eq!(conflicts.len(), 1);
-        assert_eq!(conflicts[0].2, "E");
+        assert_eq!(conflicts.len(), 3); // 1 exact, 1 overlap, 1 reserved
+
+        let exact = conflicts
+            .iter()
+            .find(|c| c.kind == ConflictKind::Exact)
+            .unwrap();
+        assert_eq!(exact.shortcut, "E");
+
+        let overlap = conflicts
+            .iter()
+            .find(|c| c.kind == ConflictKind::ContextOverlap)
+            .unwrap();
+        assert_eq!(overlap.shortcut, "Ctrl+S");
+
+        let reserved = conflicts
+            .iter()
+            .find(|c| c.kind == ConflictKind::Reserved)
+            .unwrap();
+        assert_eq!(reserved.shortcut, "Escape");
+    }
+
+    #[test]
+    fn test_rebinding_and_toml_export() {
+        let mut kb = Keybinds::default();
+        kb.set_binding("model.extrude", parse_binding("Shift+E").unwrap());
+        assert_eq!(
+            kb.shortcut_for("model.extrude"),
+            Some("Shift+E".to_string())
+        );
+
+        let toml_str = kb.export_to_toml();
+        assert!(toml_str.contains("[model]"));
+        assert!(toml_str.contains("extrude = \"Shift+E\""));
+
+        kb.remove_binding("model.extrude");
+        assert_eq!(kb.shortcut_for("model.extrude"), None);
     }
 }

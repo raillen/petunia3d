@@ -20,7 +20,15 @@ language = "Idioma"
 [menu]
 file = "Arquivo"
 edit = "Editar"
+window = "Janela"
 help = "Ajuda"
+command_palette = "Paleta de Comandos"
+preferences = "Preferências"
+recent_projects = "Projetos Recentes"
+
+[command_palette]
+placeholder = "Digite um comando ou busque…"
+no_results = "Nenhum comando encontrado"
 
 [file]
 new = "Novo projeto"

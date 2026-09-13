@@ -57,6 +57,16 @@ impl ProjectService {
         state.mark_document_clean();
         state.events.emit(AppEvent::ProjectLoaded);
         state.sync_selection();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let name = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "Untitled".to_string());
+        state.project.recent_projects.add(path, &name, now);
+        let _ = state.project.recent_projects.save();
         state.set_status(format!("open {}", path.display()));
         state.mark_dirty();
         Ok(())
@@ -71,6 +81,16 @@ impl ProjectService {
         state.project.project_path = Some(path.to_string_lossy().to_string());
         state.mark_document_clean();
         state.events.emit(AppEvent::ProjectSaved);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let name = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "Untitled".to_string());
+        state.project.recent_projects.add(path, &name, now);
+        let _ = state.project.recent_projects.save();
         state.set_status(format!("saved {}", path.display()));
         state.mark_dirty();
         Ok(())

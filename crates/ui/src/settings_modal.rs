@@ -482,10 +482,18 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                             .color(Color32::from_rgb(255, 120, 120)),
                     );
                 });
-                for (a, b, key) in &conflicts {
-                    ui.small(format!(
-                        "• '{a}' e '{b}' compartilham o mesmo atalho: [{key}]"
-                    ));
+                for conflict in &conflicts {
+                    ui.horizontal(|ui| {
+                        ui.small(format!(
+                            "• '{}' e '{}' compartilham o mesmo atalho: [{}]",
+                            conflict.action_a, conflict.action_b, conflict.shortcut
+                        ));
+                        ui.label(
+                            RichText::new(format!("({})", conflict.kind.description()))
+                                .size(10.0)
+                                .color(tokens::TEXT_MUTED),
+                        );
+                    });
                 }
             });
         ui.add_space(8.0);

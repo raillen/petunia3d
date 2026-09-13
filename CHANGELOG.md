@@ -3,6 +3,41 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.24.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 3 (UI Infrastructure, Customization & Input)
+
+### Adicionado
+- **P3D-081 — Command Palette (`crates/ui/src/command_palette.rs`, `crates/core/src/command.rs`)**:
+  - Overlay centralizado elegante de busca e execução rápida (`Ctrl+P` / `Ctrl+Shift+P`).
+  - Busca fuzzy e por tokens sobre o catálogo canônico de comandos.
+  - Navegação fluida por teclado (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`) e auto-focus no campo de busca.
+  - Exibição de categoria funcional por pílulas visuais (`File`, `Edit`, `Model`, `View`, `Tools`, `Window`, `Help`, `Select`).
+  - Validação contextual estrita (`can_execute`): comandos desabilitados exibem a razão legível (ex: `Requires Edit mode`, `Nothing to undo`) sem execução indevida e com zero lógica de domínio na camada de apresentação.
+- **P3D-077 — Menus Padronizados & Submenus Profissionais (`crates/ui/src/widgets.rs`, `crates/ui/src/main_header.rs`)**:
+  - Componente `PetuniaMenuItem` aprimorado com renderização de atalhos dinâmicos alinhados e setas de submenu (`›`).
+  - Novos widgets canônicos `PetuniaMenuCheckboxItem` (com indicador visual `✓`) e `PetuniaMenuRadioItem` (com indicador de ponto preenchido).
+  - Submenu de Projetos Recentes no menu Arquivo (`File`), consumindo o histórico persistente de `state.project.recent_projects`.
+  - Migração de todos os menus superiores para widgets e design tokens canônicos, eliminando controles genéricos.
+- **P3D-084 / P3D-085 — Design Tokens, Temas & Customização**:
+  - Submenu de temas integrado no menu Janela com seleção imediata dos temas canônicos: Petunia Dark, Petunia Light, Capuccino e Tokyo Nights.
+- **P3D-089 — i18n & Sincronização de Locales (`assets/locales/en.toml`, `pt-BR.toml`)**:
+  - Eliminação de condicionais ad-hoc (`if lang == "en" ...`) no cabeçalho em favor de chaves padronizadas (`menu.window`, `menu.command_palette`, `menu.preferences`, `menu.recent_projects`, `command_palette.*`).
+  - Sincronização estrita de todas as chaves entre inglês e português do Brasil.
+- **P3D-090..099 — Keymaps, Detecção de Conflitos e Rebinding (`crates/config/src/keybinds.rs`, `crates/ui/src/settings_modal.rs`)**:
+  - Sistema de detecção de conflitos context-aware: diferencia colisões exatas (`Exact`), sobreposições com contexto global (`ContextOverlap`), preservando contextos disjuntos (`model` vs `paint`) sem falsos positivos.
+  - Proteção de teclas reservadas (`Reserved` para `Escape`).
+  - Métodos utilitários de remapeamento (`set_binding`, `remove_binding`, `export_to_toml`).
+  - Inclusão canônica de `global.command_palette` (`Ctrl+P`).
+- **P3D-114 / P3D-115 — Documentação Contextual e Help Topics (`crates/core/src/docs.rs`)**:
+  - Enum `DocsTopic` centralizando 15 tópicos e mapeamento para URLs canônicas (`https://petunia3d.org/docs/...`).
+  - Menu de Ajuda (`Help`) com links diretos para documentação online e abertura no navegador padrão do sistema.
+  - Associação de tópicos de documentação nos metadados de comandos (`CommandMetadata`).
+- **Qualidade & Testes**:
+  - Testes unitários para catálogo de comandos, busca, atalhos e validação contextual.
+  - Testes de UI sem pânico para Command Palette e menus padronizados.
+  - 100% de conformidade com todos os Quality Gates do workspace.
+
+---
+
 ## [0.23.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 2 (Project Integrity & Asset Foundation)
 
 ### Adicionado

@@ -100,6 +100,37 @@ impl RecentProjects {
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
         fs::write(path, json)
     }
+
+    /// Retorna as entradas como fatia (alias ergonômico para list).
+    pub fn projects(&self) -> &[RecentProjectEntry] {
+        &self.entries
+    }
+
+    /// Caminho padrão para persistência de preferências de projetos recentes.
+    pub fn default_path() -> PathBuf {
+        if let Some(config_home) = std::env::var_os("XDG_CONFIG_HOME") {
+            PathBuf::from(config_home)
+                .join("petunia3d")
+                .join("recent_projects.json")
+        } else if let Some(home) = std::env::var_os("HOME") {
+            PathBuf::from(home)
+                .join(".config")
+                .join("petunia3d")
+                .join("recent_projects.json")
+        } else {
+            PathBuf::from(".recent_projects.json")
+        }
+    }
+
+    /// Carrega histórico a partir da localização canônica de configuração.
+    pub fn load() -> Self {
+        Self::load_from_path(&Self::default_path())
+    }
+
+    /// Salva histórico na localização canônica de configuração.
+    pub fn save(&self) -> Result<(), std::io::Error> {
+        self.save_to_path(&Self::default_path())
+    }
 }
 
 #[cfg(test)]

@@ -7,6 +7,6 @@ pub mod theme;
 pub mod tools;
 
 pub use i18n::I18n;
-pub use keybinds::{Keybinds, KeymapProfileInfo};
+pub use keybinds::{Binding, ConflictKind, KeyConflict, Keybinds, KeymapProfileInfo};
 pub use theme::{ColorRgba, Theme, ThemeManifest, ThemeRegistry, ThemeToken};
 pub use tools::load_tools_config;

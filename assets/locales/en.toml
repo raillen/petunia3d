@@ -20,7 +20,15 @@ language = "Language"
 [menu]
 file = "File"
 edit = "Edit"
+window = "Window"
 help = "Help"
+command_palette = "Command Palette"
+preferences = "Preferences"
+recent_projects = "Recent Projects"
+
+[command_palette]
+placeholder = "Type a command or search…"
+no_results = "No commands found"
 
 [file]
 new = "New project"

@@ -1,10 +1,10 @@
-//! Sistema de comandos do Petunia3D (Command Pattern & Dispatcher).
-//! Encapsula operações de edição de malha, assets, seleção e histórico (Undo/Redo)
-//! de forma desacoplada da interface gráfica e pronta para execução headless.
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use petunia_mesh::Mesh;
 use petunia_project::Asset;
 
+use crate::docs::DocsTopic;
 use crate::state::{AppState, EditMode};
 
 /// Taxonomia de erros de comandos da aplicação.
@@ -34,33 +34,165 @@ pub trait Command: Send + Sync {
     fn is_destructive(&self) -> bool {
         true
     }
+
+    /// Valida disponibilidade contextual do comando contra o estado atual (P3D-100).
+    /// Retorna Ok(()) se puder ser executado, ou Err("razão legível") quando desabilitado.
+    fn can_execute(&self, _state: &AppState) -> Result<(), &'static str> {
+        Ok(())
+    }
 }
 
-use std::collections::HashMap;
+impl<T: ?Sized + Command> Command for Box<T> {
+    fn label(&self) -> &'static str {
+        (**self).label()
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        (**self).execute(state)
+    }
+
+    fn is_destructive(&self) -> bool {
+        (**self).is_destructive()
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        (**self).can_execute(state)
+    }
+}
+
+/// Categorias funcionais de comandos da aplicação (P3D-081, P3D-100).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum CommandCategory {
+    File,
+    Edit,
+    Model,
+    Select,
+    View,
+    Tools,
+    Window,
+    Help,
+}
+
+impl CommandCategory {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::File => "File",
+            Self::Edit => "Edit",
+            Self::Model => "Model",
+            Self::Select => "Select",
+            Self::View => "View",
+            Self::Tools => "Tools",
+            Self::Window => "Window",
+            Self::Help => "Help",
+        }
+    }
+}
+
+/// Metadados semânticos de um comando cadastrado na aplicação.
+#[derive(Clone)]
+pub struct CommandMetadata {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub category: CommandCategory,
+    pub docs_topic: Option<DocsTopic>,
+}
+
+impl CommandMetadata {
+    pub fn new(
+        id: impl Into<String>,
+        label: impl Into<String>,
+        description: impl Into<String>,
+        category: CommandCategory,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            label: label.into(),
+            description: description.into(),
+            category,
+            docs_topic: None,
+        }
+    }
+
+    pub fn with_docs(mut self, topic: DocsTopic) -> Self {
+        self.docs_topic = Some(topic);
+        self
+    }
+}
+
+/// Item de apresentação para a Command Palette (P3D-081) e ferramentas de busca.
+#[derive(Debug, Clone)]
+pub struct CommandPaletteItem {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub category: CommandCategory,
+    pub shortcut: Option<String>,
+    pub disabled_reason: Option<&'static str>,
+    pub is_available: bool,
+    pub docs_topic: Option<DocsTopic>,
+}
 
 /// Despachante central de comandos com auto-checkpointing de Undo/Redo,
-/// sincronização de eventos e registro opcional por identificador de texto.
-#[derive(Default)]
+/// sincronização de eventos, catálogo de metadados e suporte a Command Palette.
+#[derive(Default, Clone)]
 pub struct CommandDispatcher {
-    registry: HashMap<String, Box<dyn Command>>,
+    registry: HashMap<String, Arc<dyn Command>>,
+    metadata: HashMap<String, CommandMetadata>,
 }
 
 impl CommandDispatcher {
     pub fn new() -> Self {
         Self {
             registry: HashMap::new(),
+            metadata: HashMap::new(),
         }
     }
 
-    pub fn register(&mut self, id: impl Into<String>, cmd: Box<dyn Command>) {
-        self.registry.insert(id.into(), cmd);
+    pub fn register<C: Command + 'static>(&mut self, id: impl Into<String>, cmd: C) {
+        let id_str = id.into();
+        let cmd_arc: Arc<dyn Command> = Arc::new(cmd);
+        let meta = CommandMetadata::new(
+            &id_str,
+            cmd_arc.label(),
+            format!("Action {}", cmd_arc.label()),
+            CommandCategory::Model,
+        );
+        self.metadata.insert(id_str.clone(), meta);
+        self.registry.insert(id_str, cmd_arc);
+    }
+
+    pub fn register_with_meta<C: Command + 'static>(&mut self, meta: CommandMetadata, cmd: C) {
+        let id = meta.id.clone();
+        self.metadata.insert(id.clone(), meta);
+        self.registry.insert(id, Arc::new(cmd));
+    }
+
+    pub fn get(&self, id: &str) -> Option<Arc<dyn Command>> {
+        self.registry.get(id).cloned()
+    }
+
+    pub fn get_metadata(&self, id: &str) -> Option<&CommandMetadata> {
+        self.metadata.get(id)
+    }
+
+    pub fn all_metadata(&self) -> Vec<&CommandMetadata> {
+        let mut list: Vec<&CommandMetadata> = self.metadata.values().collect();
+        list.sort_by(|a, b| a.id.cmp(&b.id));
+        list
+    }
+
+    pub fn can_execute(&self, id: &str, state: &AppState) -> Result<(), &'static str> {
+        let cmd = self.registry.get(id).ok_or("Comando não registrado")?;
+        cmd.can_execute(state)
     }
 
     pub fn execute(&self, id: &str, state: &mut AppState) -> Result<(), CommandError> {
         let cmd = self
             .registry
             .get(id)
-            .ok_or_else(|| CommandError::Execution(format!("Comando '{id}' não registrado")))?;
+            .ok_or_else(|| CommandError::Execution(format!("Comando '{id}' não registrado")))?
+            .clone();
         Self::dispatch(state, cmd.as_ref())
     }
 
@@ -78,6 +210,433 @@ impl CommandDispatcher {
             state.mark_dirty();
         }
         res
+    }
+
+    /// Consulta a lista de comandos filtrados por busca fuzzy/substring para a Command Palette (P3D-081).
+    pub fn query(&self, search_term: &str, state: &AppState) -> Vec<CommandPaletteItem> {
+        let term = search_term.trim().to_lowercase();
+        let mut results = Vec::new();
+
+        for (id, meta) in &self.metadata {
+            let shortcut = state.ui.keybinds.shortcut_for(id);
+            let shortcut_lower = shortcut.as_deref().unwrap_or("").to_lowercase();
+            let label_lower = meta.label.to_lowercase();
+            let desc_lower = meta.description.to_lowercase();
+            let cat_lower = meta.category.as_str().to_lowercase();
+            let id_lower = id.to_lowercase();
+
+            let matches = term.is_empty()
+                || label_lower.contains(&term)
+                || desc_lower.contains(&term)
+                || cat_lower.contains(&term)
+                || id_lower.contains(&term)
+                || shortcut_lower.contains(&term);
+
+            if matches {
+                let disabled_reason = self.can_execute(id, state).err();
+                results.push(CommandPaletteItem {
+                    id: id.clone(),
+                    label: meta.label.clone(),
+                    description: meta.description.clone(),
+                    category: meta.category,
+                    shortcut,
+                    disabled_reason,
+                    is_available: disabled_reason.is_none(),
+                    docs_topic: meta.docs_topic,
+                });
+            }
+        }
+
+        // Ordena comandos disponíveis primeiro, depois por ordem alfabética de rótulo
+        results.sort_by(|a, b| {
+            b.is_available
+                .cmp(&a.is_available)
+                .then_with(|| a.label.cmp(&b.label))
+        });
+
+        results
+    }
+
+    /// Cria e preenche o dispatcher com todos os comandos canônicos do Petunia3D.
+    pub fn canonical() -> Self {
+        let mut d = Self::new();
+
+        // 1. Arquivo (File)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.new",
+                "New Project",
+                "Create a blank 3D project",
+                CommandCategory::File,
+            )
+            .with_docs(DocsTopic::GettingStarted),
+            NewProjectCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.save",
+                "Save Project",
+                "Save active project to disk",
+                CommandCategory::File,
+            )
+            .with_docs(DocsTopic::GettingStarted),
+            SaveProjectCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.save_as",
+                "Save Project As",
+                "Save active project to a new file",
+                CommandCategory::File,
+            ),
+            SaveProjectAsCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.import_obj",
+                "Import OBJ",
+                "Import 3D mesh from Wavefront OBJ file",
+                CommandCategory::File,
+            )
+            .with_docs(DocsTopic::ImportExport),
+            ImportObjCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.export_obj",
+                "Export OBJ",
+                "Export active mesh to Wavefront OBJ format",
+                CommandCategory::File,
+            )
+            .with_docs(DocsTopic::ImportExport),
+            ExportObjCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.export_glb",
+                "Export GLB",
+                "Export scene to binary glTF format",
+                CommandCategory::File,
+            )
+            .with_docs(DocsTopic::ImportExport),
+            ExportGlbCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "file.save_asset",
+                "Save Active Model as Asset",
+                "Save active mesh to project asset library",
+                CommandCategory::File,
+            )
+            .with_docs(DocsTopic::Assets),
+            SaveActiveAsAssetCmd,
+        );
+
+        // 2. Edição (Edit)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "edit.undo",
+                "Undo",
+                "Undo previous modification",
+                CommandCategory::Edit,
+            ),
+            UndoCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "edit.redo",
+                "Redo",
+                "Redo last undone modification",
+                CommandCategory::Edit,
+            ),
+            RedoCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "edit.delete",
+                "Delete",
+                "Delete selected elements or active object",
+                CommandCategory::Edit,
+            ),
+            DeleteSelectionCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "edit.duplicate",
+                "Duplicate",
+                "Duplicate selected elements or active object",
+                CommandCategory::Edit,
+            ),
+            DuplicateSelectionCmd,
+        );
+
+        // 3. Seleção (Select)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.all",
+                "Select All",
+                "Select all geometry elements in active mesh",
+                CommandCategory::Select,
+            ),
+            SelectAllCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.none",
+                "Deselect All",
+                "Clear current geometry selection",
+                CommandCategory::Select,
+            ),
+            ClearSelectionCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.invert",
+                "Invert Selection",
+                "Invert geometry selection in active mesh",
+                CommandCategory::Select,
+            ),
+            InvertSelectionCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.linked",
+                "Select Linked",
+                "Select connected geometry elements",
+                CommandCategory::Select,
+            ),
+            SelectLinkedCmd,
+        );
+
+        // 4. Modelagem (Model)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_cube",
+                "Add Cube",
+                "Add a 3D box primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::cube(true),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_sphere",
+                "Add Sphere",
+                "Add a low-poly sphere primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Sphere),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_cylinder",
+                "Add Cylinder",
+                "Add a cylinder primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Cylinder),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_plane",
+                "Add Plane",
+                "Add a flat plane primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Plane),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_cone",
+                "Add Cone",
+                "Add a cone primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Cone),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_capsule",
+                "Add Capsule",
+                "Add a capsule primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Capsule),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.extrude",
+                "Extrude",
+                "Extrude selected faces along surface normal",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Extrude),
+            ExtrudeSelectedCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.extrude_individual",
+                "Extrude Individual",
+                "Extrude selected faces individually",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Extrude),
+            ExtrudeIndividualCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.inset",
+                "Inset Faces",
+                "Inset selected faces towards interior",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            InsetFacesCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.bevel",
+                "Bevel Edges",
+                "Bevel selected mesh edges",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Bevel),
+            BevelCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.subdivide",
+                "Subdivide",
+                "Subdivide selected geometry",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::LoopCut),
+            SubdivideSelectionCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.merge",
+                "Merge Center",
+                "Merge selected vertices into center point",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            MergeCenterCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.flip_normals",
+                "Flip Normals",
+                "Reverse orientation of face normals",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            FlipNormalsCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.flip_diagonal",
+                "Flip Diagonal",
+                "Flip quad internal diagonal or triangle edge",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            FlipDiagonalCmd,
+        );
+
+        // 5. Visualização (View)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.toggle_wireframe",
+                "Toggle Wireframe",
+                "Toggle wireframe display on active mesh",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            ToggleWireframeCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.toggle_xray",
+                "Toggle X-Ray",
+                "Toggle semi-transparent see-through mesh display",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            ToggleXRayCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.frame_selection",
+                "Frame Selection",
+                "Center 3D camera on selected geometry",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            FrameSelectionCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.reset_camera",
+                "Reset Camera",
+                "Reset 3D camera to default isometric view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            ResetCameraCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "view.toggle_projection",
+                "Toggle Projection",
+                "Toggle perspective or orthographic view",
+                CommandCategory::View,
+            )
+            .with_docs(DocsTopic::Navigation),
+            ToggleProjectionCmd,
+        );
+
+        // 6. Janela e Interface (Window)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "window.command_palette",
+                "Command Palette",
+                "Open rapid search and execute palette",
+                CommandCategory::Window,
+            )
+            .with_docs(DocsTopic::Interface),
+            ToggleCommandPaletteCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "window.settings",
+                "Preferences",
+                "Open application preferences modal",
+                CommandCategory::Window,
+            )
+            .with_docs(DocsTopic::Themes),
+            ToggleSettingsCmd,
+        );
+
+        // 7. Ajuda (Help)
+        d.register_with_meta(
+            CommandMetadata::new(
+                "help.documentation",
+                "Documentation",
+                "Open official documentation online",
+                CommandCategory::Help,
+            )
+            .with_docs(DocsTopic::GettingStarted),
+            ToggleHelpCmd,
+        );
+
+        d
     }
 }
 
@@ -182,6 +741,15 @@ impl Command for DuplicateAssetCmd {
         "duplicate asset"
     }
 
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        let idx = self.asset_index.unwrap_or(state.project.active);
+        if state.project.assets.get(idx).is_none() {
+            Err("No active asset to duplicate")
+        } else {
+            Ok(())
+        }
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         let idx = self.asset_index.unwrap_or(state.project.active);
         let Some(asset) = state.project.assets.get(idx) else {
@@ -206,6 +774,15 @@ pub struct DeleteAssetCmd {
 impl Command for DeleteAssetCmd {
     fn label(&self) -> &'static str {
         "delete asset"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        let idx = self.asset_index.unwrap_or(state.project.active);
+        if idx >= state.project.assets.len() {
+            Err("No active asset to delete")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -236,6 +813,20 @@ impl Command for DeleteSelectionCmd {
         "delete"
     }
 
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode == EditMode::Object {
+            if state.project.assets.is_empty() {
+                Err("No active asset to delete")
+            } else {
+                Ok(())
+            }
+        } else if state.selection.is_empty() {
+            Err("No elements selected to delete")
+        } else {
+            Ok(())
+        }
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         if state.mode == EditMode::Object {
             let cmd = DeleteAssetCmd { asset_index: None };
@@ -258,6 +849,20 @@ pub struct DuplicateSelectionCmd;
 impl Command for DuplicateSelectionCmd {
     fn label(&self) -> &'static str {
         "duplicate"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode == EditMode::Object {
+            if state.project.assets.is_empty() {
+                Err("No active asset to duplicate")
+            } else {
+                Ok(())
+            }
+        } else if state.selection.is_empty() {
+            Err("No elements selected to duplicate")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -288,6 +893,14 @@ impl Command for SelectAllCmd {
         false
     }
 
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.active_mesh().is_none() {
+            Err("No active mesh")
+        } else {
+            Ok(())
+        }
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         let Some(mesh) = state.project.active_mesh_mut() else {
             return Err(CommandError::NoActiveAsset);
@@ -309,6 +922,14 @@ impl Command for ClearSelectionCmd {
 
     fn is_destructive(&self) -> bool {
         false
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.active_mesh().is_none() {
+            Err("No active mesh")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -334,6 +955,14 @@ impl Command for InvertSelectionCmd {
         false
     }
 
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.active_mesh().is_none() {
+            Err("No active mesh")
+        } else {
+            Ok(())
+        }
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         let Some(mesh) = state.project.active_mesh_mut() else {
             return Err(CommandError::NoActiveAsset);
@@ -351,6 +980,16 @@ pub struct SubdivideSelectionCmd;
 impl Command for SubdivideSelectionCmd {
     fn label(&self) -> &'static str {
         "subdivide"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if state.selection.is_empty() {
+            Err("Select geometry to subdivide")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -372,6 +1011,16 @@ impl Command for MergeCenterCmd {
         "merge"
     }
 
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if state.selection.verts.len() < 2 {
+            Err("Select at least 2 vertices")
+        } else {
+            Ok(())
+        }
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         let Some(mesh) = state.project.active_mesh_mut() else {
             return Err(CommandError::NoActiveAsset);
@@ -389,6 +1038,14 @@ pub struct FlipNormalsCmd;
 impl Command for FlipNormalsCmd {
     fn label(&self) -> &'static str {
         "flip_normals"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.active_mesh().is_none() {
+            Err("No active mesh")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -409,6 +1066,16 @@ pub struct FlipDiagonalCmd;
 impl Command for FlipDiagonalCmd {
     fn label(&self) -> &'static str {
         "flip diagonal"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if state.selection.is_empty() {
+            Err("Select quad or edge first")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -486,6 +1153,21 @@ impl Command for ExtrudeIndividualCmd {
         "extrude individual"
     }
 
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if !state.selection.faces.is_empty()
+            || state
+                .project
+                .active_mesh()
+                .is_some_and(|m| m.faces.iter().any(|f| f.selected))
+        {
+            Ok(())
+        } else {
+            Err("Select faces first")
+        }
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
         let Some(mesh) = state.project.active_mesh_mut() else {
             return Err(CommandError::NoActiveAsset);
@@ -510,6 +1192,16 @@ impl Command for SelectLinkedCmd {
 
     fn is_destructive(&self) -> bool {
         false
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if state.selection.is_empty() {
+            Err("Select at least one element first")
+        } else {
+            Ok(())
+        }
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
@@ -693,6 +1385,524 @@ impl Command for ToggleCollectionLockCmd {
             self.collection,
             if !all_locked { "locked" } else { "unlocked" }
         ));
+        Ok(())
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Comandos Adicionais do Catálogo Canônico
+// -------------------------------------------------------------------------------------------------
+
+/// Comando para criar um novo projeto limpo.
+#[derive(Debug, Clone, Default)]
+pub struct NewProjectCmd;
+
+impl Command for NewProjectCmd {
+    fn label(&self) -> &'static str {
+        "new project"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        crate::project_service::ProjectService::new_project(state);
+        Ok(())
+    }
+}
+
+/// Comando para salvar o projeto ativo no caminho atual.
+#[derive(Debug, Clone, Default)]
+pub struct SaveProjectCmd;
+
+impl Command for SaveProjectCmd {
+    fn label(&self) -> &'static str {
+        "save project"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if !state.is_document_dirty() && state.project.project_path.is_some() {
+            Err("Document has no unsaved changes")
+        } else {
+            Ok(())
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        if let Some(ref path_str) = state.project.project_path.clone() {
+            let path = std::path::PathBuf::from(path_str);
+            crate::project_service::ProjectService::save_project(state, &path)
+                .map_err(|e| CommandError::Execution(e.to_string()))?;
+            Ok(())
+        } else {
+            state.set_status("Save As required (no destination file)");
+            Ok(())
+        }
+    }
+}
+
+/// Comando para salvar o projeto em novo arquivo.
+#[derive(Debug, Clone, Default)]
+pub struct SaveProjectAsCmd;
+
+impl Command for SaveProjectAsCmd {
+    fn label(&self) -> &'static str {
+        "save project as"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.set_status("Save As requested");
+        Ok(())
+    }
+}
+
+/// Comando para importar arquivo Wavefront OBJ.
+#[derive(Debug, Clone, Default)]
+pub struct ImportObjCmd;
+
+impl Command for ImportObjCmd {
+    fn label(&self) -> &'static str {
+        "import obj"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.set_status("Import OBJ requested");
+        Ok(())
+    }
+}
+
+/// Comando para exportar malha ativa em formato Wavefront OBJ.
+#[derive(Debug, Clone, Default)]
+pub struct ExportObjCmd;
+
+impl Command for ExportObjCmd {
+    fn label(&self) -> &'static str {
+        "export obj"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.set_status("Export OBJ requested");
+        Ok(())
+    }
+}
+
+/// Comando para exportar cena em formato glTF binário (GLB).
+#[derive(Debug, Clone, Default)]
+pub struct ExportGlbCmd;
+
+impl Command for ExportGlbCmd {
+    fn label(&self) -> &'static str {
+        "export glb"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.set_status("Export GLB requested");
+        Ok(())
+    }
+}
+
+/// Comando para salvar o modelo ativo na biblioteca permanente do projeto.
+#[derive(Debug, Clone, Default)]
+pub struct SaveActiveAsAssetCmd;
+
+impl Command for SaveActiveAsAssetCmd {
+    fn label(&self) -> &'static str {
+        "save active as asset"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.active().is_none() {
+            Err("No active model selected")
+        } else {
+            Ok(())
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        if state.save_active_as_asset() {
+            Ok(())
+        } else {
+            Err(CommandError::NoActiveAsset)
+        }
+    }
+}
+
+/// Comando para desfazer última modificação (Undo).
+#[derive(Debug, Clone, Default)]
+pub struct UndoCmd;
+
+impl Command for UndoCmd {
+    fn label(&self) -> &'static str {
+        "undo"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.undo.can_undo() {
+            Ok(())
+        } else {
+            Err("Nothing to undo")
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.undo();
+        Ok(())
+    }
+}
+
+/// Comando para refazer modificação previamente desfeita (Redo).
+#[derive(Debug, Clone, Default)]
+pub struct RedoCmd;
+
+impl Command for RedoCmd {
+    fn label(&self) -> &'static str {
+        "redo"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.undo.can_redo() {
+            Ok(())
+        } else {
+            Err("Nothing to redo")
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.redo();
+        Ok(())
+    }
+}
+
+/// Comando para extrusão conectada da seleção de faces.
+#[derive(Debug, Clone)]
+pub struct ExtrudeSelectedCmd {
+    pub dist: f32,
+}
+
+impl Default for ExtrudeSelectedCmd {
+    fn default() -> Self {
+        Self { dist: 0.5 }
+    }
+}
+
+impl Command for ExtrudeSelectedCmd {
+    fn label(&self) -> &'static str {
+        "extrude"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if !state.selection.faces.is_empty()
+            || state
+                .project
+                .active_mesh()
+                .is_some_and(|m| m.faces.iter().any(|f| f.selected))
+        {
+            Ok(())
+        } else {
+            Err("Select faces first")
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let dist = if self.dist != 0.0 {
+            self.dist
+        } else {
+            state.tools.extrude_dist
+        };
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        if !mesh.faces.iter().any(|f| f.selected) {
+            return Err(CommandError::EmptySelection);
+        }
+        mesh.extrude_selected(dist);
+        state.set_status(format!("Extruded faces ({:.2})", dist));
+        Ok(())
+    }
+}
+
+/// Comando para aplicação de inset nas faces selecionadas.
+#[derive(Debug, Clone)]
+pub struct InsetFacesCmd {
+    pub factor: f32,
+}
+
+impl Default for InsetFacesCmd {
+    fn default() -> Self {
+        Self { factor: 0.2 }
+    }
+}
+
+impl Command for InsetFacesCmd {
+    fn label(&self) -> &'static str {
+        "inset"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if !state.selection.faces.is_empty()
+            || state
+                .project
+                .active_mesh()
+                .is_some_and(|m| m.faces.iter().any(|f| f.selected))
+        {
+            Ok(())
+        } else {
+            Err("Select faces first")
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let factor = if self.factor != 0.0 {
+            self.factor
+        } else {
+            state.tools.inset_factor
+        };
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        if !mesh.faces.iter().any(|f| f.selected) {
+            return Err(CommandError::EmptySelection);
+        }
+        mesh.inset_selected(factor);
+        state.set_status(format!("Inset faces ({:.2})", factor));
+        Ok(())
+    }
+}
+
+/// Comando para chanfrar (bevel) arestas selecionadas.
+#[derive(Debug, Clone)]
+pub struct BevelCmd {
+    pub amount: f32,
+}
+
+impl Default for BevelCmd {
+    fn default() -> Self {
+        Self { amount: 0.1 }
+    }
+}
+
+impl Command for BevelCmd {
+    fn label(&self) -> &'static str {
+        "bevel"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if let Some(mesh) = state.project.active_mesh() {
+            if mesh.selected_edges.is_empty() {
+                Err("Select edges first")
+            } else {
+                Ok(())
+            }
+        } else {
+            Err("No active mesh")
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let amount = if self.amount != 0.0 {
+            self.amount
+        } else {
+            state.tools.bevel_amount
+        };
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        if mesh.selected_edges.is_empty() {
+            return Err(CommandError::EmptySelection);
+        }
+        let (v_count, f_count) = mesh.bevel_selected(amount);
+        state.set_status(format!("Beveled (+{} verts, +{} faces)", v_count, f_count));
+        Ok(())
+    }
+}
+
+/// Comando para alternar entre sombreamento sólido e aramado (Wireframe).
+#[derive(Debug, Clone, Default)]
+pub struct ToggleWireframeCmd;
+
+impl Command for ToggleWireframeCmd {
+    fn label(&self) -> &'static str {
+        "toggle wireframe"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.shading = match state.shading {
+            petunia_render::Shading::Wireframe => petunia_render::Shading::Solid,
+            _ => petunia_render::Shading::Wireframe,
+        };
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para alternar exibição de Raio-X (X-Ray).
+#[derive(Debug, Clone, Default)]
+pub struct ToggleXRayCmd;
+
+impl Command for ToggleXRayCmd {
+    fn label(&self) -> &'static str {
+        "toggle xray"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.show_xray = !state.show_xray;
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para centralizar a câmera 3D na geometria selecionada (Frame Selection).
+#[derive(Debug, Clone, Default)]
+pub struct FrameSelectionCmd;
+
+impl Command for FrameSelectionCmd {
+    fn label(&self) -> &'static str {
+        "frame selection"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.frame_selection();
+        Ok(())
+    }
+}
+
+/// Comando para resetar a câmera para vista padrão.
+#[derive(Debug, Clone, Default)]
+pub struct ResetCameraCmd;
+
+impl Command for ResetCameraCmd {
+    fn label(&self) -> &'static str {
+        "reset camera"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.camera_frame = None;
+        state.camera.reset();
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para alternar entre projeção em perspectiva e ortográfica.
+#[derive(Debug, Clone, Default)]
+pub struct ToggleProjectionCmd;
+
+impl Command for ToggleProjectionCmd {
+    fn label(&self) -> &'static str {
+        "toggle projection"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.camera_frame = None;
+        state.camera.toggle_projection();
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para alternar exibição da Command Palette (P3D-081).
+#[derive(Debug, Clone, Default)]
+pub struct ToggleCommandPaletteCmd;
+
+impl Command for ToggleCommandPaletteCmd {
+    fn label(&self) -> &'static str {
+        "command palette"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.ui.show_command_palette = !state.ui.show_command_palette;
+        if state.ui.show_command_palette {
+            state.ui.command_palette_query.clear();
+            state.ui.command_palette_selected_index = 0;
+        }
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para abrir janela de Preferências/Configurações.
+#[derive(Debug, Clone, Default)]
+pub struct ToggleSettingsCmd;
+
+impl Command for ToggleSettingsCmd {
+    fn label(&self) -> &'static str {
+        "preferences"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.ui.show_settings = !state.ui.show_settings;
+        state.mark_dirty();
+        Ok(())
+    }
+}
+
+/// Comando para abrir a documentação oficial.
+#[derive(Debug, Clone, Default)]
+pub struct ToggleHelpCmd;
+
+impl Command for ToggleHelpCmd {
+    fn label(&self) -> &'static str {
+        "documentation"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.ui.show_help = !state.ui.show_help;
+        state.mark_dirty();
         Ok(())
     }
 }

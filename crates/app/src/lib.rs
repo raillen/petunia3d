@@ -426,6 +426,18 @@ impl Core {
                 self.state.ui.show_help = !self.state.ui.show_help;
                 self.state.mark_dirty();
             }
+            "global.command_palette" => {
+                self.state.ui.show_command_palette = !self.state.ui.show_command_palette;
+                if self.state.ui.show_command_palette {
+                    self.state.ui.command_palette_query.clear();
+                    self.state.ui.command_palette_selected_index = 0;
+                }
+                self.state.mark_dirty();
+            }
+            "global.settings" => {
+                self.state.ui.show_settings = !self.state.ui.show_settings;
+                self.state.mark_dirty();
+            }
             "global.toggle_projection" => {
                 self.state.camera_frame = None;
                 self.state.camera.toggle_projection();

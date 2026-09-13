@@ -151,6 +151,7 @@ pub struct ProjectState {
     pub palette: Vec<[f32; 3]>,
     pub export_selected: Vec<Uuid>,
     pub export_gltf: bool,
+    pub recent_projects: crate::RecentProjects,
 }
 
 pub type DomainState = ProjectState;
@@ -189,6 +190,7 @@ impl ProjectState {
             palette: pal,
             export_selected: Vec::new(),
             export_gltf: true,
+            recent_projects: crate::RecentProjects::load(),
         }
     }
 
@@ -533,6 +535,9 @@ pub struct UiState {
     pub show_asset_browser: bool,
     pub show_help: bool,
     pub show_perf: bool,
+    pub show_command_palette: bool,
+    pub command_palette_query: String,
+    pub command_palette_selected_index: usize,
     pub active_theme_id: String,
     pub active_icon_pack_id: String,
     pub active_keymap_id: String,
@@ -561,6 +566,9 @@ impl UiState {
             show_asset_browser: false,
             show_help: false,
             show_perf: false,
+            show_command_palette: false,
+            command_palette_query: String::new(),
+            command_palette_selected_index: 0,
             active_theme_id: "petunia-dark".to_string(),
             active_icon_pack_id: "tabler".to_string(),
             active_keymap_id: "petunia-default".to_string(),
@@ -630,6 +638,7 @@ pub struct AppState {
     pub ui: UiState,
     pub render: RenderResources,
     pub events: EventBus,
+    pub commands: crate::command::CommandDispatcher,
 }
 
 impl std::ops::Deref for AppState {
@@ -655,6 +664,7 @@ impl AppState {
             ui: UiState::new(lang),
             render: RenderResources::new(),
             events: EventBus::new(),
+            commands: crate::command::CommandDispatcher::canonical(),
         }
     }
 }
@@ -915,6 +925,48 @@ impl AppState {
         false
     }
 
+    /// Centraliza e enquadra a câmera 3D na geometria selecionada (ou em todo o modelo ativo).
+    pub fn frame_selection(&mut self) {
+        if let Some(o) = self.project.assets.get(self.project.active) {
+            let mut c = glam::Vec3::ZERO;
+            let mut n = 0;
+            let mut r: f32 = 0.0;
+            for v in &o.mesh.verts {
+                if v.selected {
+                    c += v.vec();
+                    n += 1;
+                }
+            }
+            if n == 0 {
+                for v in &o.mesh.verts {
+                    c += v.vec();
+                }
+                n = o.mesh.verts.len().max(1);
+            }
+            c /= n as f32;
+            let has_selection = o.mesh.verts.iter().any(|v| v.selected);
+            for v in &o.mesh.verts {
+                if !has_selection || v.selected {
+                    r = r.max((v.vec() - c).length());
+                }
+            }
+            let mut goal = self.camera.clone();
+            goal.frame(c, r.max(0.05));
+            self.camera_frame = Some((self.camera.clone(), goal, 0.0));
+            self.mark_dirty();
+        }
+    }
+
+    /// Despacha um comando registrado no CommandDispatcher da aplicação.
+    pub fn dispatch_command(&mut self, id: &str) -> Result<(), crate::command::CommandError> {
+        let cmd = self.commands.get(id).ok_or_else(|| {
+            crate::command::CommandError::Execution(format!(
+                "Command '{id}' not found in dispatcher"
+            ))
+        })?;
+        crate::command::CommandDispatcher::dispatch(self, cmd.as_ref())
+    }
+
     /// Cria uma nova instância de um asset da biblioteca na posição do 3D Cursor.
     pub fn instantiate_asset_at_cursor(&mut self, asset_index: usize) -> bool {
         if let Some(asset) = self.project.assets.get(asset_index) {
@@ -989,5 +1041,13 @@ impl AppState {
             });
             self.mark_dirty();
         }
+    }
+
+    /// Carrega um projeto do disco e atualiza a sessão e os projetos recentes.
+    pub fn open_project(
+        &mut self,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<(), crate::project_service::ProjectServiceError> {
+        crate::project_service::ProjectService::load_project(self, path.as_ref())
     }
 }

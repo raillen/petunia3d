@@ -4,6 +4,7 @@
 pub mod camera;
 pub mod command;
 pub mod cutting_session;
+pub mod docs;
 pub mod events;
 pub mod loop_cut;
 pub mod mesh_preview;
@@ -18,6 +19,7 @@ pub mod state;
 pub mod viewport;
 
 pub use cutting_session::CutSession;
+pub use docs::DocsTopic;
 pub use petunia_project::{
     AssetSummary, AutosaveConfig, AutosaveService, ModelLibraryQuery, ModelLibraryService,
     ModelLibrarySort, RecoveryInfo, SessionLockInfo,
@@ -26,12 +28,16 @@ pub use queries::{SceneHierarchyDto, SceneObjectDto, SelectionDetailsDto, ToolSt
 pub use recent_projects::{RecentProjectEntry, RecentProjects};
 
 pub use command::{
-    AddPrimitiveCmd, BoxSelectCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError,
-    DeleteAssetCmd, DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd,
-    ExtrudeIndividualCmd, FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd,
-    PrimitiveKind, RevolveCmd, SelectAllCmd, SelectLinkedCmd, SetAssetCollectionCmd,
-    SubdivideSelectionCmd, ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd,
-    ToggleLockAssetCmd, ToggleVisibilityAssetCmd,
+    AddPrimitiveCmd, BevelCmd, BoxSelectCmd, ClearSelectionCmd, Command, CommandCategory,
+    CommandDispatcher, CommandError, CommandMetadata, CommandPaletteItem, DeleteAssetCmd,
+    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, ExportGlbCmd, ExportObjCmd,
+    ExtrudeIndividualCmd, ExtrudeSelectedCmd, FlipDiagonalCmd, FlipNormalsCmd, FrameSelectionCmd,
+    ImportObjCmd, InsetFacesCmd, InvertSelectionCmd, MergeCenterCmd, NewProjectCmd, PrimitiveKind,
+    RedoCmd, ResetCameraCmd, RevolveCmd, SaveActiveAsAssetCmd, SaveProjectAsCmd, SaveProjectCmd,
+    SelectAllCmd, SelectLinkedCmd, SetAssetCollectionCmd, SubdivideSelectionCmd,
+    ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd, ToggleCommandPaletteCmd, ToggleHelpCmd,
+    ToggleLockAssetCmd, ToggleProjectionCmd, ToggleSettingsCmd, ToggleVisibilityAssetCmd,
+    ToggleWireframeCmd, ToggleXRayCmd, UndoCmd,
 };
 pub use project_service::{sanitize_filename, ProjectService, ProjectServiceError};
 

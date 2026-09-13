@@ -536,3 +536,104 @@ fn test_outliner_collection_commands_and_undo() {
     assert!(state.undo());
     assert_eq!(state.project.assets[0].collection, None);
 }
+
+#[test]
+fn test_canonical_command_dispatcher_metadata_and_categories() {
+    let dispatcher = petunia_core::command::CommandDispatcher::canonical();
+    let all_meta = dispatcher.all_metadata();
+
+    assert!(
+        all_meta.len() >= 15,
+        "Expected at least 15 canonical commands"
+    );
+
+    // All categories should be represented
+    let categories: std::collections::HashSet<_> = all_meta.iter().map(|m| m.category).collect();
+    assert!(categories.contains(&petunia_core::command::CommandCategory::File));
+    assert!(categories.contains(&petunia_core::command::CommandCategory::Edit));
+    assert!(categories.contains(&petunia_core::command::CommandCategory::Model));
+    assert!(categories.contains(&petunia_core::command::CommandCategory::View));
+    assert!(categories.contains(&petunia_core::command::CommandCategory::Help));
+
+    for meta in &all_meta {
+        assert!(!meta.id.is_empty());
+        assert!(!meta.label.is_empty());
+        assert!(!meta.description.is_empty());
+    }
+
+    // Test query and can_execute validation
+    let mut state = AppState::default();
+
+    // 1. Undo should be disabled when history is empty
+    let undo_items = dispatcher.query("undo", &state);
+    let undo_cmd = undo_items
+        .iter()
+        .find(|i| i.id == "edit.undo")
+        .expect("undo command found");
+    assert!(!undo_cmd.is_available);
+    assert_eq!(undo_cmd.disabled_reason.as_deref(), Some("Nothing to undo"));
+
+    // 2. Extrude should require Edit mode
+    assert_eq!(state.mode, EditMode::Object);
+    let extrude_items = dispatcher.query("extrude", &state);
+    assert!(!extrude_items.is_empty());
+    let extrude_cmd = extrude_items
+        .iter()
+        .find(|i| i.id == "model.extrude")
+        .unwrap();
+    assert!(!extrude_cmd.is_available);
+    assert_eq!(
+        extrude_cmd.disabled_reason.as_deref(),
+        Some("Requires Edit mode")
+    );
+
+    // 3. Switch to Edit mode - now requires face selection
+    state.mode = EditMode::Edit;
+    let extrude_items_edit = dispatcher.query("extrude", &state);
+    let extrude_cmd_edit = extrude_items_edit
+        .iter()
+        .find(|i| i.id == "model.extrude")
+        .unwrap();
+    assert!(!extrude_cmd_edit.is_available);
+    assert_eq!(
+        extrude_cmd_edit.disabled_reason.as_deref(),
+        Some("Select faces first")
+    );
+
+    // 4. Select a face
+    state.project.active_mesh_mut().unwrap().faces[0].selected = true;
+    let extrude_items_sel = dispatcher.query("extrude", &state);
+    let extrude_cmd_sel = extrude_items_sel
+        .iter()
+        .find(|i| i.id == "model.extrude")
+        .unwrap();
+    assert!(extrude_cmd_sel.is_available);
+    assert_eq!(extrude_cmd_sel.disabled_reason, None);
+}
+
+#[test]
+fn test_app_state_dispatch_command_string_id() {
+    let mut state = AppState::default();
+
+    // Toggle wireframe
+    assert_ne!(state.shading, petunia_render::Shading::Wireframe);
+    state
+        .dispatch_command("view.toggle_wireframe")
+        .expect("toggle wireframe command");
+    assert_eq!(state.shading, petunia_render::Shading::Wireframe);
+    state
+        .dispatch_command("view.toggle_wireframe")
+        .expect("toggle wireframe command again");
+    assert_ne!(state.shading, petunia_render::Shading::Wireframe);
+
+    // Toggle command palette
+    assert!(!state.ui.show_command_palette);
+    state
+        .dispatch_command("window.command_palette")
+        .expect("toggle command palette");
+    assert!(state.ui.show_command_palette);
+
+    // Invalid command ID fails
+    let err = state.dispatch_command("invalid.command.id");
+    assert!(err.is_err());
+}

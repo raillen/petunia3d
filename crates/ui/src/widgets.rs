@@ -401,6 +401,205 @@ impl<'a> PetuniaMenuItem<'a> {
     }
 }
 
+/// Item de menu com alternância booleana (Checkbox).
+pub struct PetuniaMenuCheckboxItem<'a> {
+    pub label: &'a str,
+    pub checked: bool,
+    pub shortcut: Option<&'a str>,
+    pub enabled: bool,
+}
+
+impl<'a> PetuniaMenuCheckboxItem<'a> {
+    pub fn new(label: &'a str, checked: bool) -> Self {
+        Self {
+            label,
+            checked,
+            shortcut: None,
+            enabled: true,
+        }
+    }
+
+    pub fn shortcut(mut self, shortcut: Option<&'a str>) -> Self {
+        self.shortcut = shortcut;
+        self
+    }
+
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    pub fn show(self, ui: &mut Ui) -> Response {
+        let width = ui.available_width().max(180.0);
+        let desired_size = vec2(width, 24.0);
+        let (rect, response) = ui.allocate_exact_size(
+            desired_size,
+            if self.enabled {
+                Sense::click()
+            } else {
+                Sense::hover()
+            },
+        );
+
+        if ui.is_rect_visible(rect) {
+            let painter = ui.painter().with_clip_rect(rect);
+
+            if self.enabled && response.hovered() {
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+            }
+
+            let (fg_color, shortcut_color) = if !self.enabled {
+                (tokens::TEXT_MUTED, tokens::TEXT_MUTED.gamma_multiply(0.6))
+            } else if response.hovered() {
+                (tokens::TEXT_ACTIVE, tokens::TEXT_SECONDARY)
+            } else {
+                (tokens::TEXT_PRIMARY, tokens::TEXT_MUTED)
+            };
+
+            // Indicador de Checkmark à esquerda (6.0px margin)
+            let check_rect = Rect::from_min_size(
+                egui::pos2(rect.min.x + 6.0, rect.min.y + (rect.height() - 14.0) * 0.5),
+                vec2(14.0, 14.0),
+            );
+            if self.checked {
+                painter.text(
+                    check_rect.center(),
+                    Align2::CENTER_CENTER,
+                    "✓",
+                    FontId::proportional(12.0),
+                    if self.enabled {
+                        tokens::ACCENT_BLUE
+                    } else {
+                        tokens::TEXT_MUTED
+                    },
+                );
+            }
+
+            // Rótulo
+            let text_pos = egui::pos2(rect.min.x + 24.0, rect.min.y + (rect.height() - 13.0) * 0.5);
+            painter.text(
+                text_pos,
+                Align2::LEFT_TOP,
+                self.label,
+                FontId::proportional(12.0),
+                fg_color,
+            );
+
+            // Atalho à direita
+            if let Some(sc) = self.shortcut {
+                let sc_pos =
+                    egui::pos2(rect.max.x - 8.0, rect.min.y + (rect.height() - 12.0) * 0.5);
+                painter.text(
+                    sc_pos,
+                    Align2::RIGHT_TOP,
+                    sc,
+                    FontId::monospace(10.5),
+                    shortcut_color,
+                );
+            }
+        }
+
+        response
+    }
+}
+
+/// Item de menu de seleção exclusiva (Radio).
+pub struct PetuniaMenuRadioItem<'a> {
+    pub label: &'a str,
+    pub selected: bool,
+    pub shortcut: Option<&'a str>,
+    pub enabled: bool,
+}
+
+impl<'a> PetuniaMenuRadioItem<'a> {
+    pub fn new(label: &'a str, selected: bool) -> Self {
+        Self {
+            label,
+            selected,
+            shortcut: None,
+            enabled: true,
+        }
+    }
+
+    pub fn shortcut(mut self, shortcut: Option<&'a str>) -> Self {
+        self.shortcut = shortcut;
+        self
+    }
+
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    pub fn show(self, ui: &mut Ui) -> Response {
+        let width = ui.available_width().max(180.0);
+        let desired_size = vec2(width, 24.0);
+        let (rect, response) = ui.allocate_exact_size(
+            desired_size,
+            if self.enabled {
+                Sense::click()
+            } else {
+                Sense::hover()
+            },
+        );
+
+        if ui.is_rect_visible(rect) {
+            let painter = ui.painter().with_clip_rect(rect);
+
+            if self.enabled && response.hovered() {
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+            }
+
+            let (fg_color, shortcut_color) = if !self.enabled {
+                (tokens::TEXT_MUTED, tokens::TEXT_MUTED.gamma_multiply(0.6))
+            } else if response.hovered() {
+                (tokens::TEXT_ACTIVE, tokens::TEXT_SECONDARY)
+            } else {
+                (tokens::TEXT_PRIMARY, tokens::TEXT_MUTED)
+            };
+
+            // Indicador de Radio à esquerda
+            let dot_center = egui::pos2(rect.min.x + 13.0, rect.center().y);
+            if self.selected {
+                painter.circle_filled(
+                    dot_center,
+                    3.5,
+                    if self.enabled {
+                        tokens::ACCENT_BLUE
+                    } else {
+                        tokens::TEXT_MUTED
+                    },
+                );
+            }
+
+            // Rótulo
+            let text_pos = egui::pos2(rect.min.x + 24.0, rect.min.y + (rect.height() - 13.0) * 0.5);
+            painter.text(
+                text_pos,
+                Align2::LEFT_TOP,
+                self.label,
+                FontId::proportional(12.0),
+                fg_color,
+            );
+
+            // Atalho à direita
+            if let Some(sc) = self.shortcut {
+                let sc_pos =
+                    egui::pos2(rect.max.x - 8.0, rect.min.y + (rect.height() - 12.0) * 0.5);
+                painter.text(
+                    sc_pos,
+                    Align2::RIGHT_TOP,
+                    sc,
+                    FontId::monospace(10.5),
+                    shortcut_color,
+                );
+            }
+        }
+
+        response
+    }
+}
+
 /// Separador de menu fino e discreto com margens calibradas.
 pub fn petunia_menu_separator(ui: &mut Ui) {
     ui.add_space(2.0);

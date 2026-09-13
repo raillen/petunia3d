@@ -4,7 +4,8 @@ Camada de apresentação e interface gráfica construída com `egui`:
 - Barra de cabeçalho superior com seleção de workspaces por pílulas (MODEL, PAINT, UV, EXPORT).
 - Motor de iconografia vetorial procedural canônica (`icons.rs`, `icon_registry.rs`) e eliminação de emojis.
 - Barra de viewport organizada em 7 clusters funcionais responsivos (`viewport_bar.rs`).
-- Menus padronizados (`PetuniaMenuItem`) com layout profissional e atalhos dinâmicos.
+- Menus padronizados (`PetuniaMenuItem`, `PetuniaMenuCheckboxItem`, `PetuniaMenuRadioItem`) com layout profissional, submenus e atalhos dinâmicos.
+- Paleta de comandos (`command_palette.rs`, P3D-081) com busca fuzzy, filtros por categoria, navegação por teclado e validação contextual.
 - Orquestração de painéis laterais de ferramentas através do registro dinâmico `ModuleRegistry`.
 - Área central de viewport 3D interativo com suporte a eventos de ponteiro, gestos e desenho de overlays de controle.
 

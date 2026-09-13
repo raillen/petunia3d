@@ -2,11 +2,13 @@
 //! Menus do sistema (File, Edit, Render, Window, Help) e abas de Workspaces em pílulas arredondadas.
 
 use egui::{vec2, Color32, Context, Ui};
-use petunia_core::{AppState, Workspace};
+use petunia_core::{AppState, DocsTopic, Workspace};
 
 use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
-use crate::widgets;
+use crate::widgets::{
+    self, petunia_menu_separator, PetuniaMenuCheckboxItem, PetuniaMenuItem, PetuniaMenuRadioItem,
+};
 use crate::UiAction;
 
 /// Renderiza o cabeçalho superior completo da aplicação.
@@ -109,90 +111,270 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
         egui::FontId::new(11.5, egui::FontFamily::Proportional),
     );
 
+    // 1. FILE MENU
     ui.menu_button(state.t("menu.file"), |ui| {
-        for (key, operation) in [
-            ("file.new", 0),
-            ("file.open_project", 1),
-            ("file.save_asset", 6),
-            ("file.save", 2),
-            ("file.save_as", 3),
-            ("file.import_obj", 4),
-            ("file.export_obj", 7),
-            ("file.export_glb", 8),
-            ("file.quit", 5),
-        ] {
-            let label = match key {
-                "file.save_asset" => "Save Active Model as Asset".to_string(),
-                "file.export_obj" => "Export OBJ (.obj)...".to_string(),
-                "file.export_glb" => "Export GLB (.glb)...".to_string(),
-                _ => state.t(key),
-            };
-            if ui.button(label).clicked() {
-                match operation {
-                    0 => crate::new_project(state),
-                    1 => crate::open_project_dialog(state),
-                    2 => crate::save_project_dialog(state, false),
-                    3 => crate::save_project_dialog(state, true),
-                    4 => crate::import_obj_dialog(state),
-                    6 => {
-                        state.save_active_as_asset();
+        let new_sc = state.ui.keybinds.format_shortcut("global.new_project");
+        if PetuniaMenuItem::new(&state.t("file.new"))
+            .shortcut(new_sc.as_deref().or(Some("Ctrl+N")))
+            .show(ui)
+            .clicked()
+        {
+            crate::new_project(state);
+            ui.close();
+        }
+
+        let open_sc = state.ui.keybinds.format_shortcut("global.open_project");
+        if PetuniaMenuItem::new(&state.t("file.open_project"))
+            .shortcut(open_sc.as_deref().or(Some("Ctrl+O")))
+            .show(ui)
+            .clicked()
+        {
+            crate::open_project_dialog(state);
+            ui.close();
+        }
+
+        let recent_projects = state.project.recent_projects.projects().to_vec();
+        ui.menu_button(state.t("menu.recent_projects"), |ui| {
+            if recent_projects.is_empty() {
+                PetuniaMenuItem::new("No Recent Projects")
+                    .enabled(false)
+                    .show(ui);
+            } else {
+                let mut path_to_open = None;
+                for entry in &recent_projects {
+                    let name = if !entry.name.is_empty() {
+                        &entry.name
+                    } else {
+                        "Untitled"
+                    };
+                    if PetuniaMenuItem::new(name).show(ui).clicked() {
+                        path_to_open = Some(entry.path.clone());
+                        ui.close();
                     }
-                    7 => crate::export_active_or_all(state, false),
-                    8 => crate::export_active_or_all(state, true),
-                    _ => action.quit = true,
                 }
-                ui.close();
+                if let Some(path) = path_to_open {
+                    if let Err(e) = state.open_project(&path) {
+                        state.set_status(format!("Failed to open project: {}", e));
+                    }
+                }
             }
+        });
+
+        petunia_menu_separator(ui);
+
+        let save_sc = state.ui.keybinds.format_shortcut("global.save_project");
+        if PetuniaMenuItem::new(&state.t("file.save"))
+            .shortcut(save_sc.as_deref().or(Some("Ctrl+S")))
+            .show(ui)
+            .clicked()
+        {
+            crate::save_project_dialog(state, false);
+            ui.close();
+        }
+
+        let save_as_sc = state.ui.keybinds.format_shortcut("global.save_project_as");
+        if PetuniaMenuItem::new(&state.t("file.save_as"))
+            .shortcut(save_as_sc.as_deref().or(Some("Ctrl+Shift+S")))
+            .show(ui)
+            .clicked()
+        {
+            crate::save_project_dialog(state, true);
+            ui.close();
+        }
+
+        if PetuniaMenuItem::new("Save Active Model as Asset")
+            .show(ui)
+            .clicked()
+        {
+            state.save_active_as_asset();
+            ui.close();
+        }
+
+        petunia_menu_separator(ui);
+
+        if PetuniaMenuItem::new("Import OBJ (.obj)...")
+            .show(ui)
+            .clicked()
+        {
+            crate::import_obj_dialog(state);
+            ui.close();
+        }
+
+        if PetuniaMenuItem::new("Export OBJ (.obj)...")
+            .show(ui)
+            .clicked()
+        {
+            crate::export_active_or_all(state, false);
+            ui.close();
+        }
+
+        if PetuniaMenuItem::new("Export GLB (.glb)...")
+            .show(ui)
+            .clicked()
+        {
+            crate::export_active_or_all(state, true);
+            ui.close();
+        }
+
+        petunia_menu_separator(ui);
+
+        let quit_sc = state.ui.keybinds.format_shortcut("global.quit");
+        if PetuniaMenuItem::new(&state.t("file.quit"))
+            .shortcut(quit_sc.as_deref().or(Some("Ctrl+Q")))
+            .show(ui)
+            .clicked()
+        {
+            action.quit = true;
+            ui.close();
         }
     });
 
+    // 2. EDIT MENU
     ui.menu_button(state.t("menu.edit"), |ui| {
-        if ui
-            .add_enabled(
-                state.project.undo.can_undo(),
-                egui::Button::new(state.t("edit.undo")),
-            )
+        let undo_sc = state.ui.keybinds.format_shortcut("global.undo");
+        if PetuniaMenuItem::new(&state.t("edit.undo"))
+            .shortcut(undo_sc.as_deref().or(Some("Ctrl+Z")))
+            .enabled(state.project.undo.can_undo())
+            .show(ui)
             .clicked()
         {
             state.undo();
             ui.close();
         }
-        if ui
-            .add_enabled(
-                state.project.undo.can_redo(),
-                egui::Button::new(state.t("edit.redo")),
-            )
+
+        let redo_sc = state.ui.keybinds.format_shortcut("global.redo");
+        if PetuniaMenuItem::new(&state.t("edit.redo"))
+            .shortcut(redo_sc.as_deref().or(Some("Ctrl+Y")))
+            .enabled(state.project.undo.can_redo())
+            .show(ui)
             .clicked()
         {
             state.redo();
             ui.close();
         }
+
+        petunia_menu_separator(ui);
+
+        let cp_sc = state.ui.keybinds.format_shortcut("global.command_palette");
+        if PetuniaMenuItem::new(&state.t("menu.command_palette"))
+            .shortcut(cp_sc.as_deref().or(Some("Ctrl+P")))
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_command_palette = !state.ui.show_command_palette;
+            if state.ui.show_command_palette {
+                state.ui.command_palette_query.clear();
+                state.ui.command_palette_selected_index = 0;
+            }
+            state.mark_dirty();
+            ui.close();
+        }
+
+        let pref_sc = state.ui.keybinds.format_shortcut("global.settings");
+        if PetuniaMenuItem::new(&state.t("menu.preferences"))
+            .shortcut(pref_sc.as_deref().or(Some("Ctrl+,")))
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_settings = !state.ui.show_settings;
+            state.mark_dirty();
+            ui.close();
+        }
     });
 
-    ui.menu_button(
-        if state.ui.i18n.lang == "en" {
-            "Window"
-        } else {
-            "Janela"
-        },
-        |ui| {
-            ui.checkbox(&mut state.ui.show_perf, "Performance HUD (FPS & Overlays)");
-            ui.separator();
+    // 3. WINDOW MENU
+    ui.menu_button(state.t("menu.window"), |ui| {
+        if PetuniaMenuCheckboxItem::new("Performance HUD", state.ui.show_perf)
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_perf = !state.ui.show_perf;
+            state.mark_dirty();
+        }
+
+        if PetuniaMenuCheckboxItem::new("Asset Browser", state.ui.show_asset_browser)
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_asset_browser = !state.ui.show_asset_browser;
+            state.mark_dirty();
+        }
+
+        if PetuniaMenuCheckboxItem::new("Asset Library Drawer", state.ui.show_asset_library)
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_asset_library = !state.ui.show_asset_library;
+            state.mark_dirty();
+        }
+
+        petunia_menu_separator(ui);
+
+        // Language Submenu
+        ui.menu_button(state.t("ui.language"), |ui| {
             for lang in petunia_config::I18n::available() {
-                if ui
-                    .selectable_label(state.ui.i18n.lang == lang, &lang)
+                let is_active = state.ui.i18n.lang == lang;
+                if PetuniaMenuRadioItem::new(&lang, is_active)
+                    .show(ui)
                     .clicked()
                 {
                     state.ui.i18n.set_lang(&lang);
                     state.mark_dirty();
+                    ui.close();
                 }
             }
-        },
-    );
+        });
 
-    if ui.button(state.t("menu.help")).clicked() {
-        state.ui.show_help = !state.ui.show_help;
-    }
+        // Theme Submenu
+        ui.menu_button("Theme", |ui| {
+            for &(theme_id, label) in &[
+                ("petunia-dark", "Petunia Dark (Default)"),
+                ("petunia-light", "Petunia Light"),
+                ("capuccino", "Capuccino"),
+                ("tokyo-nights", "Tokyo Nights"),
+            ] {
+                let is_active = state.ui.active_theme_id == theme_id;
+                if PetuniaMenuRadioItem::new(label, is_active)
+                    .show(ui)
+                    .clicked()
+                {
+                    state.ui.active_theme_id = theme_id.to_string();
+                    state.mark_dirty();
+                    ui.close();
+                }
+            }
+        });
+    });
+
+    // 4. HELP MENU
+    ui.menu_button(state.t("menu.help"), |ui| {
+        let topics = [
+            ("Quick Start Guide", DocsTopic::GettingStarted),
+            ("Extrude & Modeling", DocsTopic::Extrude),
+            ("Keyboard Shortcuts", DocsTopic::Keymaps),
+            ("Themes & Styling", DocsTopic::Themes),
+            ("Navigation Controls", DocsTopic::Navigation),
+        ];
+
+        for (label, topic) in topics {
+            if PetuniaMenuItem::new(label).show(ui).clicked() {
+                ui.ctx()
+                    .open_url(egui::OpenUrl::new_tab(topic.canonical_url()));
+                ui.close();
+            }
+        }
+
+        petunia_menu_separator(ui);
+
+        if PetuniaMenuItem::new("About Petunia3D...")
+            .show(ui)
+            .clicked()
+        {
+            state.ui.show_help = true;
+            state.mark_dirty();
+            ui.close();
+        }
+    });
 }
 
 fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
