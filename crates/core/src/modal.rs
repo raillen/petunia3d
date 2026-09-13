@@ -188,9 +188,18 @@ impl AppState {
         if normal == Vec3::ZERO || transform {
             normal = self.camera.forward().normalize_or_zero();
         }
+        let initial_constraint = match self.locked_axes {
+            [true, false, false] => ModalConstraint::Axis(0),
+            [false, true, false] => ModalConstraint::Axis(1),
+            [false, false, true] => ModalConstraint::Axis(2),
+            [false, true, true] => ModalConstraint::Plane(0),
+            [true, false, true] => ModalConstraint::Plane(1),
+            [true, true, false] => ModalConstraint::Plane(2),
+            _ => ModalConstraint::Free,
+        };
         self.modal = Some(ModalOp {
             kind,
-            constraint: ModalConstraint::Free,
+            constraint: initial_constraint,
             pivot: Vec3::from(source.selection_center()),
             normal,
             value: if kind == ModalKind::Scale { 1.0 } else { 0.0 },
@@ -215,6 +224,15 @@ impl AppState {
         }
         let modal = self.modal.as_mut().ok_or(ModalError::NoActiveOperation)?;
         modal.constraint = constraint;
+        self.locked_axes = match constraint {
+            ModalConstraint::Axis(0) => [true, false, false],
+            ModalConstraint::Axis(1) => [false, true, false],
+            ModalConstraint::Axis(2) => [false, false, true],
+            ModalConstraint::Plane(0) => [false, true, true],
+            ModalConstraint::Plane(1) => [true, false, true],
+            ModalConstraint::Plane(2) => [true, true, false],
+            _ => [false, false, false],
+        };
         self.mark_dirty();
         Ok(())
     }
@@ -400,6 +418,7 @@ impl AppState {
             self.selection = modal.selection;
         }
         self.pending_modal = None;
+        self.locked_axes = [false; 3];
         self.emit_mesh_changed();
         true
     }
@@ -411,6 +430,7 @@ impl AppState {
         };
         self.project = modal.original;
         self.selection = modal.selection;
+        self.locked_axes = [false; 3];
         self.events
             .emit(crate::AppEvent::SelectionChanged(self.selection.clone()));
         self.emit_mesh_changed();
@@ -767,5 +787,63 @@ mod tests {
             state.begin_modal(ModalKind::Move),
             Err(ModalError::ActiveLocked)
         );
+    }
+
+    #[test]
+    fn axis_lock_initialization_and_toggling() {
+        let mut state = selected_face();
+
+        // 1. Fora do modal: toggle e labels
+        assert_eq!(state.locked_axes, [false; 3]);
+        assert!(!state.is_axis_locked(0));
+        assert!(state.active_axis_constraint_label().is_none());
+
+        state.toggle_axis_lock(0);
+        assert!(state.is_axis_locked(0));
+        assert_eq!(
+            state.active_axis_constraint_label(),
+            Some(("Eixo X", [235, 75, 75]))
+        );
+
+        // 2. Herança para o modal
+        state.begin_modal(ModalKind::Move).unwrap();
+        assert_eq!(
+            state.modal.as_ref().map(|m| m.constraint),
+            Some(ModalConstraint::Axis(0))
+        );
+        assert!(state.is_axis_locked(0));
+
+        // 3. Alternância dentro do modal
+        state.toggle_axis_lock(1); // ativa eixo Y
+        assert_eq!(
+            state.modal.as_ref().map(|m| m.constraint),
+            Some(ModalConstraint::Axis(1))
+        );
+        assert!(!state.is_axis_locked(0));
+        assert!(state.is_axis_locked(1));
+        assert_eq!(
+            state.active_axis_constraint_label(),
+            Some(("Eixo Y", [85, 195, 100]))
+        );
+
+        // 4. Commit reseta o travamento
+        state.commit_modal();
+        assert_eq!(state.locked_axes, [false; 3]);
+        assert!(!state.is_axis_locked(1));
+        assert!(state.active_axis_constraint_label().is_none());
+
+        // 5. Cancelamento também reseta o travamento
+        state.locked_axes = [true, false, true]; // Plano XZ pré-configurado
+        assert_eq!(
+            state.active_axis_constraint_label(),
+            Some(("Plano XZ", [142, 68, 173]))
+        );
+        state.begin_modal(ModalKind::Scale).unwrap();
+        assert_eq!(
+            state.modal.as_ref().map(|m| m.constraint),
+            Some(ModalConstraint::Plane(1))
+        );
+        state.cancel_modal();
+        assert_eq!(state.locked_axes, [false; 3]);
     }
 }

@@ -1,5 +1,5 @@
 //! Adaptador de eventos egui para a transação modal do domínio.
-use egui::{Key, PointerButton, Pos2, Rect, Vec2};
+use egui::{Color32, Key, PointerButton, Pos2, Rect, Vec2};
 use glam::Vec3;
 use petunia_core::modal::{ModalConstraint, ModalKind};
 use petunia_core::{AppState, Projection};
@@ -137,13 +137,23 @@ pub fn draw(
                 ModalConstraint::Axis(axis)
             };
             let current = state.modal.as_ref().map(|op| op.constraint);
-            if let Err(error) = state.set_modal_constraint(if current == Some(constraint) {
+            let next = if current == Some(constraint) {
                 ModalConstraint::Free
             } else {
                 constraint
-            }) {
+            };
+            if let Err(error) = state.set_modal_constraint(next) {
                 state.set_status(error.to_string());
             }
+            state.locked_axes = match next {
+                ModalConstraint::Axis(0) => [true, false, false],
+                ModalConstraint::Axis(1) => [false, true, false],
+                ModalConstraint::Axis(2) => [false, false, true],
+                ModalConstraint::Plane(0) => [false, true, true],
+                ModalConstraint::Plane(1) => [true, false, true],
+                ModalConstraint::Plane(2) => [true, true, false],
+                _ => [false, false, false],
+            };
             changed = true;
         }
     }
@@ -287,6 +297,8 @@ pub fn draw(
         ctx.data_mut(|d| d.remove::<PointerSession>(id));
         return true;
     }
+    draw_axis_guide_lines(painter, state, rect, pivot, constraint);
+
     painter.line_segment(
         [pointer.anchor, pos],
         egui::Stroke::new(1.0_f32, egui::Color32::LIGHT_BLUE),
@@ -302,40 +314,20 @@ pub fn draw(
         ModalKind::Inset => " fator",
         _ => " m",
     };
-    let label = match kind {
-        ModalKind::Move => "Mover",
-        ModalKind::Rotate => "Rotacionar",
-        ModalKind::Scale => "Escalar",
-        ModalKind::Extrude => "Extrude",
-        ModalKind::Inset => "Inset",
-        ModalKind::Bevel => "Bevel",
-        ModalKind::PushPull => "Push/Pull",
-    };
-    let value_label = if pointer.numeric.is_empty() {
-        format!("{value:+.3}")
-    } else {
-        pointer.numeric.clone()
-    };
-    let text = format!("{label}: {value_label}{unit}  {constraint:?}\nCtrl: snap · X/Y/Z: eixo · Shift: plano\nEnter/LMB: aplicar · Esc/RMB: cancelar{}",
-        if valid_preview { "" } else { "\nValor inválido — ajuste ou cancele" });
-    let galley = painter.layout_no_wrap(text, egui::FontId::monospace(12.0), egui::Color32::WHITE);
-    let hud_pos = Pos2::new(
-        (pos.x + 18.0)
-            .min(rect.right() - galley.size().x - 12.0)
-            .max(rect.left() + 8.0),
-        (pos.y + 18.0)
-            .min(rect.bottom() - galley.size().y - 12.0)
-            .max(rect.top() + 8.0),
+
+    draw_modal_hud(
+        painter,
+        rect,
+        ModalHudInfo {
+            pos,
+            kind,
+            value,
+            unit,
+            pointer_numeric: &pointer.numeric,
+            constraint,
+            valid_preview,
+        },
     );
-    painter.rect_filled(
-        Rect::from_min_size(
-            hud_pos - Vec2::splat(6.0),
-            galley.size() + Vec2::splat(12.0),
-        ),
-        5.0,
-        egui::Color32::from_black_alpha(225),
-    );
-    painter.galley(hud_pos, galley, egui::Color32::WHITE);
     ctx.data_mut(|d| d.insert_temp(id, pointer));
     true
 }
@@ -389,4 +381,286 @@ fn plane_point(state: &AppState, rect: Rect, pos: Pos2, pivot: Vec3, normal: Vec
     let distance = (pivot - origin).dot(normal) / denominator;
     let point = origin + direction * distance;
     (distance >= 0.0 && point.is_finite()).then_some(point)
+}
+
+fn screen_point(camera: &petunia_core::Camera, rect: Rect, point: Vec3) -> Option<Pos2> {
+    let clip = camera.view_proj() * point.extend(1.0);
+    if !clip.is_finite() || clip.w <= 0.0 {
+        return None;
+    }
+    Some(Pos2::new(
+        rect.center().x + clip.x / clip.w * rect.width() * 0.5,
+        rect.center().y - clip.y / clip.w * rect.height() * 0.5,
+    ))
+}
+
+/// Desenha linhas-guia 3D infinitas no viewport através do pivô na cor canônica do eixo ou plano travado.
+pub fn draw_axis_guide_lines(
+    painter: &egui::Painter,
+    state: &AppState,
+    rect: Rect,
+    pivot: Vec3,
+    constraint: ModalConstraint,
+) {
+    if !rect.is_positive() {
+        return;
+    }
+
+    let draw_single_axis = |axis_vec: Vec3, color: Color32| {
+        let Some(p0) = screen_point(&state.camera, rect, pivot) else {
+            return;
+        };
+        let Some(p1) = screen_point(&state.camera, rect, pivot + axis_vec * 2.0) else {
+            return;
+        };
+        let delta = p1 - p0;
+        if delta.length_sq() < 1e-4 {
+            return;
+        }
+        let dir = delta.normalized();
+        let start = p0 - dir * 4000.0;
+        let end = p0 + dir * 4000.0;
+
+        let glow = Color32::from_rgba_premultiplied(color.r(), color.g(), color.b(), 45);
+        painter
+            .with_clip_rect(rect)
+            .line_segment([start, end], egui::Stroke::new(6.0_f32, glow));
+        painter
+            .with_clip_rect(rect)
+            .line_segment([start, end], egui::Stroke::new(2.0_f32, color));
+    };
+
+    match constraint {
+        ModalConstraint::Axis(0) => draw_single_axis(Vec3::X, crate::tokens::AXIS_X),
+        ModalConstraint::Axis(1) => draw_single_axis(Vec3::Y, crate::tokens::AXIS_Y),
+        ModalConstraint::Axis(2) => draw_single_axis(Vec3::Z, crate::tokens::AXIS_Z),
+        ModalConstraint::Plane(0) => {
+            draw_single_axis(Vec3::Y, crate::tokens::AXIS_Y);
+            draw_single_axis(Vec3::Z, crate::tokens::AXIS_Z);
+            draw_plane_shade(painter, state, rect, pivot, Vec3::Y, Vec3::Z);
+        }
+        ModalConstraint::Plane(1) => {
+            draw_single_axis(Vec3::X, crate::tokens::AXIS_X);
+            draw_single_axis(Vec3::Z, crate::tokens::AXIS_Z);
+            draw_plane_shade(painter, state, rect, pivot, Vec3::X, Vec3::Z);
+        }
+        ModalConstraint::Plane(2) => {
+            draw_single_axis(Vec3::X, crate::tokens::AXIS_X);
+            draw_single_axis(Vec3::Y, crate::tokens::AXIS_Y);
+            draw_plane_shade(painter, state, rect, pivot, Vec3::X, Vec3::Y);
+        }
+        _ => {}
+    }
+}
+
+fn draw_plane_shade(
+    painter: &egui::Painter,
+    state: &AppState,
+    rect: Rect,
+    pivot: Vec3,
+    u: Vec3,
+    v: Vec3,
+) {
+    let s = 1.2;
+    if let (Some(q0), Some(q1), Some(q2), Some(q3)) = (
+        screen_point(&state.camera, rect, pivot - u * s - v * s),
+        screen_point(&state.camera, rect, pivot + u * s - v * s),
+        screen_point(&state.camera, rect, pivot + u * s + v * s),
+        screen_point(&state.camera, rect, pivot - u * s + v * s),
+    ) {
+        painter
+            .with_clip_rect(rect)
+            .add(egui::Shape::convex_polygon(
+                vec![q0, q1, q2, q3],
+                Color32::from_rgba_premultiplied(100, 180, 255, 30),
+                egui::Stroke::new(
+                    1.0_f32,
+                    Color32::from_rgba_premultiplied(150, 210, 255, 100),
+                ),
+            ));
+    }
+}
+
+struct ModalHudInfo<'a> {
+    pos: Pos2,
+    kind: ModalKind,
+    value: f32,
+    unit: &'a str,
+    pointer_numeric: &'a str,
+    constraint: ModalConstraint,
+    valid_preview: bool,
+}
+
+fn draw_modal_hud(painter: &egui::Painter, rect: Rect, info: ModalHudInfo<'_>) {
+    let label = match info.kind {
+        ModalKind::Move => "Mover",
+        ModalKind::Rotate => "Rotacionar",
+        ModalKind::Scale => "Escalar",
+        ModalKind::Extrude => "Extrusão",
+        ModalKind::Inset => "Inserção",
+        ModalKind::Bevel => "Chanfro",
+        ModalKind::PushPull => "Push/Pull",
+    };
+    let value_label = if info.pointer_numeric.is_empty() {
+        format!("{:.3}", info.value)
+    } else {
+        info.pointer_numeric.to_string()
+    };
+
+    let (badge_text, badge_color) = match info.constraint {
+        ModalConstraint::Axis(0) => ("🔒 EIXO X", crate::tokens::AXIS_X),
+        ModalConstraint::Axis(1) => ("🔒 EIXO Y", crate::tokens::AXIS_Y),
+        ModalConstraint::Axis(2) => ("🔒 EIXO Z", crate::tokens::AXIS_Z),
+        ModalConstraint::Plane(0) => ("🔒 PLANO YZ (Shift+X)", Color32::from_rgb(30, 144, 180)),
+        ModalConstraint::Plane(1) => ("🔒 PLANO XZ (Shift+Y)", Color32::from_rgb(142, 68, 173)),
+        ModalConstraint::Plane(2) => ("🔒 PLANO XY (Shift+Z)", Color32::from_rgb(211, 84, 0)),
+        _ => ("🔓 LIVRE", Color32::from_rgb(80, 85, 95)),
+    };
+
+    let line1 = format!("{label}: {value_label}{}   [{badge_text}]", info.unit);
+    let line2 = "X/Y/Z: travar eixo · Shift: plano · Ctrl: snap";
+    let line3 = if info.valid_preview {
+        "Enter/LMB: confirmar · Esc/RMB: cancelar"
+    } else {
+        "Valor inválido — ajuste ou cancele"
+    };
+
+    let text = format!("{line1}\n{line2}\n{line3}");
+    let font_id = egui::FontId::monospace(11.5);
+    let galley = painter.layout_no_wrap(text, font_id, Color32::WHITE);
+
+    let hud_pos = Pos2::new(
+        (info.pos.x + 18.0)
+            .min(rect.right() - galley.size().x - 16.0)
+            .max(rect.left() + 8.0),
+        (info.pos.y + 18.0)
+            .min(rect.bottom() - galley.size().y - 16.0)
+            .max(rect.top() + 8.0),
+    );
+
+    let hud_rect = Rect::from_min_size(
+        hud_pos - egui::vec2(8.0, 6.0),
+        galley.size() + egui::vec2(16.0, 12.0),
+    );
+
+    painter.rect_filled(hud_rect, 6.0, Color32::from_black_alpha(225));
+    painter.rect_stroke(
+        hud_rect,
+        6.0,
+        egui::Stroke::new(1.5_f32, badge_color),
+        egui::StrokeKind::Outside,
+    );
+
+    painter.galley(hud_pos, galley, Color32::WHITE);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_draw_axis_guide_lines_all_constraints() {
+        let ctx = egui::Context::default();
+        let state = AppState::new("en");
+        let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
+        let pivot = Vec3::new(0.0, 0.0, 0.0);
+
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                let painter = ui.painter();
+                // Test all axis and plane constraints without panic
+                for constraint in [
+                    ModalConstraint::Free,
+                    ModalConstraint::Axis(0),
+                    ModalConstraint::Axis(1),
+                    ModalConstraint::Axis(2),
+                    ModalConstraint::Plane(0),
+                    ModalConstraint::Plane(1),
+                    ModalConstraint::Plane(2),
+                ] {
+                    draw_axis_guide_lines(painter, &state, rect, pivot, constraint);
+                }
+            });
+        });
+    }
+
+    #[test]
+    fn test_draw_modal_hud_all_kinds_and_constraints() {
+        let ctx = egui::Context::default();
+        let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
+        let pos = Pos2::new(200.0, 200.0);
+
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                let painter = ui.painter();
+                for kind in [
+                    ModalKind::Move,
+                    ModalKind::Rotate,
+                    ModalKind::Scale,
+                    ModalKind::Extrude,
+                    ModalKind::Inset,
+                    ModalKind::Bevel,
+                    ModalKind::PushPull,
+                ] {
+                    for constraint in [
+                        ModalConstraint::Free,
+                        ModalConstraint::Axis(0),
+                        ModalConstraint::Axis(1),
+                        ModalConstraint::Axis(2),
+                        ModalConstraint::Plane(0),
+                        ModalConstraint::Plane(1),
+                        ModalConstraint::Plane(2),
+                    ] {
+                        draw_modal_hud(
+                            painter,
+                            rect,
+                            ModalHudInfo {
+                                pos,
+                                kind,
+                                value: 1.5,
+                                unit: " m",
+                                pointer_numeric: "",
+                                constraint,
+                                valid_preview: true,
+                            },
+                        );
+                        draw_modal_hud(
+                            painter,
+                            rect,
+                            ModalHudInfo {
+                                pos,
+                                kind,
+                                value: -0.5,
+                                unit: "°",
+                                pointer_numeric: "45.0",
+                                constraint,
+                                valid_preview: false,
+                            },
+                        );
+                    }
+                }
+            });
+        });
+    }
+
+    #[test]
+    fn test_screen_point_valid_and_behind_camera() {
+        let camera = petunia_core::Camera {
+            aspect: 800.0 / 600.0,
+            ..Default::default()
+        };
+        let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
+
+        // Target in front of camera should yield Some(point) inside or near viewport
+        let pt_in_front = screen_point(&camera, rect, camera.target);
+        assert!(pt_in_front.is_some());
+        let p = pt_in_front.unwrap();
+        assert!((p.x - 400.0).abs() < 10.0);
+        assert!((p.y - 300.0).abs() < 10.0);
+
+        // Point far behind camera should be None
+        let behind = camera.eye() - camera.forward() * 10.0;
+        let pt_behind = screen_point(&camera, rect, behind);
+        assert!(pt_behind.is_none());
+    }
 }

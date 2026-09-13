@@ -535,6 +535,13 @@ fn handle_annotation_gizmo(
                     }
                 }
                 state.mark_dirty();
+                let constraint = match drag.handle {
+                    GizmoHandle::Axis(a) => ModalConstraint::Axis(a as usize),
+                    GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
+                };
+                crate::modal_viewport::draw_axis_guide_lines(
+                    painter, state, rect, pivot, constraint,
+                );
                 draw_gizmo(
                     painter,
                     &state.camera,

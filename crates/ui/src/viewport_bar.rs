@@ -414,6 +414,77 @@ fn draw_transform_cluster(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
+
+    ui.add_space(2.0);
+
+    // Controles e Indicador Visual de Travamento de Eixos na Barra do Viewport
+    draw_axis_lock_controls(ui, state);
+}
+
+fn draw_axis_lock_controls(ui: &mut Ui, state: &mut AppState) {
+    let any_locked = state.is_axis_locked(0) || state.is_axis_locked(1) || state.is_axis_locked(2);
+    let (lock_icon, lock_col) = if any_locked {
+        ("🔒", tokens::TEXT_ACTIVE)
+    } else {
+        ("🔓", tokens::TEXT_MUTED)
+    };
+
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+
+        ui.label(egui::RichText::new(lock_icon).size(11.0).color(lock_col));
+
+        for (axis_idx, label, color) in [
+            (0, "X", tokens::AXIS_X),
+            (1, "Y", tokens::AXIS_Y),
+            (2, "Z", tokens::AXIS_Z),
+        ] {
+            let is_locked = state.is_axis_locked(axis_idx);
+            let btn = if is_locked {
+                egui::Button::new(
+                    egui::RichText::new(label)
+                        .strong()
+                        .size(10.5)
+                        .color(Color32::WHITE),
+                )
+                .fill(color)
+                .corner_radius(tokens::RADIUS_CONTROL)
+            } else {
+                egui::Button::new(egui::RichText::new(label).size(10.5).color(color))
+                    .fill(tokens::BG_SURFACE)
+                    .corner_radius(tokens::RADIUS_CONTROL)
+            };
+
+            let tooltip = if is_locked {
+                format!("Eixo {label} travado · Clique para destravar (ou atalho {label})")
+            } else {
+                format!("Travar eixo {label} na edição · Atalho {label}")
+            };
+
+            if ui.add(btn).on_hover_text(tooltip).clicked() {
+                state.toggle_axis_lock(axis_idx);
+            }
+        }
+
+        // Se houver restrição ativa, exibir badge estilizado
+        if let Some((label, rgb)) = state.active_axis_constraint_label() {
+            ui.add_space(2.0);
+            let badge_bg = Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
+            let (rect, _) = ui.allocate_exact_size(
+                vec2(14.0 + (label.len() as f32) * 6.5, 18.0),
+                egui::Sense::hover(),
+            );
+            ui.painter()
+                .rect_filled(rect, tokens::RADIUS_CONTROL, badge_bg);
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                format!("🔒 {label}"),
+                egui::FontId::monospace(10.0),
+                Color32::WHITE,
+            );
+        }
+    });
 }
 
 /// Cluster 4: Snapping magnético e Edição proporcional.
@@ -585,5 +656,45 @@ mod tests {
         assert_eq!(state.mode, EditMode::Edit);
         state.select_mode = SelectMode::Edge;
         assert_eq!(state.select_mode, SelectMode::Edge);
+    }
+
+    #[test]
+    fn test_axis_lock_controls_render_and_badge() {
+        let ctx = egui::Context::default();
+        let mut state = AppState::new("en");
+
+        // 1. Renderizar com todos eixos livres
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                draw_axis_lock_controls(ui, &mut state);
+            });
+        });
+
+        // 2. Travar eixo X e verificar renderização do badge
+        state.toggle_axis_lock(0);
+        assert!(state.is_axis_locked(0));
+        assert_eq!(
+            state.active_axis_constraint_label(),
+            Some(("Eixo X", [235, 75, 75]))
+        );
+
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                draw_axis_lock_controls(ui, &mut state);
+            });
+        });
+
+        // 3. Travar eixo Z formando plano XZ e verificar badge
+        state.toggle_axis_lock(2);
+        assert_eq!(
+            state.active_axis_constraint_label(),
+            Some(("Plano XZ", [142, 68, 173]))
+        );
+
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                draw_axis_lock_controls(ui, &mut state);
+            });
+        });
     }
 }

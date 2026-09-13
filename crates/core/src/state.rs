@@ -175,6 +175,8 @@ pub struct AppState {
     pub canvas_brush: u32,
     pub transform_delta: [f32; 3],
     pub transform_scale: f32,
+    /// Travamento de eixos X, Y, Z para atividades de edição e transformação.
+    pub locked_axes: [bool; 3],
     pub extrude_dist: f32,
     pub inset_factor: f32,
     pub bevel_amount: f32,
@@ -297,6 +299,7 @@ impl AppState {
             canvas_brush: 4,
             transform_delta: [0.0; 3],
             transform_scale: 1.0,
+            locked_axes: [false; 3],
             extrude_dist: 0.5,
             inset_factor: 0.3,
             bevel_amount: 0.15,
@@ -369,6 +372,66 @@ impl AppState {
     /// Marca para render-on-demand (§33).
     pub fn mark_dirty(&mut self) {
         self.dirty = true;
+    }
+
+    /// Retorna se o eixo especificado (0 = X, 1 = Y, 2 = Z) está travado na atividade de edição atual.
+    pub fn is_axis_locked(&self, axis: usize) -> bool {
+        if let Some(ref modal) = self.modal {
+            match modal.constraint {
+                crate::modal::ModalConstraint::Axis(i) => i == axis,
+                crate::modal::ModalConstraint::Plane(i) => i != axis,
+                crate::modal::ModalConstraint::Free => false,
+            }
+        } else {
+            self.locked_axes.get(axis).copied().unwrap_or(false)
+        }
+    }
+
+    /// Retorna rótulo amigável e cor RGB do eixo ou plano travado atualmente, se houver.
+    pub fn active_axis_constraint_label(&self) -> Option<(&'static str, [u8; 3])> {
+        if let Some(ref modal) = self.modal {
+            match modal.constraint {
+                crate::modal::ModalConstraint::Axis(0) => Some(("Eixo X", [235, 75, 75])),
+                crate::modal::ModalConstraint::Axis(1) => Some(("Eixo Y", [85, 195, 100])),
+                crate::modal::ModalConstraint::Axis(2) => Some(("Eixo Z", [70, 130, 245])),
+                crate::modal::ModalConstraint::Plane(0) => Some(("Plano YZ", [30, 144, 180])),
+                crate::modal::ModalConstraint::Plane(1) => Some(("Plano XZ", [142, 68, 173])),
+                crate::modal::ModalConstraint::Plane(2) => Some(("Plano XY", [211, 84, 0])),
+                _ => None,
+            }
+        } else {
+            let [x, y, z] = self.locked_axes;
+            match (x, y, z) {
+                (true, false, false) => Some(("Eixo X", [235, 75, 75])),
+                (false, true, false) => Some(("Eixo Y", [85, 195, 100])),
+                (false, false, true) => Some(("Eixo Z", [70, 130, 245])),
+                (false, true, true) => Some(("Plano YZ", [30, 144, 180])),
+                (true, false, true) => Some(("Plano XZ", [142, 68, 173])),
+                (true, true, false) => Some(("Plano XY", [211, 84, 0])),
+                _ => None,
+            }
+        }
+    }
+
+    /// Alterna o travamento de um eixo específico (0 = X, 1 = Y, 2 = Z).
+    pub fn toggle_axis_lock(&mut self, axis: usize) {
+        if axis > 2 {
+            return;
+        }
+        if self.modal.is_some() {
+            let current_locked = self.is_axis_locked(axis);
+            let next_constraint = if current_locked {
+                crate::modal::ModalConstraint::Free
+            } else {
+                crate::modal::ModalConstraint::Axis(axis)
+            };
+            if let Err(e) = self.set_modal_constraint(next_constraint) {
+                self.set_status(e.to_string());
+            }
+        } else {
+            self.locked_axes[axis] = !self.locked_axes[axis];
+            self.mark_dirty();
+        }
     }
     pub fn consume_dirty(&mut self) -> bool {
         std::mem::replace(&mut self.dirty, false)
