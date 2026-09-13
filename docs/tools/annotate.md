@@ -1,0 +1,13 @@
+# Ferramenta: Anotação 3D (Annotate)
+
+A ferramenta de **Anotação 3D** funciona como um lápis de rascunho (*grease-pencil*) tridimensional integrado, permitindo desenhar anotações e guias visuais diretamente no espaço da cena.
+
+- **Atalho de Ativação**: `D` (ou ícone do lápis na Toolbar).
+- **Desenho**: Segure `D` + arraste com `LMB` (ou selecione a ferramenta e desenhe diretamente com `LMB`).
+
+## Recursos Avançados
+- **Coleção Exclusiva no Outliner**: Todas as anotações são obrigatoriamente salvas na coleção `📝 Anotações` no topo do Outliner (com ícone ciano `#00d2d3`), com confinamento estrito impedindo que se misturem com malhas poligonais.
+- **Subgrupos Internos**: Suporte a criar subgrupos (`📁 Subgrupo`) para organizar diferentes etapas de anotação (ex: "Estrutura", "Correções", "Ajuste de Proporção").
+- **Inspetor de Propriedades**: Selecionar uma anotação exibe no painel lateral direito seus controles de cor RGBA, espessura do traço e seção completa de Transformação (Posição X/Y/Z, Rotação em graus e Escala).
+- **Manipulação por Gizmo 3D**: Cada traço possui centro geométrico e pode ser movido, rotacionado e escalado com gizmos 3D interativos no viewport.
+- **Desfazer / Refazer Total (`Ctrl+Z` / `Ctrl+Shift+Z`)**: Checkpoints automáticos a cada traço finalizado.

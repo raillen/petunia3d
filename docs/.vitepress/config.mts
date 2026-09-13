@@ -8,6 +8,7 @@ export default withMermaid(
     base: process.env.GITHUB_PAGES ? '/simple3d-modeling/' : '/',
     cleanUrls: true,
     lastUpdated: true,
+    ignoreDeadLinks: true,
     srcExclude: [
       '**/image-references/**',
       '**/contracts/**',

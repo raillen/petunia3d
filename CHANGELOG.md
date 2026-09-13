@@ -3,6 +3,26 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.11.0] - 2026-09-13 — Petunia3D Living Documentation Website, xtask Automation, and GitHub Actions CI/CD
+
+### Adicionado
+- **Website Oficial de Documentação com VitePress (`docs/`)**:
+  - Portal estático completo, ultraveloz, responsivo e com busca local offline integrado via VitePress e plugin Mermaid.
+  - Landing page oficial (`docs/index.md`) com hero dinâmico, proposta de valor, grade de recursos e diagramas de fluxo de criação.
+  - Seção **Primeiros Passos (`docs/getting-started/`)**: Introdução conceitual, requisitos, instalação/compilação, ciclo de vida de projetos `.petunia`, tour da interface e tutorial prático de 15 minutos modelando um caixote estilizado.
+  - Seção **Manual do Usuário (`docs/manual/`)**: 11 capítulos detalhados cobrindo interface, viewport 3D, linhas-guia de travamento de eixos, modos de seleção, modelagem shape-first, pintura, mapeamento UV, animação, biblioteca de assets, projetos e exportação.
+  - Seção **Workspaces (`docs/workspaces/`)**: Guias completos dos 4 espaços de trabalho (Modeling, Paint, UV, Animation).
+  - Seção **Catálogo de Ferramentas (`docs/tools/`)**: Documentação exaustiva das 19 ferramentas de criação, modelagem, medição e anotação.
+  - Seção **Personalização (`docs/customization/`)**: Documentação dos 4 temas visuais em TOML, 5 pacotes de ícones vetoriais, internacionalização (i18n) e 8 perfis de keymaps.
+  - Seção **Atalhos (`docs/shortcuts/`)**: Tabela mestre condensada (Cheatsheet) e guia de equivalência 1:1 para usuários do Blender.
+  - Seção **Portal do Desenvolvedor (`docs/developers/`)**: Macroarquitetura de 15 crates modulares, pipeline de renderização híbrido WebGPU/OpenGL, padrão de comandos transacionais, plugins dinâmicos, protocolo MCP, estratégia de testes e guia de contribuição.
+  - Seção **Changelog (`docs/changelog/`)**: Espelho interativo sincronizado com o histórico de versões.
+- **Crate de Automação de Tarefas e Prevenção de Drift (`crates/xtask`)**:
+  - Utilitário Rust integrado no workspace (`cargo xtask docs` e `cargo xtask docs-check`).
+  - Validação estrita de integridade de todos os 28 arquivos canônicos e build determinístico do VitePress.
+- **Pipeline CI/CD no GitHub Actions (`.github/workflows/docs.yml`)**:
+  - Compilação automatizada com Node 20, pnpm 9 e deploy contínuo para o GitHub Pages.
+
 ## [0.10.0] - 2026-09-13 — Viewport Axis Locking: 3D Guide Lines, Real-Time HUD, and Viewport Bar Controls
 
 ### Adicionado
