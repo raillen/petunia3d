@@ -21,8 +21,9 @@ pub use queries::{SceneHierarchyDto, SceneObjectDto, SelectionDetailsDto, ToolSt
 
 pub use command::{
     AddPrimitiveCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError, DeleteAssetCmd,
-    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, FlipNormalsCmd,
-    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SubdivideSelectionCmd,
+    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, ExtrudeIndividualCmd,
+    FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, RevolveCmd,
+    SelectAllCmd, SubdivideSelectionCmd,
 };
 pub use project_service::{sanitize_filename, ProjectService, ProjectServiceError};
 

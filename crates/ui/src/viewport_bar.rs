@@ -466,6 +466,26 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.close();
             }
 
+            let sc_ext_ind = state
+                .ui
+                .keybinds
+                .shortcut_for("model.extrude_individual")
+                .unwrap_or_else(|| "Alt+E".into());
+            if PetuniaMenuItem::new("Extrude Individual")
+                .icon(PetuniaIcon::Extrude)
+                .shortcut(Some(&sc_ext_ind))
+                .show(ui)
+                .clicked()
+            {
+                let dist = if state.extrude_dist == 0.0 {
+                    0.5
+                } else {
+                    state.extrude_dist
+                };
+                let _ = state.dispatch(&petunia_core::ExtrudeIndividualCmd { dist });
+                ui.close();
+            }
+
             let sc_ins = state
                 .ui
                 .keybinds
@@ -537,6 +557,24 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .clicked()
             {
                 let _ = state.dispatch(&MergeCenterCmd);
+                ui.close();
+            }
+
+            if PetuniaMenuItem::new("Flip Diagonal")
+                .icon(PetuniaIcon::Custom("flip_diagonal"))
+                .show(ui)
+                .clicked()
+            {
+                let _ = state.dispatch(&petunia_core::FlipDiagonalCmd);
+                ui.close();
+            }
+
+            if PetuniaMenuItem::new("Revolve Selection")
+                .icon(PetuniaIcon::Custom("revolve"))
+                .show(ui)
+                .clicked()
+            {
+                let _ = state.dispatch(&petunia_core::RevolveCmd::default());
                 ui.close();
             }
         });
@@ -838,6 +876,43 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
         .clicked()
     {
         state.show_xray = !state.show_xray;
+        state.mark_dirty();
+    }
+
+    // Triangulação
+    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    if ui.is_rect_visible(rect) {
+        let is_active = state.show_triangulation;
+        let bg = if is_active {
+            tokens::ACCENT_BLUE
+        } else if resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            tokens::BG_SURFACE
+        };
+        let fg = if is_active {
+            tokens::TEXT_ACTIVE
+        } else {
+            tokens::TEXT_SECONDARY
+        };
+        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
+        let r = rect.shrink(5.0);
+        ui.painter().line_segment(
+            [pos2(r.left(), r.bottom()), pos2(r.right(), r.top())],
+            egui::Stroke::new(1.5_f32, fg),
+        );
+        ui.painter().rect_stroke(
+            r,
+            1.0,
+            egui::Stroke::new(1.0_f32, fg.gamma_multiply(0.5)),
+            egui::StrokeKind::Inside,
+        );
+    }
+    if resp
+        .on_hover_text("Inspeção de Triangulação (Diagonais Internas de Quads/N-gons)")
+        .clicked()
+    {
+        state.show_triangulation = !state.show_triangulation;
         state.mark_dirty();
     }
 }

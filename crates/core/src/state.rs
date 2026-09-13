@@ -381,6 +381,7 @@ pub struct EditorSession {
     pub pivot_point: String,
     pub show_overlays: bool,
     pub show_xray: bool,
+    pub show_triangulation: bool,
     pub tools: ToolState,
 }
 
@@ -426,6 +427,7 @@ impl EditorSession {
             pivot_point: "Median Point".to_string(),
             show_overlays: true,
             show_xray: false,
+            show_triangulation: false,
             tools: ToolState::new(),
         }
     }

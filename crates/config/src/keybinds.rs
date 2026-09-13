@@ -303,6 +303,7 @@ impl Keybinds {
             ("model.scale", "S"),
             ("model.frame_selection", "F"),
             ("model.extrude", "E"),
+            ("model.extrude_individual", "Alt+E"),
             ("model.push_pull", "P"),
             ("model.inset", "I"),
             ("model.bevel", "Ctrl+B"),

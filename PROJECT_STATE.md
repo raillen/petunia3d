@@ -88,8 +88,14 @@ The thirteenth implementation round delivers Deep Interface Revision, Canonical 
 - Fonte Única da Verdade para modos de seleção: remoção de botões duplicados da contextual shelf e centralização estrita no cabeçalho do viewport com atalhos numéricos (`1`, `2`, `3`).
 - Sistema de menus unificado com `PetuniaMenuItem` ([`crates/ui/src/widgets.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/widgets.rs)) no padrão profissional do Blender `[Ícone] Rótulo ... [Atalho] ›` e busca dinâmica de atalhos (`Keybinds::shortcut_for`).
 - Reorganização da Viewport Bar em 7 clusters responsivos com botões de visibilidade, travamento de eixos, projeção e esferas de sombreamento canônicas.
-- Outliner e Properties refinados: substituição de botões textuais do Outliner por ícones vetoriais compactos, remoção das cores arco-íris de abas por tokens (`tokens::ACCENT_BLUE`), inspetor triaxial completo de Transform (Location, Rotation em graus, Scale), e padronização com `petunia_action_button`.
-Final gates: 135 tests passing across the workspace (including 83 unit tests and 5 kittest tests in `petunia_ui`, and 42 tests in `petunia_core`); cargo fmt, strict Clippy (`-D warnings`), Prumo doctor e build estático do VitePress 100% verdes.
+The fourteenth implementation round delivers Core V1 & Interactive Geometry Refinement (Gauntlet Loop):
+- Triangulation Inspection Overlay: extração determinística de wireframe de suporte de diagonais internas (`Mesh::triangulation_wireframe`), overlay renderizado com profundidade nos backends OpenGL e WebGPU, e botão comutador na Viewport Bar.
+- Flip Diagonal: inversão de diagonais de quads via rotação cíclica e Delaunay edge-flip em aresta compartilhada por triângulos (`Mesh::flip_diagonal`, `FlipDiagonalCmd`).
+- Revolve 360° Selection: revolução procedimental de perfis conectados/abertos em 360° ao redor dos eixos coordenados (`Mesh::revolve_selection`, `RevolveCmd`).
+- Extrude Individual Faces: extrusão desacoplada por face gerando topos disjuntos e anéis de paredes sem fusão de arestas vizinhas (`Mesh::extrude_individual`, `ExtrudeIndividualCmd`, `Alt+E`).
+- Multi-Segment Rounded Bevel: chanfro de aresta com multi-segmentos e curvatura de filete em arco circular (`Mesh::bevel_selected_segments`), com costura topológica manifold e estrito fechamento.
+- Guarded Metric Inset: inset métrico protegido com amortecimento dinâmico step-down prevenindo inversão de normais e auto-interseções topológicas.
+Final gates: 100% dos testes passando em todo o workspace (incluindo 60 testes em `petunia_mesh`, 42 unitários e 11 de comandos em `petunia_core`, 88 testes em `petunia_ui`); cargo clippy estrito (`-D warnings`) e `cargo run -p xtask -- arch-check` com 100% de conformidade.
 Evidence is preserved in `.prumo/history/premium/`, [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md) and [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md).
 
 Premium convergence is **not established**. The human golden path and final GPU

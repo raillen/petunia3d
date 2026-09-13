@@ -77,12 +77,12 @@ pub struct Mesh {
     pub selected_edges: HashSet<(u32, u32)>,
 }
 
-fn edge_key(a: u32, b: u32) -> (u32, u32) {
+pub fn edge_key(a: u32, b: u32) -> (u32, u32) {
     (a.min(b), a.max(b))
 }
 
 impl Mesh {
-    fn push_face(&mut self, face: Face) {
+    pub fn push_face(&mut self, face: Face) {
         let mut f = face;
         f.fix_uv();
         self.faces.push(f);
@@ -331,6 +331,31 @@ impl Mesh {
             }
         }
         out
+    }
+
+    /// Retorna pares de pontos `(p0, p1)` representando as diagonais internas de triangulação
+    /// para todos os polígonos com 4 ou mais lados da malha (para exibição em Show Triangulation).
+    pub fn triangulation_wireframe(&self) -> Vec<([f32; 3], [f32; 3])> {
+        let mut lines = Vec::new();
+        for f in &self.faces {
+            let m = f.verts.len();
+            if m <= 3 {
+                continue;
+            }
+            let idx0 = f.verts[0] as usize;
+            if idx0 >= self.verts.len() {
+                continue;
+            }
+            let p0 = self.verts[idx0].pos;
+            for i in 2..(m - 1) {
+                let idxi = f.verts[i] as usize;
+                if idxi < self.verts.len() {
+                    let pi = self.verts[idxi].pos;
+                    lines.push((p0, pi));
+                }
+            }
+        }
+        lines
     }
 }
 

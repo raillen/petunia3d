@@ -38,4 +38,13 @@ impl ExtrudeTool {
         state.sync_selection();
         state.emit_mesh_changed();
     }
+
+    pub fn apply_individual(state: &mut AppState) {
+        let d = state.extrude_dist;
+        let cmd = petunia_core::ExtrudeIndividualCmd { dist: d };
+        if let Err(err) = state.dispatch(&cmd) {
+            state.set_status(format!("extrude individual: {err}"));
+        }
+    }
 }
+

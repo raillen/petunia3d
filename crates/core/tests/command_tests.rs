@@ -4,8 +4,9 @@
 
 use petunia_core::command::{
     AddPrimitiveCmd, ClearSelectionCmd, CommandDispatcher, CommandError, DeleteAssetCmd,
-    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, FlipNormalsCmd,
-    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SubdivideSelectionCmd,
+    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, ExtrudeIndividualCmd,
+    FlipDiagonalCmd, FlipNormalsCmd, InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, RevolveCmd,
+    SelectAllCmd, SubdivideSelectionCmd,
 };
 use petunia_core::state::{AppState, EditMode};
 
@@ -317,3 +318,91 @@ fn test_mesh_editing_commands_subdivide_merge_flip() {
     let normal_restored = state.project.active_mesh().unwrap().face_normal(0);
     assert!((normal_before - normal_restored).length() < 1e-4);
 }
+
+#[test]
+fn test_flip_diagonal_command_and_undo() {
+    let mut state = AppState::default();
+    state.mode = EditMode::Edit;
+
+    // Seleciona a primeira face (quad do cubo)
+    state.project.active_mesh_mut().unwrap().faces[0].selected = true;
+    let initial_verts = state.project.active_mesh().unwrap().faces[0].verts.clone();
+
+    // Executa FlipDiagonalCmd
+    state.dispatch(&FlipDiagonalCmd).expect("flip diagonal");
+
+    // Vértices do quad devem ter rotacionado cíclica para inverter a diagonal
+    let flipped_verts = state.project.active_mesh().unwrap().faces[0].verts.clone();
+    assert_ne!(initial_verts, flipped_verts);
+    assert_eq!(flipped_verts[0], initial_verts[1]);
+
+    // Undo restaura a orientação original
+    assert!(state.undo());
+    let restored_verts = state.project.active_mesh().unwrap().faces[0].verts.clone();
+    assert_eq!(initial_verts, restored_verts);
+}
+
+#[test]
+fn test_revolve_command_and_undo() {
+    let mut state = AppState::default();
+    state.mode = EditMode::Edit;
+
+    // Cria perfil aberto no mesh ativo
+    let mesh = state.project.active_mesh_mut().unwrap();
+    mesh.verts.clear();
+    mesh.faces.clear();
+    mesh.selected_edges.clear();
+
+    mesh.verts.push(petunia_mesh::Vertex::new(1.0, 0.0, 0.0));
+    mesh.verts.push(petunia_mesh::Vertex::new(1.5, 1.0, 0.0));
+    mesh.verts.push(petunia_mesh::Vertex::new(1.0, 2.0, 0.0));
+    for v in &mut mesh.verts {
+        v.selected = true;
+    }
+    mesh.selected_edges.insert(petunia_mesh::edge_key(0, 1));
+    mesh.selected_edges.insert(petunia_mesh::edge_key(1, 2));
+
+    // Executa RevolveCmd (8 segmentos, 360°, eixo Y)
+    let revolve_cmd = RevolveCmd {
+        segments: 8,
+        angle_deg: 360.0,
+        axis: 1,
+        center: [0.0, 0.0, 0.0],
+    };
+    state.dispatch(&revolve_cmd).expect("revolve profile");
+
+    assert_eq!(state.project.active_mesh().unwrap().faces.len(), 16);
+
+    // Undo restaura o perfil original com 0 faces
+    assert!(state.undo());
+    assert_eq!(state.project.active_mesh().unwrap().faces.len(), 0);
+    assert_eq!(state.project.active_mesh().unwrap().verts.len(), 3);
+}
+
+#[test]
+fn test_extrude_individual_command_and_undo() {
+    let mut state = AppState::default();
+    state.mode = EditMode::Edit;
+
+    // Seleciona duas faces do cubo
+    state.project.active_mesh_mut().unwrap().faces[0].selected = true;
+    state.project.active_mesh_mut().unwrap().faces[1].selected = true;
+
+    let initial_faces = state.project.active_mesh().unwrap().faces.len();
+    let initial_verts = state.project.active_mesh().unwrap().verts.len();
+
+    let extrude_cmd = ExtrudeIndividualCmd { dist: 1.0 };
+    state.dispatch(&extrude_cmd).expect("extrude individual");
+
+    let mesh_after = state.project.active_mesh().unwrap();
+    // 2 faces quadrangulares extrudadas individualmente geram 8 novos vértices e 8 novas faces laterais
+    assert_eq!(mesh_after.verts.len(), initial_verts + 8);
+    assert_eq!(mesh_after.faces.len(), initial_faces + 8);
+
+    // Undo restaura o cubo original
+    assert!(state.undo());
+    let mesh_restored = state.project.active_mesh().unwrap();
+    assert_eq!(mesh_restored.verts.len(), initial_verts);
+    assert_eq!(mesh_restored.faces.len(), initial_faces);
+}
+

@@ -397,3 +397,102 @@ impl Command for FlipNormalsCmd {
         Ok(())
     }
 }
+
+/// Comando para inverter a diagonal de triangulação interna de quads selecionados
+/// ou executar edge-flip em aresta compartilhada por triângulos.
+#[derive(Debug, Clone, Default)]
+pub struct FlipDiagonalCmd;
+
+impl Command for FlipDiagonalCmd {
+    fn label(&self) -> &'static str {
+        "flip diagonal"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        if mesh.flip_diagonal() {
+            state.set_status("Flipped quad diagonal / triangle edge");
+            Ok(())
+        } else {
+            Err(CommandError::Execution(
+                "No selected quad or edge suitable for diagonal flip".into(),
+            ))
+        }
+    }
+}
+
+/// Comando para rotacionar/revolver perfil selecionado ao redor de um eixo coordenado.
+#[derive(Debug, Clone)]
+pub struct RevolveCmd {
+    pub segments: u32,
+    pub angle_deg: f32,
+    pub axis: usize,
+    pub center: [f32; 3],
+}
+
+impl Default for RevolveCmd {
+    fn default() -> Self {
+        Self {
+            segments: 16,
+            angle_deg: 360.0,
+            axis: 1, // Eixo Y
+            center: [0.0, 0.0, 0.0],
+        }
+    }
+}
+
+impl Command for RevolveCmd {
+    fn label(&self) -> &'static str {
+        "revolve"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        if mesh.revolve_selection(self.segments, self.angle_deg, self.axis, self.center) {
+            state.set_status(format!(
+                "Revolved selection ({} segments, {:.0}°)",
+                self.segments, self.angle_deg
+            ));
+            Ok(())
+        } else {
+            Err(CommandError::Execution(
+                "Failed to revolve selection: require selected connected edges".into(),
+            ))
+        }
+    }
+}
+
+/// Comando para extrudar faces selecionadas individualmente (desacopladas).
+#[derive(Debug, Clone)]
+pub struct ExtrudeIndividualCmd {
+    pub dist: f32,
+}
+
+impl Default for ExtrudeIndividualCmd {
+    fn default() -> Self {
+        Self { dist: 0.0 }
+    }
+}
+
+impl Command for ExtrudeIndividualCmd {
+    fn label(&self) -> &'static str {
+        "extrude individual"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        if !mesh.faces.iter().any(|f| f.selected) {
+            return Err(CommandError::EmptySelection);
+        }
+        mesh.extrude_individual(self.dist);
+        state.set_status(format!("Extruded individual faces ({:.2})", self.dist));
+        Ok(())
+    }
+}
+

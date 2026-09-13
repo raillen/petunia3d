@@ -3,6 +3,39 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.21.0] - 2026-09-13 — Core V1 & Interactive Geometry Refinement (Gauntlet Loop)
+
+### Adicionado
+- **Core V1: Triangulation Inspection & Flip Diagonal (`crates/mesh/`, `crates/core/`)**:
+  - `Mesh::triangulation_wireframe(&self)`: Extração determinística de todas as diagonais internas de corte fan em polígonos quadrangulares e n-gons para renderização de wireframe de suporte.
+  - `Mesh::flip_diagonal(&mut self)`: Inversão inteligente de diagonal suportando:
+    1. Quads selecionados: rotação cíclica do loop de vértices e UVs (`rotate_left(1)`), alternando a diagonal fan preservando winding, plano e normais;
+    2. Aresta selecionada compartilhada por dois triângulos adjacentes (Delaunay Edge Flip).
+  - `FlipDiagonalCmd`: Comando transacional no `CommandDispatcher` com histórico completo de Undo/Redo.
+- **Core V1: Revolve 360° Selection (`crates/mesh/src/ops.rs`, `crates/core/src/command.rs`)**:
+  - `Mesh::revolve_selection(&mut self, segments, angle_deg, axis, center)`: Revolução procedimental de perfis conectados/abertos selecionados em torno de qualquer eixo coordenado ($X, Y, Z$) com fechamento cíclico perfeito em revoluções de 360°.
+  - `RevolveCmd`: Comando transacional parametrizado com `segments`, `angle_deg`, `axis` e `center`.
+- **Refinamento de Ferramentas Geométricas Interativas (Gauntlet Loop)**:
+  - **Extrude Individual Faces (`Alt+E`)**:
+    - `Mesh::extrude_individual(&mut self, dist)`: Replicação desacoplada de vértices por face selecionada, gerando anéis de parede independentes e topos disjuntos sem colapso de arestas compartilhadas.
+    - `ExtrudeIndividualCmd` e `ExtrudeTool::apply_individual(&mut state)` com suporte a atalho padrão da indústria `Alt+E`.
+  - **Multi-segment Rounded Bevel**:
+    - `bevel_edge_segments` em `crates/mesh/src/bevel.rs`: Chanfro transacional com $N \ge 1$ segmentos e perfil de curvatura circular em arco de filete ($\text{bulge}(t) = (1 - (2t-1)^2) \times 0.4142$).
+    - Costura topológica automática de vértices intermediários nas faces de canto e extremidade, garantindo que o resultado permaneça fechado, 2-manifold e estritamente planar nas faces laterais.
+  - **Guarded Metric Inset contra Auto-Interseção**:
+    - `Mesh::inset_selected(&mut self, factor)` reforçado com verificação dinâmica de inversão de normais no polígono interno e amortecimento step-down para garantir estabilidade topológica sob fatores extremos.
+- **Renderização e Interface do Usuário (`crates/ui/`, `crates/render-gl/`, `crates/render-wgpu/`, `crates/app/`)**:
+  - Renderização de linhas de triangulação em tom ciano/azul suave (`[0.3, 0.65, 0.95]`) com offset de profundidade em ambos os backends OpenGL (`petunia_render_gl`) e WebGPU (`petunia_render_wgpu`).
+  - Toggle dedicado de Inspeção de Triangulação na barra de contexto do Viewport (`crates/ui/src/viewport_bar.rs`) ao lado dos toggles de Overlays e Raio-X.
+  - Itens de menu `Extrude Individual (Alt+E)`, `Flip Diagonal` e `Revolve Selection` integrados ao menu contextual `Mesh ▾`.
+  - Atalho `Alt+E` para `model.extrude_individual` adicionado aos keybinds padrões e perfis `petunia.toml`, `petunia-default.toml` e `blender.toml`.
+- **Suíte de Testes Automatizados**:
+  - `crates/mesh/tests/triangulation_tests.rs`: 3 testes unitários para wireframe de triangulação e flip diagonal.
+  - `crates/mesh/tests/interactive_geometry_tests.rs`: 4 testes de conformidade para extrude individual, revolve 360°, bevel multi-segmentos e inset protegido.
+  - `crates/core/tests/command_tests.rs`: Testes de execução headless e Undo/Redo para `FlipDiagonalCmd`, `RevolveCmd` e `ExtrudeIndividualCmd`.
+
+---
+
 ## [0.20.0] - 2026-09-13 — Architectural Decoupling: C-ABI / FFI Layer (Gauntlet G10, Cross-Language Frontends)
 
 ### Adicionado

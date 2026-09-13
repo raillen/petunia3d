@@ -630,6 +630,7 @@ impl Renderer {
         camera: &Camera,
         shading: Shading,
         xray: bool,
+        show_triangulation: bool,
     ) {
         self.xray = xray;
         queue.write_buffer(
@@ -689,6 +690,20 @@ impl Renderer {
                     lv.push(LineVertex {
                         pos: [b[0], b[1] + 0.001, b[2]],
                         color: c,
+                    });
+                }
+            }
+            if show_triangulation {
+                let diag_c = [0.3, 0.65, 0.95];
+                let lift = if is_wire { 0.0 } else { 0.0012 };
+                for (a, b) in obj.mesh.triangulation_wireframe() {
+                    lv.push(LineVertex {
+                        pos: [a[0], a[1] + lift, a[2]],
+                        color: diag_c,
+                    });
+                    lv.push(LineVertex {
+                        pos: [b[0], b[1] + lift, b[2]],
+                        color: diag_c,
                     });
                 }
             }

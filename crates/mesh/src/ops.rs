@@ -286,6 +286,63 @@ impl Mesh {
         self.sync_vert_selection_from_faces();
     }
 
+    /// Extrusão individual de cada face selecionada ao longo de sua própria normal (Alt+E).
+    /// Gera prismas desacoplados sem compartilhar paredes laterais entre faces vizinhas.
+    pub fn extrude_individual(&mut self, dist: f32) {
+        if !dist.is_finite() {
+            return;
+        }
+        let sel: Vec<usize> = self
+            .faces
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.selected)
+            .map(|(i, _)| i)
+            .collect();
+        if sel.is_empty() {
+            return;
+        }
+
+        for &fi in &sel {
+            let src = self.faces[fi].clone();
+            let m = src.verts.len();
+            if m < 3 {
+                continue;
+            }
+            let normal = self.face_normal(fi);
+            let delta = normal.normalize_or_zero() * dist;
+
+            // Cria novos vértices exclusivos para o topo desta face
+            let mut top_verts = Vec::with_capacity(m);
+            for &vi in &src.verts {
+                let mut v = self.verts[vi as usize].clone();
+                v.pos = (v.vec() + delta).to_array();
+                v.selected = true;
+                let new_idx = self.verts.len() as u32;
+                self.verts.push(v);
+                top_verts.push(new_idx);
+            }
+
+            // Atualiza a face original para ser a tampa superior extrudada
+            self.faces[fi].verts = top_verts.clone();
+
+            // Gera as paredes laterais conectando a base original ao novo topo
+            for k in 0..m {
+                let k2 = (k + 1) % m;
+                let bottom0 = src.verts[k];
+                let bottom1 = src.verts[k2];
+                let top0 = top_verts[k];
+                let top1 = top_verts[k2];
+
+                let wall_face = Face::new(vec![bottom0, bottom1, top1, top0]);
+                self.push_face(wall_face);
+            }
+        }
+
+        self.selected_edges.clear();
+        self.sync_vert_selection_from_faces();
+    }
+
     /// Push/Pull: move a seleção ao longo da normal média (sem criar faces).
     pub fn push_pull(&mut self, dist: f32) {
         let mut n = Vec3::ZERO;
@@ -305,11 +362,11 @@ impl Mesh {
         self.translate_selected(d);
     }
 
+    /// Inset métrico com proteção de auto-interseção e preservação de orientação topológica.
     pub fn inset_selected(&mut self, factor: f32) {
         if !factor.is_finite() || factor <= 0.0 {
             return;
         }
-        let f = factor.clamp(0.0, 0.95);
         let sel: Vec<usize> = self
             .faces
             .iter()
@@ -319,6 +376,12 @@ impl Mesh {
             .collect();
         for &fi in &sel {
             let src = self.faces[fi].clone();
+            let m = src.verts.len();
+            if m < 3 {
+                continue;
+            }
+            let orig_normal = self.face_normal(fi);
+
             let mut c = Vec3::ZERO;
             let mut cuv = [0.0f32; 2];
             for (k, &vi) in src.verts.iter().enumerate() {
@@ -326,17 +389,31 @@ impl Mesh {
                 cuv[0] += src.uv[k][0];
                 cuv[1] += src.uv[k][1];
             }
-            let m = src.verts.len().max(1) as f32;
-            c /= m;
-            cuv[0] /= m;
-            cuv[1] /= m;
-            let mut inner = Vec::new();
-            let mut inner_uv = Vec::new();
+            let mf = m as f32;
+            c /= mf;
+            cuv[0] /= mf;
+            cuv[1] /= mf;
+
+            // Ajusta o fator dinamicamente para prevenir auto-interseção ou inversão de winding
+            let mut safe_f = factor.clamp(0.01, 0.95);
+            for _ in 0..5 {
+                let p0 = self.verts[src.verts[0] as usize].vec().lerp(c, safe_f);
+                let p1 = self.verts[src.verts[1] as usize].vec().lerp(c, safe_f);
+                let p2 = self.verts[src.verts[2] as usize].vec().lerp(c, safe_f);
+                let inner_n = (p1 - p0).cross(p2 - p0);
+                if inner_n.dot(orig_normal) > 1e-4 {
+                    break;
+                }
+                safe_f *= 0.5;
+            }
+
+            let mut inner = Vec::with_capacity(m);
+            let mut inner_uv = Vec::with_capacity(m);
             for (k, &vi) in src.verts.iter().enumerate() {
-                let p = self.verts[vi as usize].vec().lerp(c, f);
+                let p = self.verts[vi as usize].vec().lerp(c, safe_f);
                 let uv = [
-                    src.uv[k][0] + (cuv[0] - src.uv[k][0]) * f,
-                    src.uv[k][1] + (cuv[1] - src.uv[k][1]) * f,
+                    src.uv[k][0] + (cuv[0] - src.uv[k][0]) * safe_f,
+                    src.uv[k][1] + (cuv[1] - src.uv[k][1]) * safe_f,
                 ];
                 self.verts.push(Vertex {
                     pos: p.to_array(),
@@ -348,22 +425,24 @@ impl Mesh {
             }
             self.faces[fi].verts = inner.clone();
             self.faces[fi].uv = inner_uv;
-            let m = src.verts.len();
+
             for k in 0..m {
                 let k2 = (k + 1) % m;
-                // preserva uvs externos no anel
                 let quad_uv = vec![
                     src.uv[k],
                     src.uv[k2],
                     self.faces[fi].uv[k2],
                     self.faces[fi].uv[k],
                 ];
-                self.push_face(Face::with_uv(
+                let f_new = Face::with_uv(
                     vec![src.verts[k], src.verts[k2], inner[k2], inner[k]],
                     quad_uv,
-                ));
+                );
+                self.push_face(f_new);
             }
         }
+        self.selected_edges.clear();
+        self.sync_vert_selection_from_faces();
     }
 
     pub fn subdivide_selected(&mut self) {
@@ -478,9 +557,13 @@ impl Mesh {
         (self.verts.len() - 1) as u32
     }
 
-    /// Chanfra uma aresta convexa manifold com extremidades trivalentes.
-    /// Casos não suportados são rejeitados sem mutar a malha.
+    /// Chanfra uma aresta convexa manifold com extremidades trivalentes (1 segmento padrão).
     pub fn bevel_selected(&mut self, amount: f32) -> (usize, usize) {
+        self.bevel_selected_segments(amount, 1)
+    }
+
+    /// Chanfra uma aresta convexa manifold com suporte a multi-segmentos para filetagem arredondada.
+    pub fn bevel_selected_segments(&mut self, amount: f32, segments: u32) -> (usize, usize) {
         let count = self.selected_edges.len();
         if count == 0 {
             return (0, 0);
@@ -491,13 +574,198 @@ impl Mesh {
         let Some(&(a, b)) = self.selected_edges.iter().next() else {
             return (0, 0);
         };
-        match crate::bevel::bevel_edge(self, a, b, amount) {
+        match crate::bevel::bevel_edge_segments(self, a, b, amount, segments) {
             Some(mesh) => {
                 *self = mesh;
                 (1, 0)
             }
             None => (0, count),
         }
+    }
+
+    /// Inverte a diagonal de triangulação interna de quads selecionados (rotacionando o fan de corte),
+    /// ou executa um edge-flip em aresta selecionada compartilhada por dois triângulos adjacentes.
+    pub fn flip_diagonal(&mut self) -> bool {
+        let mut modified = false;
+
+        // 1. Quads selecionados: rotação cíclica inverte a diagonal interna do fan
+        for face in &mut self.faces {
+            if face.selected && face.verts.len() == 4 {
+                face.verts.rotate_left(1);
+                if face.uv.len() == 4 {
+                    face.uv.rotate_left(1);
+                }
+                modified = true;
+            }
+        }
+        if modified {
+            return true;
+        }
+
+        // 2. Aresta selecionada entre dois triângulos adjacentes (Delaunay Edge Flip)
+        let edge = if let Some(&(u, v)) = self.selected_edges.iter().next() {
+            Some((u, v))
+        } else {
+            let sel_verts: Vec<u32> = self
+                .verts
+                .iter()
+                .enumerate()
+                .filter(|(_, v)| v.selected)
+                .map(|(i, _)| i as u32)
+                .collect();
+            if sel_verts.len() == 2 {
+                Some((sel_verts[0], sel_verts[1]))
+            } else {
+                None
+            }
+        };
+
+        if let Some((u, v)) = edge {
+            let adj = self.edge_faces(u, v);
+            if adj.len() == 2 {
+                let f0 = &self.faces[adj[0]];
+                let f1 = &self.faces[adj[1]];
+                if f0.verts.len() == 3 && f1.verts.len() == 3 {
+                    let w0 = f0.verts.iter().copied().find(|&x| x != u && x != v);
+                    let w1 = f1.verts.iter().copied().find(|&x| x != u && x != v);
+                    if let (Some(w0), Some(w1)) = (w0, w1) {
+                        if w0 != w1 {
+                            let p_u = f0.verts.iter().position(|&x| x == u).unwrap();
+                            let next_u = f0.verts[(p_u + 1) % 3];
+                            let (new_f0, new_f1) = if next_u == v {
+                                (vec![w0, u, w1], vec![w1, v, w0])
+                            } else {
+                                (vec![w0, w1, u], vec![w1, w0, v])
+                            };
+
+                            self.faces[adj[0]] = Face::new(new_f0);
+                            self.faces[adj[1]] = Face::new(new_f1);
+                            self.faces[adj[0]].selected = true;
+                            self.faces[adj[1]].selected = true;
+                            self.selected_edges.clear();
+                            self.selected_edges.insert(crate::edge_key(w0, w1));
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    /// Revoluciona a seleção de vértices/arestas em torno de um eixo (0: X, 1: Y, 2: Z)
+    /// passando por `center` com `segments` subdivisões ao longo de `angle_deg` graus.
+    pub fn revolve_selection(
+        &mut self,
+        segments: u32,
+        angle_deg: f32,
+        axis: usize,
+        center: [f32; 3],
+    ) -> bool {
+        let sel_indices: Vec<u32> = self
+            .verts
+            .iter()
+            .enumerate()
+            .filter(|(_, v)| v.selected)
+            .map(|(i, _)| i as u32)
+            .collect();
+        if sel_indices.len() < 2 {
+            return false;
+        }
+
+        let seg = segments.clamp(3, 64) as usize;
+        let total_rad = angle_deg.to_radians();
+        let is_full_circle = (angle_deg.abs() - 360.0).abs() < 1e-3;
+        let c = Vec3::from(center);
+        let ax = axis.min(2);
+
+        let rotate_pt = |pt: Vec3, rad: f32| -> Vec3 {
+            let rel = pt - c;
+            let (cos, sin) = (rad.cos(), rad.sin());
+            let rot = match ax {
+                0 => Vec3::new(rel.x, rel.y * cos - rel.z * sin, rel.y * sin + rel.z * cos),
+                1 => Vec3::new(rel.x * cos + rel.z * sin, rel.y, -rel.x * sin + rel.z * cos),
+                _ => Vec3::new(rel.x * cos - rel.y * sin, rel.x * sin + rel.y * cos, rel.z),
+            };
+            rot + c
+        };
+
+        let mut edges_to_revolve = Vec::new();
+        for &(u, v) in &self.selected_edges {
+            if sel_indices.contains(&u) && sel_indices.contains(&v) {
+                edges_to_revolve.push((u, v));
+            }
+        }
+        if edges_to_revolve.is_empty() {
+            for i in 0..sel_indices.len() - 1 {
+                edges_to_revolve.push((sel_indices[i], sel_indices[i + 1]));
+            }
+        }
+        if edges_to_revolve.is_empty() {
+            return false;
+        }
+
+        let steps = if is_full_circle { seg } else { seg + 1 };
+        let mut rings: Vec<Vec<u32>> = Vec::with_capacity(sel_indices.len());
+
+        for &vi in &sel_indices {
+            let orig_pos = self.verts[vi as usize].vec();
+            let mut ring = Vec::with_capacity(steps);
+            ring.push(vi);
+            for s in 1..steps {
+                let frac = s as f32 / seg as f32;
+                let angle = frac * total_rad;
+                let new_pos = rotate_pt(orig_pos, angle);
+                let mut v = self.verts[vi as usize].clone();
+                v.pos = new_pos.to_array();
+                v.selected = true;
+                let new_idx = self.verts.len() as u32;
+                self.verts.push(v);
+                ring.push(new_idx);
+            }
+            rings.push(ring);
+        }
+
+        let vert_to_ring_idx: HashMap<u32, usize> = sel_indices
+            .iter()
+            .enumerate()
+            .map(|(r_idx, &v_idx)| (v_idx, r_idx))
+            .collect();
+
+        for (u, v) in edges_to_revolve {
+            let Some(&ring_u_idx) = vert_to_ring_idx.get(&u) else {
+                continue;
+            };
+            let Some(&ring_v_idx) = vert_to_ring_idx.get(&v) else {
+                continue;
+            };
+            let ring_u = &rings[ring_u_idx];
+            let ring_v = &rings[ring_v_idx];
+
+            for s in 0..seg {
+                let u0 = ring_u[s];
+                let u1 = if is_full_circle && s + 1 == seg {
+                    ring_u[0]
+                } else {
+                    ring_u[s + 1]
+                };
+                let v0 = ring_v[s];
+                let v1 = if is_full_circle && s + 1 == seg {
+                    ring_v[0]
+                } else {
+                    ring_v[s + 1]
+                };
+
+                let mut face = Face::new(vec![u0, u1, v1, v0]);
+                face.selected = true;
+                self.push_face(face);
+            }
+        }
+
+        self.selected_edges.clear();
+        self.sync_vert_selection_from_faces();
+        true
     }
 
     /// Mirror da seleção (ou tudo) no eixo, com weld opcional no plano.

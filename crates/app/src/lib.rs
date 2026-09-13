@@ -427,6 +427,22 @@ impl Core {
             "model.extrude" => {
                 self.set_tool("extrude", None);
             }
+            "model.extrude_individual" => {
+                let dist = if self.state.extrude_dist == 0.0 {
+                    0.5
+                } else {
+                    self.state.extrude_dist
+                };
+                let _ = self
+                    .state
+                    .dispatch(&petunia_core::ExtrudeIndividualCmd { dist });
+            }
+            "model.flip_diagonal" => {
+                let _ = self.state.dispatch(&petunia_core::FlipDiagonalCmd);
+            }
+            "model.revolve" => {
+                let _ = self.state.dispatch(&petunia_core::RevolveCmd::default());
+            }
             "model.delete" => {
                 let _ = self.state.dispatch(&DeleteSelectionCmd);
             }
@@ -831,6 +847,7 @@ impl WgpuApp {
             &self.core.state.camera,
             self.core.state.shading,
             self.core.state.show_xray,
+            self.core.state.show_triangulation,
         );
         gfx.renderer3d
             .upload_ref_pixels(&gfx.queue, &self.core.state.project.refs);

@@ -246,7 +246,7 @@ impl GlRenderer {
             // --- arestas por cima ---
             gl.depth_mask(false);
             self.set_line_vp(&vp);
-            self.draw_edges(&state.project, state.shading);
+            self.draw_edges(&state.project, state.shading, state.show_triangulation);
             gl.depth_mask(true);
 
             // --- referências X-ray (overlay por cima da malha) ---
@@ -445,7 +445,12 @@ impl GlRenderer {
         Ok(slot.tex)
     }
 
-    unsafe fn draw_edges(&mut self, scene: &Project, shading: Shading) {
+    unsafe fn draw_edges(
+        &mut self,
+        scene: &Project,
+        shading: Shading,
+        show_triangulation: bool,
+    ) {
         let gl = &self.gl;
         let wire = shading == Shading::Wireframe;
         let mut data: Vec<f32> = Vec::new();
@@ -467,6 +472,16 @@ impl GlRenderer {
                 data.extend_from_slice(&c);
                 data.extend_from_slice(&[b[0], b[1] + lift, b[2]]);
                 data.extend_from_slice(&c);
+            }
+            if show_triangulation {
+                let diag_c = [0.3, 0.65, 0.95];
+                for (a, b) in obj.mesh.triangulation_wireframe() {
+                    let lift = if wire { 0.0 } else { 0.0012 };
+                    data.extend_from_slice(&[a[0], a[1] + lift, a[2]]);
+                    data.extend_from_slice(&diag_c);
+                    data.extend_from_slice(&[b[0], b[1] + lift, b[2]]);
+                    data.extend_from_slice(&diag_c);
+                }
             }
         }
         // grid sempre
