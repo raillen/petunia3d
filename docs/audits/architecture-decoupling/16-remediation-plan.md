@@ -1,0 +1,218 @@
+# 16 — Plano Diretor de Correção (Remediation Plan & Gauntlet Loop)
+
+> **Roteiro estruturado em 11 ciclos incrementais (Gauntlet G0 a G10) para desacoplar a arquitetura do Petunia3D sem quebrar funcionalidades nem comprometer o desempenho.**
+>
+> ⚠️ **IMPORTANTE: ESTE PLANO NÃO DEVE SER EXECUTADO AGORA. TRATA-SE DE UM DOCUMENTO DE PLANEJAMENTO PARA REVISÃO E APROVAÇÃO PRÉVIA.**
+
+---
+
+## 1. Visão Geral e Estratégia de Migração (Strangler Fig)
+
+Para mitigar qualquer risco de regressão em um aplicativo que já possui 198 testes automatizados aprovados, a refatoração deve seguir a **Estratégia Strangler**:
+1. Criar novas fronteiras e contratos limpos paralelamente aos caminhos legados;
+2. Migrar operações uma a uma através dos novos comandos semânticos;
+3. Validar a paridade funcional e visual através da suíte de testes de UI do kittest;
+4. Eliminar as dependências antigas e proibir reintroduções via testes de fitness automatizados;
+5. **Preservar sempre o software compilando e funcionando a cada commit.**
+
+---
+
+## 2. Mapa do Caminho Crítico (Critical Path)
+
+```mermaid
+flowchart TD
+    G0["G0: Baseline & Testes de Fitness Arquitetural"] --> G1["G1: Eliminação de egui no Core e Config"]
+    G1 --> G2["G2: Fundação do CommandDispatcher & Comandos Básicos"]
+    G2 --> G3["G3: Extração de Mutações Diretas da UI"]
+    G3 --> G4["G4: Fronteira de I/O de Arquivos (ProjectService)"]
+    G4 --> G5["G5: Desacoplamento das Sessões de Ferramentas (Cutting & Modal)"]
+    G5 --> G6["G6: Decomposição do God Object AppState"]
+    G6 --> G7["G7: Purificação dos Crates de Módulo (module-*)"]
+    G7 --> G8["G8: Comprovação Headless (petunia-cli & Testes Puros)"]
+    G8 --> G9["G9: Estabilização da Application API (Queries & DTOs)"]
+    G9 --> G10["G10: Camada C-ABI / FFI para Frontends Externos"]
+```
+
+---
+
+## 3. Detalhamento dos Ciclos do Gauntlet Loop
+
+---
+
+### Gauntlet G0 — Baseline e Testes de Fitness Arquitetural
+* **Objetivo**: Congelar o comportamento funcional atual e criar scripts automatizados de verificação que impeçam a introdução de novos acoplamentos.
+* **Achados Alvo**: Prevenção geral de regressões.
+* **Arquivos Afetados**: `crates/xtask/src/main.rs`, novo teste em `crates/core/tests/architecture_fitness.rs`.
+* **Passos de Implementação**:
+  1. Adicionar comando `cargo xtask arch-check` que execute inspeções estáticas de dependência via `cargo tree` e `cargo metadata`;
+  2. Registrar o baseline de desempenho e tempo de inicialização atual.
+* **Critério de Saída (Exit Criteria)**:
+  * `cargo xtask arch-check` executa e reporta com precisão o estado atual das dependências proibidas.
+
+---
+
+### Gauntlet G1 — Eliminação do `egui` no Núcleo (`petunia_core` e `petunia_config`)
+* **Objetivo**: Fazer com que `petunia_core` e `petunia_config` compilem **zero referências ao egui**.
+* **Achados Alvo**: **F-001**, **F-007**, **F-012**.
+* **Pré-condições**: Ciclo G0 aprovado.
+* **Arquivos Afetados**:
+  * `crates/core/Cargo.toml`: Remover `egui = { workspace = true }`.
+  * `crates/core/src/state.rs`: Mover `Option<egui::TextureHandle>` e `Option<egui::Rect>` para o frontend ou substituir por `[f32; 4]`.
+  * `crates/core/src/viewport.rs`: Converter `PhysicalViewport::from_logical` para receber `Option<[f32; 4]>` ou `LogicalRect`.
+  * `crates/core/src/module.rs`: Mover método `ui()` para uma trait de apresentação externa (`EditorModuleUi`).
+  * `crates/config/Cargo.toml`: Remover `egui = { workspace = true }`.
+  * `crates/config/src/theme.rs`: Mover `pub fn apply(&self, ctx: &egui::Context)` para `crates/ui/src/theme_adapter.rs`.
+* **Testes de Segurança**:
+  * `cargo check -p petunia_core` e `cargo check -p petunia_config` compilam sem egui.
+  * Teste de fitness `core_must_never_depend_on_egui` passa a ser verde.
+* **Critério de Saída**:
+  * `petunia_core` e `petunia_config` não possuem `egui` em sua árvore de dependências. A interface do editor continua funcionando de forma idêntica.
+
+---
+
+### Gauntlet G2 — Fundação do Sistema de Comandos e Dispatcher
+* **Objetivo**: Introduzir comandos semânticos com payload tipado e um despachante central que automatize a gravação de checkpoints de histórico.
+* **Achados Alvo**: **F-003**.
+* **Pré-condições**: Ciclo G1 aprovado.
+* **Arquivos Afetados**:
+  * `crates/commands/src/lib.rs` ou novo módulo em `petunia_core`/`petunia_application`:
+    * Definir `pub trait Command: Send + Sync { fn execute(&self, session: &mut EditorSession) -> Result<(), CommandError>; fn label(&self) -> &'static str; fn is_destructive(&self) -> bool { true } }`.
+    * Criar `CommandDispatcher` com método `dispatch(&mut self, cmd: Box<dyn Command>) -> Result<(), CommandError>`.
+    * O dispatcher captura automaticamente `undo.checkpoint(cmd.label())` se `cmd.is_destructive()` for verdadeiro.
+  * Implementar os 4 primeiros comandos canônicos: `AddPrimitiveCmd`, `DuplicateAssetCmd`, `DeleteAssetCmd`, `DeleteSelectionCmd`.
+* **Testes de Segurança**:
+  * Testes unitários puros despachando comandos e verificando `undo()` e `redo()` sem carregar nenhum componente de UI.
+* **Critério de Saída**:
+  * Comandos executam e desfazem transacionalmente com 100% de confiabilidade.
+
+---
+
+### Gauntlet G3 — Extração de Mutações Diretas da Camada UI
+* **Objetivo**: Substituir todas as mutações topológicas ad-hoc em painéis de interface pelo despacho de comandos.
+* **Achados Alvo**: **F-004**, **F-013**.
+* **Pré-condições**: Ciclo G2 aprovado.
+* **Arquivos Afetados**:
+  * `crates/ui/src/properties_panel.rs`: Substituir mutações de delete/duplicate por chamadas ao dispatcher.
+  * `crates/ui/src/outliner.rs`: Eliminar as 8 chamadas manuais a `state.checkpoint()`.
+  * `crates/ui/src/viewport_bar.rs`: Substituir ações dos menus dropdown por comandos.
+  * `crates/app/src/lib.rs`: Conectar o match de atalhos de teclado de `Core::on_key` diretamente ao dispatcher de comandos.
+* **Testes de Segurança**:
+  * Todos os 88 testes existentes em `petunia_ui` e os 5 fluxos kittest aprovados sem alteração de comportamento visual.
+* **Critério de Saída**:
+  * A UI deixa de invocar `state.checkpoint()` manualmente; todos os checkpoints são capturados pelo dispatcher.
+
+---
+
+### Gauntlet G4 — Fronteira de I/O de Arquivos (`ProjectService`)
+* **Objetivo**: Isolar todas as operações de leitura/gravação de disco em serviços puros de aplicação, removendo o acoplamento de file pickers do domínio.
+* **Achados Alvo**: **F-009**.
+* **Pré-condições**: Ciclo G3 aprovado.
+* **Arquivos Afetados**:
+  * Novo módulo `project_service.rs`: Expor `save_project(session, path)`, `load_project(session, path)`, `import_obj(session, path)`, `export_glb(session, path)`.
+  * `crates/ui/src/lib.rs`: Reduzir `open_project_dialog` para estritamente: obter o path do diálogo e chamar `ProjectService::load_project`.
+  * `crates/module-paint/src/lib.rs`: Remover `rfd::FileDialog` de dentro do módulo de pintura.
+* **Testes de Segurança**:
+  * Teste automatizado salvando e carregando projetos via `ProjectService` com caminhos temporários sem abrir diálogos.
+* **Critério de Saída**:
+  * Nenhuma função fora de `crates/ui/src/file_dialog_service.rs` instancia `rfd::FileDialog` ou `egui-file-dialog`.
+
+---
+
+### Gauntlet G5 — Desacoplamento das Sessões de Ferramentas (Cutting e Modal)
+* **Objetivo**: Extrair as máquinas de estado de ferramentas que hoje vivem em funções de desenho egui para controladores neutros de sessão.
+* **Achados Alvo**: **F-005**, **F-006**.
+* **Pré-condições**: Ciclo G4 aprovado.
+* **Arquivos Afetados**:
+  * `crates/ui/src/cutting.rs`: Extrair `CutSession` para `petunia_core::cutting_session` como máquina de estado pura.
+  * `crates/ui/src/modal_viewport.rs`: Extrair `PointerSession` para a camada de aplicação.
+  * `crates/ui/src/annotation.rs` e `crates/ui/src/measurement.rs`: Isolar a geração matemática de pontos e réguas da renderização do `egui::Painter`.
+* **Testes de Segurança**:
+  * Executar a suíte completa de `cutting_tests.rs`, `modal_tests.rs` e `paint_tests.rs`.
+* **Critério de Saída**:
+  * Toda a máquina de estados de corte e modal pode ser executada por testes sem carregar um `egui::Context`.
+
+---
+
+### Gauntlet G6 — Decomposição do God Object `AppState`
+* **Objetivo**: Quebrar a struct monolítica de 60 campos em quatro componentes coesos com ciclos de vida e donos bem delimitados.
+* **Achados Alvo**: **F-002**.
+* **Pré-condições**: Ciclo G5 aprovado.
+* **Arquivos Afetados**:
+  * `crates/core/src/state.rs`:
+    * `ProjectState`: `Project`, `UndoStack`.
+    * `EditorSession`: `Selection`, `Camera`, `ModalOp`, `ToolSession`, `LockedAxes`.
+    * `UiState`: Filtros de busca, abas ativas, visibilidade de gavetas/modais.
+    * `RenderResources`: Handles de textura, estatísticas de quadros.
+* **Testes de Segurança**:
+  * 198 testes automatizados do workspace continuam passando.
+* **Critério de Saída**:
+  * Nenhuma struct de domínio carrega variáveis de UI ou contadores de GPU.
+
+---
+
+### Gauntlet G7 — Purificação dos Crates de Módulo (`module-*`)
+* **Objetivo**: Remover a dependência de `egui` dos manifestos de `module-model`, `module-paint`, `module-uv` e `module-assets`.
+* **Achados Alvo**: **F-008**.
+* **Pré-condições**: Ciclo G6 aprovado.
+* **Arquivos Afetados**:
+  * `crates/module-*/Cargo.toml`: Remover `egui = { workspace = true }`.
+  * Mover as funções de renderização de sliders e botões para `crates/ui/src/modules_ui/`.
+* **Testes de Segurança**:
+  * `cargo check -p petunia_module_model -p petunia_module_paint -p petunia_module_uv -p petunia_module_assets` sem egui.
+* **Critério de Saída**:
+  * Módulos atuam como bibliotecas de serviços geométricos e de dados 100% puras.
+
+---
+
+### Gauntlet G8 — Comprovação Headless (`petunia-cli` e Testes Puros)
+* **Objetivo**: Provar na prática o desacoplamento criando um utilitário CLI e uma suíte de testes de ponta a ponta sem interface gráfica.
+* **Achados Alvo**: **F-011**, validação de soberania headless.
+* **Pré-condições**: Ciclo G7 aprovado.
+* **Arquivos Afetados**:
+  * Novo binário de teste/utilitário `crates/cli/src/main.rs`.
+  * Novos testes em `crates/application/tests/headless_integration.rs`.
+* **Testes de Segurança**:
+  * Teste criando um cubo, selecionando face, aplicando extrusão via comando, desfazendo com undo, salvando arquivo `.petunia` e exportando `.glb` em menos de 50 milissegundos.
+* **Critério de Saída**:
+  * A pergunta fundamental da auditoria passa a ter resposta **SIM, PLENAMENTE PROVADO**.
+
+---
+
+### Gauntlet G9 — Estabilização da Application API (Queries & DTOs)
+* **Objetivo**: Padronizar as consultas de leitura da interface gráfica através de queries semânticas e DTOs com identificadores estáveis (`Uuid`).
+* **Achados Alvo**: **F-010**.
+* **Pré-condições**: Ciclo G8 aprovado.
+* **Arquivos Afetados**:
+  * `crates/application/src/queries.rs`: `SceneHierarchyQuery`, `SelectionDetailsQuery`, `ToolStatusQuery`.
+  * `crates/ui`: Consumir queries em vez de inspecionar diretamente campos profundos de arrays.
+* **Critério de Saída**:
+  * A interface gráfica consome o estado exclusivamente por contratos de leitura imutáveis e emite mutações por comandos.
+
+---
+
+### Gauntlet G10 — Camada C-ABI / FFI para Frontends Externos (Futuro)
+* **Objetivo**: Habilitar a construção de interfaces em outras linguagens (C++, C#, Go, Python) via FFI estável.
+* **Achados Alvo**: Habilitação de frontends multilíngues.
+* **Pré-condições**: Ciclos G1 a G9 concluídos com sucesso.
+* **Arquivos Afetados**:
+  * Novo crate `crates/ffi/src/lib.rs` exportando funções `extern "C"` com ponteiros opacos (`PetuniaSession*`), códigos de erro (`int32_t`) e anexação de superfície nativa de GPU (`RawWindowHandle`).
+* **Critério de Saída**:
+  * Exemplo mínimo em C++ ou C# instanciando o editor e renderizando a cena 3D nativamente em uma janela externa.
+
+---
+
+## 4. Tabela Resumo do Plano Gauntlet
+
+| Gauntlet | Objetivo Principal | Escala Estimada | Risco | Critério de Sucesso |
+| :---: | :--- | :---: | :---: | :--- |
+| **G0** | Baseline & Testes de Fitness | Small | Baixo | `cargo xtask arch-check` reporta limites |
+| **G1** | Purificação de `core` e `config` | Medium | Médio | `core` e `config` compilam sem egui |
+| **G2** | Fundação do `CommandDispatcher` | Medium | Médio | Comandos executam com undo automático |
+| **G3** | Extração de Mutações da UI | Large | Alto | Zero chamadas a `checkpoint()` na UI |
+| **G4** | `ProjectService` de I/O | Small | Baixo | Carregamento/salvamento desacoplado de diálogos |
+| **G5** | Sessões de Ferramentas (Cutting/Modal) | Large | Alto | Lógica de ferramentas roda sem egui |
+| **G6** | Decomposição do `AppState` | Large | Médio | 4 estados segregados com donos claros |
+| **G7** | Purificação dos `module-*` | Medium | Baixo | Módulos sem dependência de egui |
+| **G8** | Comprovação Headless (`petunia-cli`) | Medium | Baixo | Sessão completa executa via terminal |
+| **G9** | Application API & DTOs | Medium | Médio | UI consome queries com UUIDs estáveis |
+| **G10**| Camada C-ABI / FFI | Large | Médio | Core acoplável a frontends em C++/C# |
