@@ -63,6 +63,7 @@ impl AppState {
         } else {
             self.undo.checkpoint(preview.label, &preview.original);
         }
+        self.cut_session = None;
         self.sync_selection();
         self.emit_mesh_changed();
     }

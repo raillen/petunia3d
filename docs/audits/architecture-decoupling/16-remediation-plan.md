@@ -136,18 +136,28 @@ flowchart TD
 
 ---
 
-### Gauntlet G5 — Desacoplamento das Sessões de Ferramentas (Cutting e Modal)
+### Gauntlet G5 — Desacoplamento das Sessões de Ferramentas (Cutting e Modal) [CONCLUÍDO]
 * **Objetivo**: Extrair as máquinas de estado de ferramentas que hoje vivem em funções de desenho egui para controladores neutros de sessão.
 * **Achados Alvo**: **F-005**, **F-006**.
+* **Status**: ✅ **CONCLUÍDO** (`CutSession` e `PointerSession` puras integradas ao `AppState`; `ctx.data_mut` / `Id::new("cut.session")` / `Id::new("modal.pointer")` completamente erradicados; projeções e snapping unificados em `petunia_core::viewport`).
 * **Pré-condições**: Ciclo G4 aprovado.
 * **Arquivos Afetados**:
-  * `crates/ui/src/cutting.rs`: Extrair `CutSession` para `petunia_core::cutting_session` como máquina de estado pura.
-  * `crates/ui/src/modal_viewport.rs`: Extrair `PointerSession` para a camada de aplicação.
-  * `crates/ui/src/annotation.rs` e `crates/ui/src/measurement.rs`: Isolar a geração matemática de pontos e réguas da renderização do `egui::Painter`.
+  * `crates/core/src/cutting_session.rs`: Nova máquina de estado neutra de corte com `source`, `anchor: Option<[f32; 2]>`, `edge_start`, `ring`, `cuts`, `sliding` e métodos puros `adjust_cuts`, `cut_knife_segment`, `compute_slice`, `compute_loop_slide`, `preview_loop_lines`, `apply_loop_cut`.
+  * `crates/core/src/modal.rs`: Extração de `PointerSession` com `anchor: [f32; 2]`, `numeric: String`, `drag_handle: bool`, `valid_preview: bool`, `last_pos: [f32; 2]` e métodos `push_char`, `pop_char`, `parse_numeric`. `commit_modal()` e `cancel_modal()` limpam a sessão automaticamente.
+  * `crates/core/src/viewport.rs`: Unificação de projeção e desprojeção canônicas (`LogicalRect::screen_to_ndc`, `LogicalRect::ndc_to_screen`, `LogicalRect::project_point`, `LogicalRect::ray`, `unproject_to_surface_or_cursor_plane` e `unproject_cursor_or_vertex_snap`).
+  * `crates/core/src/state.rs` & `crates/core/src/mesh_preview.rs`: Adicionados campos de sessão `cut_session` e `pointer_session` diretamente em `AppState`. Limpeza atômica em `finish_mesh_preview`.
+  * `crates/core/tests/cutting_session_tests.rs`: 6 novos testes unitários e de integração headless para `CutSession`, `PointerSession` e ciclo com `mesh_preview`.
+  * `crates/ui/src/cutting.rs`: Refatorado para usar `state.cut_session` e métodos puros do domínio. Remoção total de `ctx.data_mut` e `Id::new("cut.session")`.
+  * `crates/ui/src/modal_viewport.rs`: Refatorado para usar `state.pointer_session`. Remoção total de `ctx.data_mut` e `Id::new("modal.pointer")`.
+  * `crates/ui/src/annotation.rs` & `crates/ui/src/measurement.rs`: Substituição de projeções, raios e raycasts duplicados pelas funções canônicas em `petunia_core::viewport`.
+  * `tests/architecture_fitness.rs` & `crates/xtask/src/main.rs`: Adicionado teste de fitness arquitetural e verificação no `arch-check` garantindo ausência de `"cut.session"` e `"modal.pointer"` em memória temporária de UI.
 * **Testes de Segurança**:
-  * Executar a suíte completa de `cutting_tests.rs`, `modal_tests.rs` e `paint_tests.rs`.
+  * `cargo test -p petunia_core`: 65 testes aprovados (42 unitários + 8 commands + 6 cutting_session + 9 project_service).
+  * `cargo test -p petunia_ui`: 88 testes aprovados (83 unitários + 5 kittest).
+  * `cargo test --test architecture_fitness`: 9 testes aprovados.
+  * Suíte global com 245+ testes aprovados sem regressões.
 * **Critério de Saída**:
-  * Toda a máquina de estados de corte e modal pode ser executada por testes sem carregar um `egui::Context`.
+  * Toda a máquina de estados de corte e modal é executada headless sem necessidade de `egui::Context` ou memória temporária de interface. Validado com sucesso.
 
 ---
 

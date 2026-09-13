@@ -256,28 +256,52 @@ fn task_arch_check() -> Result<()> {
 
     collect_rs(&crates_dir, &mut rs_files)?;
 
-    for file_path in rs_files {
+    for file_path in &rs_files {
         let rel = file_path
             .strip_prefix(&root)
-            .unwrap_or(&file_path)
+            .unwrap_or(file_path)
             .to_string_lossy();
 
         if rel == "crates/ui/src/file_dialog_service.rs" || rel.starts_with("crates/xtask") {
             continue;
         }
 
-        let content = std::fs::read_to_string(&file_path)
+        let content = std::fs::read_to_string(file_path)
             .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
 
         if content.contains("rfd::FileDialog") {
             bail!("Violação de Fronteira de I/O: {rel} instancia rfd::FileDialog fora de file_dialog_service.rs!");
         }
         if content.contains("egui_file_dialog::FileDialog") {
-            bail!("Violação de Fronteira de I/O: {rel} instancia egui_file_dialog::FileDialog fora de file_dialog_service.rs!");
+            bail!("Violação de Fronteira de I/O: {rel} instancia egui_file_dialog fora de file_dialog_service.rs!");
         }
     }
 
     println!("✅ Fronteira de I/O validada: nenhum arquivo fora de crates/ui/src/file_dialog_service.rs instancia rfd ou egui-file-dialog.");
-    println!("🏛️ Progresso de remediação: Gauntlet G0 (Fitness), G1 (Core Puro), G2 (Commands), G3 (Desacoplamento de UI) e G4 (ProjectService & I/O Boundary) CONCLUÍDOS.");
+
+    println!("🛡️ Validando ausência de sessões de ferramentas em memória temporária de UI (Gauntlet G5)...");
+    for file_path in &rs_files {
+        let rel = file_path
+            .strip_prefix(&root)
+            .unwrap_or(file_path)
+            .to_string_lossy();
+
+        if rel.starts_with("crates/xtask") {
+            continue;
+        }
+
+        let content = std::fs::read_to_string(file_path)
+            .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+
+        if content.contains("\"cut.session\"") {
+            bail!("Violação de Sessão de Ferramenta (G5): {rel} ainda utiliza Id(\"cut.session\") em memória temporária de UI!");
+        }
+        if content.contains("\"modal.pointer\"") {
+            bail!("Violação de Sessão de Ferramenta (G5): {rel} ainda utiliza Id(\"modal.pointer\") em memória temporária de UI!");
+        }
+    }
+    println!("✅ Sessões de ferramentas validadas: CutSession e PointerSession residem exclusivamente no domínio (AppState).");
+
+    println!("🏛️ Progresso de remediação: Gauntlets G0, G1, G2, G3, G4 e G5 (Desacoplamento de Sessões de Ferramentas) CONCLUÍDOS.");
     Ok(())
 }

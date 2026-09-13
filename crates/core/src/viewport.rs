@@ -58,6 +58,147 @@ impl LogicalRect {
     pub fn contains(&self, p: [f32; 2]) -> bool {
         p[0] >= self.min[0] && p[0] <= self.max[0] && p[1] >= self.min[1] && p[1] <= self.max[1]
     }
+
+    /// Converte coordenada de tela (pixels lógicos) para Normalized Device Coordinates (-1.0 a 1.0).
+    pub fn screen_to_ndc(&self, p: [f32; 2]) -> [f32; 2] {
+        let w = self.width().max(1.0);
+        let h = self.height().max(1.0);
+        [
+            ((p[0] - self.left()) / w) * 2.0 - 1.0,
+            1.0 - ((p[1] - self.top()) / h) * 2.0,
+        ]
+    }
+
+    /// Converte Normalized Device Coordinates (-1.0 a 1.0) para coordenadas de tela (pixels lógicos).
+    pub fn ndc_to_screen(&self, ndc: [f32; 2]) -> [f32; 2] {
+        [
+            self.center()[0] + ndc[0] * self.width() * 0.5,
+            self.center()[1] - ndc[1] * self.height() * 0.5,
+        ]
+    }
+
+    /// Projeta ponto 3D de mundo para coordenada 2D de tela dentro do retângulo lógico.
+    pub fn project_point(
+        &self,
+        camera: &crate::camera::Camera,
+        point: [f32; 3],
+    ) -> Option<[f32; 2]> {
+        let p3 = glam::Vec3::from(point);
+        if camera.proj == crate::camera::Projection::Perspective {
+            let fwd = camera.forward();
+            let to_p = (p3 - camera.eye()).normalize_or_zero();
+            if fwd.dot(to_p) <= 0.0 {
+                return None;
+            }
+        }
+        let ndc = camera.project_ndc(p3);
+        if ndc.x.abs() > 2.0 || ndc.y.abs() > 2.0 {
+            return None;
+        }
+        Some(self.ndc_to_screen([ndc.x, ndc.y]))
+    }
+
+    /// Dispara raio 3D (origem, direção) a partir de uma coordenada de tela.
+    pub fn ray(
+        &self,
+        camera: &crate::camera::Camera,
+        screen_pos: [f32; 2],
+    ) -> (glam::Vec3, glam::Vec3) {
+        let ndc = self.screen_to_ndc(screen_pos);
+        camera.ray(ndc[0], ndc[1])
+    }
+}
+
+/// Desprojeta a posição do cursor da tela para o espaço 3D, atingindo a superfície da malha
+/// ou recaindo no plano horizontal do cursor 3D.
+pub fn unproject_to_surface_or_cursor_plane(
+    camera: &crate::camera::Camera,
+    mesh: Option<&petunia_mesh::Mesh>,
+    screen_pos: [f32; 2],
+    viewport: LogicalRect,
+    cursor_3d: [f32; 3],
+    pixels_per_point: f32,
+) -> [f32; 3] {
+    let ndc = viewport.screen_to_ndc(screen_pos);
+
+    // 1. Tenta atingir a superfície da malha
+    if let Some(m) = mesh {
+        let vp_pixels = glam::Vec2::new(viewport.width(), viewport.height()) * pixels_per_point;
+        if let Some(hit) = crate::picking::pick_mesh(
+            m,
+            camera,
+            vp_pixels,
+            glam::Vec2::new(ndc[0], ndc[1]),
+            crate::selection::SelectMode::Face,
+            false,
+        ) {
+            let p = hit.position;
+            return [p.x, p.y, p.z];
+        }
+    }
+
+    // 2. Fallback: interseção com o plano horizontal do cursor 3D
+    let (ray_origin, ray_dir) = camera.ray(ndc[0], ndc[1]);
+    let plane_y = cursor_3d[1];
+    if ray_dir.y.abs() > 1e-4 {
+        let t = (plane_y - ray_origin.y) / ray_dir.y;
+        if t > 0.0 {
+            let hit = ray_origin + ray_dir * t;
+            return [hit.x, hit.y, hit.z];
+        }
+    }
+
+    let fallback = ray_origin + ray_dir * 5.0;
+    [fallback.x, fallback.y, fallback.z]
+}
+
+/// Encontra ponto 3D com snapping magnético ao vértice mais próximo da malha na tela (raio em px),
+/// ou recai no plano horizontal do cursor 3D.
+pub fn unproject_cursor_or_vertex_snap(
+    camera: &crate::camera::Camera,
+    mesh: Option<&petunia_mesh::Mesh>,
+    screen_pos: [f32; 2],
+    viewport: LogicalRect,
+    cursor_3d: [f32; 3],
+    snap_radius_px: f32,
+) -> [f32; 3] {
+    // 1. Tenta snapping magnético para o vértice mais próximo na tela
+    if let Some(m) = mesh {
+        let max_dist_sq = snap_radius_px * snap_radius_px;
+        let mut best_dist_sq = max_dist_sq;
+        let mut best_pos = None;
+
+        for v in &m.verts {
+            if let Some(sp) = viewport.project_point(camera, v.pos) {
+                let dx = sp[0] - screen_pos[0];
+                let dy = sp[1] - screen_pos[1];
+                let d_sq = dx * dx + dy * dy;
+                if d_sq < best_dist_sq {
+                    best_dist_sq = d_sq;
+                    best_pos = Some(v.pos);
+                }
+            }
+        }
+
+        if let Some(pos) = best_pos {
+            return pos;
+        }
+    }
+
+    // 2. Fallback para o plano do cursor 3D
+    let ndc = viewport.screen_to_ndc(screen_pos);
+    let (ray_origin, ray_dir) = camera.ray(ndc[0], ndc[1]);
+    let plane_y = cursor_3d[1];
+    if ray_dir.y.abs() > 1e-4 {
+        let t = (plane_y - ray_origin.y) / ray_dir.y;
+        if t > 0.0 {
+            let hit = ray_origin + ray_dir * t;
+            return [hit.x, hit.y, hit.z];
+        }
+    }
+
+    let fallback = ray_origin + ray_dir * 5.0;
+    [fallback.x, fallback.y, fallback.z]
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

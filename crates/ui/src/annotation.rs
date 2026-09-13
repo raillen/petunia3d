@@ -5,25 +5,14 @@
 
 use egui::{Color32, PointerButton, Pos2, Rect, Response, Stroke};
 use glam::Vec3;
-use petunia_core::{picking::pick_mesh, AnnotationItem, AnnotationStroke, AppState, SelectMode};
+use petunia_core::viewport::{unproject_to_surface_or_cursor_plane, LogicalRect};
+use petunia_core::{AnnotationItem, AnnotationStroke, AppState};
 
 /// Projeta uma coordenada 3D de mundo para a coordenada 2D de tela dentro do retângulo do viewport.
 fn project_to_screen(point: [f32; 3], state: &AppState, rect: Rect) -> Option<Pos2> {
-    let p3 = Vec3::from(point);
-    let ndc = state.camera.project_ndc(p3);
-    if state.camera.proj == petunia_core::Projection::Perspective {
-        let fwd = state.camera.forward();
-        let to_p = (p3 - state.camera.eye()).normalize_or_zero();
-        if fwd.dot(to_p) <= 0.0 {
-            return None;
-        }
-    }
-    if ndc.x.abs() > 2.0 || ndc.y.abs() > 2.0 {
-        return None;
-    }
-    let screen_x = rect.min.x + (ndc.x * 0.5 + 0.5) * rect.width();
-    let screen_y = rect.min.y + (1.0 - (ndc.y * 0.5 + 0.5)) * rect.height();
-    Some(Pos2::new(screen_x, screen_y))
+    let vp = LogicalRect::from_min_max([rect.min.x, rect.min.y], [rect.max.x, rect.max.y]);
+    vp.project_point(&state.camera, point)
+        .map(|[x, y]| Pos2::new(x, y))
 }
 
 /// Converte a posição do cursor em um ponto 3D na superfície da malha ou no plano do cursor 3D.
@@ -33,48 +22,15 @@ fn unproject_to_surface_or_plane(
     rect: Rect,
     pixels_per_point: f32,
 ) -> [f32; 3] {
-    // 1. Tenta atingir a superfície da malha ativa
-    if let Some(mesh) = state.project.active_mesh() {
-        if let Some(hit) = pick_mesh(
-            mesh,
-            &state.camera,
-            glam::Vec2::new(rect.width(), rect.height()) * pixels_per_point,
-            glam::Vec2::new(ndc_x(screen_pos, rect), ndc_y(screen_pos, rect)),
-            SelectMode::Face,
-            false,
-        ) {
-            let p = hit.position;
-            return [p.x, p.y, p.z];
-        }
-    }
-
-    // 2. Fallback: interseção com o plano horizontal do cursor 3D
-    let (ray_origin, ray_dir) = state
-        .camera
-        .ray(ndc_x(screen_pos, rect), ndc_y(screen_pos, rect));
-
-    let plane_y = state.cursor_3d[1];
-    if ray_dir.y.abs() > 1e-4 {
-        let t = (plane_y - ray_origin.y) / ray_dir.y;
-        if t > 0.0 {
-            let hit = ray_origin + ray_dir * t;
-            return [hit.x, hit.y, hit.z];
-        }
-    }
-
-    [
-        ray_origin.x + ray_dir.x * 5.0,
-        ray_origin.y + ray_dir.y * 5.0,
-        ray_origin.z + ray_dir.z * 5.0,
-    ]
-}
-
-fn ndc_x(pos: Pos2, rect: Rect) -> f32 {
-    ((pos.x - rect.min.x) / rect.width()) * 2.0 - 1.0
-}
-
-fn ndc_y(pos: Pos2, rect: Rect) -> f32 {
-    1.0 - ((pos.y - rect.min.y) / rect.height()) * 2.0
+    let vp = LogicalRect::from_min_max([rect.min.x, rect.min.y], [rect.max.x, rect.max.y]);
+    unproject_to_surface_or_cursor_plane(
+        &state.camera,
+        state.project.active_mesh(),
+        [screen_pos.x, screen_pos.y],
+        vp,
+        state.cursor_3d,
+        pixels_per_point,
+    )
 }
 
 /// Renderiza e manipula anotações e traços no viewport com undo/redo transacional.

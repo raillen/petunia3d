@@ -3,6 +3,7 @@
 
 pub mod camera;
 pub mod command;
+pub mod cutting_session;
 pub mod events;
 pub mod loop_cut;
 pub mod mesh_preview;
@@ -13,6 +14,8 @@ pub mod project_service;
 pub mod selection;
 pub mod state;
 pub mod viewport;
+
+pub use cutting_session::CutSession;
 
 pub use command::{
     AddPrimitiveCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError, DeleteAssetCmd,
@@ -29,7 +32,10 @@ pub use state::{
     AnnotationItem, AnnotationStroke, AppState, EditMode, Measurement, MeasurementItem,
     ProfileState, RefAxis, ReferenceImage, RenderStats,
 };
-pub use viewport::{LogicalRect, PhysicalViewport};
+pub use viewport::{
+    unproject_cursor_or_vertex_snap, unproject_to_surface_or_cursor_plane, LogicalRect,
+    PhysicalViewport,
+};
 
 pub use modal::{ModalConstraint, ModalError, ModalKind, ModalOp};
 

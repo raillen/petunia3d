@@ -417,6 +417,7 @@ impl AppState {
             self.project = modal.original;
             self.selection = modal.selection;
         }
+        self.pointer_session = None;
         self.pending_modal = None;
         self.locked_axes = [false; 3];
         self.emit_mesh_changed();
@@ -424,6 +425,7 @@ impl AppState {
     }
 
     pub fn cancel_modal(&mut self) -> bool {
+        self.pointer_session = None;
         self.pending_modal = None;
         let Some(modal) = self.modal.take() else {
             return false;
@@ -435,6 +437,50 @@ impl AppState {
             .emit(crate::AppEvent::SelectionChanged(self.selection.clone()));
         self.emit_mesh_changed();
         true
+    }
+}
+
+/// Sessão interativa de transformação modal por ponteiro e teclado numérico.
+#[derive(Debug, Clone)]
+pub struct PointerSession {
+    /// Posição 2D de tela inicial do clique/arrasto (pixels lógicos).
+    pub anchor: [f32; 2],
+    /// Buffer de entrada de texto numérico (ex: "1.5", "-45").
+    pub numeric: String,
+    /// Flag indicando se a sessão foi iniciada via arraste de gizmo.
+    pub drag_handle: bool,
+    /// Flag indicando se a pré-visualização atual é válida.
+    pub valid_preview: bool,
+    /// Última posição 2D de tela registrada.
+    pub last_pos: [f32; 2],
+}
+
+impl PointerSession {
+    pub fn new(anchor: [f32; 2], drag_handle: bool) -> Self {
+        Self {
+            anchor,
+            numeric: String::new(),
+            drag_handle,
+            valid_preview: true,
+            last_pos: anchor,
+        }
+    }
+
+    pub fn push_char(&mut self, c: char) -> bool {
+        if (c.is_ascii_digit() || matches!(c, '.' | ',' | '-' | '+')) && self.numeric.len() < 64 {
+            self.numeric.push(if c == ',' { '.' } else { c });
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn pop_char(&mut self) -> Option<char> {
+        self.numeric.pop()
+    }
+
+    pub fn parse_numeric(&self) -> Option<f32> {
+        self.numeric.parse::<f32>().ok()
     }
 }
 

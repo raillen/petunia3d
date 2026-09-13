@@ -1,19 +1,11 @@
 //! Fluxos de faca, plano de corte e loop cut com checkpoint ao confirmar.
 use egui::{Key, PointerButton, Pos2, Rect};
 use glam::{Vec2, Vec3};
+use petunia_core::cutting_session::CutSession;
 use petunia_core::picking::{pick_mesh, PickComponent};
+use petunia_core::viewport::LogicalRect;
 use petunia_core::{AppState, SelectMode};
-use petunia_mesh::{knife::EdgePoint, loop_cut::LoopRing, Mesh};
-
-#[derive(Clone)]
-struct CutSession {
-    source: Mesh,
-    anchor: Option<Pos2>,
-    edge_start: Option<EdgePoint>,
-    ring: Option<LoopRing>,
-    cuts: usize,
-    sliding: bool,
-}
+use petunia_mesh::{knife::EdgePoint, loop_cut::LoopRing};
 
 pub fn draw(
     ctx: &egui::Context,
@@ -25,7 +17,9 @@ pub fn draw(
     if !matches!(tool.as_str(), "knife" | "slice" | "loop_cut") {
         return false;
     }
-    let id = egui::Id::new("cut.session");
+    let logical_rect =
+        LogicalRect::from_min_max([rect.min.x, rect.min.y], [rect.max.x, rect.max.y]);
+
     if state.mesh_preview.is_none() {
         let Some(mesh) = state.project.active_mesh().cloned() else {
             return true;
@@ -37,47 +31,36 @@ pub fn draw(
         }) {
             return false;
         }
-        ctx.data_mut(|d| {
-            d.insert_temp(
-                id,
-                CutSession {
-                    source: mesh,
-                    anchor: None,
-                    edge_start: None,
-                    ring: None,
-                    cuts: 1,
-                    sliding: false,
-                },
-            )
-        });
+        state.cut_session = Some(CutSession::new(mesh));
     }
-    let Some(mut session) = ctx.data_mut(|d| d.get_temp::<CutSession>(id)) else {
+
+    let Some(mut session) = state.cut_session.take() else {
         state.finish_mesh_preview(true);
         return true;
     };
+
     let cancel = ctx.input(|i| {
         i.key_pressed(Key::Escape) || i.pointer.button_pressed(PointerButton::Secondary)
     });
     if cancel
         && !(tool == "loop_cut" && session.sliding && !ctx.input(|i| i.key_pressed(Key::Escape)))
     {
-        finish(ctx, state, id, true);
+        finish(state, true);
         return true;
     }
     if ctx.input(|i| i.key_pressed(Key::Enter)) {
-        finish(ctx, state, id, false);
+        finish(state, false);
         return true;
     }
     if cancel && tool == "loop_cut" && session.sliding {
-        if let Some(ring) = &session.ring {
-            if let Ok(mesh) = ring.apply(&session.source, session.cuts, 0.0) {
-                state.preview_mesh(mesh);
-                finish(ctx, state, id, false);
-                return true;
-            }
+        if let Ok(mesh) = session.apply_loop_cut(0.0) {
+            state.preview_mesh(mesh);
+            finish(state, false);
+            return true;
         }
     }
     let Some(pos) = ctx.pointer_hover_pos().filter(|p| rect.contains(*p)) else {
+        state.cut_session = Some(session);
         return true;
     };
     ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
@@ -88,6 +71,7 @@ pub fn draw(
     let pressed = ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary));
     let moved = ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO);
     let mut message = "Clique nas arestas · Enter: aplicar · Esc/RMB: cancelar".to_owned();
+
     if tool == "knife" {
         let hit = state.project.active_mesh().and_then(|mesh| {
             pick_mesh(
@@ -101,7 +85,7 @@ pub fn draw(
         });
         if let Some(start) = session.edge_start {
             painter.line_segment(
-                [screen(state, rect, start.position), pos],
+                [screen(state, logical_rect, start.position), pos],
                 egui::Stroke::new(2.0_f32, egui::Color32::YELLOW),
             );
         }
@@ -114,7 +98,7 @@ pub fn draw(
                     };
                     if let Some(start) = session.edge_start {
                         if let Some(mesh) = state.project.active_mesh() {
-                            match petunia_mesh::knife::cut_face(mesh, start, point) {
+                            match session.cut_knife_segment(start, point, mesh) {
                                 Ok(mesh) => {
                                     state.preview_mesh(mesh);
                                     session.edge_start = None;
@@ -132,36 +116,22 @@ pub fn draw(
         message = "Arraste o plano · Enter/LMB: aplicar · Esc/RMB: cancelar".into();
         if pressed {
             if session.sliding {
-                finish(ctx, state, id, false);
+                finish(state, false);
                 return true;
             }
-            session.anchor = Some(pos);
+            session.anchor = Some([pos.x, pos.y]);
         }
         if let Some(anchor) = session.anchor {
+            let anchor_pos = Pos2::new(anchor[0], anchor[1]);
             painter.line_segment(
-                [anchor, pos],
+                [anchor_pos, pos],
                 egui::Stroke::new(2.0_f32, egui::Color32::YELLOW),
             );
             if moved && ctx.input(|i| i.pointer.button_down(PointerButton::Primary)) {
-                let delta = pos - anchor;
-                if delta.length() > 4.0 {
-                    let normal = (state.camera.right() * delta.y + state.camera.up() * delta.x)
-                        .normalize_or_zero();
-                    let center = Vec3::from_array(session.source.selection_center());
-                    let anchor_ndc = Vec2::new(
-                        (anchor.x - rect.left()) / rect.width() * 2.0 - 1.0,
-                        1.0 - (anchor.y - rect.top()) / rect.height() * 2.0,
-                    );
-                    let (origin, direction) = state.camera.ray(anchor_ndc.x, anchor_ndc.y);
-                    let forward = state.camera.forward();
-                    let denominator = direction.dot(forward);
-                    if denominator.abs() > 1e-5 {
-                        let point =
-                            origin + direction * ((center - origin).dot(forward) / denominator);
-                        let mut mesh = session.source.clone();
-                        mesh.slice_plane(point, normal, true);
-                        state.preview_mesh(mesh);
-                    }
+                if let Some(mesh) =
+                    session.compute_slice(&state.camera, anchor, [pos.x, pos.y], logical_rect)
+                {
+                    state.preview_mesh(mesh);
                 }
             }
             if ctx.input(|i| i.pointer.button_released(PointerButton::Primary)) {
@@ -171,8 +141,7 @@ pub fn draw(
     } else {
         let scroll = ctx.input(|i| i.raw_scroll_delta.y);
         if scroll != 0.0 {
-            session.cuts =
-                (session.cuts as i32 + if scroll > 0.0 { 1 } else { -1 }).clamp(1, 32) as usize;
+            session.adjust_cuts(if scroll > 0.0 { 1 } else { -1 });
         }
         if !session.sliding {
             session.ring = None;
@@ -198,32 +167,32 @@ pub fn draw(
         let slide = if cancel {
             0.0
         } else {
-            session
-                .anchor
-                .map(|anchor| ((pos.x - anchor.x) / 200.0).clamp(-1.0, 1.0))
-                .unwrap_or(0.0)
+            session.compute_loop_slide(pos.x)
         };
-        if let Some(ring) = &session.ring {
-            if let Ok(lines) = ring.preview(&session.source, session.cuts, slide) {
+        if session.ring.is_some() {
+            if let Ok(lines) = session.preview_loop_lines(slide) {
                 for [a, b] in lines {
                     painter.line_segment(
-                        [screen(state, rect, a), screen(state, rect, b)],
+                        [
+                            screen(state, logical_rect, a),
+                            screen(state, logical_rect, b),
+                        ],
                         egui::Stroke::new(2.5_f32, egui::Color32::YELLOW),
                     );
                 }
             }
             if pressed || (session.sliding && (moved || scroll != 0.0 || cancel)) {
-                match ring.apply(&session.source, session.cuts, slide) {
+                match session.apply_loop_cut(slide) {
                     Ok(mesh) => state.preview_mesh(mesh),
                     Err(error) => state.set_status(error.to_string()),
                 }
                 if session.sliding && (pressed || cancel) {
-                    finish(ctx, state, id, false);
+                    finish(state, false);
                     return true;
                 }
                 if pressed {
                     session.sliding = true;
-                    session.anchor = Some(pos);
+                    session.anchor = Some([pos.x, pos.y]);
                 }
             }
         }
@@ -244,18 +213,18 @@ pub fn draw(
         egui::FontId::monospace(13.0),
         egui::Color32::YELLOW,
     );
-    ctx.data_mut(|d| d.insert_temp(id, session));
+    state.cut_session = Some(session);
     true
 }
-fn finish(ctx: &egui::Context, state: &mut AppState, id: egui::Id, cancel: bool) {
+
+fn finish(state: &mut AppState, cancel: bool) {
     state.finish_mesh_preview(cancel);
     state.active_tool = "select".into();
-    ctx.data_mut(|d| d.remove::<CutSession>(id));
+    state.cut_session = None;
 }
-fn screen(state: &AppState, rect: Rect, p: Vec3) -> Pos2 {
-    let p = state.camera.project_ndc(p);
-    Pos2::new(
-        rect.center().x + p.x * rect.width() * 0.5,
-        rect.center().y - p.y * rect.height() * 0.5,
-    )
+
+fn screen(state: &AppState, rect: LogicalRect, p: Vec3) -> Pos2 {
+    let ndc = state.camera.project_ndc(p);
+    let s = rect.ndc_to_screen([ndc.x, ndc.y]);
+    Pos2::new(s[0], s[1])
 }

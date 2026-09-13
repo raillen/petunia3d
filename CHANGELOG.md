@@ -3,6 +3,40 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.15.0] - 2026-09-13 — Architectural Decoupling: Tool Sessions Decoupling (Cutting, Modal & Math Normalization) (Gauntlet G5)
+
+### Adicionado
+- **Máquina de Estado Pura de Ferramentas de Corte `CutSession` (`crates/core/src/cutting_session.rs`)**:
+  - Encapsula o ciclo de vida transacional das ferramentas `Knife`, `Slice` e `Loop Cut` sem qualquer dependência de `egui`.
+  - Campos neutros: `source` (malha original), `anchor: Option<[f32; 2]>`, `edge_start: Option<EdgePoint>`, `ring: Option<LoopRing>`, `cuts: usize`, `sliding: bool`.
+  - Métodos canônicos: `adjust_cuts(delta)`, `cut_knife_segment(...)`, `compute_slice(...)`, `compute_loop_slide(current_x)`, `preview_loop_lines(slide)`, `apply_loop_cut(slide)`.
+  - 6 testes unitários e de integração headless em `crates/core/tests/cutting_session_tests.rs`.
+- **Máquina de Estado Pura de Interação por Ponteiro `PointerSession` (`crates/core/src/modal.rs`)**:
+  - Buffer de entrada numérica via teclado com parsing seguro (`parse_numeric()`), âncora de tela agnóstica (`[f32; 2]`) e rastreamento de última posição.
+  - Limpeza atômica automática vinculada a `commit_modal()` e `cancel_modal()` no domínio.
+- **Campos de Sessão de Primeira Classe em `AppState` (`crates/core/src/state.rs`)**:
+  - `pub cut_session: Option<CutSession>` e `pub pointer_session: Option<PointerSession>`.
+  - Integração com `finish_mesh_preview`: encerramento de preview (por commit ou cancelamento) reseta atomicamente `cut_session`.
+- **Normalização Matemática de Viewport em `petunia_core::viewport` (`crates/core/src/viewport.rs`)**:
+  - Métodos geométricos canônicos em `LogicalRect`: `screen_to_ndc`, `ndc_to_screen`, `project_point`, `ray`.
+  - Funções canônicas de desprojeção e snapping: `unproject_to_surface_or_cursor_plane` e `unproject_cursor_or_vertex_snap`.
+- **Governança de Sessões de UI em Fitness e CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Scanner automatizado que rejeita a reintrodução de `Id::new("cut.session")` ou `Id::new("modal.pointer")` em memória temporária de UI.
+
+### Modificado
+- **Erradicação de Memória Temporária de UI em `crates/ui/src/cutting.rs`**:
+  - Remoção de `struct CutSession` privada e chamadas `ctx.data_mut` (`insert_temp`, `get_temp`, `remove`).
+  - A ferramenta agora opera diretamente sobre `state.cut_session`, delegando o cálculo do plano de corte, deslizamento de loop e aplicação de anéis aos métodos puros do domínio.
+- **Erradicação de Memória Temporária de UI em `crates/ui/src/modal_viewport.rs`**:
+  - Remoção de `struct PointerSession` privada e chamadas `ctx.data_mut`.
+  - `start_handle` e o loop `draw` agora operam exclusivamente com `state.pointer_session`.
+- **Deduplicação Matemática em `crates/ui/src/annotation.rs` e `crates/ui/src/measurement.rs`**:
+  - Remoção de implementações duplicadas de projeção de tela, conversão NDC e raycasting manual em favor das funções canônicas de `petunia_core::viewport`.
+- **`LoopRing` e `RingFace` em `crates/mesh/src/loop_cut.rs`**:
+  - Derivação de `Debug` implementada em `LoopRing` e `RingFace`.
+
+---
+
 ## [0.14.0] - 2026-09-13 — Architectural Decoupling: Pure ProjectService & File I/O Boundary (Gauntlet G4)
 
 ### Adicionado

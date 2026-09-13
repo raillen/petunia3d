@@ -142,3 +142,45 @@ fn file_dialogs_isolated_strictly_to_file_dialog_service() {
         );
     }
 }
+
+#[test]
+fn tool_and_pointer_sessions_isolated_from_egui_memory() {
+    let crates_dir = root_dir().join("crates");
+    let mut rs_files = Vec::new();
+
+    fn scan_dir(dir: &Path, acc: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    scan_dir(&path, acc);
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
+                    acc.push(path);
+                }
+            }
+        }
+    }
+
+    scan_dir(&crates_dir, &mut rs_files);
+
+    for file_path in rs_files {
+        let rel_path = file_path
+            .strip_prefix(root_dir())
+            .unwrap_or(&file_path)
+            .to_string_lossy();
+
+        if rel_path.starts_with("crates/xtask") {
+            continue;
+        }
+
+        let content = fs::read_to_string(&file_path).expect("ler arquivo fonte");
+        assert!(
+            !content.contains("\"cut.session\""),
+            "VIOLAÇÃO ARQUITETURAL (G5): {rel_path} ainda utiliza 'cut.session' em memória temporária de UI!"
+        );
+        assert!(
+            !content.contains("\"modal.pointer\""),
+            "VIOLAÇÃO ARQUITETURAL (G5): {rel_path} ainda utiliza 'modal.pointer' em memória temporária de UI!"
+        );
+    }
+}

@@ -35,7 +35,7 @@ impl std::fmt::Display for LoopCutError {
 }
 impl std::error::Error for LoopCutError {}
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct RingFace {
     index: usize,
     original: [u32; 4],
@@ -44,7 +44,7 @@ struct RingFace {
     offset: usize,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct LoopRing {
     faces: Vec<RingFace>,
     /// Each edge is directed consistently across the ring for shared slide values.

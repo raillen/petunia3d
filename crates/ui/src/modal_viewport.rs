@@ -1,20 +1,11 @@
 //! Adaptador de eventos egui para a transação modal do domínio.
 use egui::{Color32, Key, PointerButton, Pos2, Rect, Vec2};
 use glam::Vec3;
-use petunia_core::modal::{ModalConstraint, ModalKind};
+use petunia_core::modal::{ModalConstraint, ModalKind, PointerSession};
 use petunia_core::{AppState, Projection};
 
-#[derive(Clone)]
-struct PointerSession {
-    anchor: Pos2,
-    numeric: String,
-    drag_handle: bool,
-    valid_preview: bool,
-    last_pos: Pos2,
-}
-
 pub fn start_handle(
-    ctx: &egui::Context,
+    _ctx: &egui::Context,
     state: &mut AppState,
     kind: ModalKind,
     constraint: ModalConstraint,
@@ -25,18 +16,7 @@ pub fn start_handle(
             if let Err(error) = state.set_modal_constraint(constraint) {
                 state.set_status(error.to_string());
             }
-            ctx.data_mut(|d| {
-                d.insert_temp(
-                    egui::Id::new("modal.pointer"),
-                    PointerSession {
-                        anchor,
-                        numeric: String::new(),
-                        drag_handle: true,
-                        valid_preview: true,
-                        last_pos: anchor,
-                    },
-                )
-            });
+            state.pointer_session = Some(PointerSession::new([anchor.x, anchor.y], true));
         }
         Err(error) => state.set_status(error.to_string()),
     }
@@ -52,7 +32,6 @@ pub fn draw(
     if crate::tool_fields::owns_modal(ctx) {
         return state.modal.is_some();
     }
-    let id = egui::Id::new("modal.pointer");
     let mut started = false;
     if let Some(kind) = state.pending_modal {
         if ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -63,18 +42,7 @@ pub fn draw(
             state.pending_modal = None;
             match state.begin_modal(kind) {
                 Ok(()) => {
-                    ctx.data_mut(|d| {
-                        d.insert_temp(
-                            id,
-                            PointerSession {
-                                anchor: pos,
-                                numeric: String::new(),
-                                drag_handle: false,
-                                valid_preview: true,
-                                last_pos: pos,
-                            },
-                        )
-                    });
+                    state.pointer_session = Some(PointerSession::new([pos.x, pos.y], false));
                     started = true;
                 }
                 Err(error) => state.set_status(error.to_string()),
@@ -108,24 +76,21 @@ pub fn draw(
             ctx.pointer_hover_pos(),
         );
     }
-    let mut pointer = ctx
-        .data_mut(|d| d.get_temp::<PointerSession>(id))
-        .unwrap_or(PointerSession {
-            anchor: rect.center(),
-            numeric: String::new(),
-            drag_handle: false,
-            valid_preview: true,
-            last_pos: rect.center(),
-        });
-    let pos = ctx.pointer_hover_pos().unwrap_or(pointer.last_pos);
-    pointer.last_pos = pos;
+    let mut pointer = state
+        .pointer_session
+        .take()
+        .unwrap_or_else(|| PointerSession::new([rect.center().x, rect.center().y], false));
+    let anchor = Pos2::new(pointer.anchor[0], pointer.anchor[1]);
+    let pos = ctx
+        .pointer_hover_pos()
+        .unwrap_or(Pos2::new(pointer.last_pos[0], pointer.last_pos[1]));
+    pointer.last_pos = [pos.x, pos.y];
     ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
     let cancel = ctx.input(|i| {
         i.key_pressed(Key::Escape) || i.pointer.button_pressed(PointerButton::Secondary)
     });
     if cancel {
         state.cancel_modal();
-        ctx.data_mut(|d| d.remove::<PointerSession>(id));
         return true;
     }
     let mut changed = started || ctx.input(|i| !i.events.is_empty());
@@ -187,7 +152,7 @@ pub fn draw(
         .as_ref()
         .map(|op| op.constraint)
         .unwrap_or(ModalConstraint::Free);
-    let delta = pos - pointer.anchor;
+    let delta = pos - anchor;
     let units = world_per_pixel(state, rect, pivot);
     let translation = (state.camera.right() * delta.x - state.camera.up() * delta.y) * units;
     let axis = match constraint {
@@ -201,7 +166,7 @@ pub fn draw(
         ModalConstraint::Plane(axis) => {
             let normal = [Vec3::X, Vec3::Y, Vec3::Z][axis];
             match (
-                plane_point(state, rect, pointer.anchor, pivot, normal),
+                plane_point(state, rect, anchor, pivot, normal),
                 plane_point(state, rect, pos, pivot, normal),
             ) {
                 (Some(start), Some(end)) => end - start,
@@ -217,7 +182,7 @@ pub fn draw(
         }
         ModalKind::Rotate => {
             match (
-                plane_point(state, rect, pointer.anchor, pivot, axis),
+                plane_point(state, rect, anchor, pivot, axis),
                 plane_point(state, rect, pos, pivot, axis),
             ) {
                 (Some(a), Some(b))
@@ -241,15 +206,7 @@ pub fn draw(
         ModalKind::Inset => delta.x * 0.005,
         ModalKind::Bevel => delta.x * units,
     };
-    let numeric = if pointer.numeric.is_empty() {
-        None
-    } else {
-        pointer
-            .numeric
-            .parse::<f32>()
-            .ok()
-            .filter(|n| n.is_finite())
-    };
+    let numeric = pointer.parse_numeric();
     let valid_number = pointer.numeric.is_empty() || numeric.is_some();
     if let Some(number) = numeric {
         value = number;
@@ -294,17 +251,16 @@ pub fn draw(
         });
     if confirm && valid_preview {
         state.commit_modal();
-        ctx.data_mut(|d| d.remove::<PointerSession>(id));
         return true;
     }
     draw_axis_guide_lines(painter, state, rect, pivot, constraint);
 
     painter.line_segment(
-        [pointer.anchor, pos],
+        [anchor, pos],
         egui::Stroke::new(1.0_f32, egui::Color32::LIGHT_BLUE),
     );
     painter.circle_stroke(
-        pointer.anchor,
+        anchor,
         4.0,
         egui::Stroke::new(1.0_f32, egui::Color32::WHITE),
     );
@@ -328,7 +284,7 @@ pub fn draw(
             valid_preview,
         },
     );
-    ctx.data_mut(|d| d.insert_temp(id, pointer));
+    state.pointer_session = Some(pointer);
     true
 }
 
