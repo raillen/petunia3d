@@ -5,3 +5,11 @@
 __pycache__/
 *.pyc
 
+# Node / VitePress
+node_modules/
+**/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+.DS_Store
+
+
