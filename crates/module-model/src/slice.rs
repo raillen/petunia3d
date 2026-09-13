@@ -22,35 +22,13 @@ impl Tool for SliceTool {
     fn shortcut(&self) -> &'static str {
         "Shift+K"
     }
-    fn ui(&self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
-        let l_title = state.t("tools.slice");
-        let l_go = state.t("actions.slice");
-        ui.label(l_title);
-
-        ui.horizontal(|ui| {
-            if ui.button("Slice X").clicked() {
-                Self::apply_slice(state, Vec3::X, false);
-            }
-            if ui.button("Slice Y").clicked() {
-                Self::apply_slice(state, Vec3::Y, false);
-            }
-            if ui.button("Slice Z").clicked() {
-                Self::apply_slice(state, Vec3::Z, false);
-            }
-        });
-
-        if ui.button(format!("{l_go} (Cap)")).clicked() {
-            let cam_dir = state.camera.forward();
-            Self::apply_slice(state, cam_dir, true);
-        }
-    }
     fn on_activate(&self, state: &mut AppState) {
         state.set_status(state.t("hints.slice"));
     }
 }
 
 impl SliceTool {
-    fn apply_slice(state: &mut AppState, normal: Vec3, cap: bool) {
+    pub fn apply_slice(state: &mut AppState, normal: Vec3, cap: bool) {
         state.checkpoint("slice");
         let center = if let Some(m) = state.project.active_mesh() {
             Vec3::from(m.selection_center())

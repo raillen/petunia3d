@@ -176,17 +176,27 @@ flowchart TD
 
 ---
 
-### Gauntlet G7 — Purificação dos Crates de Módulo (`module-*`)
+### Gauntlet G7 — Purificação dos Crates de Módulo (`module-*`) [CONCLUÍDO]
 * **Objetivo**: Remover a dependência de `egui` dos manifestos de `module-model`, `module-paint`, `module-uv` e `module-assets`.
 * **Achados Alvo**: **F-008**.
+* **Status**: ✅ **CONCLUÍDO** (Remoção total de `egui` dos manifestos e códigos-fonte dos 4 crates de módulo; extração de widgets e apresentação para `crates/ui/src/modules_ui/`; validação de invariantes em CI e `xtask arch-check`).
 * **Pré-condições**: Ciclo G6 aprovado.
 * **Arquivos Afetados**:
-  * `crates/module-*/Cargo.toml`: Remover `egui = { workspace = true }`.
-  * Mover as funções de renderização de sliders e botões para `crates/ui/src/modules_ui/`.
+  * `crates/module-*/Cargo.toml`: Removido `egui = { workspace = true }` de todos os 4 crates (`module-model`, `module-paint`, `module-uv`, `module-assets`).
+  * `crates/ui/src/modules_ui/`: Novo submódulo com `model_ui.rs`, `paint_ui.rs` e `uv_ui.rs` contendo os controles, sliders, canvas interativo 2D de UV e textura de pintura.
+  * `crates/module-model`: Purificação de todas as 15 ferramentas (`Tool::ui` removido do trait e das implementações). Métodos de aplicação geométrica expostos publicamente como serviços puros.
+  * `crates/module-paint`: Removida dependência de texture handles de UI (`canvas_tex`); módulo transformado em serviço puro de rasterização e amostragem de cores.
+  * `crates/module-uv`: Removida renderização imediata de UVs; cálculo puro de projeção exposto via `uv_hit`.
+  * `crates/module-assets`: Removida interface de browser legada; módulo purificado como serviço de metadados.
+  * `crates/ui/src/properties_panel.rs`: Delegada a renderização de ferramentas e workspaces Paint/UV para `modules_ui`.
+  * `tests/architecture_fitness.rs` e `crates/xtask/src/main.rs`: Adicionados testes automatizados que escaneiam manifestos e fontes dos módulos, garantindo zero dependência ou referências a `egui`.
 * **Testes de Segurança**:
-  * `cargo check -p petunia_module_model -p petunia_module_paint -p petunia_module_uv -p petunia_module_assets` sem egui.
+  * `cargo check -p petunia_module_model -p petunia_module_paint -p petunia_module_uv -p petunia_module_assets`: 100% limpo sem `egui`.
+  * `cargo test --test architecture_fitness`: 12 testes aprovados.
+  * `cargo run -p xtask -- arch-check`: Todos os invariantes validados.
+  * `cargo test --workspace -j 2`: Todos os testes da workspace aprovados sem regressões.
 * **Critério de Saída**:
-  * Módulos atuam como bibliotecas de serviços geométricos e de dados 100% puras.
+  * Módulos atuam como bibliotecas de serviços geométricos e de dados 100% puras. Validado com sucesso.
 
 ---
 

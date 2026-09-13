@@ -7,6 +7,5 @@ license = "MIT"
 [dependencies]
 petunia_core = { workspace = true }
 petunia_mesh = { workspace = true }
-egui = { workspace = true }
 glam = { workspace = true }
 petunia_config = { workspace = true }

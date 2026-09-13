@@ -273,3 +273,64 @@ fn app_state_decomposed_into_cohesive_substates() {
     check_no_leaked_ui_gpu_fields("pub struct EditorSession {", &forbidden_in_domain);
     check_no_leaked_ui_gpu_fields("pub struct ToolState {", &forbidden_in_domain);
 }
+
+#[test]
+fn module_crates_must_not_depend_on_egui() {
+    let module_crates = [
+        "crates/module-model",
+        "crates/module-paint",
+        "crates/module-uv",
+        "crates/module-assets",
+    ];
+
+    for module in module_crates {
+        let manifest_path = root_dir().join(module).join("Cargo.toml");
+        let content = fs::read_to_string(&manifest_path)
+            .unwrap_or_else(|_| panic!("Falha ao ler {}", manifest_path.display()));
+        assert!(
+            !content.contains("egui"),
+            "VIOLAÇÃO ARQUITETURAL (G7 / F-008): {module}/Cargo.toml não pode depender de egui!"
+        );
+    }
+}
+
+#[test]
+fn module_crates_sources_must_not_reference_egui() {
+    let module_crates = [
+        "crates/module-model",
+        "crates/module-paint",
+        "crates/module-uv",
+        "crates/module-assets",
+    ];
+
+    let mut rs_files = Vec::new();
+    fn scan_dir(dir: &Path, acc: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    scan_dir(&path, acc);
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
+                    acc.push(path);
+                }
+            }
+        }
+    }
+
+    for module in module_crates {
+        let src_dir = root_dir().join(module).join("src");
+        scan_dir(&src_dir, &mut rs_files);
+    }
+
+    for file_path in rs_files {
+        let rel_path = file_path
+            .strip_prefix(root_dir())
+            .unwrap_or(&file_path)
+            .to_string_lossy();
+        let content = fs::read_to_string(&file_path).expect("ler arquivo fonte de módulo");
+        assert!(
+            !content.contains("egui::") && !content.contains("use egui"),
+            "VIOLAÇÃO ARQUITETURAL (G7 / F-008): {rel_path} contém referência direta a egui!"
+        );
+    }
+}

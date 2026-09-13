@@ -1,7 +1,7 @@
 //! module-assets — Asset Library (§13): múltiplos assets com UUID,
 //! rename/duplicate/delete/search. Reage a `ActiveAssetChanged`.
 
-use petunia_core::{AppEvent, AppState, Module, Workspace};
+use petunia_core::{AppEvent, AppState, Module};
 use petunia_mesh::Mesh;
 
 #[derive(Default)]
@@ -102,103 +102,6 @@ impl Module for AssetsModule {
 
     fn as_any_mut(&mut self) -> &mut (dyn std::any::Any + 'static) {
         self
-    }
-}
-
-impl AssetsModule {
-    pub fn ui(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
-        let l_lib = state.t("ui.assets");
-        let l_search = state.t("ui.search");
-        egui::CollapsingHeader::new(l_lib)
-            .default_open(true)
-            .show(ui, |ui| {
-                let total_assets = state.project.assets.len();
-                let total_tris: usize = state
-                    .project
-                    .assets
-                    .iter()
-                    .map(|a| a.mesh.tri_count())
-                    .sum();
-                ui.small(format!("{total_assets} assets | {total_tris} tris"));
-
-                ui.horizontal(|ui| {
-                    ui.label(l_search);
-                    if ui.text_edit_singleline(&mut self.filter).changed() {
-                        state.mark_dirty();
-                    }
-                });
-                let list = AssetsModule::filtered(state, &self.filter.clone());
-                let mut del: Option<usize> = None;
-                let mut activate: Option<usize> = None;
-                let mut join_target: Option<usize> = None;
-                for i in list {
-                    let (name, vis, tris, is_active) = {
-                        let a = &state.project.assets[i];
-                        (
-                            a.name.clone(),
-                            a.visible,
-                            a.mesh.tri_count(),
-                            state.project.active == i,
-                        )
-                    };
-                    ui.horizontal(|ui| {
-                        let mut v = vis;
-                        if ui.checkbox(&mut v, "").changed() {
-                            if let Some(o) = state.project.assets.get_mut(i) {
-                                o.visible = v;
-                            }
-                            state.mark_dirty();
-                        }
-                        if ui
-                            .selectable_label(is_active, format!("{name} ({tris})"))
-                            .clicked()
-                        {
-                            activate = Some(i);
-                        }
-                        if !is_active
-                            && ui
-                                .small_button("⚯")
-                                .on_hover_text("Join into active asset")
-                                .clicked()
-                        {
-                            join_target = Some(i);
-                        }
-                        if ui
-                            .small_button("⧉")
-                            .on_hover_text(state.t("ui.duplicate"))
-                            .clicked()
-                        {
-                            state.project.active = i;
-                            AssetsModule::duplicate_active(state);
-                        }
-                        if ui.small_button("✕").clicked() {
-                            del = Some(i);
-                        }
-                    });
-                }
-                if let Some(i) = activate {
-                    state.project.active = i;
-                    state.uv_selected.clear();
-                    let id = state.project.assets[i].id;
-                    state
-                        .events
-                        .emit(petunia_core::AppEvent::ActiveAssetChanged { asset_id: id });
-                    state.sync_selection();
-                }
-                if let Some(i) = join_target {
-                    AssetsModule::join_asset(state, i);
-                }
-                if let Some(i) = del {
-                    state.project.active = i;
-                    AssetsModule::delete_active(state);
-                }
-                ui.horizontal(|ui| {
-                    if ui.small_button(state.t("ui.rename")).clicked() {
-                        // rename inline: usa o painel de propriedades do MODEL
-                        state.workspace = Workspace::Model;
-                    }
-                });
-            });
     }
 }
 

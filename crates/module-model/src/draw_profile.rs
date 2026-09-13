@@ -5,7 +5,7 @@
 //! perto do 1º ponto (ou botão) fecha → Gerar (extrude/revolve).
 
 use petunia_core::{AppState, ProfileState};
-use petunia_mesh::{triangulate::ear_clip, Mesh};
+use petunia_mesh::Mesh;
 
 use super::Tool;
 
@@ -74,7 +74,7 @@ pub fn profile_capture_frame(state: &mut AppState) {
     state.profile.closed = false;
 }
 
-fn generate_extrude(state: &mut AppState) {
+pub fn generate_extrude(state: &mut AppState) {
     let p: ProfileState = state.profile.clone();
     if p.points.len() < 3 || !p.closed {
         state.set_status(state.t("profile.need_closed"));
@@ -102,7 +102,7 @@ fn generate_extrude(state: &mut AppState) {
     }
 }
 
-fn generate_revolve(state: &mut AppState) {
+pub fn generate_revolve(state: &mut AppState) {
     let p = state.profile.clone();
     if p.points.len() < 2 {
         state.set_status(state.t("profile.need_points"));
@@ -129,6 +129,7 @@ fn generate_revolve(state: &mut AppState) {
 
 #[derive(Default)]
 pub struct DrawProfileTool;
+
 impl Tool for DrawProfileTool {
     fn id(&self) -> &'static str {
         "draw_profile"
@@ -144,71 +145,6 @@ impl Tool for DrawProfileTool {
     }
     fn shortcut(&self) -> &'static str {
         "Shift+P"
-    }
-    fn ui(&self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
-        let l_title = state.t("tools.draw_profile");
-        let l_snap = state.t("profile.snap");
-        let l_depth = state.t("profile.depth");
-        let l_seg = state.t("profile.segments");
-        let l_close = state.t("profile.close");
-        let l_ext = state.t("profile.gen_extrude");
-        let l_rev = state.t("profile.gen_revolve");
-        let l_clear = state.t("profile.clear");
-        let l_undo_pt = state.t("profile.undo_pt");
-        ui.label(l_title);
-        ui.label(format!(
-            "{}: {}",
-            state.t("profile.points"),
-            state.profile.points.len()
-        ));
-        let mut snap = state.profile.snap;
-        if ui.checkbox(&mut snap, l_snap).changed() {
-            state.profile.snap = snap;
-            state.mark_dirty();
-        }
-        if ui
-            .add(egui::Slider::new(&mut state.profile.depth, 0.05..=8.0).text(l_depth))
-            .changed()
-        {
-            state.mark_dirty();
-        }
-        ui.add(egui::Slider::new(&mut state.profile.revolve_segments, 3..=48).text(l_seg));
-        ui.horizontal(|ui| {
-            if ui.button(l_close).clicked() {
-                if state.profile.points.len() >= 3 {
-                    state.profile.closed = true;
-                }
-                state.mark_dirty();
-            }
-            if ui.button(l_undo_pt).clicked() {
-                state.profile.points.pop();
-                state.profile.closed = false;
-                state.mark_dirty();
-            }
-            if ui.button(l_clear).clicked() {
-                state.profile.clear();
-                state.mark_dirty();
-            }
-        });
-        ui.horizontal(|ui| {
-            if ui.button(l_ext).clicked() {
-                generate_extrude(state);
-            }
-            if ui.button(l_rev).clicked() {
-                generate_revolve(state);
-            }
-        });
-        // preview da triangulação (contagem)
-        if state.profile.closed {
-            match ear_clip(&state.profile.points) {
-                Ok(t) => {
-                    ui.small(format!("{}: {}", state.t("profile.tris"), t.len()));
-                }
-                Err(e) => {
-                    ui.colored_label(egui::Color32::LIGHT_RED, e);
-                }
-            }
-        }
     }
     fn on_activate(&self, state: &mut AppState) {
         profile_capture_frame(state);

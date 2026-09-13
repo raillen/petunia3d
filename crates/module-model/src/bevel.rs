@@ -5,6 +5,7 @@ use super::Tool;
 /// Bevel simples (§8.8): chanfro em arestas manifold selecionadas.
 #[derive(Default)]
 pub struct BevelTool;
+
 impl Tool for BevelTool {
     fn id(&self) -> &'static str {
         "bevel"
@@ -21,21 +22,6 @@ impl Tool for BevelTool {
     fn shortcut(&self) -> &'static str {
         "Ctrl+B"
     }
-    fn ui(&self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
-        let l_title = state.t("tools.bevel");
-        let l_amount = state.t("actions.amount");
-        let l_go = state.t("actions.bevel");
-        ui.label(l_title);
-        if ui
-            .add(egui::Slider::new(&mut state.bevel_amount, 0.01..=1.0).text(l_amount))
-            .changed()
-        {
-            state.mark_dirty();
-        }
-        if ui.button(l_go).clicked() {
-            Self::apply(state);
-        }
-    }
     fn on_activate(&self, state: &mut AppState) {
         state.pending_modal = Some(petunia_core::ModalKind::Bevel);
         state.mark_dirty();
@@ -43,7 +29,7 @@ impl Tool for BevelTool {
 }
 
 impl BevelTool {
-    fn apply(state: &mut AppState) {
+    pub fn apply(state: &mut AppState) {
         let amt = state.bevel_amount;
         state.checkpoint("bevel");
         let (ok, skipped) = state

@@ -20,7 +20,7 @@ pub fn draw(
     ui: &mut Ui,
     state: &mut AppState,
     tools: &ToolRegistry,
-    registry: &mut ModuleRegistry,
+    _registry: &mut ModuleRegistry,
 ) {
     // 1. Barra de abas de propriedades (Tool, Render, Object, Modifiers, etc.)
     draw_property_tabs(ui, state);
@@ -49,24 +49,20 @@ pub fn draw(
                 match state.workspace {
                     Workspace::Model => draw_active_tab_content(ctx, ui, state, tools, fields),
                     Workspace::Paint => {
-                        if let Some(module) = registry.get_mut("paint") {
-                            if let Some(paint) = module
-                                .as_any_mut()
-                                .downcast_mut::<petunia_module_paint::PaintModule>(
-                            ) {
-                                paint.ui(ctx, ui, state);
-                            }
+                        let mut canvas_tex: Option<egui::TextureHandle> =
+                            ctx.data_mut(|d| d.get_temp(egui::Id::new("paint.canvas_tex")));
+                        crate::modules_ui::paint_ui::draw_paint_panel(
+                            ctx,
+                            ui,
+                            state,
+                            &mut canvas_tex,
+                        );
+                        if let Some(tex) = canvas_tex {
+                            ctx.data_mut(|d| d.insert_temp(egui::Id::new("paint.canvas_tex"), tex));
                         }
                     }
                     Workspace::Uv => {
-                        if let Some(module) = registry.get_mut("uv") {
-                            if let Some(uv) = module
-                                .as_any_mut()
-                                .downcast_mut::<petunia_module_uv::UvModule>()
-                            {
-                                uv.ui(ctx, ui, state);
-                            }
-                        }
+                        crate::modules_ui::uv_ui::draw_uv_panel(ui, state);
                     }
                     Workspace::Animate => {
                         egui::CollapsingHeader::new("Animation Properties")
@@ -157,10 +153,10 @@ fn draw_active_tab_content(
 }
 
 fn draw_tab_tool(
-    ctx: &Context,
+    _ctx: &Context,
     ui: &mut Ui,
     state: &mut AppState,
-    tools: &ToolRegistry,
+    _tools: &ToolRegistry,
     fields: bool,
 ) {
     if !fields {
@@ -168,11 +164,7 @@ fn draw_tab_tool(
         egui::CollapsingHeader::new(format!("Active Tool: {active_id}"))
             .default_open(true)
             .show(ui, |ui| {
-                if let Some(tool) = tools.get(&active_id) {
-                    tool.ui(ctx, ui, state);
-                } else {
-                    ui.label(state.t("ui.no_tool"));
-                }
+                crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active_id);
             });
     }
 }

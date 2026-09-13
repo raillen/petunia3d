@@ -220,6 +220,26 @@ fn task_arch_check() -> Result<()> {
             &["rfd ="][..],
             "petunia_module_paint não pode depender de rfd",
         ),
+        (
+            "crates/module-model/Cargo.toml",
+            &["egui"][..],
+            "petunia_module_model não pode depender de egui (G7)",
+        ),
+        (
+            "crates/module-paint/Cargo.toml",
+            &["egui"][..],
+            "petunia_module_paint não pode depender de egui (G7)",
+        ),
+        (
+            "crates/module-uv/Cargo.toml",
+            &["egui"][..],
+            "petunia_module_uv não pode depender de egui (G7)",
+        ),
+        (
+            "crates/module-assets/Cargo.toml",
+            &["egui"][..],
+            "petunia_module_assets não pode depender de egui (G7)",
+        ),
     ];
 
     for (rel_path, forbidden, reason) in checks {
@@ -338,6 +358,23 @@ fn task_arch_check() -> Result<()> {
 
     println!("✅ Sub-estados coesos validados: AppState decomposto em ProjectState, EditorSession, ToolState, UiState e RenderResources.");
 
-    println!("🏛️ Progresso de remediação: Gauntlets G0, G1, G2, G3, G4, G5 e G6 (Decomposição do God Object AppState) CONCLUÍDOS.");
+    println!("🛡️ Validando purificação dos crates de módulo (Gauntlet G7 / F-008)...");
+    for file_path in &rs_files {
+        let rel = file_path
+            .strip_prefix(&root)
+            .unwrap_or(file_path)
+            .to_string_lossy();
+
+        if rel.starts_with("crates/module-") {
+            let content = std::fs::read_to_string(file_path)
+                .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+            if content.contains("egui::") || content.contains("use egui") {
+                bail!("Violação de Purificação de Módulo (G7 / F-008): {rel} contém referência direta a egui!");
+            }
+        }
+    }
+    println!("✅ Módulos purificados: module-model, module-paint, module-uv e module-assets são 100% livres de egui.");
+
+    println!("🏛️ Progresso de remediação: Gauntlets G0, G1, G2, G3, G4, G5, G6 e G7 (Purificação dos Crates de Módulo) CONCLUÍDOS.");
     Ok(())
 }

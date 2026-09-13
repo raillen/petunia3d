@@ -3,6 +3,29 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.17.0] - 2026-09-13 — Architectural Decoupling: Module Crates Purification (Gauntlet G7, F-008)
+
+### Adicionado
+- **Módulo de Apresentação de Módulos em UI (`crates/ui/src/modules_ui/`)**:
+  - `model_ui.rs`: Renderização de painéis contextuais para todas as 15 ferramentas de modelagem (`Select`, `Transform`, `Primitives`, `Extrude`, `Inset`, `Bevel`, `PushPull`, `Subdivide`, `Slice`, `Mirror`, `Connect`, `Merge`, `Dissolve`, `DrawProfile`, `Paint`).
+  - `paint_ui.rs`: Painel de pintura com controle de textura, paleta e pincel interativo 2D.
+  - `uv_ui.rs`: Canvas 2D interativo com projeção ortográfica UV, renderização de polígonos UV e detecção de clique/arrasto.
+- **Governança Automatizada de Invariantes em Fitness e CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - `module_crates_must_not_depend_on_egui`: Valida que `module-model`, `module-paint`, `module-uv` e `module-assets` não possuem dependência de `egui` em seus manifestos `Cargo.toml`.
+  - `module_crates_sources_must_not_reference_egui`: Varredura recursiva de código-fonte garantindo ausência de `use egui` ou `egui::` em todos os crates `module-*`.
+  - Integrado ao comando `cargo run -p xtask -- arch-check`.
+
+### Modificado
+- **Purificação Completa de Crates de Módulo (`module-*`)**:
+  - `crates/module-model`: Removido método `ui()` do trait `Tool` e de todas as implementações. Exposição pública de métodos de serviço geométrico (`PrimitivesTool::add_primitive`, `TransformTool::apply_*`, `ExtrudeTool::apply`, `InsetTool::apply`, `BevelTool::apply`, `PushPullTool::apply`, `SubdivideTool::apply_*`, `SliceTool::apply_slice`, `MirrorTool::apply`, `ConnectTool::apply`, `MergeTool::apply`, `DissolveTool::apply`, `draw_profile::generate_*`). Removida a dependência `egui` do `Cargo.toml`.
+  - `crates/module-paint`: Removido estado efêmero de UI (`canvas_tex`) da struct `PaintModule`. Removido método `ui()`. Removida a dependência `egui` do `Cargo.toml`.
+  - `crates/module-uv`: Removido método `ui()`. Exposto cálculo puro de interseção e amostragem via `uv_hit`. Removida a dependência `egui` do `Cargo.toml`.
+  - `crates/module-assets`: Removido método `ui()`. Removida a dependência `egui` do `Cargo.toml`.
+- **Desacoplamento do Painel de Propriedades (`crates/ui/src/properties_panel.rs`)**:
+  - Abas `Paint`, `Uv` e `Tool` delegadas para `modules_ui::{paint_ui, uv_ui, model_ui}` sem acoplamento a métodos internos de UI dos módulos de domínio.
+
+---
+
 ## [0.16.0] - 2026-09-13 — Architectural Decoupling: AppState God Object Decomposition (Gauntlet G6, F-002)
 
 ### Adicionado

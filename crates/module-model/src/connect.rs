@@ -21,21 +21,13 @@ impl Tool for ConnectTool {
     fn shortcut(&self) -> &'static str {
         "Ctrl+J"
     }
-    fn ui(&self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
-        let l_title = state.t("tools.connect");
-        let l_go = state.t("actions.connect");
-        ui.label(l_title);
-        if ui.button(l_go).clicked() {
-            Self::apply(state);
-        }
-    }
     fn on_activate(&self, state: &mut AppState) {
         state.set_status(state.t("hints.connect"));
     }
 }
 
 impl ConnectTool {
-    fn apply(state: &mut AppState) {
+    pub fn apply(state: &mut AppState) {
         let sel_faces: Vec<usize> = if let Some(m) = state.project.active_mesh() {
             m.faces
                 .iter()

@@ -25,6 +25,7 @@ pub mod measurement;
 #[cfg(test)]
 mod modal_tests;
 mod modal_viewport;
+pub mod modules_ui;
 pub mod nav_gizmo;
 pub mod outliner;
 pub mod properties_panel;

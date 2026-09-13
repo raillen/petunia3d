@@ -51,8 +51,6 @@ pub trait Tool {
     fn shortcut(&self) -> &'static str {
         ""
     }
-    /// Painel contextual na sidebar.
-    fn ui(&self, _ctx: &egui::Context, _ui: &mut egui::Ui, _state: &mut AppState) {}
     /// Ativa a ferramenta; não altera geometria nem grava histórico.
     fn on_activate(&self, _state: &mut AppState) {}
 }

@@ -21,21 +21,13 @@ impl Tool for DissolveTool {
     fn shortcut(&self) -> &'static str {
         "X"
     }
-    fn ui(&self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
-        let l_title = state.t("tools.dissolve");
-        let l_go = state.t("actions.dissolve");
-        ui.label(l_title);
-        if ui.button(l_go).clicked() {
-            Self::apply(state);
-        }
-    }
     fn on_activate(&self, state: &mut AppState) {
         state.set_status(state.t("hints.dissolve"));
     }
 }
 
 impl DissolveTool {
-    fn apply(state: &mut AppState) {
+    pub fn apply(state: &mut AppState) {
         state.checkpoint("dissolve");
         if let Some(m) = state.project.active_mesh_mut() {
             m.dissolve_selected();
