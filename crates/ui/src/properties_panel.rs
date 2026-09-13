@@ -3,7 +3,9 @@
 //! e formulários sanfonados com fidelidade estética ao Blender.svg.
 
 use egui::{vec2, Color32, Context, ScrollArea, Ui};
-use petunia_core::{AppState, ModuleRegistry, Workspace};
+use petunia_core::{
+    AppState, DeleteSelectionCmd, DuplicateSelectionCmd, ModuleRegistry, Workspace,
+};
 use petunia_module_model::ToolRegistry;
 use uuid::Uuid;
 
@@ -34,20 +36,10 @@ pub fn draw(
                 ui.add_enabled_ui(!state.is_interacting(), |ui| {
                     ui.horizontal_wrapped(|ui| {
                         if ui.button(state.t("actions.duplicate")).clicked() {
-                            state.checkpoint("duplicate");
-                            if let Some(mesh) = state.project.active_mesh_mut() {
-                                mesh.duplicate_selected();
-                            }
-                            state.sync_selection();
-                            state.emit_mesh_changed();
+                            let _ = state.dispatch(&DuplicateSelectionCmd);
                         }
                         if ui.button(state.t("actions.delete")).clicked() {
-                            state.checkpoint("delete");
-                            if let Some(mesh) = state.project.active_mesh_mut() {
-                                mesh.delete_selected();
-                            }
-                            state.sync_selection();
-                            state.emit_mesh_changed();
+                            let _ = state.dispatch(&DeleteSelectionCmd);
                         }
                     });
                 });
@@ -333,23 +325,13 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
                 )
                 .clicked()
                 {
-                    state.checkpoint("duplicate");
-                    if let Some(mesh) = state.project.active_mesh_mut() {
-                        mesh.duplicate_selected();
-                    }
-                    state.sync_selection();
-                    state.emit_mesh_changed();
+                    let _ = state.dispatch(&DuplicateSelectionCmd);
                 }
 
                 if widgets::petunia_action_button(ui, Some(PetuniaIcon::Delete), "Delete · X", true)
                     .clicked()
                 {
-                    state.checkpoint("delete");
-                    if let Some(mesh) = state.project.active_mesh_mut() {
-                        mesh.delete_selected();
-                    }
-                    state.sync_selection();
-                    state.emit_mesh_changed();
+                    let _ = state.dispatch(&DeleteSelectionCmd);
                 }
             });
         });

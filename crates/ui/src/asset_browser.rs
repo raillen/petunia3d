@@ -3,7 +3,7 @@
 //! na coordenada do 3D Cursor e gerenciamento de modelos salvos no projeto.
 
 use egui::{vec2, Align, Color32, Layout, RichText, ScrollArea, SidePanel, Ui};
-use petunia_core::AppState;
+use petunia_core::{AppState, DeleteAssetCmd, DuplicateAssetCmd};
 
 use crate::tokens;
 use crate::widgets;
@@ -301,22 +301,14 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                 }
             }
             if let Some(idx) = to_duplicate {
-                if let Some(a) = state.project.assets.get(idx).cloned() {
-                    state.checkpoint("duplicate asset");
-                    let dup = a.duplicate();
-                    state.project.assets.push(dup);
-                    state.project.active = state.project.assets.len() - 1;
-                    state.sync_selection();
-                    state.emit_mesh_changed();
-                }
+                let _ = state.dispatch(&DuplicateAssetCmd {
+                    asset_index: Some(idx),
+                });
             }
             if let Some(idx) = to_delete {
-                if idx < state.project.assets.len() {
-                    state.checkpoint("delete asset");
-                    state.project.remove(idx);
-                    state.sync_selection();
-                    state.emit_mesh_changed();
-                }
+                let _ = state.dispatch(&DeleteAssetCmd {
+                    asset_index: Some(idx),
+                });
             }
         });
 }

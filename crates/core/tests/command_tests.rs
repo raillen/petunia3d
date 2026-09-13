@@ -4,8 +4,8 @@
 
 use petunia_core::command::{
     AddPrimitiveCmd, ClearSelectionCmd, CommandDispatcher, CommandError, DeleteAssetCmd,
-    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, InvertSelectionCmd,
-    PrimitiveKind, SelectAllCmd,
+    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, FlipNormalsCmd,
+    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SubdivideSelectionCmd,
 };
 use petunia_core::state::{AppState, EditMode};
 
@@ -274,4 +274,46 @@ fn test_headless_full_modeling_session() {
     // 6. Undo desfaz a criação do cilindro
     assert!(state.undo());
     assert_eq!(state.project.assets.len(), 1);
+}
+
+#[test]
+fn test_mesh_editing_commands_subdivide_merge_flip() {
+    let mut state = AppState::default();
+    state.mode = EditMode::Edit;
+
+    // Subdivisão da malha ativa
+    state.dispatch(&SelectAllCmd).expect("seleciona tudo");
+    let initial_faces = state.project.active_mesh().unwrap().faces.len();
+    assert_eq!(initial_faces, 6); // Cubo
+
+    state.dispatch(&SubdivideSelectionCmd).expect("subdivide");
+    let subdivided_faces = state.project.active_mesh().unwrap().faces.len();
+    assert!(subdivided_faces > initial_faces);
+
+    // Undo restaura contagem de faces original
+    assert!(state.undo());
+    assert_eq!(
+        state.project.active_mesh().unwrap().faces.len(),
+        initial_faces
+    );
+
+    // Merge center
+    state.dispatch(&SelectAllCmd).expect("seleciona tudo");
+    state.dispatch(&MergeCenterCmd).expect("merge center");
+    assert_eq!(state.project.active_mesh().unwrap().verts.len(), 1);
+
+    // Undo restaura os 8 vértices
+    assert!(state.undo());
+    assert_eq!(state.project.active_mesh().unwrap().verts.len(), 8);
+
+    // Flip normals
+    let normal_before = state.project.active_mesh().unwrap().face_normal(0);
+    state.dispatch(&FlipNormalsCmd).expect("flip normals");
+    let normal_after = state.project.active_mesh().unwrap().face_normal(0);
+    assert!((normal_before + normal_after).length() < 1e-4);
+
+    // Undo restaura a normal original
+    assert!(state.undo());
+    let normal_restored = state.project.active_mesh().unwrap().face_normal(0);
+    assert!((normal_before - normal_restored).length() < 1e-4);
 }

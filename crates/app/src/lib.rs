@@ -3,7 +3,10 @@
 
 use std::sync::Arc;
 
-use petunia_core::{AppState, EditMode, ModuleRegistry, SelectMode};
+use petunia_core::{
+    AppState, ClearSelectionCmd, DeleteSelectionCmd, DuplicateSelectionCmd, EditMode,
+    InvertSelectionCmd, ModuleRegistry, SelectAllCmd, SelectMode,
+};
 use petunia_module_assets::AssetsModule;
 use petunia_module_model::ToolRegistry;
 use petunia_module_paint::PaintModule;
@@ -399,12 +402,10 @@ impl Core {
                 self.set_tool("extrude", None);
             }
             "model.delete" => {
-                self.state.checkpoint("delete");
-                if let Some(m) = self.state.project.active_mesh_mut() {
-                    m.delete_selected();
-                }
-                self.state.sync_selection();
-                self.state.emit_mesh_changed();
+                let _ = self.state.dispatch(&DeleteSelectionCmd);
+            }
+            "model.duplicate" => {
+                let _ = self.state.dispatch(&DuplicateSelectionCmd);
             }
             "model.slice" => self.set_tool("slice", None),
             "model.knife" | "model.loop_cut" => {
@@ -418,12 +419,14 @@ impl Core {
             }
             "model.connect" => self.set_tool("connect", None),
             "model.dissolve" => self.set_tool("dissolve", None),
+            "model.select_all" => {
+                let _ = self.state.dispatch(&SelectAllCmd);
+            }
+            "model.deselect_all" => {
+                let _ = self.state.dispatch(&ClearSelectionCmd);
+            }
             "model.invert_selection" => {
-                if let Some(m) = self.state.project.active_mesh_mut() {
-                    m.invert_selection();
-                }
-                self.state.sync_selection();
-                self.state.mark_dirty();
+                let _ = self.state.dispatch(&InvertSelectionCmd);
             }
             "model.select_linked" => {
                 if let Some(m) = self.state.project.active_mesh_mut() {

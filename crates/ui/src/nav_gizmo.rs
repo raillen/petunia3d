@@ -6,7 +6,8 @@
 use egui::{Color32, PointerButton, Pos2, Rect, Stroke, StrokeKind, Vec2};
 use glam::Vec3;
 use petunia_core::{
-    picking::pick_mesh, AppState, EditMode, ModalKind, Projection, SelectMode, ViewPreset,
+    picking::pick_mesh, AppState, DuplicateSelectionCmd, EditMode, FlipNormalsCmd, ModalKind,
+    Projection, SelectMode, SubdivideSelectionCmd, ViewPreset,
 };
 
 /// Screen coordinates of the 6 canonical world axes on the orientation sphere.
@@ -502,11 +503,7 @@ pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
                                 close_menu = true;
                             }
                             if ui.button("Subdividir Aresta").clicked() {
-                                state.checkpoint("subdivide");
-                                if let Some(mesh) = state.project.active_mesh_mut() {
-                                    mesh.subdivide_selected();
-                                    state.mark_dirty();
-                                }
+                                let _ = state.dispatch(&SubdivideSelectionCmd);
                                 close_menu = true;
                             }
                         }
@@ -526,11 +523,7 @@ pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
                                 close_menu = true;
                             }
                             if ui.button("Inverter Normais").clicked() {
-                                state.checkpoint("flip_normals");
-                                if let Some(mesh) = state.project.active_mesh_mut() {
-                                    mesh.flip_normals();
-                                    state.mark_dirty();
-                                }
+                                let _ = state.dispatch(&FlipNormalsCmd);
                                 close_menu = true;
                             }
                         }
@@ -552,11 +545,7 @@ pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
                     }
                     ui.separator();
                     if ui.button("Duplicar").clicked() {
-                        state.checkpoint("duplicate");
-                        if let Some(mesh) = state.project.active_mesh_mut() {
-                            mesh.duplicate_selected();
-                            state.mark_dirty();
-                        }
+                        let _ = state.dispatch(&DuplicateSelectionCmd);
                         close_menu = true;
                     }
                 }

@@ -6,7 +6,7 @@
 //! - **Salvar Projeto**: Salva o arquivo completo `.petunia` (cena, todos os assets, materiais, câmera).
 
 use egui::{vec2, Align, Color32, CornerRadius, Layout, RichText, ScrollArea, Stroke, Ui, Window};
-use petunia_core::AppState;
+use petunia_core::{AppState, DeleteAssetCmd, DuplicateAssetCmd};
 
 use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
@@ -282,19 +282,14 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
         state.mark_dirty();
     }
     if let Some(idx) = to_duplicate {
-        if let Some(asset) = state.project.assets.get(idx) {
-            let copy = asset.duplicate();
-            state.checkpoint("duplicate asset");
-            state.project.assets.push(copy);
-            state.mark_dirty();
-        }
+        let _ = state.dispatch(&DuplicateAssetCmd {
+            asset_index: Some(idx),
+        });
     }
     if let Some(idx) = to_remove {
-        state.checkpoint("remove asset");
-        state.project.remove(idx);
-        state.sync_selection();
-        state.emit_mesh_changed();
-        state.mark_dirty();
+        let _ = state.dispatch(&DeleteAssetCmd {
+            asset_index: Some(idx),
+        });
     }
 }
 

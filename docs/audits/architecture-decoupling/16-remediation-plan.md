@@ -89,19 +89,27 @@ flowchart TD
 
 ---
 
-### Gauntlet G3 — Extração de Mutações Diretas da Camada UI
+### Gauntlet G3 — Extração de Mutações Diretas da Camada UI [CONCLUÍDO]
 * **Objetivo**: Substituir todas as mutações topológicas ad-hoc em painéis de interface pelo despacho de comandos.
 * **Achados Alvo**: **F-004**, **F-013**.
+* **Status**: ✅ **CONCLUÍDO** (Mutações ad-hoc e checkpoints manuais de mesh e assets eliminados da UI; despachos via `state.dispatch(&Command)` integrados em todos os painéis e atalhos).
 * **Pré-condições**: Ciclo G2 aprovado.
 * **Arquivos Afetados**:
-  * `crates/ui/src/properties_panel.rs`: Substituir mutações de delete/duplicate por chamadas ao dispatcher.
-  * `crates/ui/src/outliner.rs`: Eliminar as 8 chamadas manuais a `state.checkpoint()`.
-  * `crates/ui/src/viewport_bar.rs`: Substituir ações dos menus dropdown por comandos.
-  * `crates/app/src/lib.rs`: Conectar o match de atalhos de teclado de `Core::on_key` diretamente ao dispatcher de comandos.
+  * `crates/core/src/command.rs`: Novos comandos canônicos `SubdivideSelectionCmd`, `MergeCenterCmd`, `FlipNormalsCmd`.
+  * `crates/ui/src/properties_panel.rs`: Substituição de mutações manuais por `DuplicateSelectionCmd` e `DeleteSelectionCmd`.
+  * `crates/ui/src/outliner.rs`: Eliminação de manipulações manuais em favor de `DeleteAssetCmd`, `DuplicateAssetCmd` e `AddPrimitiveCmd`.
+  * `crates/ui/src/viewport_bar.rs`: Menus `Select ▾`, `Add ▾`, `Object ▾` e `Mesh ▾` migrados para despachar comandos.
+  * `crates/ui/src/contextual_shelf.rs`: Ações de duplicar, subdividir e merge migradas para comandos.
+  * `crates/ui/src/nav_gizmo.rs`: Menu contextual (subdivide, flip normals, duplicate) migrado para comandos.
+  * `crates/ui/src/asset_browser.rs` & `crates/ui/src/asset_library_drawer.rs`: Ações de duplicar e excluir assets migradas para comandos.
+  * `crates/module-model/src/select.rs`: Ações de seleção migradas para comandos.
+  * `crates/app/src/lib.rs`: Conexão dos atalhos `model.delete`, `model.duplicate`, `model.select_all`, `model.deselect_all`, `model.invert_selection` em `Core::on_key` diretamente ao dispatcher.
 * **Testes de Segurança**:
-  * Todos os 88 testes existentes em `petunia_ui` e os 5 fluxos kittest aprovados sem alteração de comportamento visual.
+  * Todos os 88 testes em `petunia_ui` (incluindo os 5 fluxos `egui_kittest`) aprovados com 100% de sucesso.
+  * Todos os testes de `petunia_app`, `petunia_core`, `petunia_module_model` aprovados.
+  * Suíte global com 215 testes aprovados.
 * **Critério de Saída**:
-  * A UI deixa de invocar `state.checkpoint()` manualmente; todos os checkpoints são capturados pelo dispatcher.
+  * A UI deixa de invocar `state.checkpoint()` e manipular malhas ad-hoc; todas as operações fluem pelo despachante transacional. Validado com sucesso.
 
 ---
 

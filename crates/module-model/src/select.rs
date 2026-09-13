@@ -1,4 +1,4 @@
-use petunia_core::{AppState, SelectMode};
+use petunia_core::{AppState, ClearSelectionCmd, InvertSelectionCmd, SelectAllCmd, SelectMode};
 
 use super::Tool;
 
@@ -61,24 +61,15 @@ impl Tool for SelectTool {
         let l_linked = state.t("actions.select_linked");
         ui.horizontal(|ui| {
             if ui.button(l_all).clicked() {
-                if let Some(m) = state.project.active_mesh_mut() {
-                    m.select_all();
-                }
-                state.sync_selection();
+                let _ = state.dispatch(&SelectAllCmd);
             }
             if ui.button(l_none).clicked() {
-                if let Some(m) = state.project.active_mesh_mut() {
-                    m.deselect_all();
-                }
-                state.sync_selection();
+                let _ = state.dispatch(&ClearSelectionCmd);
             }
         });
         ui.horizontal(|ui| {
             if ui.button(l_invert).clicked() {
-                if let Some(m) = state.project.active_mesh_mut() {
-                    m.invert_selection();
-                }
-                state.sync_selection();
+                let _ = state.dispatch(&InvertSelectionCmd);
             }
             if ui.button(l_linked).clicked() {
                 if let Some(m) = state.project.active_mesh_mut() {

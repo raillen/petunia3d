@@ -15,8 +15,8 @@ pub mod viewport;
 
 pub use command::{
     AddPrimitiveCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError, DeleteAssetCmd,
-    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, InvertSelectionCmd,
-    PrimitiveKind, SelectAllCmd,
+    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, FlipNormalsCmd,
+    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SubdivideSelectionCmd,
 };
 
 pub use camera::{Camera, Projection, ViewPreset};

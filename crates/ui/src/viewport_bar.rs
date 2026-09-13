@@ -9,8 +9,11 @@
 //! 7. 4 Esferas de Sombreamento no estilo canônico do Blender (Wireframe, Solid, Material, Rendered).
 
 use egui::{pos2, vec2, Color32, CornerRadius, Rect, Ui};
-use petunia_core::{AppState, EditMode, Projection, SelectMode};
-use petunia_mesh::Mesh;
+use petunia_core::{
+    AddPrimitiveCmd, AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode,
+    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, Projection, SelectAllCmd, SelectMode,
+    SubdivideSelectionCmd,
+};
 use petunia_render::Shading;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
@@ -315,10 +318,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            if let Some(m) = state.project.active_mesh_mut() {
-                m.select_all();
-            }
-            state.sync_selection();
+            let _ = state.dispatch(&SelectAllCmd);
             ui.close();
         }
         if PetuniaMenuItem::new(&state.t("actions.deselect"))
@@ -326,10 +326,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            if let Some(m) = state.project.active_mesh_mut() {
-                m.deselect_all();
-            }
-            state.sync_selection();
+            let _ = state.dispatch(&ClearSelectionCmd);
             ui.close();
         }
         if PetuniaMenuItem::new(&state.t("actions.invert"))
@@ -337,23 +334,20 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            if let Some(m) = state.project.active_mesh_mut() {
-                m.invert_selection();
-            }
-            state.sync_selection();
+            let _ = state.dispatch(&InvertSelectionCmd);
             ui.close();
         }
     });
 
     // Menu Add
-    let mut spawn_mesh: Option<(&'static str, Mesh)> = None;
+    let mut spawn_kind: Option<PrimitiveKind> = None;
     ui.menu_button("Add ▾", |ui| {
         if PetuniaMenuItem::new(&state.t("prims.cube"))
             .icon(PetuniaIcon::AddPrimitive)
             .show(ui)
             .clicked()
         {
-            spawn_mesh = Some(("Cube", Mesh::cube(1.0)));
+            spawn_kind = Some(PrimitiveKind::Cube);
             ui.close();
         }
         if PetuniaMenuItem::new(&state.t("prims.sphere"))
@@ -361,7 +355,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            spawn_mesh = Some(("Sphere", Mesh::sphere_low(16, 12, 0.5)));
+            spawn_kind = Some(PrimitiveKind::Sphere);
             ui.close();
         }
         if PetuniaMenuItem::new(&state.t("prims.cylinder"))
@@ -369,7 +363,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            spawn_mesh = Some(("Cylinder", Mesh::cylinder(16, 0.5, 1.0)));
+            spawn_kind = Some(PrimitiveKind::Cylinder);
             ui.close();
         }
         if PetuniaMenuItem::new(&state.t("prims.plane"))
@@ -377,7 +371,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            spawn_mesh = Some(("Plane", Mesh::plane(2.0)));
+            spawn_kind = Some(PrimitiveKind::Plane);
             ui.close();
         }
         if PetuniaMenuItem::new(&state.t("prims.cone"))
@@ -385,7 +379,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .show(ui)
             .clicked()
         {
-            spawn_mesh = Some(("Cone", Mesh::cone(16, 0.5, 1.0)));
+            spawn_kind = Some(PrimitiveKind::Cone);
             ui.close();
         }
         petunia_menu_separator(ui);
@@ -399,18 +393,12 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
-    if let Some((name, mut mesh)) = spawn_mesh {
-        state.checkpoint("add primitive");
-        let cursor = state.cursor_3d;
-        for v in &mut mesh.verts {
-            v.pos[0] += cursor[0];
-            v.pos[1] += cursor[1];
-            v.pos[2] += cursor[2];
-        }
-        state.project.add(name, mesh);
-        state.sync_selection();
-        state.emit_mesh_changed();
-        state.mark_dirty();
+    if let Some(kind) = spawn_kind {
+        let _ = state.dispatch(&AddPrimitiveCmd {
+            kind,
+            name: None,
+            at_cursor: true,
+        });
     }
 
     // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
@@ -426,15 +414,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .show(ui)
                 .clicked()
             {
-                if let Some(active) = state.project.active() {
-                    let dup = active.duplicate();
-                    state.checkpoint("duplicate object");
-                    state.project.assets.push(dup);
-                    state.project.active = state.project.assets.len() - 1;
-                    state.sync_selection();
-                    state.emit_mesh_changed();
-                    state.mark_dirty();
-                }
+                let _ = state.dispatch(&DuplicateAssetCmd { asset_index: None });
                 ui.close();
             }
 
@@ -448,15 +428,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .show(ui)
                 .clicked()
             {
-                if state.project.assets.len() > 1 {
-                    let idx = state.project.active;
-                    state.checkpoint("delete object");
-                    state.project.assets.remove(idx);
-                    state.project.active = state.project.active.min(state.project.assets.len() - 1);
-                    state.sync_selection();
-                    state.emit_mesh_changed();
-                    state.mark_dirty();
-                }
+                let _ = state.dispatch(&DeleteAssetCmd { asset_index: None });
                 ui.close();
             }
             petunia_menu_separator(ui);
@@ -546,12 +518,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .show(ui)
                 .clicked()
             {
-                state.checkpoint("subdivide");
-                if let Some(m) = state.project.active_mesh_mut() {
-                    m.subdivide_selected();
-                }
-                state.sync_selection();
-                state.emit_mesh_changed();
+                let _ = state.dispatch(&SubdivideSelectionCmd);
                 ui.close();
             }
 
@@ -560,12 +527,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .show(ui)
                 .clicked()
             {
-                state.checkpoint("merge");
-                if let Some(m) = state.project.active_mesh_mut() {
-                    m.merge_center();
-                }
-                state.sync_selection();
-                state.emit_mesh_changed();
+                let _ = state.dispatch(&MergeCenterCmd);
                 ui.close();
             }
         });

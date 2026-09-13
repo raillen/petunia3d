@@ -340,3 +340,60 @@ impl Command for InvertSelectionCmd {
         Ok(())
     }
 }
+
+/// Comando para subdividir a geometria selecionada na malha ativa.
+#[derive(Debug, Clone, Default)]
+pub struct SubdivideSelectionCmd;
+
+impl Command for SubdivideSelectionCmd {
+    fn label(&self) -> &'static str {
+        "subdivide"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        mesh.subdivide_selected();
+        state.set_status("Subdivided selection");
+        Ok(())
+    }
+}
+
+/// Comando para fundir elementos selecionados no centro na malha ativa.
+#[derive(Debug, Clone, Default)]
+pub struct MergeCenterCmd;
+
+impl Command for MergeCenterCmd {
+    fn label(&self) -> &'static str {
+        "merge"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        mesh.merge_center();
+        state.set_status("Merged selection at center");
+        Ok(())
+    }
+}
+
+/// Comando para inverter a orientação das normais da malha ativa.
+#[derive(Debug, Clone, Default)]
+pub struct FlipNormalsCmd;
+
+impl Command for FlipNormalsCmd {
+    fn label(&self) -> &'static str {
+        "flip_normals"
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        mesh.flip_normals();
+        state.set_status("Flipped normals");
+        Ok(())
+    }
+}

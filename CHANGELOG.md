@@ -3,7 +3,7 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
-## [0.13.0] - 2026-09-13 — Architectural Decoupling: Core Purification, Fitness Governance, and Headless Command System (Gauntlets G0, G1, G2)
+## [0.13.0] - 2026-09-13 — Architectural Decoupling: Core Purification, Fitness Governance, Command System, and UI Direct Mutation Extraction (Gauntlets G0, G1, G2, G3)
 
 ### Adicionado
 - **Governança Arquitetural Contínua (Gauntlet G0)**:
@@ -18,12 +18,20 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 - **Fundação do Sistema de Comandos e Dispatcher (Gauntlet G2)**:
   - Trait genérica e desacoplada `Command` em `petunia_commands::Command` e `petunia_core::command::Command`.
   - Despachante transacional `CommandDispatcher` com registry dinâmico, auto-checkpointing de Undo/Redo antes de mutações destrutivas e disparo determinístico de eventos e flags de sujeira (`mark_dirty()`, `emit_mesh_changed()`).
-  - Implementação de 8 comandos canônicos essenciais:
-    - `AddPrimitiveCmd` (suporte a Cube, Sphere, Cylinder, Plane, Cone, Capsule).
-    - `DuplicateAssetCmd` e `DeleteAssetCmd` (gestão e ciclo de vida de assets).
-    - `DeleteSelectionCmd` e `DuplicateSelectionCmd` (comportamento contextual automático em Edit Mode e Object Mode).
-    - `SelectAllCmd`, `ClearSelectionCmd` e `InvertSelectionCmd` (operações não destrutivas de seleção sincronizadas).
+  - Implementação de 8 comandos canônicos essenciais (`AddPrimitiveCmd`, `DuplicateAssetCmd`, `DeleteAssetCmd`, `DeleteSelectionCmd`, `DuplicateSelectionCmd`, `SelectAllCmd`, `ClearSelectionCmd`, `InvertSelectionCmd`).
   - Suíte completa de 7 testes de integração headless em `crates/core/tests/command_tests.rs` validando Undo/Redo roundtrip e uma sessão de modelagem completa sem carregar qualquer backend de interface gráfica.
+- **Extração de Mutações Diretas da Camada UI (Gauntlet G3)**:
+  - Novos comandos canônicos de malha: `SubdivideSelectionCmd`, `MergeCenterCmd` e `FlipNormalsCmd`.
+  - Eliminação de mutações diretas de mesh e chamadas manuais a `state.checkpoint()` nos painéis de UI:
+    - `crates/ui/src/properties_panel.rs`: Ações de duplicar e deletar agora despacham `DuplicateSelectionCmd` e `DeleteSelectionCmd`.
+    - `crates/ui/src/outliner.rs`: Exclusão e duplicação de assets e adição de primitivas migradas para `DeleteAssetCmd`, `DuplicateAssetCmd` e `AddPrimitiveCmd`.
+    - `crates/ui/src/viewport_bar.rs`: Menus `Select ▾`, `Add ▾`, `Object ▾` e `Mesh ▾` migrados para despachar comandos.
+    - `crates/ui/src/contextual_shelf.rs`: Ações da shelf flutuante (duplicação, subdivisão e merge) migradas para o despachante.
+    - `crates/ui/src/nav_gizmo.rs`: Ações do menu contextual da viewport (subdivide, flip normals, duplicate) migradas para comandos.
+    - `crates/ui/src/asset_browser.rs` e `crates/ui/src/asset_library_drawer.rs`: Operações de assets migradas para comandos.
+    - `crates/module-model/src/select.rs`: Ações da ferramenta de seleção migradas para comandos.
+    - `crates/app/src/lib.rs`: Atalhos de teclado em `Core::on_key` (`model.delete`, `model.duplicate`, `model.select_all`, `model.deselect_all`, `model.invert_selection`) conectados diretamente ao despachante semântico.
+  - Aprovação integral dos 88 testes de UI (incluindo 5 fluxos `egui_kittest`) e total de 215 testes da workspace.
 
 ## [0.12.0] - 2026-09-13 — Deep Interface Revision: Canonical Vector Iconography, Deduplicated Controls, Unified Menus, and Blender-Standard Properties & Outliner
 

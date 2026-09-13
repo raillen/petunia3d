@@ -5,8 +5,9 @@
 
 use egui::{vec2, Color32, Id, Rect, Response, ScrollArea, Ui};
 use egui_ltreeview::{Action, NodeBuilder, TreeView, TreeViewSettings};
-use petunia_core::{AnnotationItem, AppState};
-use petunia_mesh::Mesh;
+use petunia_core::{
+    AddPrimitiveCmd, AnnotationItem, AppState, DeleteAssetCmd, DuplicateAssetCmd, PrimitiveKind,
+};
 use uuid::Uuid;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
@@ -1414,24 +1415,14 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         }
     }
     if let Some(idx) = delete_idx {
-        if idx < state.project.assets.len() {
-            state.checkpoint("delete asset");
-            state.project.remove(idx);
-            state.sync_selection();
-            state.emit_mesh_changed();
-            state.mark_dirty();
-        }
+        let _ = state.dispatch(&DeleteAssetCmd {
+            asset_index: Some(idx),
+        });
     }
     if let Some(idx) = dup_idx {
-        let dup = state.project.assets.get(idx).map(|a| a.duplicate());
-        if let Some(dup) = dup {
-            state.checkpoint("duplicate asset");
-            state.project.assets.push(dup);
-            state.project.active = state.project.assets.len() - 1;
-            state.sync_selection();
-            state.emit_mesh_changed();
-            state.mark_dirty();
-        }
+        let _ = state.dispatch(&DuplicateAssetCmd {
+            asset_index: Some(idx),
+        });
     }
 
     // Trata seleção pelo TreeView
@@ -1495,35 +1486,26 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 }
 
 pub fn add_primitive_to_scene(state: &mut AppState, kind: usize, name: &str) {
-    let mesh = match kind {
-        0 => Mesh::cube(1.0),
-        1 => Mesh::sphere_low(16, 12, 0.5),
-        2 => Mesh::cylinder(16, 0.5, 1.0),
-        3 => Mesh::plane(2.0),
-        4 => Mesh::cone(16, 0.5, 1.0),
-        _ => Mesh::capsule(16, 0.3, 0.8),
+    let p_kind = match kind {
+        0 => PrimitiveKind::Cube,
+        1 => PrimitiveKind::Sphere,
+        2 => PrimitiveKind::Cylinder,
+        3 => PrimitiveKind::Plane,
+        4 => PrimitiveKind::Cone,
+        _ => PrimitiveKind::Capsule,
     };
-    state.checkpoint("add primitive");
-    state.project.add(name, mesh);
-
-    // Posiciona na coordenada do 3D Cursor
-    let cursor = state.cursor_3d;
-    if let Some(m) = state.project.active_mesh_mut() {
-        for v in &mut m.verts {
-            v.pos[0] += cursor[0];
-            v.pos[1] += cursor[1];
-            v.pos[2] += cursor[2];
-        }
-    }
-    state.sync_selection();
-    state.emit_mesh_changed();
-    state.mark_dirty();
+    let _ = state.dispatch(&AddPrimitiveCmd {
+        kind: p_kind,
+        name: Some(name.to_string()),
+        at_cursor: true,
+    });
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use petunia_core::MeasurementItem;
+    use petunia_mesh::Mesh;
 
     #[test]
     fn test_outliner_renders_without_panic() {

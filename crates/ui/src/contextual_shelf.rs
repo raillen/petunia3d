@@ -3,7 +3,10 @@
 //! ao Workspace e ao Modo de Edição ativo (Object, Edit, Paint, UV, Animate).
 
 use egui::{pos2, vec2, Rect, Response, RichText, Ui};
-use petunia_core::{AppState, EditMode, ModalKind, Workspace};
+use petunia_core::{
+    AppState, DuplicateSelectionCmd, EditMode, MergeCenterCmd, ModalKind, SubdivideSelectionCmd,
+    Workspace,
+};
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::outliner::add_primitive_to_scene;
@@ -148,12 +151,7 @@ fn draw_model_edit_shelf(ui: &mut Ui, state: &mut AppState) {
     )
     .clicked()
     {
-        state.checkpoint("subdivide");
-        if let Some(m) = state.project.active_mesh_mut() {
-            m.subdivide_selected();
-        }
-        state.sync_selection();
-        state.emit_mesh_changed();
+        let _ = state.dispatch(&SubdivideSelectionCmd);
     }
 
     if pill_button(
@@ -165,12 +163,7 @@ fn draw_model_edit_shelf(ui: &mut Ui, state: &mut AppState) {
     )
     .clicked()
     {
-        state.checkpoint("merge");
-        if let Some(m) = state.project.active_mesh_mut() {
-            m.merge_center();
-        }
-        state.sync_selection();
-        state.emit_mesh_changed();
+        let _ = state.dispatch(&MergeCenterCmd);
     }
 
     ui.add_space(2.0);
@@ -255,12 +248,7 @@ fn draw_model_object_shelf(ui: &mut Ui, state: &mut AppState) {
     )
     .clicked()
     {
-        state.checkpoint("duplicate");
-        if let Some(m) = state.project.active_mesh_mut() {
-            m.duplicate_selected();
-        }
-        state.sync_selection();
-        state.emit_mesh_changed();
+        let _ = state.dispatch(&DuplicateSelectionCmd);
     }
 
     ui.add_space(2.0);
