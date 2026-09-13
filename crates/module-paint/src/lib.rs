@@ -62,42 +62,20 @@ impl PaintModule {
         state.mark_dirty();
     }
 
-    /// Abre diálogo para importar paleta (.hex ou .gpl).
-    pub fn import_palette_dialog(state: &mut AppState) {
-        if let Some(path) = rfd::FileDialog::new()
-            .add_filter("Palette (*.hex, *.gpl)", &["hex", "gpl"])
-            .pick_file()
-        {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-                let colors = if ext.eq_ignore_ascii_case("gpl") {
-                    petunia_project::palette::import_gpl(&content)
-                } else {
-                    petunia_project::palette::import_hex(&content)
-                };
-                if !colors.is_empty() {
-                    let count = colors.len();
-                    Self::set_palette(state, colors);
-                    state.set_status(format!("imported {count} colors"));
-                } else {
-                    state.set_status("no valid colors found in palette file".to_string());
-                }
-            }
-        }
+    /// Importa paleta a partir de arquivo (.hex ou .gpl) usando o ProjectService.
+    pub fn import_palette_file(
+        state: &mut AppState,
+        path: &std::path::Path,
+    ) -> Result<usize, petunia_core::ProjectServiceError> {
+        petunia_core::ProjectService::import_palette(state, path)
     }
 
-    /// Abre diálogo para exportar paleta (.gpl).
-    pub fn export_palette_dialog(state: &mut AppState) {
-        if let Some(path) = rfd::FileDialog::new()
-            .add_filter("GIMP Palette (*.gpl)", &["gpl"])
-            .set_file_name("palette.gpl")
-            .save_file()
-        {
-            let gpl = petunia_project::palette::export_gpl("Petunia Palette", &state.palette);
-            if std::fs::write(&path, gpl).is_ok() {
-                state.set_status(format!("exported palette to {}", path.display()));
-            }
-        }
+    /// Exporta a paleta atual para arquivo (.gpl) usando o ProjectService.
+    pub fn export_palette_file(
+        state: &AppState,
+        path: &std::path::Path,
+    ) -> Result<(), petunia_core::ProjectServiceError> {
+        petunia_core::ProjectService::export_palette(&state.palette, "Petunia Palette", path)
     }
 
     // ---- canvas 2D ----
@@ -256,14 +234,18 @@ impl PaintModule {
                         .on_hover_text("Import .hex or .gpl palette")
                         .clicked()
                     {
-                        PaintModule::import_palette_dialog(state);
+                        state
+                            .events
+                            .emit(petunia_core::AppEvent::RequestImportPalette);
                     }
                     if ui
                         .small_button("Export")
                         .on_hover_text("Export palette to .gpl")
                         .clicked()
                     {
-                        PaintModule::export_palette_dialog(state);
+                        state
+                            .events
+                            .emit(petunia_core::AppEvent::RequestExportPalette);
                     }
                 });
                 if ui

@@ -17,6 +17,8 @@ pub enum AppEvent {
     TextureChanged { asset_id: Uuid },
     ProjectLoaded,
     ProjectSaving,
+    RequestImportPalette,
+    RequestExportPalette,
 }
 
 /// Fila drenada uma vez por frame pelo App.

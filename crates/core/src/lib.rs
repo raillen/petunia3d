@@ -9,6 +9,7 @@ pub mod mesh_preview;
 pub mod modal;
 pub mod module;
 pub mod picking;
+pub mod project_service;
 pub mod selection;
 pub mod state;
 pub mod viewport;
@@ -18,6 +19,7 @@ pub use command::{
     DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, FlipNormalsCmd,
     InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SubdivideSelectionCmd,
 };
+pub use project_service::{sanitize_filename, ProjectService, ProjectServiceError};
 
 pub use camera::{Camera, Projection, ViewPreset};
 pub use events::{AppEvent, EventBus};

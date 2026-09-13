@@ -3,6 +3,41 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.14.0] - 2026-09-13 — Architectural Decoupling: Pure ProjectService & File I/O Boundary (Gauntlet G4)
+
+### Adicionado
+- **Serviço Puro de Aplicação `ProjectService` (`crates/core/src/project_service.rs`)**:
+  - Implementação de serviço de aplicação canônico desacoplado de interfaces gráficas para ciclo de vida de projeto:
+    - `ProjectService::new_project`: reinicialização de sessão e sincronização transacional de estado.
+    - `ProjectService::load_project` e `ProjectService::save_project`: persistência determinística com versionamento `.petunia`.
+    - `ProjectService::import_obj` e `ProjectService::export_obj`: importação e exportação de malhas Wavefront OBJ com criação de checkpoint de undo.
+    - `ProjectService::export_glb`: exportação glTF binário com empacotamento nativo.
+    - `ProjectService::export_all_obj_to_dir`: exportação em lote para diretório com sanitização de nomes de arquivo.
+    - `ProjectService::import_palette` e `ProjectService::export_palette`: importação e exportação de paletas nos formatos GIMP Palette (`.gpl`) e hexadecimal (`.hex`).
+    - `ProjectService::add_reference_image`: inserção de imagens de referência na cena com tipagem neutra.
+  - Tipagem de erro estruturada `ProjectServiceError` (`Io`, `Format`, `AssetNotFound`, `Export`, `InvalidPalette`).
+  - 9 novos testes unitários e de integração headless em `crates/core/tests/project_service_tests.rs`.
+- **Eventos de Solicitação de Diálogo de Paleta no EventBus (`crates/core/src/events.rs`)**:
+  - Adição de `AppEvent::RequestImportPalette` e `AppEvent::RequestExportPalette`.
+  - Tratamento assíncrono e desacoplado no loop de despacho do `Core` (`crates/app/src/lib.rs`).
+- **Governança Automatizada de I/O e Isolamento de Diálogos (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Teste automatizado garantindo que `petunia_module_paint` não depende de `rfd`.
+  - Scanner de código estático garantindo que nenhuma função fora de `crates/ui/src/file_dialog_service.rs` instancia `rfd::FileDialog` ou `egui_file_dialog::FileDialog`.
+
+### Modificado
+- **Purificação de `petunia_module_paint` (`crates/module-paint/Cargo.toml`, `crates/module-paint/src/lib.rs`)**:
+  - Remoção completa da dependência externa `rfd`.
+  - Substituição de chamadas a diálogos nativos nos botões de importação e exportação de paleta por emissão de eventos no `EventBus`.
+  - Funções utilitárias puras `import_palette_file` e `export_palette_file` delegando diretamente ao `ProjectService`.
+- **Centralização Canônica de Diálogos de Arquivo (`crates/ui/src/file_dialog_service.rs`)**:
+  - `PetuniaFileDialogService` agora delega todas as ações de domínio confirmadas ao `ProjectService`.
+  - Adicionadas funções auxiliares no módulo `native` (`pick_project_file`, `pick_save_project_file`, `pick_obj_file`, `pick_export_obj_file`, `pick_export_glb_file`, `pick_folder`, `pick_image_file`, `pick_palette_import_file`, `pick_palette_export_file`).
+- **Remediação de `crates/ui/src/lib.rs`**:
+  - Funções `open_project_dialog`, `save_project_dialog`, `import_obj_dialog`, `export_dialog`, `refs_section` e `pick_and_add_reference_image` refatoradas para utilizar `file_dialog_service` e `ProjectService`.
+  - Remoção das importações de `petunia_mesh::Mesh` e `petunia_project::format` do escopo raiz da UI.
+
+---
+
 ## [0.13.0] - 2026-09-13 — Architectural Decoupling: Core Purification, Fitness Governance, Command System, and UI Direct Mutation Extraction (Gauntlets G0, G1, G2, G3)
 
 ### Adicionado

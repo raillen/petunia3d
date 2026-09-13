@@ -2859,7 +2859,6 @@ dependencies = [
  "petunia_core",
  "petunia_mesh",
  "petunia_project",
- "rfd",
 ]
 
 [[package]]

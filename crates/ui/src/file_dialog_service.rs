@@ -1,17 +1,16 @@
-//! Serviço integrado de diálogos de arquivo para o Petunia3D com `egui-file-dialog`.
+//! Serviço integrado de diálogos de arquivo para o Petunia3D.
 //!
-//! Fornece seleção e salvamento de arquivos dentro do canvas egui (ou modal nativo),
-//! estilizado com os tokens visuais do Petunia Design System.
+//! Encapsula todas as chamadas a diálogos nativos do sistema operacional (`rfd::FileDialog`)
+//! e diálogos in-canvas (`egui-file-dialog`), delegando todas as operações de persistência
+//! e conversão de formatos ao `ProjectService` puro do `petunia_core`.
 
 use std::path::PathBuf;
 
 use egui::Context;
 use egui_file_dialog::FileDialog;
-use petunia_core::AppState;
-use petunia_mesh::Mesh;
-use petunia_project::{export, format};
+use petunia_core::{AppState, ProjectService};
 
-/// Ação pendente solicitada através do diálogo de arquivos.
+/// Ação pendente solicitada através do diálogo de arquivos in-canvas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileDialogAction {
     OpenProject,
@@ -20,9 +19,11 @@ pub enum FileDialogAction {
     ImportObj,
     ExportObj,
     ExportGlb,
+    ImportPalette,
+    ExportPalette,
 }
 
-/// Serviço gerenciador de diálogo de arquivos integrado à UI.
+/// Serviço gerenciador de diálogo de arquivos integrado à UI (in-canvas modal).
 pub struct PetuniaFileDialogService {
     dialog: FileDialog,
     pending_action: Option<FileDialogAction>,
@@ -114,6 +115,30 @@ impl PetuniaFileDialogService {
         self.dialog = dialog;
     }
 
+    /// Abre o diálogo para importar paleta de cores.
+    pub fn import_palette(&mut self) {
+        self.pending_action = Some(FileDialogAction::ImportPalette);
+        let mut dialog = FileDialog::new()
+            .as_modal(true)
+            .title("Import Color Palette")
+            .add_file_filter_extensions("Palette (*.hex, *.gpl)", vec!["hex", "gpl"]);
+        dialog.pick_file();
+        self.dialog = dialog;
+    }
+
+    /// Abre o diálogo para exportar paleta de cores.
+    pub fn export_palette(&mut self, default_name: &str) {
+        self.pending_action = Some(FileDialogAction::ExportPalette);
+        let file_name = format!("{default_name}.gpl");
+        let mut dialog = FileDialog::new()
+            .as_modal(true)
+            .title("Export GIMP Palette")
+            .add_file_filter_extensions("GIMP Palette (*.gpl)", vec!["gpl"])
+            .default_file_name(&file_name);
+        dialog.save_file();
+        self.dialog = dialog;
+    }
+
     /// Atualiza o diálogo de arquivos no frame e despacha a ação quando confirmada.
     pub fn update(&mut self, ctx: &Context, state: &mut AppState) {
         self.dialog.update(ctx);
@@ -127,67 +152,124 @@ impl PetuniaFileDialogService {
 
     fn execute_action(&self, action: FileDialogAction, path: PathBuf, state: &mut AppState) {
         match action {
-            FileDialogAction::OpenProject => match format::load(&path) {
-                Ok(p) => {
-                    state.palette = p.palette.clone();
-                    state.project = p;
-                    state.undo.clear();
-                    state.uv_selected.clear();
-                    state.project_path = Some(path.to_string_lossy().to_string());
-                    state.events.emit(petunia_core::AppEvent::ProjectLoaded);
-                    state.sync_selection();
-                    state.set_status(format!("open {}", path.display()));
-                }
-                Err(e) => state.set_status(format!("open err: {e}")),
-            },
-            FileDialogAction::SaveProject | FileDialogAction::SaveProjectAs => {
-                state.project.palette = state.palette.clone();
-                match format::save(&state.project, &path) {
-                    Ok(()) => {
-                        state.project_path = Some(path.to_string_lossy().to_string());
-                        state.set_status(format!("saved {}", path.display()));
-                    }
-                    Err(e) => state.set_status(format!("save err: {e}")),
+            FileDialogAction::OpenProject => {
+                if let Err(e) = ProjectService::load_project(state, &path) {
+                    state.set_status(format!("open err: {e}"));
                 }
             }
-            FileDialogAction::ImportObj => match std::fs::read_to_string(&path) {
-                Ok(text) => {
-                    let mesh = Mesh::from_obj(&text);
-                    let name = path
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("mesh")
-                        .to_string();
-                    state.checkpoint("import obj");
-                    state.project.add(&name, mesh);
-                    state.sync_selection();
-                    state.emit_mesh_changed();
-                    state.set_status(format!("import {}", path.display()));
+            FileDialogAction::SaveProject | FileDialogAction::SaveProjectAs => {
+                if let Err(e) = ProjectService::save_project(state, &path) {
+                    state.set_status(format!("save err: {e}"));
                 }
-                Err(e) => state.set_status(format!("import err: {e}")),
-            },
+            }
+            FileDialogAction::ImportObj => {
+                if let Err(e) = ProjectService::import_obj(state, &path) {
+                    state.set_status(format!("import err: {e}"));
+                }
+            }
             FileDialogAction::ExportObj => {
-                if let Some(asset) = state.project.assets.get(state.project.active) {
-                    let obj = export::export_obj(asset);
-                    match std::fs::write(&path, obj) {
-                        Ok(()) => state.set_status(format!("exported obj {}", path.display())),
-                        Err(e) => state.set_status(format!("export obj err: {e}")),
-                    }
+                let active = state.project.active;
+                match ProjectService::export_obj(state, active, &path) {
+                    Ok(()) => state.set_status(format!("exported obj {}", path.display())),
+                    Err(e) => state.set_status(format!("export obj err: {e}")),
                 }
             }
             FileDialogAction::ExportGlb => {
                 let active = state.project.active;
-                match export::export_gltf(&state.project, &[active]) {
-                    Ok(bytes) => match std::fs::write(&path, bytes) {
-                        Ok(()) => state.set_status(format!("exported glb {}", path.display())),
-                        Err(e) => state.set_status(format!("export glb err: {e}")),
-                    },
+                match ProjectService::export_glb(state, &[active], &path) {
+                    Ok(()) => state.set_status(format!("exported glb {}", path.display())),
                     Err(e) => state.set_status(format!("export glb err: {e}")),
+                }
+            }
+            FileDialogAction::ImportPalette => {
+                if let Err(e) = ProjectService::import_palette(state, &path) {
+                    state.set_status(format!("import palette err: {e}"));
+                }
+            }
+            FileDialogAction::ExportPalette => {
+                match ProjectService::export_palette(&state.palette, "Petunia Palette", &path) {
+                    Ok(()) => state.set_status(format!("exported palette to {}", path.display())),
+                    Err(e) => state.set_status(format!("export palette err: {e}")),
                 }
             }
         }
     }
 }
+
+/// Diálogos de arquivo nativos do sistema operacional (Desktop / Fallback síncrono).
+pub mod native {
+    use std::path::PathBuf;
+
+    /// Abre diálogo nativo do sistema para selecionar um arquivo de projeto (.petunia).
+    pub fn pick_project_file() -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("Petunia Project (*.petunia)", &["petunia"])
+            .pick_file()
+    }
+
+    /// Abre diálogo nativo para salvar um arquivo de projeto (.petunia).
+    pub fn pick_save_project_file(default_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("Petunia Project (*.petunia)", &["petunia"])
+            .set_file_name(default_name)
+            .save_file()
+    }
+
+    /// Abre diálogo nativo para selecionar malha Wavefront OBJ.
+    pub fn pick_obj_file() -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("Wavefront OBJ (*.obj)", &["obj"])
+            .pick_file()
+    }
+
+    /// Abre diálogo nativo para salvar malha Wavefront OBJ.
+    pub fn pick_export_obj_file(default_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("Wavefront OBJ (*.obj)", &["obj"])
+            .set_file_name(default_name)
+            .save_file()
+    }
+
+    /// Abre diálogo nativo para salvar arquivo glTF Binário (.glb).
+    pub fn pick_export_glb_file(default_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("glTF Binary (*.glb)", &["glb"])
+            .set_file_name(default_name)
+            .save_file()
+    }
+
+    /// Abre diálogo nativo para selecionar um diretório destino.
+    pub fn pick_folder() -> Option<PathBuf> {
+        rfd::FileDialog::new().pick_folder()
+    }
+
+    /// Abre diálogo nativo para carregar imagens de textura/referência.
+    pub fn pick_image_file() -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter(
+                "Imagens (*.png, *.jpg, *.jpeg, *.webp)",
+                &["png", "jpg", "jpeg", "webp"],
+            )
+            .pick_file()
+    }
+
+    /// Abre diálogo nativo para importar paleta (.hex ou .gpl).
+    pub fn pick_palette_import_file() -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("Paleta (*.hex, *.gpl)", &["hex", "gpl"])
+            .pick_file()
+    }
+
+    /// Abre diálogo nativo para exportar paleta (.gpl).
+    pub fn pick_palette_export_file(default_name: &str) -> Option<PathBuf> {
+        rfd::FileDialog::new()
+            .add_filter("GIMP Palette (*.gpl)", &["gpl"])
+            .set_file_name(default_name)
+            .save_file()
+    }
+}
+
+pub use native::*;
 
 #[cfg(test)]
 mod tests {
@@ -219,5 +301,17 @@ mod tests {
 
         service.export_glb("test_model");
         assert_eq!(service.pending_action, Some(FileDialogAction::ExportGlb));
+
+        service.import_palette();
+        assert_eq!(
+            service.pending_action,
+            Some(FileDialogAction::ImportPalette)
+        );
+
+        service.export_palette("test_palette");
+        assert_eq!(
+            service.pending_action,
+            Some(FileDialogAction::ExportPalette)
+        );
     }
 }

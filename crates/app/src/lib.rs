@@ -72,6 +72,32 @@ impl Core {
     /// Despacha eventos acumulados aos módulos via registry.
     pub fn dispatch_events(&mut self) {
         for ev in self.state.events.drain() {
+            match &ev {
+                petunia_core::AppEvent::RequestImportPalette => {
+                    if let Some(path) = petunia_ui::file_dialog_service::pick_palette_import_file()
+                    {
+                        if let Err(e) =
+                            petunia_core::ProjectService::import_palette(&mut self.state, &path)
+                        {
+                            self.state.set_status(format!("import palette err: {e}"));
+                        }
+                    }
+                }
+                petunia_core::AppEvent::RequestExportPalette => {
+                    if let Some(path) =
+                        petunia_ui::file_dialog_service::pick_palette_export_file("palette.gpl")
+                    {
+                        if let Err(e) = petunia_core::ProjectService::export_palette(
+                            &self.state.palette,
+                            "Petunia Palette",
+                            &path,
+                        ) {
+                            self.state.set_status(format!("export palette err: {e}"));
+                        }
+                    }
+                }
+                _ => {}
+            }
             self.registry.dispatch(&ev, &mut self.state);
         }
     }

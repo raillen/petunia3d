@@ -5,10 +5,9 @@
 //! antes dos closures; mutações via índices, nunca com iterator vivo.
 
 use petunia_core::Projection;
-use petunia_core::{AppState, ModuleRegistry, RefAxis};
-use petunia_mesh::Mesh;
+use petunia_core::{AppState, ModuleRegistry, ProjectService, RefAxis};
 use petunia_module_model::ToolRegistry;
-use petunia_project::{export, format};
+use petunia_project::export;
 
 pub mod annotation;
 pub mod app_icons;
@@ -146,81 +145,35 @@ pub fn right_panel(
 }
 
 pub fn new_project(state: &mut AppState) {
-    state.project = petunia_project::Project::new();
-    state.palette = state.project.palette.clone();
-    state.undo.clear();
-    state.refs.clear();
-    state.uv_selected.clear();
-    state.project_path = None;
-    state.sync_selection();
-    state.set_status("new".to_string());
+    ProjectService::new_project(state);
 }
 
 pub fn open_project_dialog(state: &mut AppState) {
-    if let Some(path) = rfd::FileDialog::new()
-        .add_filter("Petunia", &["petunia"])
-        .pick_file()
-    {
-        match format::load(&path) {
-            Ok(p) => {
-                state.palette = p.palette.clone();
-                state.project = p;
-                state.undo.clear();
-                state.uv_selected.clear();
-                state.project_path = Some(path.to_string_lossy().to_string());
-                state.events.emit(petunia_core::AppEvent::ProjectLoaded);
-                state.sync_selection();
-                state.set_status(format!("open {}", path.display()));
-            }
-            Err(e) => state.set_status(format!("open err: {e}")),
+    if let Some(path) = file_dialog_service::pick_project_file() {
+        if let Err(e) = ProjectService::load_project(state, &path) {
+            state.set_status(format!("open err: {e}"));
         }
     }
 }
 
 pub fn save_project_dialog(state: &mut AppState, save_as: bool) {
-    state.project.palette = state.palette.clone();
     let path = if !save_as {
         state.project_path.clone().map(std::path::PathBuf::from)
     } else {
         None
     };
-    let path = path.or_else(|| {
-        rfd::FileDialog::new()
-            .add_filter("Petunia", &["petunia"])
-            .set_file_name("project.petunia")
-            .save_file()
-    });
+    let path = path.or_else(|| file_dialog_service::pick_save_project_file("project.petunia"));
     if let Some(path) = path {
-        match format::save(&state.project, &path) {
-            Ok(()) => {
-                state.project_path = Some(path.to_string_lossy().to_string());
-                state.set_status(format!("saved {}", path.display()));
-            }
-            Err(e) => state.set_status(format!("save err: {e}")),
+        if let Err(e) = ProjectService::save_project(state, &path) {
+            state.set_status(format!("save err: {e}"));
         }
     }
 }
 
 pub fn import_obj_dialog(state: &mut AppState) {
-    if let Some(path) = rfd::FileDialog::new()
-        .add_filter("OBJ", &["obj"])
-        .pick_file()
-    {
-        match std::fs::read_to_string(&path) {
-            Ok(text) => {
-                let mesh = Mesh::from_obj(&text);
-                let name = path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("mesh")
-                    .to_string();
-                state.checkpoint("import obj");
-                state.project.add(&name, mesh);
-                state.sync_selection();
-                state.emit_mesh_changed();
-                state.set_status(format!("import {}", path.display()));
-            }
-            Err(e) => state.set_status(format!("import err: {e}")),
+    if let Some(path) = file_dialog_service::pick_obj_file() {
+        if let Err(e) = ProjectService::import_obj(state, &path) {
+            state.set_status(format!("import err: {e}"));
         }
     }
 }
@@ -275,10 +228,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
         .default_open(false)
         .show(ui, |ui| {
             if ui.button(l_load).clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("image", &["png", "jpg", "jpeg"])
-                    .pick_file()
-                {
+                if let Some(path) = file_dialog_service::pick_image_file() {
                     match load_image_rgba(&path) {
                         Ok((w, h, rgba)) => {
                             let name = path
@@ -286,11 +236,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                                 .and_then(|s| s.to_str())
                                 .unwrap_or("ref")
                                 .to_string();
-                            state
-                                .refs
-                                .push(petunia_core::ReferenceImage::from_rgba(name, w, h, rgba));
-                            state.set_status(format!("ref {}", path.display()));
-                            state.mark_dirty();
+                            ProjectService::add_reference_image(state, name, w, h, rgba);
                         }
                         Err(e) => state.set_status(format!("ref err: {e}")),
                     }
@@ -463,43 +409,18 @@ fn export_dialog(state: &mut AppState, sel: &[usize]) {
         return;
     }
     if state.export_gltf {
-        if let Some(path) = rfd::FileDialog::new()
-            .add_filter("glTF", &["glb"])
-            .set_file_name("assets.glb")
-            .save_file()
-        {
-            match export::export_gltf(&state.project, sel) {
-                Ok(bytes) => match std::fs::write(&path, bytes) {
-                    Ok(()) => state.set_status(format!("export {}", path.display())),
-                    Err(e) => state.set_status(format!("export err: {e}")),
-                },
+        if let Some(path) = file_dialog_service::pick_export_glb_file("assets.glb") {
+            match ProjectService::export_glb(state, sel, &path) {
+                Ok(()) => state.set_status(format!("export {}", path.display())),
                 Err(e) => state.set_status(format!("export err: {e}")),
             }
         }
-    } else if let Some(dir) = rfd::FileDialog::new().pick_folder() {
-        let mut n = 0;
-        for &i in sel {
-            if let Some(a) = state.project.assets.get(i) {
-                let path = dir.join(format!("{}.obj", sanitize(&a.name)));
-                if std::fs::write(&path, export::export_obj(a)).is_ok() {
-                    n += 1;
-                }
-            }
+    } else if let Some(dir) = file_dialog_service::pick_folder() {
+        match ProjectService::export_all_obj_to_dir(state, sel, &dir) {
+            Ok(n) => state.set_status(format!("export: {n} OBJ")),
+            Err(e) => state.set_status(format!("export err: {e}")),
         }
-        state.set_status(format!("export: {n} OBJ"));
     }
-}
-
-fn sanitize(s: &str) -> String {
-    s.chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == '_' || c == '-' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect()
 }
 
 // ------------------------------------------------------------- viewport
@@ -674,10 +595,7 @@ pub fn load_image_rgba(path: &std::path::Path) -> Result<(u32, u32, Vec<u8>), St
 
 /// Diálogo para selecionar e adicionar uma imagem de referência à cena.
 pub fn pick_and_add_reference_image(state: &mut AppState) {
-    if let Some(path) = rfd::FileDialog::new()
-        .add_filter("Imagens", &["png", "jpg", "jpeg", "webp"])
-        .pick_file()
-    {
+    if let Some(path) = file_dialog_service::pick_image_file() {
         match load_image_rgba(&path) {
             Ok((w, h, rgba)) => {
                 let name = path
@@ -685,14 +603,8 @@ pub fn pick_and_add_reference_image(state: &mut AppState) {
                     .and_then(|s| s.to_str())
                     .unwrap_or("ref")
                     .to_string();
-                state.refs.push(petunia_core::ReferenceImage::from_rgba(
-                    name.clone(),
-                    w,
-                    h,
-                    rgba,
-                ));
+                ProjectService::add_reference_image(state, name.clone(), w, h, rgba);
                 state.set_status(format!("Imagem de referência '{name}' adicionada"));
-                state.mark_dirty();
             }
             Err(e) => state.set_status(format!("Erro ao carregar imagem: {e}")),
         }

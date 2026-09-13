@@ -113,18 +113,26 @@ flowchart TD
 
 ---
 
-### Gauntlet G4 — Fronteira de I/O de Arquivos (`ProjectService`)
+### Gauntlet G4 — Fronteira de I/O de Arquivos (`ProjectService`) [CONCLUÍDO]
 * **Objetivo**: Isolar todas as operações de leitura/gravação de disco em serviços puros de aplicação, removendo o acoplamento de file pickers do domínio.
 * **Achados Alvo**: **F-009**.
+* **Status**: ✅ **CONCLUÍDO** (`ProjectService` puro implementado em `crates/core/src/project_service.rs`; `rfd` removido de `petunia_module_paint`; `crates/ui/src/file_dialog_service.rs` centraliza 100% dos file dialogs nativos/in-canvas).
 * **Pré-condições**: Ciclo G3 aprovado.
 * **Arquivos Afetados**:
-  * Novo módulo `project_service.rs`: Expor `save_project(session, path)`, `load_project(session, path)`, `import_obj(session, path)`, `export_glb(session, path)`.
-  * `crates/ui/src/lib.rs`: Reduzir `open_project_dialog` para estritamente: obter o path do diálogo e chamar `ProjectService::load_project`.
-  * `crates/module-paint/src/lib.rs`: Remover `rfd::FileDialog` de dentro do módulo de pintura.
+  * `crates/core/src/project_service.rs`: Serviço puro com `new_project`, `load_project`, `save_project`, `import_obj`, `export_obj`, `export_glb`, `export_all_obj_to_dir`, `import_palette`, `export_palette`, `add_reference_image` e `sanitize_filename`.
+  * `crates/core/src/events.rs`: Adicionados eventos `RequestImportPalette` e `RequestExportPalette`.
+  * `crates/core/tests/project_service_tests.rs`: 9 testes de integração e persistência headless.
+  * `crates/module-paint/Cargo.toml` & `crates/module-paint/src/lib.rs`: Dependência e chamadas a `rfd` removidas; botões de paleta agora emitem eventos `AppEvent`.
+  * `crates/ui/src/file_dialog_service.rs`: Centralização de todas as instanciações de `rfd::FileDialog` e `egui-file-dialog` com delegação ao `ProjectService`.
+  * `crates/ui/src/lib.rs`: Redução de `open_project_dialog`, `save_project_dialog`, `import_obj_dialog`, `export_dialog`, `refs_section` e `pick_and_add_reference_image` para chamadas a `file_dialog_service` e `ProjectService`. Removidas dependências de `petunia_mesh::Mesh` e `petunia_project::format` do root de UI.
+  * `crates/app/src/lib.rs`: Tratamento de `RequestImportPalette` e `RequestExportPalette` em `Core::dispatch_events`.
+  * `tests/architecture_fitness.rs` e `crates/xtask/src/main.rs`: Adicionados testes de fitness validando ausência de `rfd` fora de `crates/ui` e ausência de `rfd::FileDialog` / `egui_file_dialog` fora de `file_dialog_service.rs`.
 * **Testes de Segurança**:
-  * Teste automatizado salvando e carregando projetos via `ProjectService` com caminhos temporários sem abrir diálogos.
+  * `cargo test -p petunia_core`: 59 testes aprovados (42 unitários + 8 commands + 9 project_service).
+  * `cargo test --test architecture_fitness`: 8 testes aprovados.
+  * `cargo test --workspace`: todos os 225+ testes da workspace aprovados sem regressão.
 * **Critério de Saída**:
-  * Nenhuma função fora de `crates/ui/src/file_dialog_service.rs` instancia `rfd::FileDialog` ou `egui-file-dialog`.
+  * Nenhuma função fora de `crates/ui/src/file_dialog_service.rs` instancia `rfd::FileDialog` ou `egui-file-dialog`. Validado com sucesso.
 
 ---
 

@@ -215,6 +215,11 @@ fn task_arch_check() -> Result<()> {
             &["egui", "petunia_ui"][..],
             "petunia_render_wgpu não pode depender de UI",
         ),
+        (
+            "crates/module-paint/Cargo.toml",
+            &["rfd ="][..],
+            "petunia_module_paint não pode depender de rfd",
+        ),
     ];
 
     for (rel_path, forbidden, reason) in checks {
@@ -228,7 +233,51 @@ fn task_arch_check() -> Result<()> {
         }
     }
 
-    println!("✅ Invariantes de manifesto validados: core, config, mesh, project, commands e render-wgpu estão desacoplados de egui.");
-    println!("🏛️ Progresso de remediação: Gauntlet G0 (Fitness), G1 (Core Puro), G2 (Commands) e G3 (Desacoplamento de UI) CONCLUÍDOS.");
+    println!("✅ Invariantes de manifesto validados: core, config, mesh, project, commands, render-wgpu e module-paint estão em conformidade.");
+
+    println!("🛡️ Validando fronteira de I/O de arquivos (Gauntlet G4)...");
+    let mut rs_files = Vec::new();
+    let crates_dir = root.join("crates");
+
+    fn collect_rs(dir: &Path, acc: &mut Vec<PathBuf>) -> std::io::Result<()> {
+        if dir.is_dir() {
+            for entry in std::fs::read_dir(dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_dir() {
+                    collect_rs(&path, acc)?;
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
+                    acc.push(path);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    collect_rs(&crates_dir, &mut rs_files)?;
+
+    for file_path in rs_files {
+        let rel = file_path
+            .strip_prefix(&root)
+            .unwrap_or(&file_path)
+            .to_string_lossy();
+
+        if rel == "crates/ui/src/file_dialog_service.rs" || rel.starts_with("crates/xtask") {
+            continue;
+        }
+
+        let content = std::fs::read_to_string(&file_path)
+            .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+
+        if content.contains("rfd::FileDialog") {
+            bail!("Violação de Fronteira de I/O: {rel} instancia rfd::FileDialog fora de file_dialog_service.rs!");
+        }
+        if content.contains("egui_file_dialog::FileDialog") {
+            bail!("Violação de Fronteira de I/O: {rel} instancia egui_file_dialog::FileDialog fora de file_dialog_service.rs!");
+        }
+    }
+
+    println!("✅ Fronteira de I/O validada: nenhum arquivo fora de crates/ui/src/file_dialog_service.rs instancia rfd ou egui-file-dialog.");
+    println!("🏛️ Progresso de remediação: Gauntlet G0 (Fitness), G1 (Core Puro), G2 (Commands), G3 (Desacoplamento de UI) e G4 (ProjectService & I/O Boundary) CONCLUÍDOS.");
     Ok(())
 }

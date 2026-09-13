@@ -88,3 +88,57 @@ fn petunia_render_wgpu_must_not_depend_on_egui() {
         "VIOLAÇÃO ARQUITETURAL: crates/render-wgpu/Cargo.toml não pode depender de petunia_ui!"
     );
 }
+
+#[test]
+fn petunia_module_paint_must_not_depend_on_rfd() {
+    let manifest_path = root_dir().join("crates/module-paint/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/module-paint/Cargo.toml");
+    assert!(
+        !content.contains("rfd ="),
+        "VIOLAÇÃO ARQUITETURAL: crates/module-paint/Cargo.toml não pode depender de rfd!"
+    );
+}
+
+#[test]
+fn file_dialogs_isolated_strictly_to_file_dialog_service() {
+    let crates_dir = root_dir().join("crates");
+    let mut rs_files = Vec::new();
+
+    fn scan_dir(dir: &Path, acc: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    scan_dir(&path, acc);
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
+                    acc.push(path);
+                }
+            }
+        }
+    }
+
+    scan_dir(&crates_dir, &mut rs_files);
+
+    for file_path in rs_files {
+        let rel_path = file_path
+            .strip_prefix(root_dir())
+            .unwrap_or(&file_path)
+            .to_string_lossy();
+
+        if rel_path == "crates/ui/src/file_dialog_service.rs"
+            || rel_path.starts_with("crates/xtask")
+        {
+            continue;
+        }
+
+        let content = fs::read_to_string(&file_path).expect("ler arquivo fonte");
+        assert!(
+            !content.contains("rfd::FileDialog"),
+            "VIOLAÇÃO ARQUITETURAL (G4): {rel_path} instancia rfd::FileDialog fora de file_dialog_service.rs!"
+        );
+        assert!(
+            !content.contains("egui_file_dialog::FileDialog"),
+            "VIOLAÇÃO ARQUITETURAL (G4): {rel_path} instancia egui_file_dialog fora de file_dialog_service.rs!"
+        );
+    }
+}
