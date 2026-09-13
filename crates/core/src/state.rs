@@ -339,7 +339,15 @@ impl AppState {
             active_keymap_id: "petunia-default".to_string(),
         }
     }
+}
 
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new("en")
+    }
+}
+
+impl AppState {
     pub fn scene_tris(&self) -> usize {
         self.project.assets.iter().map(|a| a.mesh.tri_count()).sum()
     }
@@ -422,6 +430,14 @@ impl AppState {
     }
     pub fn consume_dirty(&mut self) -> bool {
         std::mem::replace(&mut self.dirty, false)
+    }
+
+    /// Despacha um comando através do CommandDispatcher com auto-checkpoint e propagação de eventos.
+    pub fn dispatch(
+        &mut self,
+        cmd: &dyn crate::command::Command,
+    ) -> Result<(), crate::command::CommandError> {
+        crate::command::CommandDispatcher::dispatch(self, cmd)
     }
 
     /// Checkpoint de undo ANTES de mutar o projeto + evento.

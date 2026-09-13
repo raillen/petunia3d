@@ -66,6 +66,20 @@ impl<T: Clone> UndoStack<T> {
     }
 }
 
+/// Trait genérica para comandos executáveis e transacionais.
+pub trait Command<Context, Res = (), Err = String>: Send + Sync {
+    /// Rótulo legível para telemetria e pilha de desfazer/refazer (Undo/Redo).
+    fn label(&self) -> &'static str;
+
+    /// Executa a operação contra o contexto mutável.
+    fn execute(&self, ctx: &mut Context) -> Result<Res, Err>;
+
+    /// Indica se o comando altera o estado persistente e exige captura prévia de checkpoint de Undo.
+    fn is_destructive(&self) -> bool {
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,5 +104,26 @@ mod tests {
         assert!(st.can_redo());
         st.checkpoint("b", &1);
         assert!(!st.can_redo());
+    }
+
+    struct IncrementCmd(i32);
+    impl Command<i32> for IncrementCmd {
+        fn label(&self) -> &'static str {
+            "increment"
+        }
+        fn execute(&self, ctx: &mut i32) -> Result<(), String> {
+            *ctx += self.0;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn command_trait_executes_and_identifies() {
+        let cmd = IncrementCmd(5);
+        assert_eq!(cmd.label(), "increment");
+        assert!(cmd.is_destructive());
+        let mut val = 10;
+        assert!(cmd.execute(&mut val).is_ok());
+        assert_eq!(val, 15);
     }
 }

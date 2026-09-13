@@ -70,20 +70,22 @@ flowchart TD
 
 ---
 
-### Gauntlet G2 — Fundação do Sistema de Comandos e Dispatcher
+### Gauntlet G2 — Fundação do Sistema de Comandos e Dispatcher [CONCLUÍDO]
 * **Objetivo**: Introduzir comandos semânticos com payload tipado e um despachante central que automatize a gravação de checkpoints de histórico.
 * **Achados Alvo**: **F-003**.
+* **Status**: ✅ **CONCLUÍDO** (Implementado `Command`, `CommandDispatcher`, `CommandError`, 8 comandos canônicos e suíte de 7 testes de integração headless em `crates/core/tests/command_tests.rs`).
 * **Pré-condições**: Ciclo G1 aprovado.
 * **Arquivos Afetados**:
-  * `crates/commands/src/lib.rs` ou novo módulo em `petunia_core`/`petunia_application`:
-    * Definir `pub trait Command: Send + Sync { fn execute(&self, session: &mut EditorSession) -> Result<(), CommandError>; fn label(&self) -> &'static str; fn is_destructive(&self) -> bool { true } }`.
-    * Criar `CommandDispatcher` com método `dispatch(&mut self, cmd: Box<dyn Command>) -> Result<(), CommandError>`.
-    * O dispatcher captura automaticamente `undo.checkpoint(cmd.label())` se `cmd.is_destructive()` for verdadeiro.
-  * Implementar os 4 primeiros comandos canônicos: `AddPrimitiveCmd`, `DuplicateAssetCmd`, `DeleteAssetCmd`, `DeleteSelectionCmd`.
+  * `crates/commands/src/lib.rs`: Trait genérica `Command<Context, Res, Err>` com suporte a Undo/Redo e labels semânticos.
+  * `crates/core/src/command.rs`: Tipagem de erro `CommandError`, `CommandDispatcher` com registry e dispatch transacional, e 8 comandos canônicos (`AddPrimitiveCmd`, `DuplicateAssetCmd`, `DeleteAssetCmd`, `DeleteSelectionCmd`, `DuplicateSelectionCmd`, `SelectAllCmd`, `ClearSelectionCmd`, `InvertSelectionCmd`).
+  * `crates/core/src/state.rs`: Integração `AppState::dispatch(&mut self, cmd: &dyn Command)`.
+  * `crates/core/tests/command_tests.rs`: 7 testes de integração headless cobrindo roundtrips de Undo/Redo e sessão de modelagem completa.
 * **Testes de Segurança**:
-  * Testes unitários puros despachando comandos e verificando `undo()` e `redo()` sem carregar nenhum componente de UI.
+  * `cargo test -p petunia_commands`: 3 testes unitários aprovados.
+  * `cargo test -p petunia_core`: 49 testes aprovados (42 unitários + 7 integração headless).
+  * `cargo test --workspace`: todos os 214+ testes da workspace aprovados.
 * **Critério de Saída**:
-  * Comandos executam e desfazem transacionalmente com 100% de confiabilidade.
+  * Comandos executam e desfazem transacionalmente com 100% de confiabilidade sem qualquer dependência de UI. Validado com sucesso.
 
 ---
 

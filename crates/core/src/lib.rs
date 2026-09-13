@@ -2,6 +2,7 @@
 //! Features conhecem estas abstrações — nunca umas às outras (§22).
 
 pub mod camera;
+pub mod command;
 pub mod events;
 pub mod loop_cut;
 pub mod mesh_preview;
@@ -11,6 +12,12 @@ pub mod picking;
 pub mod selection;
 pub mod state;
 pub mod viewport;
+
+pub use command::{
+    AddPrimitiveCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError, DeleteAssetCmd,
+    DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, InvertSelectionCmd,
+    PrimitiveKind, SelectAllCmd,
+};
 
 pub use camera::{Camera, Projection, ViewPreset};
 pub use events::{AppEvent, EventBus};

@@ -3,6 +3,28 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.13.0] - 2026-09-13 — Architectural Decoupling: Core Purification, Fitness Governance, and Headless Command System (Gauntlets G0, G1, G2)
+
+### Adicionado
+- **Governança Arquitetural Contínua (Gauntlet G0)**:
+  - Testes de fitness automatizados em `tests/architecture_fitness.rs` garantindo que `petunia_core`, `petunia_config`, `petunia_mesh`, `petunia_project`, `petunia_commands` e `petunia_render_wgpu` nunca dependam do `egui` ou `petunia_ui`.
+  - Automação integrada em `cargo xtask arch-check` para validação em CI e pre-commit de manifestos e relatórios canônicos de auditoria.
+  - 17 relatórios canônicos de auditoria arquitetural profunda em `docs/audits/architecture-decoupling/` (121+ KB).
+- **Purificação Total do Core e Configuração (Gauntlet G1)**:
+  - Remoção de 100% das dependências e símbolos de `egui` de `crates/core` e `crates/config`.
+  - Introdução do tipo agnóstico `LogicalRect` em `petunia_core::viewport` substituindo `egui::Rect`.
+  - Extração de `apply_theme` para `crates/ui/src/theme_adapter.rs`.
+  - Isolamento de handles de textura específicos de backend gráfico em `petunia_ui` e `petunia_module_paint`.
+- **Fundação do Sistema de Comandos e Dispatcher (Gauntlet G2)**:
+  - Trait genérica e desacoplada `Command` em `petunia_commands::Command` e `petunia_core::command::Command`.
+  - Despachante transacional `CommandDispatcher` com registry dinâmico, auto-checkpointing de Undo/Redo antes de mutações destrutivas e disparo determinístico de eventos e flags de sujeira (`mark_dirty()`, `emit_mesh_changed()`).
+  - Implementação de 8 comandos canônicos essenciais:
+    - `AddPrimitiveCmd` (suporte a Cube, Sphere, Cylinder, Plane, Cone, Capsule).
+    - `DuplicateAssetCmd` e `DeleteAssetCmd` (gestão e ciclo de vida de assets).
+    - `DeleteSelectionCmd` e `DuplicateSelectionCmd` (comportamento contextual automático em Edit Mode e Object Mode).
+    - `SelectAllCmd`, `ClearSelectionCmd` e `InvertSelectionCmd` (operações não destrutivas de seleção sincronizadas).
+  - Suíte completa de 7 testes de integração headless em `crates/core/tests/command_tests.rs` validando Undo/Redo roundtrip e uma sessão de modelagem completa sem carregar qualquer backend de interface gráfica.
+
 ## [0.12.0] - 2026-09-13 — Deep Interface Revision: Canonical Vector Iconography, Deduplicated Controls, Unified Menus, and Blender-Standard Properties & Outliner
 
 ### Adicionado

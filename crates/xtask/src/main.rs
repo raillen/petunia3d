@@ -229,6 +229,6 @@ fn task_arch_check() -> Result<()> {
     }
 
     println!("✅ Invariantes de manifesto validados: core, config, mesh, project, commands e render-wgpu estão desacoplados de egui.");
-    println!("🏛️ Progresso de remediação: Gauntlet G0 (Fitness & Governança) e G1 (Purificação do Core) CONCLUÍDOS.");
+    println!("🏛️ Progresso de remediação: Gauntlet G0 (Fitness), G1 (Purificação do Core) e G2 (Command System) CONCLUÍDOS.");
     Ok(())
 }

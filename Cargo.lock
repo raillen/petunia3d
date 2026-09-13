@@ -2818,6 +2818,7 @@ dependencies = [
  "petunia_project",
  "petunia_render",
  "serde",
+ "thiserror 2.0.20",
  "uuid",
 ]
 
