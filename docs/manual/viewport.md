@@ -73,3 +73,14 @@ O cursor tridimensional é representado por uma mira circular vermelha e branca:
 - **Posicionamento**: Segure `Shift` e clique com o botão direito (`Shift + RMB`) em qualquer ponto da malha ou do grid;
 - **Utilidade**: Novas primitivas geométricas adicionadas à cena são geradas exatamente na coordenada do 3D Cursor.
 - **Redefinição**: Pressione `Shift+C` para centralizar o cursor 3D de volta na origem `(0, 0, 0)`.
+
+---
+
+## 6. Inspeção de Triangulação & Inversão de Diagonal (Flip Diagonal)
+
+Mesmo que o Petunia3D adote polígonos quadrangulares e n-gons para modelagem limpa, GPUs exigem triângulos para renderização e exportação.
+
+- **Toggle de Triangulação**: Clique no botão de corte diagonal na Viewport Bar (ao lado do Raio-X) para inspecionar em tempo real as diagonais internas de corte fan de todos os quads e n-gons em tom azul suave (`#4da6f4`);
+- **Inverter Diagonal (`Flip Diagonal`)**: Selecione um quad ou uma aresta compartilhada por dois triângulos e acione `Mesh ▾ -> Flip Diagonal` para inverter a direção do corte mantendo winding, normais e integridade topológica;
+- **Revolução de Perfis (`Revolve`)**: Converta polilinhas 2D ou perfis abertos em sólidos de revolução 360° com subdivisão configurável através de `Mesh ▾ -> Revolve Selection`.
+

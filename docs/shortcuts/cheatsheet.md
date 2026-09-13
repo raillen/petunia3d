@@ -36,7 +36,8 @@ Guarde esta página nos seus favoritos ou imprima-a para ter sempre à mão!
 - `G`: Mover (Grab)
 - `R`: Rotacionar
 - `S`: Escalar
-- `E`: Extrusão
+- `E`: Extrusão de Região (Extrude Region)
+- `Alt + E`: Extrusão de Faces Individuais (Extrude Individual Faces)
 - `I`: Inserção (Inset)
 - `Ctrl + B`: Chanfro (Bevel)
 - `Ctrl + R`: Corte em Anel (Loop Cut)

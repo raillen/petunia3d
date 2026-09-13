@@ -11,6 +11,7 @@ Se você já conhece o **Blender**, você se sentirá em casa no Petunia3D! Quas
 | **Rotacionar** | `R` | `R` | Suporta travar eixos e entrada em graus |
 | **Escalar** | `S` | `S` | Suporta travar eixos e planos |
 | **Extrusão** | `E` | `E` | Segue a normal da face |
+| **Extrusão Individual de Faces** | `Alt + E` | `Alt + E` | Desacopla paredes laterais e topos |
 | **Inserção (Inset)** | `I` | `I` | Idêntico |
 | **Chanfro (Bevel)** | `Ctrl + B` | `Ctrl + B` | Idêntico |
 | **Corte em Anel (Loop Cut)** | `Ctrl + R` | `Ctrl + R` | Prévia amarela e deslizamento |

@@ -4,6 +4,297 @@ Todas as alterações notáveis do **Petunia3D** são documentadas nesta página
 
 ---
 
+## [0.21.0] - 2026-09-13 — Core V1 & Interactive Geometry Refinement (Gauntlet Loop)
+
+### Adicionado
+- **Core V1: Triangulation Inspection & Flip Diagonal (`crates/mesh/`, `crates/core/`)**:
+  - `Mesh::triangulation_wireframe(&self)`: Extração determinística de todas as diagonais internas de corte fan em polígonos quadrangulares e n-gons para renderização de wireframe de suporte.
+  - `Mesh::flip_diagonal(&mut self)`: Inversão inteligente de diagonal suportando:
+    1. Quads selecionados: rotação cíclica do loop de vértices e UVs (`rotate_left(1)`), alternando a diagonal fan preservando winding, plano e normais;
+    2. Aresta selecionada compartilhada por dois triângulos adjacentes (Delaunay Edge Flip).
+  - `FlipDiagonalCmd`: Comando transacional no `CommandDispatcher` com histórico completo de Undo/Redo.
+- **Core V1: Revolve 360° Selection (`crates/mesh/src/ops.rs`, `crates/core/src/command.rs`)**:
+  - `Mesh::revolve_selection(&mut self, segments, angle_deg, axis, center)`: Revolução procedimental de perfis conectados/abertos selecionados em torno de qualquer eixo coordenado ($X, Y, Z$) com fechamento cíclico perfeito em revoluções de 360°.
+  - `RevolveCmd`: Comando transacional parametrizado com `segments`, `angle_deg`, `axis` e `center`.
+- **Refinamento de Ferramentas Geométricas Interativas (Gauntlet Loop)**:
+  - **Extrude Individual Faces (`Alt+E`)**:
+    - `Mesh::extrude_individual(&mut self, dist)`: Replicação desacoplada de vértices por face selecionada, gerando anéis de parede independentes e topos disjuntos sem colapso de arestas compartilhadas.
+    - `ExtrudeIndividualCmd` e `ExtrudeTool::apply_individual(&mut state)` com suporte a atalho padrão da indústria `Alt+E`.
+  - **Multi-segment Rounded Bevel**:
+    - `bevel_edge_segments` em `crates/mesh/src/bevel.rs`: Chanfro transacional com $N \ge 1$ segmentos e perfil de curvatura circular em arco de filete ($\text{bulge}(t) = (1 - (2t-1)^2) \times 0.4142$).
+    - Costura topológica automática de vértices intermediários nas faces de canto e extremidade, garantindo que o resultado permaneça fechado, 2-manifold e estritamente planar nas faces laterais.
+  - **Guarded Metric Inset contra Auto-Interseção**:
+    - `Mesh::inset_selected(&mut self, factor)` reforçado com verificação dinâmica de inversão de normais no polígono interno e amortecimento step-down para garantir estabilidade topológica sob fatores extremos.
+- **Renderização e Interface do Usuário (`crates/ui/`, `crates/render-gl/`, `crates/render-wgpu/`, `crates/app/`)**:
+  - Renderização de linhas de triangulação em tom ciano/azul suave (`[0.3, 0.65, 0.95]`) com offset de profundidade em ambos os backends OpenGL (`petunia_render_gl`) e WebGPU (`petunia_render_wgpu`).
+  - Toggle dedicado de Inspeção de Triangulação na barra de contexto do Viewport (`crates/ui/src/viewport_bar.rs`) ao lado dos toggles de Overlays e Raio-X.
+  - Itens de menu `Extrude Individual (Alt+E)`, `Flip Diagonal` e `Revolve Selection` integrados ao menu contextual `Mesh ▾`.
+  - Atalho `Alt+E` para `model.extrude_individual` adicionado aos keybinds padrões e perfis `petunia.toml`, `petunia-default.toml` e `blender.toml`.
+- **Suíte de Testes Automatizados**:
+  - `crates/mesh/tests/triangulation_tests.rs`: 3 testes unitários para wireframe de triangulação e flip diagonal.
+  - `crates/mesh/tests/interactive_geometry_tests.rs`: 4 testes de conformidade para extrude individual, revolve 360°, bevel multi-segmentos e inset protegido.
+  - `crates/core/tests/command_tests.rs`: Testes de execução headless e Undo/Redo para `FlipDiagonalCmd`, `RevolveCmd` e `ExtrudeIndividualCmd`.
+
+---
+
+## [0.20.0] - 2026-09-13 — Architectural Decoupling: C-ABI / FFI Layer (Gauntlet G10, Cross-Language Frontends)
+
+### Adicionado
+- **Biblioteca Dinâmica e Estática C-ABI / FFI (`crates/ffi/`)**:
+  - `petunia_ffi`: Compilado como `cdylib` (`libpetunia_ffi.so` / `.dll` / `.dylib`) e `rlib` para interoperabilidade direta com linguagens externas sem dependência de `egui`.
+  - Header canônico C/C++ (`crates/ffi/include/petunia.h`): Definições de tipos opacos (`PetuniaContext`), códigos de retorno (`PETUNIA_OK`, `PETUNIA_ERR_*`) e protótipos de funções exportadas com documentação Doxygen.
+  - Funções de ciclo de vida seguro de contexto: `petunia_context_create(lang)` e `petunia_context_destroy(ctx)`.
+  - Funções de I/O de projeto e conversão de formatos: `petunia_new_project`, `petunia_load_project`, `petunia_save_project`, `petunia_import_obj`, `petunia_export_obj`, `petunia_export_glb`.
+  - Funções de comandos de modelagem: `petunia_add_primitive`, `petunia_undo`, `petunia_redo`, `petunia_select_all`, `petunia_clear_selection`, `petunia_delete_selection`, `petunia_duplicate_selection`, `petunia_extrude_selection`, `petunia_subdivide_selection`, `petunia_scale_selection`.
+  - Funções de consultas semânticas e telemetria: `petunia_get_asset_count`, `petunia_get_scene_summary`, `petunia_get_active_asset_name`, `petunia_get_active_asset_stats`.
+  - Manipulação por UUIDs canônicos: `petunia_set_active_asset_by_id`, `petunia_delete_asset_by_id`.
+  - Serialização JSON de DTOs para clientes de alto nível (Python, C#, JS): `petunia_query_scene_hierarchy_json`, `petunia_query_selection_details_json`, `petunia_query_tool_status_json`.
+  - Diagnóstico seguro de erros: `petunia_last_error_message(buffer, len)`.
+- **Suíte de Testes C-ABI de Ponta a Ponta (`crates/ffi/tests/c_abi_tests.rs`)**:
+  - 7 testes automatizados exercitando segurança com ponteiros nulos, criação/destruição de contexto, despacho de comandos com undo/redo, consultas JSON, exportações para OBJ e GLB (com validação de magic bytes `glTF`) e manipulação por UUIDs estáveis.
+- **Governança de Invariantes em CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita de que `crates/ffi` não depende de `egui` e de que o header C canônico está presente.
+  - `cargo run -p xtask -- arch-check` atualizado confirmando a conclusão dos 11 Gauntlets arquiteturais (G0 a G10).
+
+---
+
+## [0.19.0] - 2026-09-13 — Architectural Decoupling: Application API Stabilization (Gauntlet G9, F-010)
+
+### Adicionado
+- **Application Query API e DTOs Imutáveis (`crates/core/src/queries.rs`)**:
+  - `SceneObjectDto`: Snapshot imutável de objeto de cena contendo `id: Uuid`, `name: String`, contagem de vértices, faces, visibilidade, travamento e se é o objeto ativo.
+  - `SceneHierarchyDto`: DTO de visão geral da cena contendo lista de `SceneObjectDto`, `active_id: Option<Uuid>`, total global de vértices e faces.
+  - `SelectionDetailsDto`: Snapshot da seleção corrente contendo contagem de vértices/arestas/faces selecionados, centro ponderado da seleção 3D (`selection_center: Option<Vec3>`) e modo de seleção.
+  - `ToolStatusDto`: Snapshot do estado atual da ferramenta ativa contendo nome da ferramenta, se há operação modal ativa e mensagem de status do editor.
+- **Métodos de Consulta e Manipulação por Identificador Estável em `AppState`**:
+  - `state.query_scene_hierarchy() -> SceneHierarchyDto`
+  - `state.query_selection_details() -> SelectionDetailsDto`
+  - `state.query_tool_status() -> ToolStatusDto`
+  - `state.set_active_asset_by_id(id: Uuid) -> bool`
+  - `state.delete_asset_by_id(id: Uuid) -> bool`
+  - `state.find_asset_by_id(id: Uuid) -> Option<&Asset3D>`
+  - `state.find_asset_by_id_mut(id: Uuid) -> Option<&mut Asset3D>`
+- **Resiliência a Reordenação de Ativos por UUIDs (`crates/core/src/state.rs`)**:
+  - Migração de `export_selected: Vec<usize>` para `export_selected: Vec<Uuid>`, eliminando fragilidade de índices instáveis em exportações seletivas.
+  - Método auxiliar `export_selected_indices(&self) -> Vec<usize>` que resolve dinamicamente os índices com base na ordem atual de ativos no projeto.
+- **Suíte de Testes Automatizados da Application API (`crates/core/tests/queries_tests.rs`)**:
+  - 5 testes cobrindo geração de DTOs, cálculos de centro de seleção, resiliência de UUIDs frente a remoções intermediárias de objetos e ativação/remoção segura por identificadores únicos.
+- **Governança de Invariantes em CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita da presença dos DTOs de queries e do armazenamento por `Uuid` em `export_selected` e na árvore do `outliner`.
+
+---
+
+## [0.18.0] - 2026-09-13 — Architectural Decoupling: Headless Sovereignty (Gauntlet G8, F-011)
+
+### Adicionado
+- **Utilitário de Linha de Comando `petunia-cli` (`crates/cli/`)**:
+  - `petunia-cli new <arquivo.petunia> [primitiva]`: Cria projetos limpos com primitivas canônicas (`Cube`, `Plane`, `Sphere`, `Cylinder8`, `Capsule`).
+  - `petunia-cli info <arquivo>`: Inspeciona assets, hierarquia, totais de vértices/faces e coleções de arquivos `.petunia` e `.obj`.
+  - `petunia-cli convert <entrada> <saida>`: Converte formatos 3D bidirecionalmente entre `.petunia`, `.obj` e `.glb`.
+  - `petunia-cli transform <entrada.petunia> <saida> [opções]`: Aplica pipelines de comandos e ferramentas (`--select-all`, `--extrude`, `--subdivide`, `--scale`, `--add-primitive`) sem interface gráfica.
+  - `petunia-cli bench`: Benchmark integrado que executa um ciclo completo de 5 primitivas, extrusão, undo/redo, salvamento e exportações em menos de 80 milissegundos.
+- **Suíte de Testes de Integração Headless (`crates/cli/tests/headless_integration.rs`)**:
+  - 5 testes automatizados de ponta a ponta validando persistência, despacho de comandos com undo/redo, ferramentas de modelagem, exportação para OBJ e GLB (com validação de magic bytes `glTF`) e tempo de resposta (< 25ms).
+- **Governança de Fitness Arquitetural em CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita de que `crates/cli` não depende nem referencia `egui`.
+  - Validação integrada ao comando `cargo run -p xtask -- arch-check`.
+
+---
+
+## [0.17.0] - 2026-09-13 — Architectural Decoupling: Module Crates Purification (Gauntlet G7, F-008)
+
+### Adicionado
+- **Módulo de Apresentação de Módulos em UI (`crates/ui/src/modules_ui/`)**:
+  - `model_ui.rs`: Renderização de painéis contextuais para todas as 15 ferramentas de modelagem (`Select`, `Transform`, `Primitives`, `Extrude`, `Inset`, `Bevel`, `PushPull`, `Subdivide`, `Slice`, `Mirror`, `Connect`, `Merge`, `Dissolve`, `DrawProfile`, `Paint`).
+  - `paint_ui.rs`: Painel de pintura com controle de textura, paleta e pincel interativo 2D.
+  - `uv_ui.rs`: Canvas 2D interativo com projeção ortográfica UV, renderização de polígonos UV e detecção de clique/arrasto.
+- **Governança Automatizada de Invariantes em Fitness e CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - `module_crates_must_not_depend_on_egui`: Valida que `module-model`, `module-paint`, `module-uv` e `module-assets` não possuem dependência de `egui` em seus manifestos `Cargo.toml`.
+  - `module_crates_sources_must_not_reference_egui`: Varredura recursiva de código-fonte garantindo ausência de `use egui` ou `egui::` em todos os crates `module-*`.
+  - Integrado ao comando `cargo run -p xtask -- arch-check`.
+
+### Modificado
+- **Purificação Completa de Crates de Módulo (`module-*`)**:
+  - `crates/module-model`: Removido método `ui()` do trait `Tool` e de todas as implementações. Exposição pública de métodos de serviço geométrico (`PrimitivesTool::add_primitive`, `TransformTool::apply_*`, `ExtrudeTool::apply`, `InsetTool::apply`, `BevelTool::apply`, `PushPullTool::apply`, `SubdivideTool::apply_*`, `SliceTool::apply_slice`, `MirrorTool::apply`, `ConnectTool::apply`, `MergeTool::apply`, `DissolveTool::apply`, `draw_profile::generate_*`). Removida a dependência `egui` do `Cargo.toml`.
+  - `crates/module-paint`: Removido estado efêmero de UI (`canvas_tex`) da struct `PaintModule`. Removido método `ui()`. Removida a dependência `egui` do `Cargo.toml`.
+  - `crates/module-uv`: Removido método `ui()`. Exposto cálculo puro de interseção e amostragem via `uv_hit`. Removida a dependência `egui` do `Cargo.toml`.
+  - `crates/module-assets`: Removido método `ui()`. Removida a dependência `egui` do `Cargo.toml`.
+- **Desacoplamento do Painel de Propriedades (`crates/ui/src/properties_panel.rs`)**:
+  - Abas `Paint`, `Uv` e `Tool` delegadas para `modules_ui::{paint_ui, uv_ui, model_ui}` sem acoplamento a métodos internos de UI dos módulos de domínio.
+
+---
+
+## [0.16.0] - 2026-09-13 — Architectural Decoupling: AppState God Object Decomposition (Gauntlet G6, F-002)
+
+### Adicionado
+- **Segregação do God Object `AppState` em Sub-estados Coesos (`crates/core/src/state.rs`)**:
+  - `ProjectState`: Modelo de domínio puro, histórico transacional undo/redo, paleta de cores e imagens de referência (`project`, `undo`, `palette`, `refs`, `project_path`, `export_selected`, `export_gltf`).
+  - `EditorSession`: Câmera de visualização, transformações, modos de seleção, visibilidade de overlays e configurações de visualização de viewport (`selection`, `mode`, `workspace`, `select_mode`, `shading`, `textured`, `camera`, `camera_frame`, `cursor_3d`, `locked_axes`, `snap_enabled`, `proportional_editing`, `transform_orientation`, `pivot_point`, `show_overlays`, `show_xray`).
+  - `ToolState`: Sessões de ferramentas ativas e parâmetros voláteis (`active_tool`, `gizmo_mode`, `modal`, `pending_modal`, `pointer_session`, `cut_session`, `mesh_preview`, `paint_*`, `extrude_dist`, `profile`, `uv_selected`, anotações e medições).
+  - `UiState`: Estado de apresentação visual, preferências de interface e modais (`viewport_rect`, `viewport_pixels_per_point`, `outliner_search`, `properties_tab`, `show_settings`, `settings_tab`, `show_asset_library`, `show_asset_browser`, `show_help`, `show_perf`, `active_theme_id`, `active_icon_pack_id`, `active_keymap_id`, `i18n`, `keybinds`, `timeline_*`, `status`, `box_select_start`, `pending_pick`, `context_menu_pos`).
+  - `RenderResources`: Telemetria de backend de renderização e dirty flags de GPU (`dirty`, `canvas_dirty`, `backend_name`, `stats`).
+- **Delegação Ergonômica transparente via `Deref` e `DerefMut`**:
+  - `AppState -> EditorSession -> ToolState`: Permite que acessos a propriedades de sessão e ferramentas permaneçam ergonômicos sem quebras de compatibilidade sintática (`state.mode`, `state.camera`, `state.active_tool`).
+  - `ProjectState -> Project`: Permite acesso direto aos métodos do modelo de malha (`state.project.assets`, `state.project.active_mesh()`).
+- **Suíte de Testes de Desacoplamento de Estado (`crates/core/tests/state_decomposition_tests.rs`)**:
+  - 6 testes unitários que exercitam mutações simultâneas de sub-estados isolados sem locks globais, validando a autonomia de ciclo de vida de `ProjectState`, `EditorSession`, `ToolState`, `UiState` e `RenderResources`.
+- **Governança Automatizada de Invariantes em Fitness e CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Validação estrita de que nenhum campo de apresentação (ex: `viewport_rect`, `stats`, `show_settings`, `keybinds`, `canvas_dirty`) vaza para as estruturas de domínio (`ProjectState`, `EditorSession`, `ToolState`).
+
+### Modificado
+- **Erradicação do Dual-Storage de Paletas em `crates/module-paint`**:
+  - A paleta de cores reside exclusivamente no modelo de domínio (`state.project.palette`).
+- **Alinhamento de Chamadas em todo o Workspace**:
+  - Atualização dos módulos `crates/module-assets`, `crates/module-model`, `crates/module-uv`, `crates/render-gl`, `crates/ui` e `crates/app` para consumir os sub-estados segregados.
+
+---
+
+## [0.15.0] - 2026-09-13 — Architectural Decoupling: Tool Sessions Decoupling (Cutting, Modal & Math Normalization) (Gauntlet G5)
+
+### Adicionado
+- **Máquina de Estado Pura de Ferramentas de Corte `CutSession` (`crates/core/src/cutting_session.rs`)**:
+  - Encapsula o ciclo de vida transacional das ferramentas `Knife`, `Slice` e `Loop Cut` sem qualquer dependência de `egui`.
+  - Campos neutros: `source` (malha original), `anchor: Option<[f32; 2]>`, `edge_start: Option<EdgePoint>`, `ring: Option<LoopRing>`, `cuts: usize`, `sliding: bool`.
+  - Métodos canônicos: `adjust_cuts(delta)`, `cut_knife_segment(...)`, `compute_slice(...)`, `compute_loop_slide(current_x)`, `preview_loop_lines(slide)`, `apply_loop_cut(slide)`.
+  - 6 testes unitários e de integração headless em `crates/core/tests/cutting_session_tests.rs`.
+- **Máquina de Estado Pura de Interação por Ponteiro `PointerSession` (`crates/core/src/modal.rs`)**:
+  - Buffer de entrada numérica via teclado com parsing seguro (`parse_numeric()`), âncora de tela agnóstica (`[f32; 2]`) e rastreamento de última posição.
+  - Limpeza atômica automática vinculada a `commit_modal()` e `cancel_modal()` no domínio.
+- **Campos de Sessão de Primeira Classe em `AppState` (`crates/core/src/state.rs`)**:
+  - `pub cut_session: Option<CutSession>` e `pub pointer_session: Option<PointerSession>`.
+  - Integração com `finish_mesh_preview`: encerramento de preview (por commit ou cancelamento) reseta atomicamente `cut_session`.
+- **Normalização Matemática de Viewport em `petunia_core::viewport` (`crates/core/src/viewport.rs`)**:
+  - Métodos geométricos canônicos em `LogicalRect`: `screen_to_ndc`, `ndc_to_screen`, `project_point`, `ray`.
+  - Funções canônicas de desprojeção e snapping: `unproject_to_surface_or_cursor_plane` e `unproject_cursor_or_vertex_snap`.
+- **Governança de Sessões de UI em Fitness e CI (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Scanner automatizado que rejeita a reintrodução de `Id::new("cut.session")` ou `Id::new("modal.pointer")` em memória temporária de UI.
+
+### Modificado
+- **Erradicação de Memória Temporária de UI em `crates/ui/src/cutting.rs`**:
+  - Remoção de `struct CutSession` privada e chamadas `ctx.data_mut` (`insert_temp`, `get_temp`, `remove`).
+  - A ferramenta agora opera diretamente sobre `state.cut_session`, delegando o cálculo do plano de corte, deslizamento de loop e aplicação de anéis aos métodos puros do domínio.
+- **Erradicação de Memória Temporária de UI em `crates/ui/src/modal_viewport.rs`**:
+  - Remoção de `struct PointerSession` privada e chamadas `ctx.data_mut`.
+  - `start_handle` e o loop `draw` agora operam exclusivamente com `state.pointer_session`.
+- **Deduplicação Matemática em `crates/ui/src/annotation.rs` e `crates/ui/src/measurement.rs`**:
+  - Remoção de implementações duplicadas de projeção de tela, conversão NDC e raycasting manual em favor das funções canônicas de `petunia_core::viewport`.
+- **`LoopRing` e `RingFace` em `crates/mesh/src/loop_cut.rs`**:
+  - Derivação de `Debug` implementada em `LoopRing` e `RingFace`.
+
+---
+
+## [0.14.0] - 2026-09-13 — Architectural Decoupling: Pure ProjectService & File I/O Boundary (Gauntlet G4)
+
+### Adicionado
+- **Serviço Puro de Aplicação `ProjectService` (`crates/core/src/project_service.rs`)**:
+  - Implementação de serviço de aplicação canônico desacoplado de interfaces gráficas para ciclo de vida de projeto:
+    - `ProjectService::new_project`: reinicialização de sessão e sincronização transacional de estado.
+    - `ProjectService::load_project` e `ProjectService::save_project`: persistência determinística com versionamento `.petunia`.
+    - `ProjectService::import_obj` e `ProjectService::export_obj`: importação e exportação de malhas Wavefront OBJ com criação de checkpoint de undo.
+    - `ProjectService::export_glb`: exportação glTF binário com empacotamento nativo.
+    - `ProjectService::export_all_obj_to_dir`: exportação em lote para diretório com sanitização de nomes de arquivo.
+    - `ProjectService::import_palette` e `ProjectService::export_palette`: importação e exportação de paletas nos formatos GIMP Palette (`.gpl`) e hexadecimal (`.hex`).
+    - `ProjectService::add_reference_image`: inserção de imagens de referência na cena com tipagem neutra.
+  - Tipagem de erro estruturada `ProjectServiceError` (`Io`, `Format`, `AssetNotFound`, `Export`, `InvalidPalette`).
+  - 9 novos testes unitários e de integração headless em `crates/core/tests/project_service_tests.rs`.
+- **Eventos de Solicitação de Diálogo de Paleta no EventBus (`crates/core/src/events.rs`)**:
+  - Adição de `AppEvent::RequestImportPalette` e `AppEvent::RequestExportPalette`.
+  - Tratamento assíncrono e desacoplado no loop de despacho do `Core` (`crates/app/src/lib.rs`).
+- **Governança Automatizada de I/O e Isolamento de Diálogos (`tests/architecture_fitness.rs`, `crates/xtask/src/main.rs`)**:
+  - Teste automatizado garantindo que `petunia_module_paint` não depende de `rfd`.
+  - Scanner de código estático garantindo que nenhuma função fora de `crates/ui/src/file_dialog_service.rs` instancia `rfd::FileDialog` ou `egui_file_dialog::FileDialog`.
+
+### Modificado
+- **Purificação de `petunia_module_paint` (`crates/module-paint/Cargo.toml`, `crates/module-paint/src/lib.rs`)**:
+  - Remoção completa da dependência externa `rfd`.
+  - Substituição de chamadas a diálogos nativos nos botões de importação e exportação de paleta por emissão de eventos no `EventBus`.
+  - Funções utilitárias puras `import_palette_file` e `export_palette_file` delegando diretamente ao `ProjectService`.
+- **Centralização Canônica de Diálogos de Arquivo (`crates/ui/src/file_dialog_service.rs`)**:
+  - `PetuniaFileDialogService` agora delega todas as ações de domínio confirmadas ao `ProjectService`.
+  - Adicionadas funções auxiliares no módulo `native` (`pick_project_file`, `pick_save_project_file`, `pick_obj_file`, `pick_export_obj_file`, `pick_export_glb_file`, `pick_folder`, `pick_image_file`, `pick_palette_import_file`, `pick_palette_export_file`).
+- **Remediação de `crates/ui/src/lib.rs`**:
+  - Funções `open_project_dialog`, `save_project_dialog`, `import_obj_dialog`, `export_dialog`, `refs_section` e `pick_and_add_reference_image` refatoradas para utilizar `file_dialog_service` e `ProjectService`.
+  - Remoção das importações de `petunia_mesh::Mesh` e `petunia_project::format` do escopo raiz da UI.
+
+---
+
+## [0.13.0] - 2026-09-13 — Architectural Decoupling: Core Purification, Fitness Governance, Command System, and UI Direct Mutation Extraction (Gauntlets G0, G1, G2, G3)
+
+### Adicionado
+- **Governança Arquitetural Contínua (Gauntlet G0)**:
+  - Testes de fitness automatizados em `tests/architecture_fitness.rs` garantindo que `petunia_core`, `petunia_config`, `petunia_mesh`, `petunia_project`, `petunia_commands` e `petunia_render_wgpu` nunca dependam do `egui` ou `petunia_ui`.
+  - Automação integrada em `cargo xtask arch-check` para validação em CI e pre-commit de manifestos e relatórios canônicos de auditoria.
+  - 17 relatórios canônicos de auditoria arquitetural profunda em `docs/audits/architecture-decoupling/` (121+ KB).
+- **Purificação Total do Core e Configuração (Gauntlet G1)**:
+  - Remoção de 100% das dependências e símbolos de `egui` de `crates/core` e `crates/config`.
+  - Introdução do tipo agnóstico `LogicalRect` em `petunia_core::viewport` substituindo `egui::Rect`.
+  - Extração de `apply_theme` para `crates/ui/src/theme_adapter.rs`.
+  - Isolamento de handles de textura específicos de backend gráfico em `petunia_ui` e `petunia_module_paint`.
+- **Fundação do Sistema de Comandos e Dispatcher (Gauntlet G2)**:
+  - Trait genérica e desacoplada `Command` em `petunia_commands::Command` e `petunia_core::command::Command`.
+  - Despachante transacional `CommandDispatcher` com registry dinâmico, auto-checkpointing de Undo/Redo antes de mutações destrutivas e disparo determinístico de eventos e flags de sujeira (`mark_dirty()`, `emit_mesh_changed()`).
+  - Implementação de 8 comandos canônicos essenciais (`AddPrimitiveCmd`, `DuplicateAssetCmd`, `DeleteAssetCmd`, `DeleteSelectionCmd`, `DuplicateSelectionCmd`, `SelectAllCmd`, `ClearSelectionCmd`, `InvertSelectionCmd`).
+  - Suíte completa de 7 testes de integração headless em `crates/core/tests/command_tests.rs` validando Undo/Redo roundtrip e uma sessão de modelagem completa sem carregar qualquer backend de interface gráfica.
+- **Extração de Mutações Diretas da Camada UI (Gauntlet G3)**:
+  - Novos comandos canônicos de malha: `SubdivideSelectionCmd`, `MergeCenterCmd` e `FlipNormalsCmd`.
+  - Eliminação de mutações diretas de mesh e chamadas manuais a `state.checkpoint()` nos painéis de UI:
+    - `crates/ui/src/properties_panel.rs`: Ações de duplicar e deletar agora despacham `DuplicateSelectionCmd` e `DeleteSelectionCmd`.
+    - `crates/ui/src/outliner.rs`: Exclusão e duplicação de assets e adição de primitivas migradas para `DeleteAssetCmd`, `DuplicateAssetCmd` e `AddPrimitiveCmd`.
+    - `crates/ui/src/viewport_bar.rs`: Menus `Select ▾`, `Add ▾`, `Object ▾` e `Mesh ▾` migrados para despachar comandos.
+    - `crates/ui/src/contextual_shelf.rs`: Ações da shelf flutuante (duplicação, subdivisão e merge) migradas para o despachante.
+    - `crates/ui/src/nav_gizmo.rs`: Ações do menu contextual da viewport (subdivide, flip normals, duplicate) migradas para comandos.
+    - `crates/ui/src/asset_browser.rs` e `crates/ui/src/asset_library_drawer.rs`: Operações de assets migradas para comandos.
+    - `crates/module-model/src/select.rs`: Ações da ferramenta de seleção migradas para comandos.
+    - `crates/app/src/lib.rs`: Atalhos de teclado em `Core::on_key` (`model.delete`, `model.duplicate`, `model.select_all`, `model.deselect_all`, `model.invert_selection`) conectados diretamente ao despachante semântico.
+  - Aprovação integral dos 88 testes de UI (incluindo 5 fluxos `egui_kittest`) e total de 215 testes da workspace.
+
+## [0.12.0] - 2026-09-13 — Deep Interface Revision: Canonical Vector Iconography, Deduplicated Controls, Unified Menus, and Blender-Standard Properties & Outliner
+
+### Adicionado
+- **Iconografia Vetorial Canônica e Eliminação Total de Emojis (`crates/ui/src/icons.rs`, `crates/ui/src/icon_registry.rs`)**:
+  - Implementação de mais de 20 novos ícones vetoriais procedurais via egui Painter (`draw_eye_open`, `draw_eye_closed`, `draw_lock_locked`, `draw_lock_unlocked`, `draw_duplicate`, `draw_trash`, `draw_add`, `draw_annotate`, `draw_measure`, `draw_reference_image`, `draw_primitive_cube`, `draw_primitive_cylinder`, `draw_primitive_sphere`, `draw_primitive_plane`, `draw_primitive_cone`, `draw_primitive_capsule`, `draw_chevron_right`, `draw_filter`, `draw_collection`, `draw_object`).
+  - Mapeamento completo no enum semântico `PetuniaIcon` e no `IconRegistry`.
+  - Erradicação de todos os emojis Unicode na interface (`🧊`, `🕸`, `📋`, `🗑`, `📝`, `🖼`, `⌖`, `⚪`, `🛢`, `▭`, `▲`, `🔒`, `🔓`, `⚙`, `📦`, `🔍`, `➕`, `🎯`) em favor de ícones vetoriais nítidos que respeitam o DPI, tema ativo e tokens de cor.
+- **Widgets Padronizados de Menu e Ação (`crates/ui/src/widgets.rs`, `crates/config/src/keybinds.rs`)**:
+  - `PetuniaMenuItem`: Layout profissional padrão Blender `[Ícone] Rótulo ... [Atalho] ›` com alinhamento dinâmico e separadores estilizados (`petunia_menu_separator`).
+  - Método `shortcut_for(&self, action: &str)` no `Keybinds` para resolução em tempo de execução dos atalhos do perfil ativo.
+  - `petunia_action_button`: Botão compacto de ação com ícone vetorial opcional, feedback hover/active e suporte a estilo perigoso/destrutivo.
+- **Reorganização Estrutural da Barra Superior da Viewport (`crates/ui/src/viewport_bar.rs`)**:
+  - Divisão em 7 clusters funcionais responsivos:
+    - *Cluster 1*: Seletor de Modo de Interação (Object / Edit / Paint) com pílula de destaque.
+    - *Cluster 2*: Modos de Seleção de Malha (Vértice, Aresta, Face) com atalhos numéricos canônicos `1`, `2`, `3`.
+    - *Cluster 3*: Transformação, Pivot e Travamento de Eixos (`X`, `Y`, `Z`).
+    - *Cluster 4*: Controles de Câmera da Viewport (Vistas axiais, Projeção, Enquadramento, Reset).
+    - *Cluster 5*: Snapping Magnético e Edição Proporcional.
+    - *Cluster 6*: Overlays e Modo Raio-X.
+    - *Cluster 7*: Modos de Sombreamento esféricos estilo Blender (Wireframe, Solid, Material Preview, Rendered).
+- **Outliner e Painel de Propriedades Refinados (`crates/ui/src/outliner.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Outliner: Remoção de botões textuais volumosos no cabeçalho em favor de botões de ícone compactos; ícones vetoriais por tipo de nó; botões reutilizáveis de visibilidade (`👁`) e bloqueio (`🔒`).
+  - Properties: Substituição das 5 cores arco-íris das abas por tokens semânticos (`tokens::ACCENT_BLUE`); inspetor de Transform completo (Location X/Y/Z, Rotation X/Y/Z em graus, Scale); botão de duplicar e ação de deletar estilizada em vermelho.
+- **Unificação e Fonte Única da Verdade (`crates/ui/src/contextual_shelf.rs`)**:
+  - Remoção de controles duplicados de seleção de vértices/arestas/faces da shelf flutuante contextual, centralizando os modos exclusivamente no cabeçalho do viewport.
+  - Eliminação de rótulos bilíngues de depuração (`Posição (Location)`, `Escala (Scale)`) em prol de nomenclatura limpa e consistente.
+
+## [0.11.0] - 2026-09-13 — Petunia3D Living Documentation Website, xtask Automation, and GitHub Actions CI/CD
+
+### Adicionado
+- **Website Oficial de Documentação com VitePress (`docs/`)**:
+  - Portal estático completo, ultraveloz, responsivo e com busca local offline integrado via VitePress e plugin Mermaid.
+  - Landing page oficial (`docs/index.md`) com hero dinâmico, proposta de valor, grade de recursos e diagramas de fluxo de criação.
+  - Seção **Primeiros Passos (`docs/getting-started/`)**: Introdução conceitual, requisitos, instalação/compilação, ciclo de vida de projetos `.petunia`, tour da interface e tutorial prático de 15 minutos modelando um caixote estilizado.
+  - Seção **Manual do Usuário (`docs/manual/`)**: 11 capítulos detalhados cobrindo interface, viewport 3D, linhas-guia de travamento de eixos, modos de seleção, modelagem shape-first, pintura, mapeamento UV, animação, biblioteca de assets, projetos e exportação.
+  - Seção **Workspaces (`docs/workspaces/`)**: Guias completos dos 4 espaços de trabalho (Modeling, Paint, UV, Animation).
+  - Seção **Catálogo de Ferramentas (`docs/tools/`)**: Documentação exaustiva das 19 ferramentas de criação, modelagem, medição e anotação.
+  - Seção **Personalização (`docs/customization/`)**: Documentação dos 4 temas visuais em TOML, 5 pacotes de ícones vetoriais, internacionalização (i18n) e 8 perfis de keymaps.
+  - Seção **Atalhos (`docs/shortcuts/`)**: Tabela mestre condensada (Cheatsheet) e guia de equivalência 1:1 para usuários do Blender.
+  - Seção **Portal do Desenvolvedor (`docs/developers/`)**: Macroarquitetura de 15 crates modulares, pipeline de renderização híbrido WebGPU/OpenGL, padrão de comandos transacionais, plugins dinâmicos, protocolo MCP, estratégia de testes e guia de contribuição.
+  - Seção **Changelog (`docs/changelog/`)**: Espelho interativo sincronizado com o histórico de versões.
+- **Crate de Automação de Tarefas e Prevenção de Drift (`crates/xtask`)**:
+  - Utilitário Rust integrado no workspace (`cargo xtask docs` e `cargo xtask docs-check`).
+  - Validação estrita de integridade de todos os 28 arquivos canônicos e build determinístico do VitePress.
+- **Pipeline CI/CD no GitHub Actions (`.github/workflows/docs.yml`)**:
+  - Compilação automatizada com Node 20, pnpm 9 e deploy contínuo para o GitHub Pages.
+
 ## [0.10.0] - 2026-09-13 — Viewport Axis Locking: 3D Guide Lines, Real-Time HUD, and Viewport Bar Controls
 
 ### Adicionado
@@ -27,31 +318,273 @@ Todas as alterações notáveis do **Petunia3D** são documentadas nesta página
   - Herança automática de restrições em `begin_modal` e sincronização bidirecional em tempo de execução.
   - Limpeza e reset limpo ao finalizar ou cancelar operações modais (`commit_modal` / `cancel_modal`).
 
----
-
 ## [0.9.0] - 2026-09-13 — Annotations & Measurements: Undo/Redo (Ctrl+Z), Dedicated Outliner Collections, Subgrouping, Strict Confinement, and Transform Properties
 
 ### Adicionado
-- **Undo/Redo Transacional para Anotações e Medidas (`Ctrl+Z` / `Ctrl+Shift+Z`)**:
-  - Migração de `annotations` e `measurements` para o domínio de dados persistente `Project`.
+- **Undo/Redo Transacional para Anotações e Medidas (`Ctrl+Z` / `Ctrl+Shift+Z`) (`crates/project/src/lib.rs`, `crates/core/src/state.rs`, `crates/ui/src/annotation.rs`, `crates/ui/src/measurement.rs`)**:
+  - Migração de `annotations` e `measurements` de estruturas transitórias soltas para o domínio de dados persistente `Project`.
   - Checkpoint automático a cada traço finalizado, medição completada ou item excluído via `state.checkpoint()`.
-- **Coleção Especializada `📝 Anotações` no Topo do Outliner**:
-  - Identidade visual com ícone `📝` e cor ciano (`#00d2d3`).
-  - Suporte a múltiplos subgrupos internos (`📁 Subgrupo`) e confinamento estrito.
-- **Coleção Especializada `📏 Medidas` no Outliner**:
-  - Posicionamento canônico com ícone `📏` e cor amarela (`#feca57`).
-- **Inspetor e Propriedades de Transformação de Anotações**:
-  - Seção de Transformação Completa: Location X/Y/Z, Rotation X/Y/Z e Scale X/Y/Z.
-- **Manipulação Direta por Gizmo no Viewport 3D**:
-  - Gizmos 3D interativos acoplados ao centro geométrico da anotação selecionada.
+  - Desfazer e refazer completos, imediatos e estáveis com `Ctrl+Z` e `Ctrl+Shift+Z` restaurando perfeitamente os traços e réguas.
+- **Coleção Especializada `📝 Anotações` no Topo do Outliner (`crates/ui/src/outliner.rs`)**:
+  - Posicionamento canônico no topo da árvore de cena, acima das coleções de malhas.
+  - Identidade visual distinta com ícone `📝` e cor ciano característica (`#00d2d3`).
+  - Controles coletivos e por item: alternância de visibilidade (`👁` / `⊘`) e alternância de bloqueio (`🔒` / `🔓`).
+  - Suporte a múltiplos subgrupos internos (`📁 Subgrupo`) com menus contextuais para mover anotações entre subgrupos ou para a raiz da coleção.
+  - **Confinamento Estrito**: Anotações residem exclusivamente na coleção de Anotações e não podem ser movidas ou mescladas em coleções de malhas 3D.
+- **Coleção Especializada `📏 Medidas` no Outliner (`crates/ui/src/outliner.rs`)**:
+  - Posicionamento canônico no topo da árvore de cena com ícone `📏` e cor amarela de destaque (`#feca57`).
+  - Controles estritamente limitados a ocultar/exibir (`👁` / `⊘`) e exclusão (`🗑` / `X`), sem suporte a bloqueio ou transformações, conforme especificado.
+- **Inspetor e Propriedades de Transformação de Anotações no Painel de Propriedades (`crates/ui/src/properties_panel.rs`)**:
+  - Exibição automática das propriedades ao selecionar uma anotação na árvore ou após desenhá-la.
+  - Campos de identificação (nome editável, visibilidade, bloqueio e atribuição de subgrupo).
+  - Aparência do traço: seletor de cor RGBA e controle deslizante de espessura de traço.
+  - **Seção de Transformação Completa**:
+    * Posição (Location): `X`, `Y`, `Z` com badges semânticos coloridos.
+    * Rotação (Rotation): `X`, `Y`, `Z` em graus de Euler.
+    * Escala (Scale): `X`, `Y`, `Z` com alcance de `0.01..=100.0`.
+    * Botão de redefinição de transformação (`↺ Redefinir Transformação`).
+  - Ação de exclusão direta com botão `🗑 Deletar Anotação`.
+- **Manipulação Direta por Gizmo no Viewport 3D (`crates/ui/src/viewport_interaction.rs`)**:
+  - Gizmos tridimensionais (Mover, Rotacionar, Escalar) acoplados ao centro geométrico da anotação selecionada.
+  - Suporte a arrasto de eixos e planos com cancelamento por `Escape` e gravação de checkpoint transacional ao soltar o mouse.
+  - Respeito integral ao bloqueio individual da anotação e bloqueio global da coleção.
 
----
-
-## [0.8.0] - 2026-09-12 — UI Enhancements & Interactions
+## [0.8.0] - 2026-09-12 — UI Enhancements & Interactions: Vertex Hover Demarcation, Toolbar Edit Tools, WGPU X-Ray, Reference Images, Outliner Collections/Lock/Isolate, and Vibrant Properties Tabs
 
 ### Adicionado
-- Demarcação visual de vértices com hover dinâmico ciano/dourado em modo de edição;
-- Expansão automática da toolbar esquerda com as 9 ferramentas de modelagem de malha;
-- Renderização e picking em modo Raio-X (`Alt+Z`) com pipeline WGSL;
-- Reintegração completa de imagens de referência ortogonais no viewport e no outliner;
-- Criação de pastas/coleções (`📁 Coleções`), bloqueio (`🔒 Lock`) e modo de isolamento (`⌖ Isolar`).
+- **Demarcação Visual de Vértices no Modo de Edição (`crates/ui/src/viewport_interaction.rs`)**:
+  - Quando em `EditMode::Edit` com `SelectMode::Vertex`, todos os vértices da malha ativa são desenhados de forma proeminente (pontos laranjas para selecionados, pontos escuros com contorno claro para não selecionados).
+  - Hover dinâmico sobre vértices desenha um ponto interno dourado e um anel/halo externo ciano brilhante (`#64dcff`), garantindo feedback imediato de que o modo de vértices está ativo e indicando qual vértice será selecionado antes do clique.
+- **Ferramentas de Modelagem na Barra de Ferramentas Esquerda (`crates/ui/src/toolbar.rs`)**:
+  - Ao entrar em `EditMode::Edit`, a barra vertical esquerda expande automaticamente para exibir a paleta completa de 9 ferramentas de modelagem de malha (`Extrude`, `Inset`, `Bevel`, `Loop Cut`, `Knife`, `Push/Pull`, `Slice`, `Subdivide`, `Draw Profile`), em paralelo com a barra flutuante inferior.
+- **Renderização e Picking em Modo Raio-X (`crates/render-wgpu/src/lib.rs`, `crates/app/src/lib.rs`, `crates/core/src/state.rs`)**:
+  - Pipeline de shader WGSL `fs_xray` com translucidez (`alpha ~ 0.45`), `depth_write_enabled: false` e comparação de profundidade `LessEqual`.
+  - Pipeline de arestas X-Ray sem teste de oclusão de profundidade (`CompareFunction::Always`), permitindo que as arestas sejam visíveis através de qualquer geometria.
+  - O algoritmo de picking passa a considerar `state.show_xray`, permitindo selecionar vértices, arestas e faces ocultos atrás da superfície quando o modo Raio-X estiver ativado.
+  - Atalho canônico `Alt+Z` para alternar modo Raio-X.
+- **Reintegração Completa de Imagens de Referência (`crates/ui/src/lib.rs`, `viewport_bar.rs`, `contextual_shelf.rs`, `outliner.rs`)**:
+  - Abertura assíncrona/nativa via `pick_and_add_reference_image` disponível tanto no menu `➕ Add+ ▾` da viewport bar quanto na barra contextual flutuante de baixo (`🖼 Referência`).
+  - Seção dedicada `🖼 Imagens de Referência` no Outliner com controle de visibilidade (`👁` / `⊘`), alternância de Raio-X (`⚡`) e remoção.
+- **Hierarquia de Pastas / Coleções no Outliner (`crates/project/src/lib.rs`, `crates/ui/src/outliner.rs`)**:
+  - Capacidade de criar pastas/coleções (`📁 Coleções`) no cabeçalho do Outliner através do botão `📁+ Pasta`.
+  - Suporte a agrupar modelos em coleções, renomeação inline, exclusão com retorno automático de itens à raiz, e alternância em lote de visibilidade e bloqueio.
+  - Menu contextual nos objetos: `📁 Mover para Coleção ▾` (listando coleções existentes e raiz).
+- **Bloqueio (`Lock`) e Isolamento (`Isolate`) de Modelos (`crates/project/src/lib.rs`, `crates/core/src/state.rs`, `crates/core/src/modal.rs`, `crates/ui/src/outliner.rs`)**:
+  - Campo `asset.locked: bool` persistido no projeto.
+  - Botão `🔒` / `🔓` no Outliner para fixar objetos, impedindo qualquer transformação modal (`ModalError::ActiveLocked`), manipulação por gizmo ou menus contextuais no viewport.
+  - Botão e modo `⌖ Isolar` (atalho `Numpad /` ou `/`) que oculta temporariamente todos os outros modelos mantendo apenas o selecionado em visão local, com restauração perfeita do estado de visibilidade anterior ao desativar.
+- **Abas de Propriedades Ampliadas e Coloridas Semanticamente (`crates/ui/src/widgets.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Botões de categoria ampliados para `32x28px`, emoldurados em container estilizado (`tokens::BG_PANEL_HEADER`).
+  - Cores semânticas vibrantes inspiradas no Blender:
+    * `Tool`: Azul canônico (`#3169e3`)
+    * `Object`: Laranja característico (`#e67e22`)
+    * `Modifiers`: Azul-celeste (`#00a8ff`)
+    * `Data`: Verde (`#2ecc71`)
+    * `Material`: Magenta / Rosa (`#e84393`)
+  - Indicador inferior de seleção ativa e realce refinado ao passar o cursor.
+
+## [0.7.0] - 2026-09-12 — UI Reorganization & Ergonomics Refinement: Contextual Modeling Shelf, Retractable Asset Browser, Clean Two-Panel Sidebar & Viewport Bar 6 Clusters
+
+### Adicionado
+- **Barra Contextual Horizontal do Viewport (`crates/ui/src/contextual_shelf.rs`)**:
+  - Cápsula flutuante na base inferior do Viewport 3D reagindo dinamicamente ao workspace e ao modo ativo (`Model + Edit`, `Model + Object`, `Paint`, `UV`, `Animate`).
+  - Em `Model + Edit`: botões de seleção de malha (`⬝ Vértice`, `╱ Aresta`, `▨ Face`), comandos essenciais (`Extrude`, `Inset`, `Bevel`, `Loop Cut`, `Knife`) e operações topológicas (`Subdivide`, `Merge`).
+  - Em `Model + Object`: atalhos de transformação (`Move`, `Rotate`, `Scale`) e primitivas rápidas (`Cubo`, `Esfera`, `Cilindro`, `Plano`) e duplicar objeto.
+  - Em `Paint`: ferramentas de pincel, apagador, conta-gotas, ajuste de raio e chip da cor ativa.
+  - Em `Animate`: timeline transport player (`◀◀`, `▶ Play / ⏸ Pausa`, `▶▶`) e seletor de frame.
+  - Contenção e blindagem de eventos de ponteiro para evitar disparar raycasting de seleção 3D acidental durante cliques e ajustes na shelf.
+- **Painel Lateral Retrátil de Navegação de Assets (`crates/ui/src/asset_browser.rs`)**:
+  - Painel lateral dedicado à esquerda (220–340px) acionado pelo botão `[📦 Assets]` do cabeçalho superior.
+  - Filtro por categorias (`Todos`, `Props`, `Personagens`, `Cenário`) e busca instantânea com `petunia_search_box`.
+  - Cards detalhados com contagem de vértices e triângulos, swatch de cor e ações rápidas (`➕ Instanciar`, `🎯 Ativar`, `📋 Duplicar`, `🗑 Deletar`).
+  - Botão de rodapé para salvar o modelo ativo atual diretamente na biblioteca do projeto (`state.save_active_as_asset()`).
+- **Exportação Canônica nos Menus de Sistema (`crates/ui/src/main_header.rs`, `crates/ui/src/lib.rs`)**:
+  - Reclassificação de `Export` de workspace para itens canônicos de menu: `Arquivo -> Exportar OBJ (.obj)...` e `Arquivo -> Exportar GLB (.glb)...`.
+  - Introdução do workspace `ANIMATE` nas abas superiores: `[ MODEL ] [ PAINT ] [ UV ] [ ANIMATE ]`.
+
+### Modificado
+- **Reorganização Estrutural da Barra Superior da Viewport (`crates/ui/src/viewport_bar.rs`)**:
+  - 6 clusters semânticos rigorosamente separados:
+    1. Dropdown de Modo (`[ Object Mode ▾ ]` vs `[ Edit Mode ▾ ]`) com alvos contextuais (`⬝ Vértice`, `╱ Aresta`, `▨ Face`) exibidos **exclusivamente** em modo de edição.
+    2. Menus rápidos com ícones (`👁 View ▾`, `▢ Select ▾`, `➕ Add+ ▾`) e menu contextual reativo (`🧊 Object ▾` ou `🕸 Mesh ▾`).
+    3. Orientação de transformação (`Global`, `Local`, etc.) e Ponto de Pivô (`Median Point`, `3D Cursor`, etc.).
+    4. Botões de Snapping Magnético (`🧲 Snap`) e Edição Proporcional (`◎ Prop`).
+    5. Diagnóstico de cena (`⊞ Overlays`, `⧉ X-Ray`).
+    6. 4 Modos de sombreamento esféricos canônicos do Blender (`○`, `●`, `◐`, `☼`).
+  - Interceptação de atalhos de teclado globais (Tab para alternar Object/Edit, e 1/2/3 para alvos de vértice/aresta/face) tratada com fallback e garantia direta no egui sem conflitos de foco.
+- **Descongestionamento e Limpeza da Sidebar Direita (`crates/ui/src/outliner.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Redução estrita para apenas 2 componentes verticais: `Outliner` e `Properties`.
+  - Remoção de galerias duplicadas, criação solta de primitivas no outliner e seção avulsa de exportação.
+  - Aba `Material` no painel de propriedades agora abriga com exclusividade a cor base e a paleta interativa de swatches do projeto.
+  - Aba `Object` refinada com identidade do objeto ativo e inspector `▾ Transform` com grid tri-axial e rótulos coloridos RGB (X, Y, Z).
+- **Especialização da Barra de Ferramentas Vertical Esquerda (`crates/ui/src/toolbar.rs`)**:
+  - Foco exclusivo nas 8 ferramentas primárias e persistentes de interação: `Select Box`, `3D Cursor`, `Move`, `Rotate`, `Scale`, `Transform`, `Measure` e `Annotate`.
+  - Operações transitórias de modelagem de malha movidas para a Contextual Modeling Shelf.
+- **Refatoração da Barra de Status Inferior (`crates/ui/src/status_bar.rs`)**:
+  - Organizada em 3 blocos limpos:
+    * Esquerda: indicador de projeto (`● Salvo` / `○ Não salvo`), nome do arquivo e atalhos de mouse/ferramenta ativa.
+    * Centro: mensagens operacionais e feedbacks do sistema com truncate.
+    * Direita: métricas agregadas da cena (`Tris: {} │ Verts: {} │ Objs: {} │ {:.1}ms │ v0.6.0`) e botões de Undo (`↩`) e Redo (`↪`).
+
+## [0.6.0] - 2026-09-12 — Interactive Measurement & Annotation, Viewport Floating Bar, Asset Drawer, Theme & Icon Packs, Keymaps & TOML i18n
+
+### Adicionado
+- **Ferramenta Interativa de Régua e Medição 3D (`crates/ui/src/measurement.rs`, `viewport_interaction.rs`)**:
+  - Medição espacial 3D com clique e arraste no viewport (`Tool::Measure`, atalho `M`).
+  - Snapping magnético inteligente a vértices de malhas ativas com indicador circular visual.
+  - Projeção de planos cartesianos e ray intersection tridimensional.
+  - Régua com marcações métricas de graduação a cada 0.1 e 1.0 unidades.
+  - Badge flutuante de medição exibindo distância euclidiana precisa e decomposição nos eixos cartesianos ($\Delta X, \Delta Y, \Delta Z$).
+  - Cancelamento e limpeza instantânea via tecla `Delete` ou `Esc`.
+- **Ferramenta Interativa de Anotação e Rascunho 3D (`crates/ui/src/annotation.rs`, `viewport_interaction.rs`)**:
+  - Rascunho à mão livre em espaço tridimensional (`Tool::Annotate`, atalho `D`).
+  - Projeção contínua sobre a superfície da malha ativa ou sobre o plano de referência do 3D Cursor.
+  - Renderização fluida de strokes com espessura variável e suavização de pontos.
+  - Limpeza e remoção de anotações via tecla `Delete` ou `Esc`.
+- **Gaveta / Modal Dedicado da Biblioteca de Assets (`crates/ui/src/asset_library_drawer.rs`, `main_header.rs`)**:
+  - Nova gaveta/janela flutuante dedicada (`📦 Assets` no header) para visualização e gerenciamento de assets do projeto.
+  - Diferenciação conceitual e funcional explícita:
+    * *Salvar Modelo Ativo como Asset*: Registra/salva a malha ativa diretamente na biblioteca interna do projeto (`state.project.assets`).
+    * *Salvar Projeto*: Persiste o arquivo `.petunia` completo (cena, assets, materiais, paleta e configurações).
+  - Cards visuais para cada modelo com contagem de vértices/faces, chips de cor e botões de ação: Instanciar no 3D Cursor (`➕ Instanciar`), Editar (`🎯 Editar`), Duplicar (`📋 Duplicar`) e Remover (`🗑 Remover`).
+- **Novo Sistema Dinâmico de Temas Baseado em Tokens (`crates/config/src/theme.rs`, `crates/ui/src/tokens.rs`)**:
+  - Suporte completo a temas declarativos em TOML com `manifest.toml` e `theme.toml`.
+  - Mapeamento universal de tokens semânticos (`ThemeToken` e `ThemeColors`).
+  - 4 temas nativos distribuídos: `petunia-dark`, `petunia-light`, `petunia-capuccino` e `petunia-tokyo-nights`.
+  - Varredura dinâmica de diretórios (`assets/themes/`) com fallback tolerante a falhas para a paleta canônica Petunia Dark.
+- **Sistema Aberto de Pacotes de Ícones (`crates/ui/src/icon_registry.rs`, `assets/icons/`)**:
+  - Suporte modular a múltiplos pacotes de ícones via `manifest.toml` e `icons.toml`.
+  - 5 pacotes estruturados: `Petunia`, `Phosphor`, `Tabler`, `Iconoir` e `Lucide`.
+  - Cascading fallback seguro: raster/SVG do pacote -> desenho vetorial nativo Petunia -> glifo Unicode.
+- **8 Perfis Canônicos de Teclado e Análise de Conflitos (`crates/config/src/keybinds.rs`, `assets/keymaps/`)**:
+  - 8 perfis TOML completos: `Petunia Padrão`, `Petunia Simplificado`, `Petunia Notebook`, `Blender`, `Blender Notebook`, `Maya`, `3ds Max` e `Cinema 4D`.
+  - Motor de análise e detecção automática de conflitos/colisões de atalhos em tempo de execução com alertas visuais.
+- **Internacionalização (i18n) Declarativa via TOML (`crates/config/src/lib.rs`, `assets/locales/`)**:
+  - Dicionários completos em TOML para `pt-BR` e `en` cobrindo todas as strings da interface.
+  - Carregamento e troca dinâmica sem necessidade de reinicialização.
+- **Modal Centralizado de Configurações (`crates/ui/src/settings_modal.rs`, `main_header.rs`)**:
+  - Modal com 4 abas ergonômicas: Aparência (seleção de temas e chips de tokens de cor ao vivo), Ícones (seleção de pacotes e preview em grade), Idioma (pt-BR / en-US) e Teclado (troca de perfil, busca de atalhos e monitor de conflitos).
+
+### Modificado
+- **Refinamento Óptico dos Ícones da Toolbar (`crates/ui/src/icons.rs`)**:
+  - Ajuste suave na espessura do traço vetorial de ~2.4–2.6px para ~1.8–1.9px, garantindo visual refinado e elegante sem perder a legibilidade ou as cores canônicas do Blender.
+- **Reorganização Sem Sobreposição da Viewport Bar (`crates/ui/src/viewport_bar.rs`)**:
+  - Botão de adição explicitado como `[➕ Add+ ▾]`.
+  - Botões de Shading condensados em esferas compactas de 22x22px estilo Blender flutuantes (`○`, `●`, `◐`, `☼`).
+  - Botões de seleção compactados (`🧊 Objeto`, `⬝ Vértice`, `╱ Aresta`, `▨ Face`) com atalhos transferidos para tooltips ricos, eliminando colisões horizontais mesmo em viewports estreitos.
+
+## [0.5.0] - 2026-09-12 — UI Consolidation, Outliner Redesign, Dead Controls Cleanup & Blender Vector Icons
+
+### Adicionado
+- **Novo Sistema Vetorial de Ícones com Traço Reforçado e Paleta Autêntica do Blender (`crates/ui/src/{icons.rs, icon_registry.rs, app_icons.rs}`)**:
+  - Traços reforçados de 1.5px para 2.0px–2.6px com renderização subpixel nítida contra fundos escuros da UI.
+  - Paleta multicolorida fiel ao Blender:
+    * `3D Cursor`: Anel circular vermelho vibrante com segmentos tracejados brancos e mira vazada.
+    * `Transladar (Move)`: Eixos cardeais RGB (+X vermelho, +Y verde, +Z azul) com pontas de seta triangulares sólidas.
+    * `Rotacionar (Rotate)`: Anéis elípticos cardeais tridimensionais em RGB com seta de rotação.
+    * `Escalar (Scale)`: Hastes tridimensionais RGB terminadas em cubos sólidos preenchidos.
+    * `Transformação Combinada (Transform)`: Gizmo unificado com setas de translação, cubos de escala e arco amarelo de rotação.
+    * `Seleção em Caixa (Select Box)`: Retângulo de seleção azul/ciano translúcido com ponteiro branco de contorno escuro.
+    * `Anotação (Annotate)`: Lápis Grease Pencil com corpo ciano, ponteira de madeira dourada e grafite escuro sobre traçado desenhado.
+    * `Régua e Medição (Measure)`: Régua diagonal amarela com graduações pretas e miras de medição azul-claras.
+    * `Adicionar Primitivas (Add Primitive)`: Cubo isométrico sombreado nos três tons de laranja clássicos do Blender com badge circular `+`.
+    * `Ferramentas de Modelagem`: Traços reforçados de 2.0px–2.4px com destaques em laranja e amarelo vivo para `extrude`, `inset`, `bevel`, `loop_cut`, `knife`, `pushpull`, `slice`, `subdivide` e `draw_profile`.
+- **Redesenho Completo e Funcional do Outliner (`crates/ui/src/outliner.rs`)**:
+  - Integração direta e reativa com `state.project.assets`.
+  - Botão de visibilidade funcional (`👁`) sincronizado com `asset.visible` e respeitado nos backends WebGPU e OpenGL.
+  - Menu de contexto (RMB) para Duplicar (`Shift+D`) e Deletar (`Delete`).
+  - Galeria rápida de primitivas integradas (`Cubo`, `Esfera`, `Cilindro`, `Plano`, `Cone`, `Cápsula`) instanciadas com precisão na coordenada do 3D Cursor (`state.cursor_3d`).
+- **Atalhos e Modelo de Seleção Unificado (`crates/app/src/lib.rs`, `crates/config`)**:
+  - Correção da propagação de eventos no `WgpuApp` e `GlApp`: teclas `Tab` e `0..=4` não são mais descartadas pelo egui quando nenhum campo de texto possui foco ativo (`!wants_keyboard_input()`).
+  - Simplificação para 4 alvos explícitos de seleção: Objeto (`Tab` / `0`), Vértice (`1`), Aresta (`2`), Face (`3`).
+- **Reorganização Semântica da Viewport Bar (`crates/ui/src/viewport_bar.rs`)**:
+  - 5 clusters distintos com divisores visuais claros: Alvo de Seleção, Menus Compactos (`👁 View ▾`, `▢ Select ▾`, `+ Add ▾`), Transformação e Snapping, Toggles de Exibição (`Overlays`, `X-Ray`) e Sombreamento em 4 botões esféricos estilo Blender (`○ Wire`, `● Solid`, `◐ Material`, `☼ Render`).
+
+### Removido
+- **Limpeza de Controles e Botões Mortos**:
+  - Remoção dos botões sem funcionalidade abaixo do Outliner (`Render Engine`, `Output`, `View Layer`, `Scene`, `World`, `Collection`).
+  - Remoção dos pills estáticos de cena (`Scene`, `ViewLayer`) e do menu fictício `Render` do cabeçalho superior.
+  - Remoção do painel inferior de Timeline, recuperando 100% da altura útil da viewport 3D.
+
+## [0.4.0] - 2026-09-12 — Modernized egui Infrastructure, Specialized Crates & Sovereign Design System
+
+### Adicionado
+- **Soberania do Petunia Design System (`crates/ui/src/{tokens.rs, widgets.rs}`)**: Preservação estrita da identidade visual (`Blender.svg`), tokens de cores, métricas e comportamentos interativos sobrepondo qualquer estilo padrão de crates externas. Componentes atômicos: `PetuniaToolbarButton`, `PetuniaPropertyTabButton`, `PetuniaWorkspacePill` e `PetuniaSearchBox`.
+- **Registro Centralizado de Ícones (`crates/ui/src/icon_registry.rs`)**:
+  - `IconRegistry` e enum `PetuniaIcon` com suporte a 9 ícones de toolbar (PNGs 256x256 RGBA) e 15 ícones de abas de propriedades (PNGs 22x22 RGBA) extraídos diretamente do Figma (`assets/ui/icons/properties/`).
+  - Decodificação de PNG embutido com preservação do canal alfa e tingimento dinâmico conforme estado de interação (repouso `#BCBCBC`, hover `#FFFFFF`, ativo `#3169E3`).
+  - Fallback automático para ícones vetoriais de grade 24x24 e glifos tipográficos (Phosphor).
+- **Integração de Gizmos de Transformação 3D (`transform-gizmo-egui`)**:
+  - Módulo `crates/ui/src/transform_gizmo_integration.rs` com conversão bidirecional entre `petunia_core::camera::Camera` e `transform_gizmo::math::Transform`.
+  - Mapeamento de modos de manipulação (`Translate`, `Rotate`, `Scale`) e orientação (`Global`, `Local`).
+- **Navegação Hierárquica da Cena (`egui_ltreeview`)**:
+  - Refatoração do Outliner (`crates/ui/src/outliner.rs`) adotando `egui_ltreeview::TreeView` estilizado com tokens Petunia.
+  - Suporte a seleção de nós (`OutlinerNodeId`), expansão persistente, filtragem instantânea de nós via `petunia_search_box` e toggles de visibilidade e renderização.
+- **Sistema de Layout e Docking Multi-Painel (`egui_tiles`)**:
+  - Módulo `crates/ui/src/tiles_workspace.rs` gerenciando `egui_tiles::Tree<PetuniaPane>` estruturado na árvore canônica de visualização (`Blender.svg`): Toolbar à esquerda, Viewport 3D ao centro, Outliner superior direito, Propriedades inferior direito e Timeline inferior.
+  - Implementação de `PetuniaTilesBehavior` customizando barras de abas, fundos, abas ativas, hover e strokes de redimensionamento em estrita conformidade com os tokens Petunia.
+- **Serviço de Diálogos de Arquivos Multiplataforma (`egui-file-dialog`)**:
+  - Módulo `crates/ui/src/file_dialog_service.rs` desacoplado, suportando Open Project (`.petunia`), Save Project, Save Project As, Import OBJ, Export OBJ e Export GLB.
+- **Suíte de Testes de Fluxo UI Headless (`egui_kittest`)**:
+  - Configuração de `dev-dependencies` e ativação da feature `accesskit` para interoperabilidade completa com `egui-winit`.
+  - Bateria de testes de integração em `crates/ui/tests/kittest_ui_flows.rs` cobrindo fluxos de cabeçalho principal, barra de contexto, toolbar com contextualização de modos, árvore de outliner e layout de tiles.
+  - Suíte completa de 64 testes automatizados em `petunia_ui` (59 unitários + 5 de fluxo kittest), 100% de aprovação e zero warnings em `cargo clippy --workspace --all-targets -- -D warnings`.
+
+## [0.3.0] - 2026-09-12 — Canonical Desktop UI Architecture (`Blender.svg` Golden Reference)
+
+### Adicionado
+- **Design Tokens Canônicos (`crates/ui/src/tokens.rs`)**: Centralização da paleta Dark Theme profissional do Blender (`#121212`, `#1a1a1a`, `#202020`, `#2d2d2d`, `#3169e3`), raios de curvatura de controles/pílulas e métricas de layout.
+- **Gerenciador de Ícones Nativos com Tingimento Dinâmico (`crates/ui/src/app_icons.rs`)**: Embutimento em tempo de compilação dos 9 PNGs transparentes extraídos do Figma (`assets/ui/icons/toolbar/*.png`), tingimento dinâmico com base no estado do botão (repouso `#BCBCBC`, hover `#FFFFFF`, ativo `#3169E3` com ícone branco) e fallback vetorial seamlessly integrado.
+- **Cabeçalho Superior Principal (`crates/ui/src/main_header.rs`)**: Menus do sistema (File, Edit, Render, Window, Help), branding Petunia3D e abas de workspaces em pílulas arredondadas.
+- **Barra de Contexto do Viewport 3D (`crates/ui/src/viewport_bar.rs`)**: Seletor de modo com badges coloridos (Object/Edit/Paint), botões de seleção de componentes (Vértice [1], Aresta [2], Face [3]), orientação de transformação, ponto de pivô, snapping magnético, edição proporcional e os 4 modos canônicos de sombreamento (Wireframe, Solid, Material, Render).
+- **Barra Lateral de Ferramentas (`crates/ui/src/toolbar.rs`)**: Toolbar redimensionável com suporte a largura dinâmica (modo compacto de 48px ou expandido até 240px com ícones e rótulos de ferramentas); contextualização onde ferramentas de modelagem de malha (`extrude`, `inset`, `bevel`, `loop_cut`, etc.) aparecem exclusivamente no modo de edição (`EditMode::Edit`), com normalização defensiva para `select` no modo de objeto (`EditMode::Object`).
+- **Cabeçalhos Redimensionáveis (`crates/ui/src/{main_header.rs, lib.rs, viewport_bar.rs}`)**: Cabeçalho principal do sistema e barra de contexto do viewport agora possuem altura redimensionável com limites definidos em `tokens.rs` e alinhamento vertical centralizado de todos os itens.
+- **Painel Outliner Hierárquico (`crates/ui/src/outliner.rs`)**: Cabeçalho com modo de visualização, filtro de busca instantânea, botão de nova coleção e árvore hierárquica da cena com toggles de visibilidade e renderização.
+- **Painel de Propriedades Modular (`crates/ui/src/properties_panel.rs`)**: Barra de navegação por abas (`Tool`, `Render`, `Output`, `Scene`, `World`, `Object`, `Modifiers`, `Data`, `Material`) com seções sanfonadas, campos de transformação coloridos por eixo (X vermelho, Y verde, Z azul) e integração com ferramentas ativas.
+- **Painel de Timeline de Animação (`crates/ui/src/timeline.rs`)**: Controles de transporte completo (`|<<`, `<|`, `Play/Pause`, `|>`, `>>|`), contador numérico de frames, intervalo (Start/End) e régua de scrubbing temporal com cursor interativo.
+- **Barra de Status Inferior (`crates/ui/src/status_bar.rs`)**: Dicas contextuais dos botões do mouse, mensagens de status do sistema e telemetria de malha e desempenho em tempo real.
+- **Documentação de Diretórios**: READMEs estruturados em `assets/ui/icons/` e `assets/ui/icons/toolbar/` e atualização da arquitetura em `crates/ui/src/README.md`.
+
+## [0.2.0] - 2026-09-12
+
+### Adicionado
+- Estrutura topológica Half-Edge (`HalfEdgeMesh`) com detecção de 2-variedades, anomalias de 1-anel via BFS e relatório de defeitos (`TopologyReport`).
+- Operações geométricas avançadas: Método de Newell para normais poligonais, triangulação em leque para N-gons arbitrários ($N \ge 3$), fatiamento planar com fechamento de tampas e soldagem de costuras (`cut_edge_cache`), varredura ao longo de polilinhas com RMF (`sweep`), ponte entre loops de faces com minimização cíclica de distância (`connect_loops`), dissolução de arestas/vértices (`dissolve_selected`), inversão e recálculo unificado de normais.
+- Modos de sombreamento no pipeline de renderização: Flat, Smooth (normais interpoladas por vértice) e Unlit em OpenGL 3.3 Core e WebGPU (WGSL).
+- Suporte a 6 planos ortogonais de imagens de referência (Front, Back, Left, Right, Top, Bottom) com ângulo de rotação arbitrário e modo X-Ray em split-pass (renderizado após a geometria sólida com bypass de profundidade).
+- Otimização de barramento PCIe no WebGPU com cache de hash FNV-1a para uploads de textura sob demanda.
+- Ferramentas de interface e modelagem: Slice, Connect e Dissolve na barra de ferramentas esquerda com área de rolagem vertical responsiva e ativação não-destrutiva; seleção por caixa (`box_select`) com descarte de vértices atrás da câmera; inversão completa de seleção sincronizada (`invert_selection`).
+- Preservação do índice do asset ativo na remoção de assets precedentes em `Project::remove`.
+- Sincronização automática de paleta ativa com a paleta do projeto em operações de `undo()` e `redo()`.
+- Cobertura expandida para 48 testes automatizados sem falhas e 0 warnings no Clippy com `-D warnings`.
+- Validação contínua do ciclo de vida da aplicação com teste de fumaça headless (`petunia3d --smoke-test`).
+
+## [0.1.0] - 2026-09-12
+
+### Adicionado
+- Inicialização da estrutura canônica do Prumo v0.5.
+- Configuração do manifesto `prumo.json` e orquestração `.ai/`.
+- Definição da hierarquia de documentação canônica em `docs/`.
+- Contrato estrito de arquitetura em `docs/architecture/clean-code-contract.md`.
+- Estratégia de testes exaustivos em `docs/development/testing-strategy.md` (unitários, integração, conformidade, segurança SAST/secrets, performance/stress, UI).
+- Política de documentação mandatória com `README.md` explicativo em cada diretório do projeto.
+
+## 2026-09-12 — Premium viewport, second implementation round (UI, Ortho Camera & Vector Icons)
+
+- Implementada câmera ortográfica explícita (`Projection::Ortho`) com 6 vistas predefinidas (`Front`, `Back`, `Right`, `Left`, `Top`, `Bottom`), atalhos de Numpad e controle contínuo de altura de enquadramento.
+- Criado motor de ícones vetoriais nativos em grade 24x24 (`crates/ui/src/icons.rs`) e componente acessível `tool_button` com variantes compacta (40x40) e expandida.
+- Implementados campos de preenchimento numérico direto para ferramentas de transformação e modelagem (`crates/ui/src/tool_fields.rs`) sincronizados com a máquina de estados modal.
+- Interface responsiva com adaptação a janelas estreitas, status bar aprimorada e tokens de tema com conformidade de contraste WCAG 2.2 AA.
+- Suíte de testes expandida para 130 testes automatizados com 100% de aprovação, Clippy com 0 warnings e formatação canônica.
+
+## 2026-09-12 — Premium viewport, first implementation round
+
+- Added transactional modal previews, viewport HUD, exact input, axis/plane
+  constraints, snapping, transform gizmos and visible-component hover/picking.
+- Added quad loop preview/slide, welded knife segments, planar slice gestures,
+  atomic vertex-paint strokes and contextual brush radius/eyedropper input.
+- Fixed region extrusion topology, closed single-edge bevel, capped slice
+  half-space semantics, Top/Bottom camera math and viewport input/redraw ordering.
+- Standardized 1/2/3/4 selection, G/R/S, P, Ctrl+R, K/Shift+K and camera shortcuts.
+- Added independent review and domain/egui regression tests. Historical premium
+  convergence claims are superseded; remaining criteria are explicit in the plan.
