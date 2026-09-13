@@ -94,7 +94,17 @@ impl Module for UvModule {
         }
     }
 
-    fn ui(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
+    fn as_any(&self) -> &(dyn std::any::Any + 'static) {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut (dyn std::any::Any + 'static) {
+        self
+    }
+}
+
+impl UvModule {
+    pub fn ui(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
         let l_uv = state.t("uv.title");
         let l_reproj = state.t("uv.reproject");
         let l_scale = state.t("uv.scale");

@@ -41,6 +41,41 @@ pub mod viewport_bar;
 mod viewport_interaction;
 pub mod widgets;
 
+pub use tokens::apply_theme_to_egui;
+
+pub fn rect_to_logical(r: egui::Rect) -> petunia_core::viewport::LogicalRect {
+    petunia_core::viewport::LogicalRect::from_min_max([r.min.x, r.min.y], [r.max.x, r.max.y])
+}
+
+pub fn logical_to_rect(r: petunia_core::viewport::LogicalRect) -> egui::Rect {
+    egui::Rect::from_min_max(
+        egui::pos2(r.left(), r.top()),
+        egui::pos2(r.right(), r.bottom()),
+    )
+}
+
+static REF_TEXTURES: std::sync::Mutex<
+    Option<std::collections::HashMap<String, egui::TextureHandle>>,
+> = std::sync::Mutex::new(None);
+
+pub fn get_ref_texture(
+    ctx: &egui::Context,
+    img: &petunia_core::ReferenceImage,
+) -> egui::TextureHandle {
+    let mut lock = REF_TEXTURES.lock().unwrap();
+    let map = lock.get_or_insert_with(std::collections::HashMap::new);
+    if let Some(handle) = map.get(&img.name) {
+        return handle.clone();
+    }
+    let color_img = egui::ColorImage::from_rgba_unmultiplied(
+        [img.width as usize, img.height as usize],
+        &img.rgba,
+    );
+    let handle = ctx.load_texture(&img.name, color_img, egui::TextureOptions::LINEAR);
+    map.insert(img.name.clone(), handle.clone());
+    handle
+}
+
 pub struct UiAction {
     pub quit: bool,
 }
@@ -261,18 +296,13 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                     }
                 }
             }
-            for r in state.refs.iter_mut() {
-                r.ensure_texture(&ctx);
-            }
             let mut rm: Option<usize> = None;
             let n = state.refs.len();
             for i in 0..n {
                 let (tex_id, aspect) = {
                     let r = &state.refs[i];
-                    (
-                        r.texture.as_ref().map(|t| t.id()),
-                        r.height as f32 / r.width.max(1) as f32,
-                    )
+                    let tex = get_ref_texture(&ctx, r);
+                    (Some(tex.id()), r.height as f32 / r.width.max(1) as f32)
                 };
                 {
                     let r = &mut state.refs[i];
@@ -481,7 +511,7 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
         .frame(egui::Frame::new().fill(egui::Color32::TRANSPARENT))
         .show(ctx, |ui| {
             let rect = ui.available_rect_before_wrap();
-            state.viewport_rect = Some(rect);
+            state.viewport_rect = Some(rect_to_logical(rect));
             state.viewport_pixels_per_point = ctx.pixels_per_point();
             state.camera.aspect = rect.width() / rect.height().max(1.0);
             let p = ui.painter_at(rect);

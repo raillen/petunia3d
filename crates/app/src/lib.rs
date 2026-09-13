@@ -728,7 +728,7 @@ impl WgpuApp {
         let renderer3d = petunia_render_wgpu::Renderer::new(&device, format);
 
         let egui_ctx = egui::Context::default();
-        petunia_config::Theme::load().apply(&egui_ctx);
+        petunia_ui::apply_theme_to_egui(&petunia_config::Theme::load(), &egui_ctx);
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
             egui::ViewportId::ROOT,
@@ -1184,7 +1184,7 @@ impl GlApp {
         eprintln!("petunia3d: OpenGL: {} | {}", caps.gl_version, caps.renderer);
 
         let egui_ctx = egui::Context::default();
-        petunia_config::Theme::load().apply(&egui_ctx);
+        petunia_ui::apply_theme_to_egui(&petunia_config::Theme::load(), &egui_ctx);
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
             egui::ViewportId::ROOT,

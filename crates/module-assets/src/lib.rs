@@ -95,7 +95,17 @@ impl Module for AssetsModule {
     }
     fn on_event(&mut self, _event: &AppEvent, _state: &mut AppState) {}
 
-    fn ui(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
+    fn as_any(&self) -> &(dyn std::any::Any + 'static) {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut (dyn std::any::Any + 'static) {
+        self
+    }
+}
+
+impl AssetsModule {
+    pub fn ui(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
         let l_lib = state.t("ui.assets");
         let l_search = state.t("ui.search");
         egui::CollapsingHeader::new(l_lib)

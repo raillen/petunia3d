@@ -5,11 +5,13 @@
 use petunia_core::{AppState, Module};
 
 #[derive(Default)]
-pub struct PaintModule;
+pub struct PaintModule {
+    pub canvas_tex: Option<egui::TextureHandle>,
+}
 
 impl PaintModule {
     pub fn new() -> Self {
-        Self
+        Self { canvas_tex: None }
     }
 
     /// Preenche seleção (ou tudo) com a cor atual. Retorna nº de verts.
@@ -186,7 +188,17 @@ impl Module for PaintModule {
         "paint"
     }
 
-    fn ui(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
+    fn as_any(&self) -> &(dyn std::any::Any + 'static) {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut (dyn std::any::Any + 'static) {
+        self
+    }
+}
+
+impl PaintModule {
+    pub fn ui(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, state: &mut AppState) {
         // vertex paint rápido
         let l_vpaint = state.t("paint.vertex");
         let l_fill = state.t("paint.fill_sel");
@@ -300,7 +312,7 @@ impl Module for PaintModule {
                                 [cv.w as usize, cv.h as usize],
                                 &cv.pixels,
                             );
-                            state.canvas_tex = Some(ctx.load_texture(
+                            self.canvas_tex = Some(ctx.load_texture(
                                 "canvas",
                                 img,
                                 egui::TextureOptions::NEAREST,
@@ -358,7 +370,7 @@ impl Module for PaintModule {
                     state.canvas_dirty = true;
                     state.mark_dirty();
                 }
-                if let Some(tex) = state.canvas_tex.clone() {
+                if let Some(tex) = self.canvas_tex.clone() {
                     let avail = ui.available_width().min(300.0);
                     let (cw, ch) = state
                         .project

@@ -20,6 +20,7 @@ pub use state::{
     AnnotationItem, AnnotationStroke, AppState, EditMode, Measurement, MeasurementItem,
     ProfileState, RefAxis, ReferenceImage, RenderStats,
 };
+pub use viewport::{LogicalRect, PhysicalViewport};
 
 pub use modal::{ModalConstraint, ModalError, ModalKind, ModalOp};
 

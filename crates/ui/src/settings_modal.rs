@@ -176,7 +176,7 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
                                     {
                                         state.active_theme_id = manifest.id.clone();
                                         if let Some(t) = registry.get_theme(&manifest.id) {
-                                            t.apply(ctx);
+                                            tokens::apply_theme_to_egui(t, ctx);
                                         }
                                         state.mark_dirty();
                                     }
@@ -206,7 +206,9 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
                                     ("Orange", ThemeToken::AccentOrange),
                                     ("Border", ThemeToken::BorderSubtle),
                                 ] {
-                                    let col = theme.colors.get_token_color(token);
+                                    let col = tokens::rgba_to_color32(
+                                        theme.colors.get_token_color(token),
+                                    );
                                     let (rect, resp) = ui.allocate_exact_size(
                                         vec2(18.0, 14.0),
                                         egui::Sense::hover(),

@@ -2,12 +2,53 @@
 //! Suporta tokens semânticos (`ThemeToken`), múltiplos temas embutidos e temas personalizados
 //! criados por usuários em subpastas contendo `manifest.toml` e `theme.toml`.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use egui::Color32;
-use serde::{Deserialize, Serialize};
+/// Cor RGBA pura (0-255).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ColorRgba(pub [u8; 4]);
+
+impl ColorRgba {
+    pub const WHITE: Self = Self([255, 255, 255, 255]);
+    pub const BLACK: Self = Self([0, 0, 0, 255]);
+    pub const TRANSPARENT: Self = Self([0, 0, 0, 0]);
+
+    pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self([r, g, b, a])
+    }
+
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
+        Self([r, g, b, 255])
+    }
+
+    pub const fn to_rgba_u8(&self) -> [u8; 4] {
+        self.0
+    }
+
+    pub fn to_rgba_f32(&self) -> [f32; 4] {
+        [
+            self.0[0] as f32 / 255.0,
+            self.0[1] as f32 / 255.0,
+            self.0[2] as f32 / 255.0,
+            self.0[3] as f32 / 255.0,
+        ]
+    }
+}
+
+impl From<[u8; 4]> for ColorRgba {
+    fn from(arr: [u8; 4]) -> Self {
+        Self(arr)
+    }
+}
+
+impl From<ColorRgba> for [u8; 4] {
+    fn from(c: ColorRgba) -> Self {
+        c.0
+    }
+}
 
 /// Tokens canônicos de cores do sistema de design do Petunia3D.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -136,8 +177,8 @@ impl Default for ThemeColors {
 }
 
 impl ThemeColors {
-    /// Converte um token canônico na cor correspondente deste tema.
-    pub fn get_token_color(&self, token: ThemeToken) -> Color32 {
+    /// Converte um token canônico na cor correspondente deste tema em formato RGBA puro.
+    pub fn get_token_color_rgba(&self, token: ThemeToken) -> ColorRgba {
         let hex = match token {
             ThemeToken::BgCanvas => &self.bg_canvas,
             ThemeToken::BgHeader => &self.bg_header,
@@ -190,8 +231,13 @@ impl ThemeColors {
                 ThemeToken::StatusError => &defaults.status_error,
                 ThemeToken::StatusSuccess => &defaults.status_success,
             };
-            Theme::hex(def_hex).unwrap_or(Color32::WHITE)
+            Theme::hex(def_hex).unwrap_or(ColorRgba::WHITE)
         })
+    }
+
+    /// Alias conveniente para obter a cor do token em ColorRgba.
+    pub fn get_token_color(&self, token: ThemeToken) -> ColorRgba {
+        self.get_token_color_rgba(token)
     }
 }
 
@@ -207,108 +253,22 @@ impl Theme {
         Self::load_by_id("petunia-dark")
     }
 
-    pub fn hex(s: &str) -> Option<Color32> {
+    pub fn hex(s: &str) -> Option<ColorRgba> {
         let s = s.trim().trim_start_matches('#');
-        if s.len() != 6 || !s.is_ascii() {
-            return None;
+        if s.len() == 6 && s.is_ascii() {
+            let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+            let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+            let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+            Some(ColorRgba::rgb(r, g, b))
+        } else if s.len() == 8 && s.is_ascii() {
+            let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+            let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+            let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+            let a = u8::from_str_radix(&s[6..8], 16).ok()?;
+            Some(ColorRgba::new(r, g, b, a))
+        } else {
+            None
         }
-        let r = u8::from_str_radix(&s[0..2], 16).ok()?;
-        let g = u8::from_str_radix(&s[2..4], 16).ok()?;
-        let b = u8::from_str_radix(&s[4..6], 16).ok()?;
-        Some(Color32::from_rgb(r, g, b))
-    }
-
-    /// Aplica as configurações do tema ao contexto egui.
-    pub fn apply(&self, ctx: &egui::Context) {
-        let is_light = self
-            .manifest
-            .as_ref()
-            .map(|m| m.id.contains("light"))
-            .unwrap_or(false);
-        let mut v = if is_light {
-            egui::Visuals::light()
-        } else {
-            egui::Visuals::dark()
-        };
-
-        let bg = self.colors.get_token_color(ThemeToken::BgCanvas);
-        let panel = self.colors.get_token_color(ThemeToken::BgPanel);
-        let text = self.colors.get_token_color(ThemeToken::TextPrimary);
-        let text_muted = self.colors.get_token_color(ThemeToken::TextMuted);
-        let accent = self.colors.get_token_color(ThemeToken::AccentBlue);
-        let border = self.colors.get_token_color(ThemeToken::BorderSubtle);
-        let control = self.colors.get_token_color(ThemeToken::BgSurface);
-        let hover = self.colors.get_token_color(ThemeToken::BgSurfaceHover);
-        let selection = self.colors.get_token_color(ThemeToken::BgSurfaceActive);
-
-        v.extreme_bg_color = bg;
-        v.text_edit_bg_color = Some(control);
-        v.panel_fill = panel;
-        v.window_fill = panel;
-        v.faint_bg_color = control;
-        v.weak_text_color = Some(text_muted);
-        v.selection.bg_fill = selection;
-        v.selection.stroke = egui::Stroke::new(1.0_f32, text);
-        v.hyperlink_color = accent;
-        v.window_stroke = egui::Stroke::new(1.0_f32, border);
-
-        for widget in [
-            &mut v.widgets.noninteractive,
-            &mut v.widgets.inactive,
-            &mut v.widgets.hovered,
-            &mut v.widgets.active,
-            &mut v.widgets.open,
-        ] {
-            widget.fg_stroke = egui::Stroke::new(1.5_f32, text);
-            widget.bg_stroke = egui::Stroke::new(1.0_f32, border);
-            widget.corner_radius = egui::CornerRadius::same(5);
-            widget.expansion = 0.0;
-        }
-
-        v.widgets.noninteractive.bg_fill = panel;
-        v.widgets.noninteractive.weak_bg_fill = panel;
-        v.widgets.inactive.bg_fill = control;
-        v.widgets.inactive.weak_bg_fill = control;
-        v.widgets.hovered.bg_fill = hover;
-        v.widgets.hovered.weak_bg_fill = hover;
-        v.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, accent);
-        v.widgets.active.bg_fill = selection;
-        v.widgets.active.weak_bg_fill = selection;
-        v.widgets.active.bg_stroke = egui::Stroke::new(1.5_f32, accent);
-        v.widgets.open = v.widgets.active;
-
-        ctx.set_visuals(v);
-
-        let size = if self.font.size.is_finite() {
-            self.font.size.clamp(12.0, 20.0)
-        } else {
-            14.0
-        };
-        let family = if self.font.family == "monospace" {
-            egui::FontFamily::Monospace
-        } else {
-            egui::FontFamily::Proportional
-        };
-
-        ctx.style_mut(|style| {
-            for (name, points) in [
-                (egui::TextStyle::Body, size),
-                (egui::TextStyle::Button, size),
-                (egui::TextStyle::Small, (size - 2.0).max(11.0)),
-                (egui::TextStyle::Heading, size + 4.0),
-            ] {
-                style
-                    .text_styles
-                    .insert(name, egui::FontId::new(points, family.clone()));
-            }
-            style.text_styles.insert(
-                egui::TextStyle::Monospace,
-                egui::FontId::monospace((size - 1.0).max(11.0)),
-            );
-            style.spacing.item_spacing = egui::vec2(8.0, 6.0);
-            style.spacing.button_padding = egui::vec2(8.0, 5.0);
-            style.spacing.interact_size.y = 28.0;
-        });
     }
 }
 
@@ -583,18 +543,8 @@ mod tests {
                 ThemeToken::BorderSubtle,
             ] {
                 let c = theme.colors.get_token_color(token);
-                assert_ne!(c, Color32::TRANSPARENT);
+                assert_ne!(c, ColorRgba::TRANSPARENT);
             }
-        }
-    }
-
-    #[test]
-    fn test_theme_apply_sets_visuals_without_panic() {
-        let ctx = egui::Context::default();
-        let registry = ThemeRegistry::global();
-        for manifest in registry.available() {
-            let theme = registry.get_theme(&manifest.id).unwrap();
-            theme.apply(&ctx);
         }
     }
 }

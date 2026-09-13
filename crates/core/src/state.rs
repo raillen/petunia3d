@@ -43,7 +43,6 @@ pub struct ReferenceImage {
     pub width: u32,
     pub height: u32,
     pub rgba: Vec<u8>,
-    pub texture: Option<egui::TextureHandle>,
     pub axis: RefAxis,
     pub offset: f32,
     pub size: f32,
@@ -61,7 +60,6 @@ impl ReferenceImage {
             width,
             height,
             rgba,
-            texture: None,
             axis: RefAxis::Front,
             offset: -3.0,
             size: 4.0,
@@ -70,16 +68,6 @@ impl ReferenceImage {
             locked: false,
             rotation: 0.0,
             xray: false,
-        }
-    }
-
-    pub fn ensure_texture(&mut self, ctx: &egui::Context) {
-        if self.texture.is_none() {
-            let img = egui::ColorImage::from_rgba_unmultiplied(
-                [self.width as usize, self.height as usize],
-                &self.rgba,
-            );
-            self.texture = Some(ctx.load_texture(&self.name, img, egui::TextureOptions::LINEAR));
         }
     }
 }
@@ -186,7 +174,7 @@ pub struct AppState {
     pub push_dist: f32,
     pub status: String,
     pub stats: RenderStats,
-    pub viewport_rect: Option<egui::Rect>,
+    pub viewport_rect: Option<crate::viewport::LogicalRect>,
     pub viewport_pixels_per_point: f32,
     pub pending_pick: Option<(f32, f32)>,
     pub modal: Option<crate::modal::ModalOp>,
@@ -198,8 +186,6 @@ pub struct AppState {
     pub project_path: Option<String>,
     /// Nome do backend ativo (wgpu xxx / OpenGL) p/ status bar.
     pub backend_name: String,
-    /// Textura egui do canvas do asset ativo (painel PAINT).
-    pub canvas_tex: Option<egui::TextureHandle>,
     pub canvas_dirty: bool,
     /// Seleção múltipla p/ export em lote (índices de assets).
     pub export_selected: Vec<usize>,
@@ -321,7 +307,6 @@ impl AppState {
             dirty: true,
             project_path: None,
             backend_name: String::new(),
-            canvas_tex: None,
             canvas_dirty: true,
             export_selected: Vec::new(),
             cursor_3d: [0.0, 0.0, 0.0],

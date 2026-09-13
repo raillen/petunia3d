@@ -58,12 +58,22 @@ pub fn draw(
                     Workspace::Model => draw_active_tab_content(ctx, ui, state, tools, fields),
                     Workspace::Paint => {
                         if let Some(module) = registry.get_mut("paint") {
-                            module.ui(ctx, ui, state);
+                            if let Some(paint) = module
+                                .as_any_mut()
+                                .downcast_mut::<petunia_module_paint::PaintModule>(
+                            ) {
+                                paint.ui(ctx, ui, state);
+                            }
                         }
                     }
                     Workspace::Uv => {
                         if let Some(module) = registry.get_mut("uv") {
-                            module.ui(ctx, ui, state);
+                            if let Some(uv) = module
+                                .as_any_mut()
+                                .downcast_mut::<petunia_module_uv::UvModule>()
+                            {
+                                uv.ui(ctx, ui, state);
+                            }
                         }
                     }
                     Workspace::Animate => {

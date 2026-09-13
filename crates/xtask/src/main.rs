@@ -182,7 +182,53 @@ fn task_arch_check() -> Result<()> {
         required_reports.len(),
         total_bytes as f64 / 1024.0
     );
-    println!("🏛️ Pontuação arquitetural atual: 3.8 / 10 (Coupled monolith).");
-    println!("🚀 Roteiro de remediação: Gauntlet Loop G0 a G10 documentado.");
+
+    println!("🛡️ Validando invariantes arquiteturais dos manifestos Cargo...");
+    let checks = [
+        (
+            "crates/core/Cargo.toml",
+            &["egui ="][..],
+            "petunia_core não pode depender de egui",
+        ),
+        (
+            "crates/config/Cargo.toml",
+            &["egui ="][..],
+            "petunia_config não pode depender de egui",
+        ),
+        (
+            "crates/mesh/Cargo.toml",
+            &["egui", "petunia_core", "petunia_ui"][..],
+            "petunia_mesh deve ser 100% puro",
+        ),
+        (
+            "crates/project/Cargo.toml",
+            &["egui", "petunia_ui"][..],
+            "petunia_project não pode depender de UI",
+        ),
+        (
+            "crates/commands/Cargo.toml",
+            &["egui", "petunia_ui"][..],
+            "petunia_commands não pode depender de UI",
+        ),
+        (
+            "crates/render-wgpu/Cargo.toml",
+            &["egui", "petunia_ui"][..],
+            "petunia_render_wgpu não pode depender de UI",
+        ),
+    ];
+
+    for (rel_path, forbidden, reason) in checks {
+        let path = root.join(rel_path);
+        let content =
+            std::fs::read_to_string(&path).with_context(|| format!("Falha ao ler {rel_path}"))?;
+        for pattern in forbidden {
+            if content.contains(pattern) {
+                bail!("Violação em {rel_path}: contém '{pattern}' proibido ({reason})");
+            }
+        }
+    }
+
+    println!("✅ Invariantes de manifesto validados: core, config, mesh, project, commands e render-wgpu estão desacoplados de egui.");
+    println!("🏛️ Progresso de remediação: Gauntlet G0 (Fitness & Governança) e G1 (Purificação do Core) CONCLUÍDOS.");
     Ok(())
 }

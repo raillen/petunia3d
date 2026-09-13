@@ -1,0 +1,90 @@
+//! Testes de fitness arquitetural (Gauntlet G0 e G1).
+//! Garante que o núcleo da aplicação (core, config, mesh, project, commands, render)
+//! permaneça 100% puro e desacoplado de dependências de apresentação (egui).
+
+use std::fs;
+use std::path::Path;
+
+fn root_dir() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+}
+
+#[test]
+fn petunia_core_must_not_depend_on_egui() {
+    let manifest_path = root_dir().join("crates/core/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/core/Cargo.toml");
+    assert!(
+        !content.contains("egui ="),
+        "VIOLAÇÃO ARQUITETURAL: crates/core/Cargo.toml não pode depender de egui!"
+    );
+}
+
+#[test]
+fn petunia_config_must_not_depend_on_egui() {
+    let manifest_path = root_dir().join("crates/config/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/config/Cargo.toml");
+    assert!(
+        !content.contains("egui ="),
+        "VIOLAÇÃO ARQUITETURAL: crates/config/Cargo.toml não pode depender de egui!"
+    );
+}
+
+#[test]
+fn petunia_mesh_must_be_pure() {
+    let manifest_path = root_dir().join("crates/mesh/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/mesh/Cargo.toml");
+    assert!(
+        !content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/mesh/Cargo.toml não pode depender de egui!"
+    );
+    assert!(
+        !content.contains("petunia_core"),
+        "VIOLAÇÃO ARQUITETURAL: crates/mesh/Cargo.toml não pode depender de petunia_core!"
+    );
+    assert!(
+        !content.contains("petunia_ui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/mesh/Cargo.toml não pode depender de petunia_ui!"
+    );
+}
+
+#[test]
+fn petunia_project_must_not_depend_on_ui() {
+    let manifest_path = root_dir().join("crates/project/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/project/Cargo.toml");
+    assert!(
+        !content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/project/Cargo.toml não pode depender de egui!"
+    );
+    assert!(
+        !content.contains("petunia_ui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/project/Cargo.toml não pode depender de petunia_ui!"
+    );
+}
+
+#[test]
+fn petunia_commands_must_not_depend_on_ui() {
+    let manifest_path = root_dir().join("crates/commands/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/commands/Cargo.toml");
+    assert!(
+        !content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/commands/Cargo.toml não pode depender de egui!"
+    );
+    assert!(
+        !content.contains("petunia_ui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/commands/Cargo.toml não pode depender de petunia_ui!"
+    );
+}
+
+#[test]
+fn petunia_render_wgpu_must_not_depend_on_egui() {
+    let manifest_path = root_dir().join("crates/render-wgpu/Cargo.toml");
+    let content = fs::read_to_string(&manifest_path).expect("crates/render-wgpu/Cargo.toml");
+    assert!(
+        !content.contains("egui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/render-wgpu/Cargo.toml não pode depender de egui!"
+    );
+    assert!(
+        !content.contains("petunia_ui"),
+        "VIOLAÇÃO ARQUITETURAL: crates/render-wgpu/Cargo.toml não pode depender de petunia_ui!"
+    );
+}

@@ -77,11 +77,17 @@ pub fn stroke_focus() -> Stroke {
 
 pub use petunia_config::ThemeToken;
 
+/// Converte um ColorRgba do petunia_config para egui::Color32.
+pub fn rgba_to_color32(c: petunia_config::ColorRgba) -> Color32 {
+    let [r, g, b, a] = c.to_rgba_u8();
+    Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
 /// Obtém dinamicamente a cor correspondente a um ThemeToken para o tema ativo no AppState.
 pub fn color(state: &petunia_core::AppState, token: ThemeToken) -> Color32 {
     let registry = petunia_config::ThemeRegistry::global();
     if let Some(theme) = registry.get_theme(&state.active_theme_id) {
-        theme.colors.get_token_color(token)
+        rgba_to_color32(theme.colors.get_token_color(token))
     } else {
         match token {
             ThemeToken::BgCanvas => BG_APP,
@@ -108,4 +114,99 @@ pub fn color(state: &petunia_core::AppState, token: ThemeToken) -> Color32 {
             ThemeToken::StatusSuccess => MODE_PAINT,
         }
     }
+}
+
+/// Aplica as configurações do tema do Petunia3D ao contexto egui.
+pub fn apply_theme_to_egui(theme: &petunia_config::Theme, ctx: &egui::Context) {
+    let is_light = theme
+        .manifest
+        .as_ref()
+        .map(|m| m.id.contains("light"))
+        .unwrap_or(false);
+    let mut v = if is_light {
+        egui::Visuals::light()
+    } else {
+        egui::Visuals::dark()
+    };
+
+    let get_c = |token: ThemeToken| rgba_to_color32(theme.colors.get_token_color(token));
+
+    let bg = get_c(ThemeToken::BgCanvas);
+    let panel = get_c(ThemeToken::BgPanel);
+    let text = get_c(ThemeToken::TextPrimary);
+    let text_muted = get_c(ThemeToken::TextMuted);
+    let accent = get_c(ThemeToken::AccentBlue);
+    let border = get_c(ThemeToken::BorderSubtle);
+    let control = get_c(ThemeToken::BgSurface);
+    let hover = get_c(ThemeToken::BgSurfaceHover);
+    let selection = get_c(ThemeToken::BgSurfaceActive);
+
+    v.extreme_bg_color = bg;
+    v.text_edit_bg_color = Some(control);
+    v.panel_fill = panel;
+    v.window_fill = panel;
+    v.faint_bg_color = control;
+    v.weak_text_color = Some(text_muted);
+    v.selection.bg_fill = selection;
+    v.selection.stroke = Stroke::new(1.0_f32, text);
+    v.hyperlink_color = accent;
+    v.window_stroke = Stroke::new(1.0_f32, border);
+
+    for widget in [
+        &mut v.widgets.noninteractive,
+        &mut v.widgets.inactive,
+        &mut v.widgets.hovered,
+        &mut v.widgets.active,
+        &mut v.widgets.open,
+    ] {
+        widget.fg_stroke = Stroke::new(1.5_f32, text);
+        widget.bg_stroke = Stroke::new(1.0_f32, border);
+        widget.corner_radius = egui::CornerRadius::same(5);
+        widget.expansion = 0.0;
+    }
+
+    v.widgets.noninteractive.bg_fill = panel;
+    v.widgets.noninteractive.weak_bg_fill = panel;
+    v.widgets.inactive.bg_fill = control;
+    v.widgets.inactive.weak_bg_fill = control;
+    v.widgets.hovered.bg_fill = hover;
+    v.widgets.hovered.weak_bg_fill = hover;
+    v.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, accent);
+    v.widgets.active.bg_fill = selection;
+    v.widgets.active.weak_bg_fill = selection;
+    v.widgets.active.bg_stroke = Stroke::new(1.5_f32, accent);
+    v.widgets.open = v.widgets.active;
+
+    ctx.set_visuals(v);
+
+    let size = if theme.font.size.is_finite() {
+        theme.font.size.clamp(12.0, 20.0)
+    } else {
+        14.0
+    };
+    let family = if theme.font.family == "monospace" {
+        egui::FontFamily::Monospace
+    } else {
+        egui::FontFamily::Proportional
+    };
+
+    ctx.style_mut(|style| {
+        for (name, points) in [
+            (egui::TextStyle::Body, size),
+            (egui::TextStyle::Button, size),
+            (egui::TextStyle::Small, (size - 2.0).max(11.0)),
+            (egui::TextStyle::Heading, size + 4.0),
+        ] {
+            style
+                .text_styles
+                .insert(name, egui::FontId::new(points, family.clone()));
+        }
+        style.text_styles.insert(
+            egui::TextStyle::Monospace,
+            egui::FontId::monospace((size - 1.0).max(11.0)),
+        );
+        style.spacing.item_spacing = egui::vec2(8.0, 6.0);
+        style.spacing.button_padding = egui::vec2(8.0, 5.0);
+        style.spacing.interact_size.y = 28.0;
+    });
 }
