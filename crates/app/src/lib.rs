@@ -26,6 +26,9 @@ pub struct Core {
     pub state: AppState,
     pub tools: ToolRegistry,
     pub registry: ModuleRegistry,
+    pub autosave: petunia_core::AutosaveService,
+    pub recent_projects: petunia_core::RecentProjects,
+    pub pending_recovery: Option<petunia_core::RecoveryInfo>,
     pub mmb_down: bool,
     pub shift_down: bool,
     pub ctrl_down: bool,
@@ -50,6 +53,14 @@ impl Core {
         } else {
             "pt-BR".to_string()
         };
+
+        let pending_recovery = petunia_core::AutosaveService::detect_recovery(None);
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let _ = petunia_core::AutosaveService::create_session_lock(None, "Untitled", now_secs);
+
         Self {
             state: AppState::new(&lang),
             tools: ToolRegistry::with_defaults(),
@@ -60,12 +71,47 @@ impl Core {
                 r.register(AssetsModule::new());
                 r
             },
+            autosave: petunia_core::AutosaveService::default(),
+            recent_projects: petunia_core::RecentProjects::default(),
+            pending_recovery,
             mmb_down: false,
             shift_down: false,
             ctrl_down: false,
             alt_down: false,
             last_mouse: None,
             save_requested: false,
+        }
+    }
+
+    /// Executa o tick periódico do autosave (P3D-002).
+    pub fn tick_autosave(&mut self) {
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let is_dirty = self.state.is_document_dirty();
+        let proj_path = self
+            .state
+            .project
+            .project_path
+            .as_deref()
+            .map(std::path::Path::new);
+        if let Some(res) =
+            self.autosave
+                .tick(now_secs, is_dirty, &self.state.project.project, proj_path)
+        {
+            match res {
+                Ok(path) => {
+                    let filename = path
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or("snapshot");
+                    self.state.set_status(format!("autosave: {filename}"));
+                }
+                Err(err) => {
+                    self.state.set_status(format!("autosave err: {err}"));
+                }
+            }
         }
     }
 
@@ -821,11 +867,30 @@ impl WgpuApp {
                 &mut self.core.registry,
                 &mut act,
             );
+            if let Some(ref info) = self.core.pending_recovery {
+                if let Some(rec_act) =
+                    petunia_ui::draw_recovery_dialog(ctx, &mut self.core.state, info)
+                {
+                    match rec_act {
+                        petunia_ui::RecoveryAction::Recover
+                        | petunia_ui::RecoveryAction::OpenSaved => {
+                            self.core.pending_recovery = None;
+                        }
+                        petunia_ui::RecoveryAction::Discard => {
+                            let _ = petunia_core::AutosaveService::discard_recovery(
+                                info.main_project_path.as_deref(),
+                            );
+                            self.core.pending_recovery = None;
+                        }
+                    }
+                }
+            }
             quit = act.quit;
         });
         gfx.egui_state
             .handle_platform_output(&gfx.window, full_output.platform_output.clone());
         self.core.dispatch_events();
+        self.core.tick_autosave();
 
         if let Some((nx, ny)) = self.core.state.ui.pending_pick.take() {
             handle_pick(&mut self.core, nx, ny);
@@ -966,6 +1031,14 @@ impl WgpuApp {
 
         self.update_stats(t0);
         if quit {
+            let proj_path = self
+                .core
+                .state
+                .project
+                .project_path
+                .as_deref()
+                .map(std::path::Path::new);
+            petunia_core::AutosaveService::remove_session_lock(proj_path);
             std::process::exit(0);
         }
     }
@@ -1286,11 +1359,30 @@ impl GlApp {
                 &mut self.core.registry,
                 &mut act,
             );
+            if let Some(ref info) = self.core.pending_recovery {
+                if let Some(rec_act) =
+                    petunia_ui::draw_recovery_dialog(ctx, &mut self.core.state, info)
+                {
+                    match rec_act {
+                        petunia_ui::RecoveryAction::Recover
+                        | petunia_ui::RecoveryAction::OpenSaved => {
+                            self.core.pending_recovery = None;
+                        }
+                        petunia_ui::RecoveryAction::Discard => {
+                            let _ = petunia_core::AutosaveService::discard_recovery(
+                                info.main_project_path.as_deref(),
+                            );
+                            self.core.pending_recovery = None;
+                        }
+                    }
+                }
+            }
             quit = act.quit;
         });
         g.egui_state
             .handle_platform_output(g.gl_window.window(), full_output.platform_output.clone());
         self.core.dispatch_events();
+        self.core.tick_autosave();
 
         if let Some((nx, ny)) = self.core.state.ui.pending_pick.take() {
             handle_pick(&mut self.core, nx, ny);
@@ -1371,6 +1463,14 @@ impl GlApp {
         }
 
         if quit {
+            let proj_path = self
+                .core
+                .state
+                .project
+                .project_path
+                .as_deref()
+                .map(std::path::Path::new);
+            petunia_core::AutosaveService::remove_session_lock(proj_path);
             std::process::exit(0);
         }
     }

@@ -488,8 +488,40 @@ fn task_arch_check() -> Result<()> {
     }
     println!("✅ Domínio agnóstico validado: eframe ausente de todo o Core e Módulos.");
 
+    println!("🛡️ Validando integridade de projetos e persistência agnóstica à UI (Wave 2)...");
+    let project_crates = [
+        "crates/project",
+        "crates/core/src/project_service.rs",
+        "crates/core/src/recent_projects.rs",
+    ];
+    for p in project_crates {
+        let p_path = root.join(p);
+        if p_path.is_file() {
+            let content = std::fs::read_to_string(&p_path)?;
+            if content.contains("egui::") || content.contains("eframe") {
+                bail!("Violação de Persistência (Wave 2): {p} depende de egui/eframe!");
+            }
+        } else if p_path.is_dir() {
+            let src_dir = p_path.join("src");
+            let target_dir = if src_dir.exists() { src_dir } else { p_path };
+            for entry in std::fs::read_dir(&target_dir)? {
+                let entry = entry?;
+                if entry.path().extension().is_some_and(|e| e == "rs") {
+                    let content = std::fs::read_to_string(entry.path())?;
+                    if content.contains("egui::") || content.contains("eframe") {
+                        bail!(
+                            "Violação de Persistência (Wave 2): {} depende de egui/eframe!",
+                            entry.path().display()
+                        );
+                    }
+                }
+            }
+        }
+    }
+    println!("✅ Integridade de projeto validada: persistência e autosave 100% livres de UI/egui.");
+
     println!(
-        "🏛️ Progresso de remediação: GAUNTLETS G0 a G10 e WAVE 1 100% CONCLUÍDOS COM SUCESSO!"
+        "🏛️ Progresso de remediação: GAUNTLETS G0 a G10, WAVE 1 e WAVE 2 100% CONCLUÍDOS COM SUCESSO!"
     );
     Ok(())
 }

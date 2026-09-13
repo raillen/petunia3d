@@ -474,3 +474,37 @@ fn core_and_domain_must_not_depend_on_eframe() {
         }
     }
 }
+
+#[test]
+fn project_and_persistence_must_not_depend_on_egui() {
+    let project_crates = [
+        "crates/project",
+        "crates/core/src/project_service.rs",
+        "crates/core/src/recent_projects.rs",
+    ];
+
+    for p in project_crates {
+        let p_path = root_dir().join(p);
+        if p_path.is_file() {
+            let content = fs::read_to_string(&p_path).expect("ler arquivo de projeto");
+            assert!(
+                !content.contains("egui::") && !content.contains("eframe"),
+                "VIOLAÇÃO ARQUITETURAL (Wave 2): {p} referencia egui/eframe!"
+            );
+        } else if p_path.is_dir() {
+            let src_dir = p_path.join("src");
+            let target_dir = if src_dir.exists() { src_dir } else { p_path };
+            for entry in fs::read_dir(&target_dir).expect("ler diretório") {
+                let entry = entry.expect("entrada");
+                if entry.path().extension().is_some_and(|e| e == "rs") {
+                    let content = fs::read_to_string(entry.path()).expect("ler código");
+                    assert!(
+                        !content.contains("egui::") && !content.contains("eframe"),
+                        "VIOLAÇÃO ARQUITETURAL (Wave 2): {} referencia egui/eframe!",
+                        entry.path().display()
+                    );
+                }
+            }
+        }
+    }
+}

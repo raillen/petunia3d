@@ -17,6 +17,7 @@ pub enum AppEvent {
     TextureChanged { asset_id: Uuid },
     ProjectLoaded,
     ProjectSaving,
+    ProjectSaved,
     RequestImportPalette,
     RequestExportPalette,
 }

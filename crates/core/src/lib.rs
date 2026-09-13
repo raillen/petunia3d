@@ -12,12 +12,18 @@ pub mod module;
 pub mod picking;
 pub mod project_service;
 pub mod queries;
+pub mod recent_projects;
 pub mod selection;
 pub mod state;
 pub mod viewport;
 
 pub use cutting_session::CutSession;
+pub use petunia_project::{
+    AssetSummary, AutosaveConfig, AutosaveService, ModelLibraryQuery, ModelLibraryService,
+    ModelLibrarySort, RecoveryInfo, SessionLockInfo,
+};
 pub use queries::{SceneHierarchyDto, SceneObjectDto, SelectionDetailsDto, ToolStatusDto};
+pub use recent_projects::{RecentProjectEntry, RecentProjects};
 
 pub use command::{
     AddPrimitiveCmd, BoxSelectCmd, ClearSelectionCmd, Command, CommandDispatcher, CommandError,

@@ -25,7 +25,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
         })
         .unwrap_or_else(|| "Untitled".to_string());
 
-    let is_saved = !state.render.dirty;
+    let is_saved = !state.is_document_dirty();
     let (save_indicator, save_color) = if is_saved {
         ("Saved", tokens::ACCENT_GREEN)
     } else {
@@ -172,9 +172,9 @@ mod tests {
     #[test]
     fn test_status_bar_displays_dirty_state() {
         let mut state = AppState::new("en");
-        state.render.dirty = false;
-        assert!(!state.render.dirty);
-        state.mark_dirty();
-        assert!(state.render.dirty);
+        state.mark_document_clean();
+        assert!(!state.is_document_dirty());
+        state.mark_document_dirty();
+        assert!(state.is_document_dirty());
     }
 }

@@ -146,6 +146,7 @@ pub struct ProjectState {
     pub project: Project,
     pub undo: UndoStack<Project>,
     pub project_path: Option<String>,
+    pub is_dirty: bool,
     pub refs: Vec<ReferenceImage>,
     pub palette: Vec<[f32; 3]>,
     pub export_selected: Vec<Uuid>,
@@ -183,6 +184,7 @@ impl ProjectState {
             project: p,
             undo: UndoStack::new(),
             project_path: None,
+            is_dirty: false,
             refs: Vec::new(),
             palette: pal,
             export_selected: Vec::new(),
@@ -197,13 +199,31 @@ impl ProjectState {
         self.undo.clear();
         self.refs.clear();
         self.project_path = None;
+        self.is_dirty = false;
         self.export_selected.clear();
         self.export_gltf = true;
+    }
+
+    /// Verifica se há alterações não salvas no documento (via flag direta ou histórico).
+    pub fn is_dirty(&self) -> bool {
+        self.is_dirty || self.undo.is_dirty()
+    }
+
+    /// Marca o documento como alterado/não salvo.
+    pub fn mark_dirty(&mut self) {
+        self.is_dirty = true;
+    }
+
+    /// Marca o documento como sincronizado com o arquivo salvo em disco.
+    pub fn mark_clean(&mut self) {
+        self.is_dirty = false;
+        self.undo.mark_clean();
     }
 
     pub fn checkpoint(&mut self, label: &str) {
         let snap = self.project.clone();
         self.undo.checkpoint(label, &snap);
+        self.is_dirty = true;
     }
 
     /// Retorna os índices resolvidos válidos dos assets selecionados para exportação.
@@ -704,6 +724,21 @@ impl AppState {
         self.render.consume_dirty()
     }
 
+    /// Retorna se o documento/projeto possui modificações não salvas (P3D-001 §Dirty State).
+    pub fn is_document_dirty(&self) -> bool {
+        self.project.is_dirty()
+    }
+
+    /// Marca o documento como alterado/não salvo.
+    pub fn mark_document_dirty(&mut self) {
+        self.project.mark_dirty();
+    }
+
+    /// Marca o documento como limpo e sincronizado com o arquivo salvo em disco.
+    pub fn mark_document_clean(&mut self) {
+        self.project.mark_clean();
+    }
+
     /// Despacha um comando através do CommandDispatcher com auto-checkpoint e propagação de eventos.
     pub fn dispatch(
         &mut self,
@@ -734,6 +769,7 @@ impl AppState {
         if let Some(prev) = self.project.undo.undo(cur) {
             self.project.palette = prev.palette.clone();
             self.project.project = prev;
+            self.project.is_dirty = !self.project.undo.is_clean();
             self.sync_selection();
             self.session.tools.uv_selected.clear();
             self.mark_dirty();
@@ -759,6 +795,7 @@ impl AppState {
         if let Some(next) = self.project.undo.redo(cur) {
             self.project.palette = next.palette.clone();
             self.project.project = next;
+            self.project.is_dirty = !self.project.undo.is_clean();
             self.sync_selection();
             self.session.tools.uv_selected.clear();
             self.mark_dirty();

@@ -233,3 +233,97 @@ fn test_sanitize_filename() {
     );
     assert_eq!(sanitize_filename(""), "asset");
 }
+
+#[test]
+fn test_project_dirty_state_lifecycle() {
+    let mut state = AppState::default();
+    assert!(!state.is_document_dirty());
+
+    // Modificação destrutiva marca dirty
+    state
+        .dispatch(&petunia_core::AddPrimitiveCmd::new(
+            petunia_core::PrimitiveKind::Sphere,
+        ))
+        .unwrap();
+    assert!(state.is_document_dirty());
+
+    let temp_dir = std::env::temp_dir();
+    let file_path = temp_dir.join(format!("petunia_dirty_{}.petunia", uuid::Uuid::new_v4()));
+
+    // Salvar marca limpo (clean)
+    ProjectService::save_project(&mut state, &file_path).unwrap();
+    assert!(
+        !state.is_document_dirty(),
+        "Salvar deve marcar documento como clean"
+    );
+
+    // Nova alteração marca dirty
+    state
+        .dispatch(&petunia_core::AddPrimitiveCmd::new(
+            petunia_core::PrimitiveKind::Cone,
+        ))
+        .unwrap();
+    assert!(state.is_document_dirty());
+
+    // Undo até o ponto do save volta a ser clean!
+    assert!(state.undo());
+    assert!(
+        !state.is_document_dirty(),
+        "Desfazer até o ponto salvo restaura clean state"
+    );
+
+    // Redo volta a ser dirty
+    assert!(state.redo());
+    assert!(
+        state.is_document_dirty(),
+        "Refazer alteração volta a ser dirty"
+    );
+
+    // Recarregar o arquivo salvo restaura estado limpo
+    ProjectService::load_project(&mut state, &file_path).unwrap();
+    assert!(
+        !state.is_document_dirty(),
+        "Carregar projeto do disco deve iniciar limpo"
+    );
+
+    let _ = std::fs::remove_file(&file_path);
+}
+
+#[test]
+fn test_recovery_from_snapshot() {
+    let mut state = AppState::default();
+    let dir = std::env::temp_dir().join(format!("petunia_rec_svc_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let main_path = dir.join("main.petunia");
+    let snap_path = dir.join("autosave-001.petunia");
+
+    // Salva main
+    ProjectService::save_project(&mut state, &main_path).unwrap();
+    assert!(!state.is_document_dirty());
+
+    // Modifica e grava snapshot
+    state
+        .dispatch(&petunia_core::AddPrimitiveCmd::new(
+            petunia_core::PrimitiveKind::Cylinder,
+        ))
+        .unwrap();
+    petunia_project::format::save(&state.project.project, &snap_path).unwrap();
+
+    // Recupera a partir do snapshot num novo AppState
+    let mut rec_state = AppState::default();
+    ProjectService::recover_from_snapshot(&mut rec_state, &snap_path, Some(&main_path)).unwrap();
+
+    // Recuperação carrega conteúdo do snapshot com status dirty e path do main_path
+    assert!(
+        rec_state.is_document_dirty(),
+        "Projeto recuperado deve estar marcado como dirty"
+    );
+    assert_eq!(
+        rec_state.project.project_path.as_deref(),
+        Some(main_path.to_str().unwrap())
+    );
+    assert_eq!(rec_state.project.assets.len(), 2);
+    assert_eq!(rec_state.project.assets[1].name, "Cylinder");
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

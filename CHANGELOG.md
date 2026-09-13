@@ -3,6 +3,39 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.23.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 2 (Project Integrity & Asset Foundation)
+
+### Adicionado
+- **P3D-001 — Sistema de Projetos, Escrita Atômica e Dirty State (`crates/project/`, `crates/core/`)**:
+  - `save_atomic`: Gravação atômica segura via arquivo temporário oculto `.tmp.{uuid}` no mesmo diretório pai, garantia de persistência física em disco com `sync_all()` e substituição atômica por `rename`. Caso ocorra qualquer falha durante a gravação, o arquivo original do usuário permanece 100% intacto.
+  - Formato versionado `.petunia`: Cabeçalho canônico com magic bytes `PETUNIA\0`, `PROJECT_VERSION: u32 = 1` e validação de confiança (M2/M3/M4) com rejeição explícita de versões futuras incompatíveis via `ProjectError::Version`.
+  - Rastreamento determinístico de `dirty state`: `ProjectState::is_dirty` e `AppState::is_document_dirty()` desacoplados do dirty de renderização da GPU. Mutações destrutivas marcam o documento como alterado; `save_project` marca como limpo; `Undo` até o ponto do save restaura o clean state sem intervenção manual.
+  - `RecentProjects` (`crates/core/src/recent_projects.rs`): Gerenciador persistente de projetos recentes com limite configurável, ordenação temporal e higienização automática de caminhos ausentes no disco (`prune_missing`).
+  - `save_as_project`: Salvamento para novo destino com atualização do caminho ativo e marcação limpa.
+- **P3D-002 — Autosave & Recuperação de Sessão (`crates/project/src/autosave.rs`, `crates/ui/src/recovery_dialog.rs`, `crates/app/src/lib.rs`)**:
+  - `AutosaveService`: Serviço puro de aplicação para snapshots periódicos, desacoplado de taxas de quadros ou componentes de UI.
+  - Snapshots rotativos seguros em `.petunia/autosave/autosave-{timestamp}-{seq}.petunia`, com política de retenção dos últimos $N$ snapshots (default 5).
+  - Invariante de integridade: Autosave **nunca** sobrescreve o arquivo principal e **nunca** limpa o dirty state do projeto.
+  - Marcador de sessão ativa (`session.lock`): Registro de PID, timestamp e projeto em execução para detecção confiável de unclean shutdown ou crash.
+  - `RecoveryDialog`: Diálogo modal claro apresentando decisão explícita entre `Recover Project` (carrega snapshot como dirty sem sobrescrever o oficial), `Open Saved Version` e `Discard Recovery`.
+  - Remoção garantida do `session.lock` em clean shutdown em ambos os loops WebGPU e OpenGL do `petunia_app`.
+- **P3D-003 — Biblioteca de Modelos por Projeto (`crates/project/src/model_library.rs`)**:
+  - `ModelLibraryService`: Serviço unificado de consulta, busca textual, filtragem e ordenação consumido tanto pelo `Asset Browser` quanto pela `Project Model Library`.
+  - Suporte a tags flexíveis (`tags: Vec<String>`) com normalização para case-insensitivity e agregação de tags com contagem por projeto.
+  - Suporte a favoritos (`favorite: bool`, `toggle_favorite`).
+  - Modos de ordenação parametrizados: Nome A–Z / Z–A, Contagem de Triângulos, Vértices e Ordem de Adição.
+- **P3D-041 — Undo / Redo com Saved State Tracking (`crates/commands/src/lib.rs`)**:
+  - `UndoStack`: Rastreamento de `clean_version` e `current_version`. Desfazer alterações até o ponto salvo em disco restaura automaticamente o clean state (`is_clean() == true`).
+- **P3D-108 — IDs Estáveis em todo o Ciclo de Vida**:
+  - Preservação estrita de identificadores `Uuid` para assets (`Asset.id`), anotações (`AnnotationItem.id`), medições (`MeasurementItem.id`) e metadados de projeto (`Project.id`).
+  - Métodos utilitários de acesso por identidade estável: `find_by_id`, `find_by_id_mut`, `remove_by_id` e `duplicate_by_id`.
+- **Governança Arquitetural & Testes Automatizados**:
+  - Novo gate arquitetural `project_and_persistence_must_not_depend_on_egui` adicionado a `tests/architecture_fitness.rs` e `crates/xtask/src/main.rs`.
+  - Testes de failure injection para salvamento atômico, rejeição de formatos futuros e corrompidos, ciclo de vida do autosave e recuperação.
+  - Total de testes no workspace elevado de 282 para **292 testes** (100% passando).
+
+---
+
 ## [0.22.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 1 (Architecture Spine)
 
 ### Adicionado

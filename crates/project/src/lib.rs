@@ -5,11 +5,15 @@ use petunia_mesh::Mesh;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub mod autosave;
 pub mod export;
 pub mod format;
+pub mod model_library;
 pub mod palette;
 
+pub use autosave::{AutosaveConfig, AutosaveService, RecoveryInfo, SessionLockInfo};
 pub use export::{export_gltf, export_obj, ExportError};
+pub use model_library::{AssetSummary, ModelLibraryQuery, ModelLibraryService, ModelLibrarySort};
 pub use palette::{export_gpl, export_hex, import_gpl, import_hex, preset_gameboy, preset_pico8};
 
 /// Canvas de textura simples (albedo) por asset — workspace PAINT.
@@ -81,6 +85,10 @@ pub struct Asset {
     pub collection: Option<String>,
     pub base_color: [f32; 3],
     pub texture: Option<Canvas>,
+    #[serde(default)]
+    pub favorite: bool,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 impl Asset {
@@ -94,6 +102,8 @@ impl Asset {
             collection: None,
             base_color: [0.75, 0.75, 0.78],
             texture: None,
+            favorite: false,
+            tags: Vec::new(),
         }
     }
 
@@ -103,6 +113,33 @@ impl Asset {
         c.id = Uuid::new_v4();
         c.name = format!("{} copy", self.name);
         c
+    }
+
+    /// Adiciona uma tag normalizada (minúscula, sem espaços extras).
+    pub fn add_tag(&mut self, tag: &str) -> bool {
+        let trimmed = tag.trim().to_lowercase();
+        if trimmed.is_empty() || self.tags.iter().any(|t| t.to_lowercase() == trimmed) {
+            return false;
+        }
+        self.tags.push(trimmed);
+        true
+    }
+
+    /// Remove uma tag.
+    pub fn remove_tag(&mut self, tag: &str) {
+        let trimmed = tag.trim().to_lowercase();
+        self.tags.retain(|t| t.to_lowercase() != trimmed);
+    }
+
+    /// Verifica se possui determinada tag.
+    pub fn has_tag(&self, tag: &str) -> bool {
+        let trimmed = tag.trim().to_lowercase();
+        self.tags.iter().any(|t| t.to_lowercase() == trimmed)
+    }
+
+    /// Alterna estado de favorito.
+    pub fn toggle_favorite(&mut self) {
+        self.favorite = !self.favorite;
     }
 }
 
@@ -256,9 +293,17 @@ impl MeasurementItem {
     }
 }
 
-/// Projeto: lista de assets + ativo + paleta persistente + coleções hierárquicas + anotações e medições.
+fn default_project_name() -> String {
+    "Untitled".to_string()
+}
+
+/// Projeto: metadados, lista de assets com UUID persistente, paleta, coleções, anotações e medições.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Project {
+    #[serde(default = "Uuid::new_v4")]
+    pub id: Uuid,
+    #[serde(default = "default_project_name")]
+    pub name: String,
     pub assets: Vec<Asset>,
     pub active: usize,
     #[serde(default = "default_palette")]
@@ -282,6 +327,8 @@ pub struct Project {
 impl Default for Project {
     fn default() -> Self {
         Self {
+            id: Uuid::new_v4(),
+            name: default_project_name(),
             assets: Vec::new(),
             active: 0,
             palette: default_palette(),
@@ -299,6 +346,8 @@ impl Default for Project {
 impl Project {
     pub fn new() -> Self {
         Self {
+            id: Uuid::new_v4(),
+            name: default_project_name(),
             assets: vec![Asset::new("Cube", Mesh::cube(2.0))],
             active: 0,
             palette: default_palette(),
@@ -405,6 +454,38 @@ impl Project {
 
     pub fn find(&self, id: Uuid) -> Option<usize> {
         self.assets.iter().position(|a| a.id == id)
+    }
+
+    /// Localiza asset por ID estável retornando índice e referência.
+    pub fn find_by_id(&self, id: Uuid) -> Option<(usize, &Asset)> {
+        self.assets.iter().enumerate().find(|(_, a)| a.id == id)
+    }
+
+    /// Localiza asset por ID estável retornando índice e referência mutável.
+    pub fn find_by_id_mut(&mut self, id: Uuid) -> Option<(usize, &mut Asset)> {
+        self.assets.iter_mut().enumerate().find(|(_, a)| a.id == id)
+    }
+
+    /// Remove asset por ID estável mantendo invariants de seleção.
+    pub fn remove_by_id(&mut self, id: Uuid) -> bool {
+        if let Some(pos) = self.find(id) {
+            self.remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Duplica asset por ID gerando novo UUID persistente e ativando-o.
+    pub fn duplicate_by_id(&mut self, id: Uuid) -> Option<Uuid> {
+        let dup = {
+            let (_, asset) = self.find_by_id(id)?;
+            asset.duplicate()
+        };
+        let new_id = dup.id;
+        self.assets.push(dup);
+        self.active = self.assets.len() - 1;
+        Some(new_id)
     }
 
     /// Normaliza projeto vindo de arquivo (M2/M3): malhas válidas,

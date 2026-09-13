@@ -3,6 +3,7 @@
 //! `version` e convertem.
 
 use serde::{Deserialize, Serialize};
+use std::io::Write;
 
 use super::Project;
 
@@ -26,14 +27,56 @@ pub enum ProjectError {
     Version(u32, u32),
 }
 
+/// Salva o projeto no disco utilizando escrita atômica segura (P3D-001).
 pub fn save(project: &Project, path: &std::path::Path) -> Result<(), ProjectError> {
+    save_atomic(project, path)
+}
+
+/// Salva o projeto de forma atômica e resiliente a falhas:
+/// 1. Serializa para buffer binário postcard;
+/// 2. Cria arquivo temporário oculto no mesmo diretório (.petunia.tmp.{uuid});
+/// 3. Grava e realiza sync_all() garantindo persistência física;
+/// 4. Renomeia atomicamente sobre o destino final.
+///
+/// Em caso de qualquer erro, o arquivo de destino original permanece 100% intacto.
+pub fn save_atomic(project: &Project, path: &std::path::Path) -> Result<(), ProjectError> {
     let file = PetuniaFile {
         magic: *MAGIC,
         version: PROJECT_VERSION,
         project: project.clone(),
     };
     let bytes = postcard::to_allocvec(&file).map_err(|e| ProjectError::Format(e.to_string()))?;
-    std::fs::write(path, bytes).map_err(|e| ProjectError::Io(e.to_string()))
+
+    let parent = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    if !parent.as_os_str().is_empty() {
+        std::fs::create_dir_all(parent).map_err(|e| ProjectError::Io(e.to_string()))?;
+    }
+
+    let file_stem = path
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or("project");
+    let temp_file_name = format!(".{file_stem}.tmp.{}", uuid::Uuid::new_v4());
+    let temp_path = parent.join(temp_file_name);
+
+    let write_res = (|| -> Result<(), std::io::Error> {
+        let mut temp_file = std::fs::File::create(&temp_path)?;
+        temp_file.write_all(&bytes)?;
+        temp_file.sync_all()?;
+        Ok(())
+    })();
+
+    if let Err(e) = write_res {
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(ProjectError::Io(e.to_string()));
+    }
+
+    if let Err(e) = std::fs::rename(&temp_path, path) {
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(ProjectError::Io(e.to_string()));
+    }
+
+    Ok(())
 }
 
 pub fn load(path: &std::path::Path) -> Result<Project, ProjectError> {
@@ -54,6 +97,7 @@ pub fn load(path: &std::path::Path) -> Result<Project, ProjectError> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::Asset;
     use super::*;
     use petunia_mesh::Mesh;
 
@@ -95,6 +139,8 @@ mod tests {
             selected_edges: Default::default(),
         };
         let bad = super::super::Project {
+            id: uuid::Uuid::new_v4(),
+            name: "bad".into(),
             assets: vec![Asset {
                 id: uuid::Uuid::new_v4(),
                 name: "bad".into(),
@@ -108,6 +154,8 @@ mod tests {
                     h: 999999,
                     pixels: vec![],
                 }),
+                favorite: false,
+                tags: vec![],
             }],
             active: 42,
             palette: vec![],
@@ -127,5 +175,77 @@ mod tests {
             assert_eq!(cv.pixels.len(), (cv.w * cv.h * 4) as usize);
         }
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_future_version_rejected() {
+        let p = Project::new();
+        let file = PetuniaFile {
+            magic: *MAGIC,
+            version: 999, // Versão futura
+            project: p,
+        };
+        let bytes = postcard::to_allocvec(&file).unwrap();
+        let dir = std::env::temp_dir();
+        let path = dir.join("petunia_test_future_ver.petunia");
+        std::fs::write(&path, bytes).unwrap();
+
+        let res = load(&path);
+        assert!(matches!(res, Err(ProjectError::Version(999, 1))));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_project_metadata_and_asset_tags_roundtrip() {
+        let mut p = Project::new();
+        p.name = "My Adventure".to_string();
+        let mut cube_asset = Asset::new("Hero", Mesh::cube(1.5));
+        cube_asset.favorite = true;
+        assert!(cube_asset.add_tag("character"));
+        assert!(cube_asset.add_tag("protagonist"));
+        let hero_id = cube_asset.id;
+        p.assets.push(cube_asset);
+
+        let dir = std::env::temp_dir();
+        let path = dir.join("petunia_test_tags_roundtrip.petunia");
+        save(&p, &path).unwrap();
+
+        let loaded = load(&path).unwrap();
+        assert_eq!(loaded.id, p.id);
+        assert_eq!(loaded.name, "My Adventure");
+        let hero = loaded.assets.iter().find(|a| a.id == hero_id).unwrap();
+        assert!(hero.favorite);
+        assert!(hero.has_tag("character"));
+        assert!(hero.has_tag("protagonist"));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_atomic_save_preserves_original_on_failure() {
+        let mut original = Project::new();
+        original.name = "Original Intact".to_string();
+        let dir =
+            std::env::temp_dir().join(format!("petunia_atomic_test_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("project.petunia");
+
+        // Salva versão original válida
+        save(&original, &path).unwrap();
+        let valid_bytes = std::fs::read(&path).unwrap();
+
+        // Tentativa de salvar num caminho inválido onde o diretório pai é um arquivo comum
+        let invalid_path = path.join("sub_project.petunia");
+        let mut corrupt_attempt = Project::new();
+        corrupt_attempt.name = "Corrupt".to_string();
+        let err = save(&corrupt_attempt, &invalid_path);
+        assert!(err.is_err(), "Deve falhar ao tentar salvar sob um arquivo");
+
+        // O arquivo original deve permanecer 100% inalterado
+        let current_bytes = std::fs::read(&path).unwrap();
+        assert_eq!(current_bytes, valid_bytes);
+        let loaded = load(&path).unwrap();
+        assert_eq!(loaded.name, "Original Intact");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

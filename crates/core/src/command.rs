@@ -70,6 +70,9 @@ impl CommandDispatcher {
         }
         let res = cmd.execute(state);
         if res.is_ok() {
+            if cmd.is_destructive() {
+                state.mark_document_dirty();
+            }
             state.sync_selection();
             state.emit_mesh_changed();
             state.mark_dirty();

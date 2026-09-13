@@ -29,6 +29,7 @@ pub mod modules_ui;
 pub mod nav_gizmo;
 pub mod outliner;
 pub mod properties_panel;
+pub mod recovery_dialog;
 pub mod settings_modal;
 pub mod status_bar;
 pub mod tiles_workspace;
@@ -41,6 +42,7 @@ pub mod viewport_bar;
 mod viewport_interaction;
 pub mod widgets;
 
+pub use recovery_dialog::{draw as draw_recovery_dialog, RecoveryAction};
 pub use tokens::apply_theme_to_egui;
 
 pub fn rect_to_logical(r: egui::Rect) -> petunia_core::viewport::LogicalRect {

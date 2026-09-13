@@ -4,12 +4,14 @@
 //! Snapshots clonados são suficientes para low-poly (malhas pequenas) e
 //! mantêm a implementação simples e correta. Cap de 100 níveis.
 
-/// Pilha genérica de undo/redo sobre estado clonável.
+/// Pilha genérica de undo/redo sobre estado clonável com rastreamento determinístico de estado salvo/dirty.
 #[derive(Debug, Default)]
 pub struct UndoStack<T: Clone> {
     undo: Vec<(String, T)>,
     redo: Vec<(String, T)>,
     cap: usize,
+    clean_version: Option<usize>,
+    current_version: usize,
 }
 
 impl<T: Clone> UndoStack<T> {
@@ -18,12 +20,15 @@ impl<T: Clone> UndoStack<T> {
             undo: Vec::new(),
             redo: Vec::new(),
             cap: 100,
+            clean_version: Some(0),
+            current_version: 0,
         }
     }
 
     /// Salva o estado ATUAL antes de uma mutação (chamar antes de mudar).
     pub fn checkpoint(&mut self, label: impl Into<String>, current: &T) {
         self.undo.push((label.into(), current.clone()));
+        self.current_version = self.current_version.saturating_add(1);
         if self.undo.len() > self.cap {
             self.undo.remove(0);
         }
@@ -46,9 +51,30 @@ impl<T: Clone> UndoStack<T> {
         (self.undo.len(), self.redo.len())
     }
 
+    /// Marca o estado atual do histórico como sincronizado/salvo em disco.
+    pub fn mark_clean(&mut self) {
+        self.clean_version = Some(self.current_version);
+    }
+
+    /// Força o estado a ser marcado como não salvo (dirty).
+    pub fn mark_dirty(&mut self) {
+        self.clean_version = None;
+    }
+
+    /// Verifica se o estado atual coincide exatamente com o ponto salvo.
+    pub fn is_clean(&self) -> bool {
+        self.clean_version == Some(self.current_version)
+    }
+
+    /// Verifica se há alterações não salvas no histórico.
+    pub fn is_dirty(&self) -> bool {
+        !self.is_clean()
+    }
+
     /// Desfaz: guarda estado atual no redo, retorna estado anterior.
     pub fn undo(&mut self, current: T) -> Option<T> {
         let (label, prev) = self.undo.pop()?;
+        self.current_version = self.current_version.saturating_sub(1);
         self.redo.push((label, current));
         Some(prev)
     }
@@ -56,6 +82,7 @@ impl<T: Clone> UndoStack<T> {
     /// Refaz: guarda estado atual no undo, retorna próximo estado.
     pub fn redo(&mut self, current: T) -> Option<T> {
         let (label, next) = self.redo.pop()?;
+        self.current_version = self.current_version.saturating_add(1);
         self.undo.push((label, current));
         Some(next)
     }
@@ -63,6 +90,8 @@ impl<T: Clone> UndoStack<T> {
     pub fn clear(&mut self) {
         self.undo.clear();
         self.redo.clear();
+        self.current_version = 0;
+        self.clean_version = Some(0);
     }
 }
 
@@ -115,6 +144,49 @@ mod tests {
             *ctx += self.0;
             Ok(())
         }
+    }
+
+    #[test]
+    fn test_undo_stack_dirty_state_tracking() {
+        let mut st: UndoStack<i32> = UndoStack::new();
+        // Initial state is clean (at saved/start version 0)
+        assert!(st.is_clean());
+        assert!(!st.is_dirty());
+
+        // Mutation 1 -> dirty
+        let mut cur = 0;
+        st.checkpoint("step 1", &cur);
+        cur = 1;
+        assert!(st.is_dirty());
+
+        // Mark saved (clean)
+        st.mark_clean();
+        assert!(st.is_clean());
+        assert!(!st.is_dirty());
+
+        // Mutation 2 -> dirty
+        st.checkpoint("step 2", &cur);
+        cur = 2;
+        assert!(st.is_dirty());
+
+        // Undo -> back to step 1 which was marked clean!
+        let prev = st.undo(cur).unwrap();
+        assert_eq!(prev, 1);
+        assert!(
+            st.is_clean(),
+            "Undoing back to the saved state must be clean"
+        );
+
+        // Redo -> forward to step 2 which is dirty!
+        let next = st.redo(prev).unwrap();
+        assert_eq!(next, 2);
+        assert!(st.is_dirty(), "Redoing to an unsaved state must be dirty");
+
+        // Force dirty
+        st.mark_clean();
+        assert!(st.is_clean());
+        st.mark_dirty();
+        assert!(st.is_dirty());
     }
 
     #[test]

@@ -35,17 +35,18 @@ pub enum ProjectServiceError {
 pub struct ProjectService;
 
 impl ProjectService {
-    /// Reinicia a sessão para um projeto vazio padrão.
+    /// Reinicia a sessão para um projeto vazio padrão (P3D-001 §New Project).
     pub fn new_project(state: &mut AppState) {
         state.project.reset();
         state.session.tools.uv_selected.clear();
         state.sync_selection();
-        state.set_status("new".to_string());
+        state.mark_document_clean();
+        state.set_status("new project".to_string());
         state.events.emit(AppEvent::ProjectLoaded);
         state.mark_dirty();
     }
 
-    /// Carrega um arquivo de projeto (.petunia) e sincroniza o estado da aplicação.
+    /// Carrega um arquivo de projeto (.petunia) e sincroniza o estado da aplicação (P3D-001 §Open Project).
     pub fn load_project(state: &mut AppState, path: &Path) -> Result<(), ProjectServiceError> {
         let p = format::load(path).map_err(|e| ProjectServiceError::Format(e.to_string()))?;
         state.project.palette = p.palette.clone();
@@ -53,6 +54,7 @@ impl ProjectService {
         state.project.undo.clear();
         state.session.tools.uv_selected.clear();
         state.project.project_path = Some(path.to_string_lossy().to_string());
+        state.mark_document_clean();
         state.events.emit(AppEvent::ProjectLoaded);
         state.sync_selection();
         state.set_status(format!("open {}", path.display()));
@@ -60,13 +62,46 @@ impl ProjectService {
         Ok(())
     }
 
-    /// Salva o estado atual do projeto no arquivo especificado (.petunia).
+    /// Salva o estado atual do projeto no arquivo especificado (.petunia) usando escrita atômica segura (P3D-001 §Save).
     pub fn save_project(state: &mut AppState, path: &Path) -> Result<(), ProjectServiceError> {
+        state.events.emit(AppEvent::ProjectSaving);
         state.project.project.palette = state.project.palette.clone();
         format::save(&state.project.project, path)
             .map_err(|e| ProjectServiceError::Format(e.to_string()))?;
         state.project.project_path = Some(path.to_string_lossy().to_string());
+        state.mark_document_clean();
+        state.events.emit(AppEvent::ProjectSaved);
         state.set_status(format!("saved {}", path.display()));
+        state.mark_dirty();
+        Ok(())
+    }
+
+    /// Salva o projeto em um novo destino de arquivo e atualiza o caminho ativo (P3D-001 §Save As).
+    pub fn save_as_project(
+        state: &mut AppState,
+        new_path: &Path,
+    ) -> Result<(), ProjectServiceError> {
+        Self::save_project(state, new_path)
+    }
+
+    /// Recupera projeto a partir de snapshot de autosave preservando dirty state e sem sobrescrever arquivo principal (P3D-002 §Recovery).
+    pub fn recover_from_snapshot(
+        state: &mut AppState,
+        snapshot_path: &Path,
+        original_path: Option<&Path>,
+    ) -> Result<(), ProjectServiceError> {
+        let p =
+            format::load(snapshot_path).map_err(|e| ProjectServiceError::Format(e.to_string()))?;
+        state.project.palette = p.palette.clone();
+        state.project.project = p;
+        state.project.undo.clear();
+        state.session.tools.uv_selected.clear();
+        state.project.project_path = original_path.map(|p| p.to_string_lossy().to_string());
+        // Ao recuperar, o documento entra como modificado/dirty (P3D-002)
+        state.mark_document_dirty();
+        state.events.emit(AppEvent::ProjectLoaded);
+        state.sync_selection();
+        state.set_status("recovered from autosave snapshot".to_string());
         state.mark_dirty();
         Ok(())
     }
