@@ -3,6 +3,42 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.26.0] - 2026-09-14 — Master Implementation Gauntlet: Wave 5 (Selection, Transform & Modeling Core)
+
+### Adicionado
+- **P3D-015 / P3D-016 — Domínio Unificado de Seleção e Mapeamento de Modos (`crates/core/src/selection.rs`, `crates/core/src/state.rs`, `crates/ui/src/viewport_bar.rs`)**:
+  - Introdução do enum `SelectionDomain { Object, Vertex, Edge, Face }` unificando a interação e eliminando a segregação estrita entre modos.
+  - Alternância rápida via tecla `Tab` entre Object e o último domínio de componente (`Vertex`/`Edge`/`Face`), com atalhos numéricos diretos `0` (Object), `1` (Vertex), `2` (Edge), `3` (Face).
+  - Controle segmentado de 4 pílulas com ícones vetoriais dedicados (`PetuniaIcon::ModeObject`, `SelectVertex`, `SelectEdge`, `SelectFace`) na barra superior do Viewport.
+  - Rastreamento robusto de seleção de arestas `edges: Vec<(u32, u32)>` na estrutura canônica `Selection`.
+  - Novos comandos semânticos registrados no dispatcher: `select.domain_object`, `select.domain_vertex`, `select.domain_edge`, `select.domain_face`, `select.cycle_domain`.
+- **P3D-026 / P3D-027 — Orientações de Transformação e Pontos de Pivô Fortemente Tipados (`crates/core/src/state.rs`, `crates/ui/src/viewport_bar.rs`)**:
+  - `TransformOrientation { Global, Local }` com suporte de primeira classe no domínio e seleção via dropdown no Viewport Bar.
+  - `PivotPoint { MedianPoint, BoundingBoxCenter, Cursor3D, IndividualOrigins }` com cálculo matemático puro via `AppState::calculate_pivot(&self, pivot: PivotPoint) -> Vec3`.
+  - Integração no cálculo de pivô em operações modais de transformação (`ModalKind::Move`, `Rotate`, `Scale`).
+- **P3D-037 — Separação de Seleção (`crates/core/src/command.rs`)**:
+  - Comando semântico `model.separate_selection` (`SeparateSelectionCmd`) extraindo elementos de malha selecionados para um novo asset independente na cena com preservação do histórico de Undo.
+- **P3D-039 — Motor de Edição Proporcional (`crates/core/src/proportional.rs`, `crates/ui/src/viewport_bar.rs`, `crates/core/src/modal.rs`)**:
+  - `ProportionalFalloff { Smooth, Linear, Sphere, Sharp, Constant }` com funções matemáticas puras de atenuação (curva Hermite cúbica, decaimento linear, perfil esférico, etc.).
+  - `ProportionalSettings { enabled, radius, falloff }` mantido na sessão do editor.
+  - Botão segmentado com ícone de círculos concêntricos e popover dropdown com seleção de curva de decaimento e slider de raio de influência no Viewport Bar.
+  - Deformação suave em tempo real de vértices não selecionados durante operações modais (`Move`).
+- **P3D-040 — Motor de Snapping Magnético Geométrico e de Grade (`crates/core/src/snap.rs`, `crates/ui/src/viewport_bar.rs`, `crates/core/src/modal.rs`)**:
+  - `SnapTarget { Grid, Increment, Vertex, Edge, Face }` e `SnapSettings { enabled, target, element, grid_spacing, snap_distance }`.
+  - Algoritmos matemáticos headless puros para atração a coordenadas de grade, vértices, arestas e faces por projeção vetorial e proximidade.
+  - Botão mestre com ícone de ímã, atalho canônico `Shift+Tab` e popover de configuração de alvo, espaçamento de grade e distância de snap no Viewport Bar.
+  - Aplicação automática de snapping durante transações modais.
+- **P3D-131 — Sistema de Feedback de Ferramentas Modais (`crates/core/src/modal_feedback.rs`, `crates/ui/src/modal_viewport.rs`, `crates/ui/src/status_bar.rs`)**:
+  - Descritor desacoplado `ToolFeedback` informando origem, ponto atual, linha-guia 3D, texto de delta numérico, restrições e indicador magnético `[SNAP]`.
+  - Overlay 3D desenhando a linha-guia no viewport com destaque em âmbar quando atraído magneticamente.
+  - Exibição dinâmica da magnitude e atalhos contextuais da ferramenta ativa na Status Bar inferior.
+- **Qualidade & Testes**:
+  - Testes unitários para cálculo de pivôs, falloff proporcional, snapping a grid/elementos e feedback modal.
+  - Bateria completa de testes de UI (88/88) e integração Kittest (7/7) 100% aprovados.
+  - Zero warnings no Clippy (`cargo clippy --workspace -- -D warnings`), conformidade total com `xtask arch-check` e `xtask docs-check`.
+
+---
+
 ## [0.25.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 4 (Viewport, Navigation & Reference Workflow)
 
 ### Adicionado

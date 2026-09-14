@@ -255,6 +255,26 @@ pub fn draw(
     }
     draw_axis_guide_lines(painter, state, rect, pivot, constraint);
 
+    let tool_feedback = state.current_tool_feedback();
+    if let Some(ref fb) = tool_feedback {
+        if let Some((origin, current)) = fb.guide_line {
+            if let (Some(p0), Some(p1)) = (
+                screen_point(&state.camera, rect, origin),
+                screen_point(&state.camera, rect, current),
+            ) {
+                let col = if fb.is_snapped {
+                    crate::tokens::ACCENT_AMBER
+                } else {
+                    Color32::from_rgba_premultiplied(100, 200, 255, 180)
+                };
+                painter.line_segment([p0, p1], egui::Stroke::new(1.5_f32, col));
+                if fb.is_snapped {
+                    painter.circle_filled(p1, 4.0, crate::tokens::ACCENT_AMBER);
+                }
+            }
+        }
+    }
+
     painter.line_segment(
         [anchor, pos],
         egui::Stroke::new(1.0_f32, egui::Color32::LIGHT_BLUE),
@@ -282,6 +302,7 @@ pub fn draw(
             pointer_numeric: &pointer.numeric,
             constraint,
             valid_preview,
+            feedback: tool_feedback.as_ref(),
         },
     );
     state.pointer_session = Some(pointer);
@@ -445,6 +466,7 @@ struct ModalHudInfo<'a> {
     pointer_numeric: &'a str,
     constraint: ModalConstraint,
     valid_preview: bool,
+    feedback: Option<&'a petunia_core::ToolFeedback>,
 }
 
 fn draw_modal_hud(painter: &egui::Painter, rect: Rect, info: ModalHudInfo<'_>) {
@@ -473,7 +495,16 @@ fn draw_modal_hud(painter: &egui::Painter, rect: Rect, info: ModalHudInfo<'_>) {
         _ => ("FREE", Color32::from_rgb(80, 85, 95)),
     };
 
-    let line1 = format!("{label}: {value_label}{}   [{badge_text}]", info.unit);
+    let snap_badge = if info.feedback.map(|f| f.is_snapped).unwrap_or(false) {
+        " [SNAP]"
+    } else {
+        ""
+    };
+
+    let line1 = format!(
+        "{label}: {value_label}{}   [{badge_text}]{snap_badge}",
+        info.unit
+    );
     let line2 = "X/Y/Z: travar eixo · Shift: plano · Ctrl: snap";
     let line3 = if info.valid_preview {
         "Enter/LMB: confirmar · Esc/RMB: cancelar"
@@ -558,6 +589,18 @@ mod tests {
                     ModalKind::Bevel,
                     ModalKind::PushPull,
                 ] {
+                    let mock_fb = petunia_core::ToolFeedback {
+                        origin: Vec3::ZERO,
+                        current: Vec3::ONE,
+                        guide_line: Some((Vec3::ZERO, Vec3::ONE)),
+                        delta_text: "Δ 1.50 m".into(),
+                        delta_value: 1.5,
+                        axis_constraint: None,
+                        plane_constraint: None,
+                        is_snapped: true,
+                        status_hint: "LMB Confirm",
+                    };
+
                     for constraint in [
                         ModalConstraint::Free,
                         ModalConstraint::Axis(0),
@@ -578,6 +621,7 @@ mod tests {
                                 pointer_numeric: "",
                                 constraint,
                                 valid_preview: true,
+                                feedback: None,
                             },
                         );
                         draw_modal_hud(
@@ -591,6 +635,7 @@ mod tests {
                                 pointer_numeric: "45.0",
                                 constraint,
                                 valid_preview: false,
+                                feedback: Some(&mock_fb),
                             },
                         );
                     }

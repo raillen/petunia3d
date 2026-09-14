@@ -32,7 +32,9 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
         ("Unsaved", tokens::ACCENT_AMBER)
     };
 
-    let hint = if state.is_interacting() {
+    let hint = if let Some(fb) = state.current_tool_feedback() {
+        format!("{} · {}", fb.delta_text, fb.status_hint)
+    } else if state.is_interacting() {
         "Enter / LMB: Confirm · Esc / RMB: Cancel".to_string()
     } else {
         tools

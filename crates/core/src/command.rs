@@ -6,6 +6,7 @@ use petunia_project::Asset;
 
 use crate::camera::ViewPreset;
 use crate::docs::DocsTopic;
+use crate::selection::SelectionDomain;
 use crate::state::{AppState, EditMode};
 
 /// Taxonomia de erros de comandos da aplicação.
@@ -408,6 +409,51 @@ impl CommandDispatcher {
             ),
             SelectLinkedCmd,
         );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.domain_object",
+                "Select Domain: Object",
+                "Switch interaction to Object domain",
+                CommandCategory::Select,
+            ),
+            SetSelectionDomainCmd(SelectionDomain::Object),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.domain_vertex",
+                "Select Domain: Vertex",
+                "Switch interaction to Vertex domain",
+                CommandCategory::Select,
+            ),
+            SetSelectionDomainCmd(SelectionDomain::Vertex),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.domain_edge",
+                "Select Domain: Edge",
+                "Switch interaction to Edge domain",
+                CommandCategory::Select,
+            ),
+            SetSelectionDomainCmd(SelectionDomain::Edge),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.domain_face",
+                "Select Domain: Face",
+                "Switch interaction to Face domain",
+                CommandCategory::Select,
+            ),
+            SetSelectionDomainCmd(SelectionDomain::Face),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "select.cycle_domain",
+                "Cycle Selection Domain",
+                "Toggle between Object and last component domain",
+                CommandCategory::Select,
+            ),
+            CycleSelectionDomainCmd,
+        );
 
         // 4. Modelagem (Model)
         d.register_with_meta(
@@ -549,6 +595,16 @@ impl CommandDispatcher {
             )
             .with_docs(DocsTopic::Modeling),
             FlipDiagonalCmd,
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.separate_selection",
+                "Separate Selection",
+                "Separate selected geometry into a new object",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            SeparateSelectionCmd,
         );
 
         // 5. Visualização (View)
@@ -1099,6 +1155,120 @@ impl Command for InvertSelectionCmd {
             return Err(CommandError::NoActiveAsset);
         };
         mesh.invert_selection();
+        state.sync_selection();
+        Ok(())
+    }
+}
+
+/// Comando para definir o domínio de seleção ativo (Object, Vertex, Edge, Face) (P3D-015).
+#[derive(Debug, Clone, Copy)]
+pub struct SetSelectionDomainCmd(pub SelectionDomain);
+
+impl Command for SetSelectionDomainCmd {
+    fn label(&self) -> &'static str {
+        match self.0 {
+            SelectionDomain::Object => "select domain: object",
+            SelectionDomain::Vertex => "select domain: vertex",
+            SelectionDomain::Edge => "select domain: edge",
+            SelectionDomain::Face => "select domain: face",
+        }
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.set_selection_domain(self.0);
+        Ok(())
+    }
+}
+
+/// Comando para alternar entre Object Mode e o último domínio de componente (Tab) (P3D-015).
+#[derive(Debug, Clone, Default)]
+pub struct CycleSelectionDomainCmd;
+
+impl Command for CycleSelectionDomainCmd {
+    fn label(&self) -> &'static str {
+        "cycle selection domain"
+    }
+
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        state.cycle_selection_domain();
+        Ok(())
+    }
+}
+
+/// Comando para separar os elementos selecionados em um novo objeto/asset (P3D-037).
+#[derive(Debug, Clone, Default)]
+pub struct SeparateSelectionCmd;
+
+impl Command for SeparateSelectionCmd {
+    fn label(&self) -> &'static str {
+        "separate selection"
+    }
+
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        let Some(mesh) = state.project.active_mesh() else {
+            return Err("No active mesh");
+        };
+        if !mesh.has_selection() {
+            return Err("Select geometry to separate first");
+        }
+        Ok(())
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(active_asset) = state.project.active() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        let orig_name = active_asset.name.clone();
+        let orig_mesh = active_asset.mesh.clone();
+
+        // 1. Constrói a malha separada a partir dos elementos selecionados
+        let mut sep_mesh = petunia_mesh::Mesh::default();
+        let mut vert_map = std::collections::HashMap::new();
+
+        for (i, v) in orig_mesh.verts.iter().enumerate() {
+            if v.selected {
+                let new_idx = sep_mesh.verts.len() as u32;
+                let mut nv = v.clone();
+                nv.selected = false;
+                sep_mesh.verts.push(nv);
+                vert_map.insert(i as u32, new_idx);
+            }
+        }
+
+        for f in &orig_mesh.faces {
+            if f.selected || f.verts.iter().all(|vi| vert_map.contains_key(vi)) {
+                let new_verts: Vec<u32> = f.verts.iter().map(|vi| vert_map[vi]).collect();
+                let mut nf = petunia_mesh::Face::with_uv(new_verts, f.uv.clone());
+                nf.selected = false;
+                sep_mesh.push_face(nf);
+            }
+        }
+
+        if sep_mesh.verts.is_empty() || sep_mesh.faces.is_empty() {
+            return Err(CommandError::Execution("No geometry separated".into()));
+        }
+
+        // 2. Remove os elementos selecionados da malha original
+        if let Some(active_mesh) = state.project.active_mesh_mut() {
+            active_mesh.delete_selected();
+        }
+
+        // 3. Adiciona a malha separada como novo objeto/asset na cena
+        let new_name = format!("{}_sep", orig_name);
+        state.project.add(&new_name, sep_mesh);
+        state.set_status(format!("Separated selection into {}", new_name));
         state.sync_selection();
         Ok(())
     }

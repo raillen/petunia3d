@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use super::camera::Camera;
 use super::events::{AppEvent, EventBus};
-use super::selection::{SelectMode, Selection, Workspace};
+use super::selection::{SelectMode, Selection, SelectionDomain, Workspace};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RefAxis {
@@ -383,12 +383,81 @@ impl ToolState {
     }
 }
 
+/// Orientação de coordenadas para transformações (P3D-026).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TransformOrientation {
+    #[default]
+    Global,
+    Local,
+}
+
+impl TransformOrientation {
+    pub fn all() -> [Self; 2] {
+        [Self::Global, Self::Local]
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Global => "Global",
+            Self::Local => "Local",
+        }
+    }
+
+    pub fn key(&self) -> &'static str {
+        match self {
+            Self::Global => "orientation.global",
+            Self::Local => "orientation.local",
+        }
+    }
+}
+
+/// Centro de pivô para transformações (P3D-027).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum PivotPoint {
+    #[default]
+    MedianPoint,
+    BoundingBoxCenter,
+    Cursor3D,
+    IndividualOrigins,
+}
+
+impl PivotPoint {
+    pub fn all() -> [Self; 4] {
+        [
+            Self::MedianPoint,
+            Self::BoundingBoxCenter,
+            Self::Cursor3D,
+            Self::IndividualOrigins,
+        ]
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::MedianPoint => "Median Point",
+            Self::BoundingBoxCenter => "Bounding Box",
+            Self::Cursor3D => "3D Cursor",
+            Self::IndividualOrigins => "Individual Origins",
+        }
+    }
+
+    pub fn key(&self) -> &'static str {
+        match self {
+            Self::MedianPoint => "pivot.median",
+            Self::BoundingBoxCenter => "pivot.bbox",
+            Self::Cursor3D => "pivot.cursor",
+            Self::IndividualOrigins => "pivot.individual",
+        }
+    }
+}
+
 /// 3. SESSÃO DO EDITOR: câmera, seleção, modos e viewport settings.
 pub struct EditorSession {
     pub selection: Selection,
     pub mode: EditMode,
     pub workspace: Workspace,
     pub select_mode: SelectMode,
+    pub selection_domain: SelectionDomain,
+    pub last_component_domain: SelectionDomain,
     pub shading: Shading,
     pub textured: bool,
     pub camera: Camera,
@@ -398,9 +467,11 @@ pub struct EditorSession {
     pub isolate_active: bool,
     pub isolate_prev_visibilities: Option<Vec<bool>>,
     pub snap_enabled: bool,
+    pub snap_settings: crate::snap::SnapSettings,
     pub proportional_editing: bool,
-    pub transform_orientation: String,
-    pub pivot_point: String,
+    pub proportional_settings: crate::proportional::ProportionalSettings,
+    pub transform_orientation: TransformOrientation,
+    pub pivot_point: PivotPoint,
     pub show_overlays: bool,
     pub show_xray: bool,
     pub show_triangulation: bool,
@@ -440,6 +511,8 @@ impl EditorSession {
             mode: EditMode::Object,
             workspace: Workspace::Model,
             select_mode: SelectMode::Vertex,
+            selection_domain: SelectionDomain::Object,
+            last_component_domain: SelectionDomain::Vertex,
             shading: Shading::Solid,
             textured: false,
             camera: Camera::default(),
@@ -449,9 +522,11 @@ impl EditorSession {
             isolate_active: false,
             isolate_prev_visibilities: None,
             snap_enabled: false,
+            snap_settings: crate::snap::SnapSettings::default(),
             proportional_editing: false,
-            transform_orientation: "Global".to_string(),
-            pivot_point: "Median Point".to_string(),
+            proportional_settings: crate::proportional::ProportionalSettings::default(),
+            transform_orientation: TransformOrientation::Global,
+            pivot_point: PivotPoint::MedianPoint,
             show_overlays: true,
             show_xray: false,
             show_triangulation: false,
@@ -524,6 +599,7 @@ impl EditorSession {
                 .filter(|(_, f)| f.selected)
                 .map(|(i, _)| i)
                 .collect();
+            sel.edges = a.mesh.selected_edges.iter().copied().collect();
         }
         self.selection = sel.clone();
         events.emit(AppEvent::SelectionChanged(sel));
@@ -839,6 +915,118 @@ impl AppState {
         self.session
             .sync_selection(&self.project.project, &mut self.events);
         self.mark_dirty();
+    }
+
+    /// Retorna o domínio de seleção e interação ativo (P3D-015).
+    pub fn selection_domain(&self) -> SelectionDomain {
+        self.session.selection_domain
+    }
+
+    /// Define o domínio de seleção (Object, Vertex, Edge, Face) e sincroniza sub-estados.
+    pub fn set_selection_domain(&mut self, domain: SelectionDomain) {
+        self.session.selection_domain = domain;
+        if domain.is_component() {
+            self.session.last_component_domain = domain;
+            self.mode = EditMode::Edit;
+            if let Some(mode) = domain.as_select_mode() {
+                self.select_mode = mode;
+            }
+        } else {
+            self.mode = EditMode::Object;
+        }
+        self.sync_selection();
+        self.mark_dirty();
+    }
+
+    /// Alterna entre Object Mode e o último domínio de componente utilizado via Tab (P3D-015).
+    pub fn cycle_selection_domain(&mut self) {
+        if self.session.selection_domain == SelectionDomain::Object {
+            let target = self.session.last_component_domain;
+            self.set_selection_domain(if target.is_component() {
+                target
+            } else {
+                SelectionDomain::Vertex
+            });
+        } else {
+            self.set_selection_domain(SelectionDomain::Object);
+        }
+    }
+
+    /// Calcula a posição no espaço de mundo do pivô selecionado (P3D-027).
+    pub fn calculate_pivot(&self, pivot: PivotPoint) -> glam::Vec3 {
+        match pivot {
+            PivotPoint::Cursor3D => glam::Vec3::from(self.cursor_3d),
+            PivotPoint::BoundingBoxCenter => {
+                if let Some(mesh) = self.project.active_mesh() {
+                    let mut min = glam::Vec3::splat(f32::MAX);
+                    let mut max = glam::Vec3::splat(f32::MIN);
+                    let mut count = 0;
+                    for v in &mesh.verts {
+                        if v.selected || self.session.selection_domain == SelectionDomain::Object {
+                            let p = v.vec();
+                            min = min.min(p);
+                            max = max.max(p);
+                            count += 1;
+                        }
+                    }
+                    if count > 0 && min.is_finite() && max.is_finite() {
+                        (min + max) * 0.5
+                    } else {
+                        glam::Vec3::from(self.cursor_3d)
+                    }
+                } else {
+                    glam::Vec3::from(self.cursor_3d)
+                }
+            }
+            PivotPoint::MedianPoint | PivotPoint::IndividualOrigins => {
+                if let Some(mesh) = self.project.active_mesh() {
+                    glam::Vec3::from(mesh.selection_center())
+                } else {
+                    glam::Vec3::from(self.cursor_3d)
+                }
+            }
+        }
+    }
+
+    /// Constrói o descritor de feedback da ferramenta modal ativa para renderização (P3D-131).
+    pub fn current_tool_feedback(&self) -> Option<crate::modal_feedback::ToolFeedback> {
+        let modal = self.modal.as_ref()?;
+        let delta_text = match modal.kind {
+            crate::modal::ModalKind::Move => {
+                format!("Δ {:.2} m", modal.components.length())
+            }
+            crate::modal::ModalKind::Rotate => {
+                format!("Rot {:.1}°", modal.value)
+            }
+            crate::modal::ModalKind::Scale => {
+                format!("Scale {:.2}×", modal.value)
+            }
+            crate::modal::ModalKind::Extrude => {
+                format!("Extrude {:.2} m", modal.value)
+            }
+            crate::modal::ModalKind::Inset => {
+                format!("Inset {:.2}", modal.value)
+            }
+            crate::modal::ModalKind::Bevel => {
+                format!("Bevel {:.2} m", modal.value)
+            }
+            crate::modal::ModalKind::PushPull => {
+                format!("Push/Pull {:.2} m", modal.value)
+            }
+        };
+
+        let current = modal.pivot + modal.components;
+        let mut fb =
+            crate::modal_feedback::ToolFeedback::new(modal.pivot, current, delta_text, modal.value);
+
+        match modal.constraint {
+            crate::modal::ModalConstraint::Axis(i) => fb.axis_constraint = Some(i),
+            crate::modal::ModalConstraint::Plane(i) => fb.plane_constraint = Some(i),
+            crate::modal::ModalConstraint::Free => {}
+        }
+
+        fb.is_snapped = self.snap_enabled;
+        Some(fb)
     }
 
     /// Pinta vértices próximos do ponto 3D (vertex paint).

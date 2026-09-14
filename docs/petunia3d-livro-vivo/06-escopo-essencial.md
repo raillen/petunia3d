@@ -33,7 +33,7 @@ Uma funcionalidade entra no núcleo somente se reduzir significativamente uma de
 
 ## Referências e câmera
 
-- Front, Side, Top e Perspective.
+- Front, Side, Top e Perspective, Ortho, Isometric Game.
 - Ortográfica automática durante tracing.
 - Perspective automática ao orbitar.
 - Reference Sets com Front/Side/Back/Top.
@@ -68,10 +68,10 @@ Uma funcionalidade entra no núcleo somente se reduzir significativamente uma de
 - Sculpting completo.
 - NURBS/B-Rep/CAD kernel.
 - Remesh avançado.
-- Geometry Nodes.
-- Simulation, particles, fluids, cloth.
+- Geometry Nodes (provavelmente na v2).
+- Simulation, particles, fluids, cloth (provavelmente na v2).
 - Compositor.
-- Render engine completo.
+- Render engine completo (provavelmente na v3).
 - Procedural materials avançados.
 - Retopology suite profissional.
 - Modifiers extensos no estilo Blender.

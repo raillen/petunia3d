@@ -197,10 +197,11 @@ impl AppState {
             [true, true, false] => ModalConstraint::Plane(2),
             _ => ModalConstraint::Free,
         };
+        let pivot = self.calculate_pivot(self.session.pivot_point);
         self.modal = Some(ModalOp {
             kind,
             constraint: initial_constraint,
-            pivot: Vec3::from(source.selection_center()),
+            pivot,
             normal,
             value: if kind == ModalKind::Scale { 1.0 } else { 0.0 },
             components: if kind == ModalKind::Scale {
@@ -253,6 +254,19 @@ impl AppState {
         if modal.kind == ModalKind::Bevel && value < 0.0 {
             return Err(ModalError::InvalidInput);
         }
+        let mut translation = translation;
+        if self.snap_enabled {
+            let query = crate::snap::SnapQuery {
+                point: modal.pivot + translation,
+                start_point: Some(modal.pivot),
+                settings: &self.session.snap_settings,
+                mesh: Some(&modal.source),
+            };
+            let res = crate::snap::snap_point(query);
+            if res.snapped {
+                translation = res.point - modal.pivot;
+            }
+        }
         let mut mesh = modal.source.clone();
         let mut components = Vec3::ZERO;
         let direction = match modal.constraint {
@@ -262,6 +276,11 @@ impl AppState {
             }
             ModalConstraint::Free => modal.normal,
         };
+        let use_proportional = self.proportional_editing
+            && matches!(
+                modal.kind,
+                ModalKind::Move | ModalKind::Rotate | ModalKind::Scale
+            );
         match modal.kind {
             ModalKind::Move => {
                 let delta = match modal.constraint {
@@ -270,7 +289,25 @@ impl AppState {
                     ModalConstraint::Plane(i) => translation - axis(i) * translation[i],
                 };
                 components = delta;
-                mesh.translate_selected(delta.to_array());
+                if use_proportional {
+                    for vertex in &mut mesh.verts {
+                        if vertex.selected {
+                            vertex.pos = (vertex.vec() + delta).to_array();
+                        } else {
+                            let dist = (vertex.vec() - modal.pivot).length();
+                            let weight = crate::proportional::calculate_falloff_weight(
+                                dist,
+                                self.session.proportional_settings.radius,
+                                self.session.proportional_settings.falloff,
+                            );
+                            if weight > 0.0 {
+                                vertex.pos = (vertex.vec() + delta * weight).to_array();
+                            }
+                        }
+                    }
+                } else {
+                    mesh.translate_selected(delta.to_array());
+                }
             }
             ModalKind::Rotate => {
                 let normal = match modal.constraint {
@@ -284,6 +321,17 @@ impl AppState {
                     if vertex.selected {
                         vertex.pos =
                             (modal.pivot + rotation * (vertex.vec() - modal.pivot)).to_array();
+                    } else if use_proportional {
+                        let dist = (vertex.vec() - modal.pivot).length();
+                        let weight = crate::proportional::calculate_falloff_weight(
+                            dist,
+                            self.session.proportional_settings.radius,
+                            self.session.proportional_settings.falloff,
+                        );
+                        if weight > 0.0 {
+                            let rotated = modal.pivot + rotation * (vertex.vec() - modal.pivot);
+                            vertex.pos = vertex.vec().lerp(rotated, weight).to_array();
+                        }
                     }
                 }
             }
@@ -298,6 +346,17 @@ impl AppState {
                     if vertex.selected {
                         vertex.pos =
                             (modal.pivot + (vertex.vec() - modal.pivot) * factors).to_array();
+                    } else if use_proportional {
+                        let dist = (vertex.vec() - modal.pivot).length();
+                        let weight = crate::proportional::calculate_falloff_weight(
+                            dist,
+                            self.session.proportional_settings.radius,
+                            self.session.proportional_settings.falloff,
+                        );
+                        if weight > 0.0 {
+                            let scaled = modal.pivot + (vertex.vec() - modal.pivot) * factors;
+                            vertex.pos = vertex.vec().lerp(scaled, weight).to_array();
+                        }
                     }
                 }
             }
@@ -894,5 +953,46 @@ mod tests {
         );
         state.cancel_modal();
         assert_eq!(state.locked_axes, [false; 3]);
+    }
+
+    #[test]
+    fn test_proportional_editing_move_influences_unselected_vertices() {
+        let mut state = selected_face();
+        state.proportional_editing = true;
+        state.session.proportional_settings.radius = 3.0;
+        state.session.proportional_settings.falloff =
+            crate::proportional::ProportionalFalloff::Linear;
+
+        state.begin_modal(ModalKind::Move).unwrap();
+        state.update_modal(Vec3::new(0.0, 1.0, 0.0), 1.0).unwrap();
+
+        let mesh = state.project.active_mesh().unwrap();
+        let selected_count = mesh.verts.iter().filter(|v| v.selected).count();
+        let unselected_moved_count = mesh
+            .verts
+            .iter()
+            .filter(|v| !v.selected && v.pos[1] > -1.0)
+            .count();
+
+        assert_eq!(selected_count, 4);
+        assert!(unselected_moved_count > 0);
+        state.commit_modal();
+    }
+
+    #[test]
+    fn test_modal_tool_feedback_generation() {
+        let mut state = selected_face();
+        assert!(state.current_tool_feedback().is_none());
+
+        state.begin_modal(ModalKind::Move).unwrap();
+        state.update_modal(Vec3::new(1.0, 0.0, 0.0), 1.0).unwrap();
+
+        let fb = state.current_tool_feedback().expect("feedback generated");
+        assert!(fb.guide_line.is_some());
+        assert!(fb.delta_text.contains("1.00"));
+        assert!(!fb.is_snapped);
+
+        state.cancel_modal();
+        assert!(state.current_tool_feedback().is_none());
     }
 }

@@ -11,8 +11,8 @@
 use egui::{pos2, vec2, Color32, CornerRadius, Rect, Ui};
 use petunia_core::{
     AddPrimitiveCmd, AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode,
-    InvertSelectionCmd, MergeCenterCmd, PrimitiveKind, SelectAllCmd, SelectMode,
-    SubdivideSelectionCmd,
+    InvertSelectionCmd, MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff,
+    SelectAllCmd, SelectionDomain, SnapTarget, SubdivideSelectionCmd, TransformOrientation,
 };
 use petunia_render::Shading;
 
@@ -28,8 +28,8 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
-        // CLUSTER 1 & 2: Seletor de Modo e Alvos de Seleção Segmentados (Apenas em Edit Mode)
-        draw_mode_and_targets_cluster(ui, state);
+        // CLUSTER 1 & 2: Domínio Unificado de Seleção (Object / Vertex / Edge / Face) (P3D-015)
+        draw_selection_domain_cluster(ui, state);
 
         ui.add_space(2.0);
         ui.separator();
@@ -73,175 +73,111 @@ fn handle_keyboard_shortcuts(ui: &mut Ui, state: &mut AppState) {
         return;
     }
 
-    // Tab: Alterna entre Object Mode e Edit Mode
+    // Shift+Tab: Alterna Snapping Magnético (P3D-040, P3D-079)
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Tab)) {
+        state.snap_enabled = !state.snap_enabled;
+        state.snap_settings.enabled = state.snap_enabled;
+        state.mark_dirty();
+        return;
+    }
+
+    // Tab: Alterna entre Object Domain e o último domínio de componente (P3D-015)
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Tab)) {
-        state.mode = match state.mode {
-            EditMode::Object => EditMode::Edit,
-            _ => EditMode::Object,
-        };
-        state.sync_selection();
-        state.mark_dirty();
+        state.cycle_selection_domain();
     }
 
-    // 0: Modo Objeto
+    // 0: Modo/Domínio Objeto
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num0)) {
-        state.mode = EditMode::Object;
-        state.active_tool = "select".into();
-        state.mark_dirty();
+        state.set_selection_domain(SelectionDomain::Object);
     }
 
-    // 1: Vértice (em Edit Mode)
+    // 1: Vértice
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num1)) {
-        state.mode = EditMode::Edit;
-        state.select_mode = SelectMode::Vertex;
-        state.sync_selection();
-        state.mark_dirty();
+        state.set_selection_domain(SelectionDomain::Vertex);
     }
 
-    // 2: Aresta (em Edit Mode)
+    // 2: Aresta
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num2)) {
-        state.mode = EditMode::Edit;
-        state.select_mode = SelectMode::Edge;
-        state.sync_selection();
-        state.mark_dirty();
+        state.set_selection_domain(SelectionDomain::Edge);
     }
 
-    // 3: Face (em Edit Mode)
+    // 3: Face
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num3)) {
-        state.mode = EditMode::Edit;
-        state.select_mode = SelectMode::Face;
-        state.sync_selection();
-        state.mark_dirty();
+        state.set_selection_domain(SelectionDomain::Face);
     }
 }
 
-/// Cluster 1 & 2: Seletor de Modo (`Object` vs `Edit`) + Alvos de Seleção Segmentados
-/// exibidos exclusivamente no modo de edição.
-fn draw_mode_and_targets_cluster(ui: &mut Ui, state: &mut AppState) {
-    let (mode_icon, mode_label) = match state.mode {
-        EditMode::Object => (PetuniaIcon::ModeObject, state.t("modes.object")),
-        EditMode::Edit => (PetuniaIcon::ModeEdit, state.t("modes.edit")),
-        _ => (PetuniaIcon::ModeObject, "Mode".to_string()),
-    };
+/// Cluster 1 & 2: Domínio Unificado de Seleção e Interação (Object / Vertex / Edge / Face) (P3D-015).
+/// Elimina a divisão artificial entre Object Mode e Edit Mode.
+fn draw_selection_domain_cluster(ui: &mut Ui, state: &mut AppState) {
+    let domains = [
+        (
+            SelectionDomain::Object,
+            PetuniaIcon::ModeObject,
+            "0",
+            state.t("modes.object"),
+        ),
+        (
+            SelectionDomain::Vertex,
+            PetuniaIcon::SelectVertex,
+            "1",
+            state.t("modes.vertex"),
+        ),
+        (
+            SelectionDomain::Edge,
+            PetuniaIcon::SelectEdge,
+            "2",
+            state.t("modes.edge"),
+        ),
+        (
+            SelectionDomain::Face,
+            PetuniaIcon::SelectFace,
+            "3",
+            state.t("modes.face"),
+        ),
+    ];
 
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+        let active_domain = state.selection_domain();
 
-        let (rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
-        if ui.is_rect_visible(rect) {
-            IconRegistry::paint(
-                ui.ctx(),
-                ui.painter(),
-                &mode_icon,
-                rect,
-                tokens::TEXT_PRIMARY,
-            );
-        }
+        for (domain, icon, shortcut, name) in domains {
+            let is_active = active_domain == domain;
+            let (bg, fg) = if is_active {
+                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
+            } else {
+                (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
+            };
 
-        ui.menu_button(
-            egui::RichText::new(format!("{mode_label} ▾"))
-                .strong()
-                .size(11.0)
-                .color(tokens::TEXT_PRIMARY),
-            |ui| {
-                let sc_obj = state
-                    .ui
-                    .keybinds
-                    .shortcut_for("model.select_object")
-                    .unwrap_or_else(|| "0".into());
-                let sc_edit = state
-                    .ui
-                    .keybinds
-                    .shortcut_for("global.cycle_mode")
-                    .unwrap_or_else(|| "Tab".into());
-
-                if PetuniaMenuItem::new(&state.t("modes.object"))
-                    .icon(PetuniaIcon::ModeObject)
-                    .shortcut(Some(&sc_obj))
-                    .show(ui)
-                    .clicked()
-                {
-                    state.mode = EditMode::Object;
-                    state.active_tool = "select".into();
-                    state.mark_dirty();
-                    ui.close();
-                }
-                if PetuniaMenuItem::new(&state.t("modes.edit"))
-                    .icon(PetuniaIcon::ModeEdit)
-                    .shortcut(Some(&sc_edit))
-                    .show(ui)
-                    .clicked()
-                {
-                    state.mode = EditMode::Edit;
-                    state.sync_selection();
-                    state.mark_dirty();
-                    ui.close();
-                }
-            },
-        );
-    });
-
-    // Botões de alvo de seleção segmentados: visíveis EXCLUSIVAMENTE em modo de edição
-    if state.mode == EditMode::Edit {
-        ui.add_space(2.0);
-        let targets = [
-            (
-                SelectMode::Vertex,
-                PetuniaIcon::SelectVertex,
-                "1",
-                state.t("modes.vertex"),
-            ),
-            (
-                SelectMode::Edge,
-                PetuniaIcon::SelectEdge,
-                "2",
-                state.t("modes.edge"),
-            ),
-            (
-                SelectMode::Face,
-                PetuniaIcon::SelectFace,
-                "3",
-                state.t("modes.face"),
-            ),
-        ];
-
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
-            for (mode, icon, shortcut, name) in targets {
-                let is_active = state.select_mode == mode;
-                let (bg, fg) = if is_active {
-                    (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
+            let width = if domain == SelectionDomain::Object {
+                28.0
+            } else {
+                24.0
+            };
+            let (rect, resp) = ui.allocate_exact_size(vec2(width, 22.0), egui::Sense::click());
+            if ui.is_rect_visible(rect) {
+                let painter = ui.painter();
+                let fill = if is_active {
+                    bg
+                } else if resp.hovered() {
+                    tokens::BG_SURFACE_HOVER
                 } else {
-                    (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
+                    bg
                 };
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, fill);
 
-                let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
-                if ui.is_rect_visible(rect) {
-                    let painter = ui.painter();
-                    let fill = if is_active {
-                        bg
-                    } else if resp.hovered() {
-                        tokens::BG_SURFACE_HOVER
-                    } else {
-                        bg
-                    };
-                    painter.rect_filled(rect, tokens::RADIUS_CONTROL, fill);
-
-                    let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
-                    IconRegistry::paint(ui.ctx(), painter, &icon, icon_rect, fg);
-                }
-
-                if resp
-                    .on_hover_text(format!("{name} · [{shortcut}]"))
-                    .clicked()
-                {
-                    state.select_mode = mode;
-                    state.sync_selection();
-                    state.mark_dirty();
-                }
+                let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
+                IconRegistry::paint(ui.ctx(), painter, &icon, icon_rect, fg);
             }
-        });
-    }
+
+            if resp
+                .on_hover_text(format!("{name} · [{shortcut}] (Tab: alternar)"))
+                .clicked()
+            {
+                state.set_selection_domain(domain);
+            }
+        }
+    });
 }
 
 /// Cluster 3: Menus rápidos padronizados com ícones (View, Select, Add, Objeto/Malha).
@@ -710,18 +646,16 @@ fn draw_transform_cluster(ui: &mut Ui, state: &mut AppState) {
 
         egui::ComboBox::from_id_salt("transform_orientation")
             .selected_text(
-                egui::RichText::new(&state.transform_orientation)
+                egui::RichText::new(state.transform_orientation.as_str())
                     .size(11.0)
                     .color(tokens::TEXT_PRIMARY),
             )
             .width(62.0)
             .show_ui(ui, |ui| {
-                for orient in ["Global", "Local", "Normal", "View", "Cursor"] {
-                    if ui
-                        .selectable_label(state.transform_orientation == orient, orient)
-                        .clicked()
-                    {
-                        state.transform_orientation = orient.to_string();
+                for orient in TransformOrientation::all() {
+                    let is_sel = state.transform_orientation == orient;
+                    if ui.selectable_label(is_sel, orient.as_str()).clicked() {
+                        state.transform_orientation = orient;
                         state.mark_dirty();
                     }
                 }
@@ -742,24 +676,16 @@ fn draw_transform_cluster(ui: &mut Ui, state: &mut AppState) {
 
         egui::ComboBox::from_id_salt("pivot_point")
             .selected_text(
-                egui::RichText::new(&state.pivot_point)
+                egui::RichText::new(state.pivot_point.as_str())
                     .size(11.0)
                     .color(tokens::TEXT_PRIMARY),
             )
             .width(88.0)
             .show_ui(ui, |ui| {
-                for pivot in [
-                    "Median Point",
-                    "3D Cursor",
-                    "Bounding Box",
-                    "Individual Origins",
-                    "Active Element",
-                ] {
-                    if ui
-                        .selectable_label(state.pivot_point == pivot, pivot)
-                        .clicked()
-                    {
-                        state.pivot_point = pivot.to_string();
+                for pivot in PivotPoint::all() {
+                    let is_sel = state.pivot_point == pivot;
+                    if ui.selectable_label(is_sel, pivot.as_str()).clicked() {
+                        state.pivot_point = pivot;
                         state.mark_dirty();
                     }
                 }
@@ -858,72 +784,190 @@ fn draw_axis_lock_controls(ui: &mut Ui, state: &mut AppState) {
     });
 }
 
-/// Cluster 5: Snapping magnético e Edição proporcional com ícones canônicos.
+/// Cluster 5: Snapping magnético e Edição proporcional com ícones canônicos e popovers (P3D-079, P3D-080).
 fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
-    // Botão Snap (Ímã Vetorial)
-    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
-    if ui.is_rect_visible(rect) {
-        let is_active = state.snap_enabled;
-        let bg = if is_active {
-            tokens::ACCENT_BLUE
-        } else if resp.hovered() {
-            tokens::BG_SURFACE_HOVER
-        } else {
-            tokens::BG_SURFACE
-        };
-        let fg = if is_active {
-            tokens::TEXT_ACTIVE
-        } else {
-            tokens::TEXT_SECONDARY
-        };
-        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
-        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
-        IconRegistry::paint(
-            ui.ctx(),
-            ui.painter(),
-            &PetuniaIcon::SnapMagnet,
-            icon_rect,
-            fg,
-        );
-    }
-    if resp
-        .on_hover_text("Snapping Magnético · Shift+Tab")
-        .clicked()
-    {
-        state.snap_enabled = !state.snap_enabled;
-        state.mark_dirty();
-    }
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(1.0, 0.0);
 
-    // Botão Edição Proporcional (Ícone Vetorial Círculos Concêntricos - Nunca 'Prop')
-    let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
-    if ui.is_rect_visible(rect) {
-        let is_active = state.proportional_editing;
-        let bg = if is_active {
-            tokens::ACCENT_BLUE
-        } else if resp.hovered() {
-            tokens::BG_SURFACE_HOVER
-        } else {
-            tokens::BG_SURFACE
-        };
-        let fg = if is_active {
-            tokens::TEXT_ACTIVE
-        } else {
-            tokens::TEXT_SECONDARY
-        };
-        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
-        let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
-        IconRegistry::paint(
-            ui.ctx(),
-            ui.painter(),
-            &PetuniaIcon::ProportionalEditing,
-            icon_rect,
-            fg,
-        );
-    }
-    if resp.on_hover_text("Edição Proporcional · O").clicked() {
-        state.proportional_editing = !state.proportional_editing;
-        state.mark_dirty();
-    }
+        // --- Snapping Magnético (Segmented: Botão Mestre + Chevron Popover) ---
+        let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+        if ui.is_rect_visible(rect) {
+            let is_active = state.snap_enabled;
+            let bg = if is_active {
+                tokens::ACCENT_BLUE
+            } else if resp.hovered() {
+                tokens::BG_SURFACE_HOVER
+            } else {
+                tokens::BG_SURFACE
+            };
+            let fg = if is_active {
+                tokens::TEXT_ACTIVE
+            } else {
+                tokens::TEXT_SECONDARY
+            };
+            ui.painter().rect_filled(
+                rect,
+                CornerRadius {
+                    nw: 4,
+                    sw: 4,
+                    ne: 0,
+                    se: 0,
+                },
+                bg,
+            );
+            let icon_rect = Rect::from_center_size(rect.center(), vec2(15.0, 15.0));
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &PetuniaIcon::SnapMagnet,
+                icon_rect,
+                fg,
+            );
+        }
+        if resp
+            .on_hover_text("Snapping Magnético · Shift+Tab")
+            .clicked()
+        {
+            state.snap_enabled = !state.snap_enabled;
+            state.snap_settings.enabled = state.snap_enabled;
+            state.mark_dirty();
+        }
+
+        ui.menu_button("▾", |ui| {
+            ui.set_min_width(200.0);
+            ui.label(
+                egui::RichText::new("Opções de Snapping")
+                    .strong()
+                    .size(12.0)
+                    .color(tokens::TEXT_PRIMARY),
+            );
+            ui.separator();
+
+            let mut dirty = false;
+            ui.label(
+                egui::RichText::new("Alvo de Snap")
+                    .size(11.0)
+                    .color(tokens::TEXT_SECONDARY),
+            );
+            for target in SnapTarget::all() {
+                let is_sel = state.snap_settings.target == target;
+                if ui.selectable_label(is_sel, target.label()).clicked() {
+                    state.snap_settings.target = target;
+                    dirty = true;
+                }
+            }
+
+            ui.separator();
+            if ui
+                .add(
+                    egui::Slider::new(&mut state.snap_settings.grid_spacing, 0.1..=10.0)
+                        .text("Espaçamento Grade")
+                        .step_by(0.1),
+                )
+                .changed()
+            {
+                dirty = true;
+            }
+            if ui
+                .add(
+                    egui::Slider::new(&mut state.snap_settings.snap_distance, 0.05..=2.0)
+                        .text("Distância de Snap")
+                        .step_by(0.05),
+                )
+                .changed()
+            {
+                dirty = true;
+            }
+
+            if dirty {
+                state.mark_dirty();
+            }
+        });
+
+        ui.add_space(3.0);
+
+        // --- Edição Proporcional (Segmented: Botão Mestre + Chevron Popover) ---
+        let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+        if ui.is_rect_visible(rect) {
+            let is_active = state.proportional_editing;
+            let bg = if is_active {
+                tokens::ACCENT_BLUE
+            } else if resp.hovered() {
+                tokens::BG_SURFACE_HOVER
+            } else {
+                tokens::BG_SURFACE
+            };
+            let fg = if is_active {
+                tokens::TEXT_ACTIVE
+            } else {
+                tokens::TEXT_SECONDARY
+            };
+            ui.painter().rect_filled(
+                rect,
+                CornerRadius {
+                    nw: 4,
+                    sw: 4,
+                    ne: 0,
+                    se: 0,
+                },
+                bg,
+            );
+            let icon_rect = Rect::from_center_size(rect.center(), vec2(15.0, 15.0));
+            IconRegistry::paint(
+                ui.ctx(),
+                ui.painter(),
+                &PetuniaIcon::ProportionalEditing,
+                icon_rect,
+                fg,
+            );
+        }
+        if resp.on_hover_text("Edição Proporcional · O").clicked() {
+            state.proportional_editing = !state.proportional_editing;
+            state.proportional_settings.enabled = state.proportional_editing;
+            state.mark_dirty();
+        }
+
+        ui.menu_button("▾", |ui| {
+            ui.set_min_width(200.0);
+            ui.label(
+                egui::RichText::new("Edição Proporcional")
+                    .strong()
+                    .size(12.0)
+                    .color(tokens::TEXT_PRIMARY),
+            );
+            ui.separator();
+
+            let mut dirty = false;
+            ui.label(
+                egui::RichText::new("Curva de Decaimento")
+                    .size(11.0)
+                    .color(tokens::TEXT_SECONDARY),
+            );
+            for falloff in ProportionalFalloff::all() {
+                let is_sel = state.proportional_settings.falloff == falloff;
+                if ui.selectable_label(is_sel, falloff.label()).clicked() {
+                    state.proportional_settings.falloff = falloff;
+                    dirty = true;
+                }
+            }
+
+            ui.separator();
+            if ui
+                .add(
+                    egui::Slider::new(&mut state.proportional_settings.radius, 0.1..=20.0)
+                        .text("Raio de Influência")
+                        .step_by(0.1),
+                )
+                .changed()
+            {
+                dirty = true;
+            }
+
+            if dirty {
+                state.mark_dirty();
+            }
+        });
+    });
 }
 
 /// Cluster 6: Alternâncias de visualização de cena (Overlays e X-Ray com ícones vetoriais).
@@ -1165,6 +1209,7 @@ fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use petunia_core::SelectMode;
 
     #[test]
     fn test_viewport_bar_renders_without_panic() {
@@ -1201,6 +1246,44 @@ mod tests {
         assert_eq!(state.mode, EditMode::Edit);
         state.select_mode = SelectMode::Edge;
         assert_eq!(state.select_mode, SelectMode::Edge);
+    }
+
+    #[test]
+    fn test_selection_domain_controls() {
+        let mut state = AppState::new("en");
+        assert_eq!(state.selection_domain(), SelectionDomain::Object);
+
+        state.set_selection_domain(SelectionDomain::Vertex);
+        assert_eq!(state.selection_domain(), SelectionDomain::Vertex);
+        assert_eq!(state.mode, EditMode::Edit);
+        assert_eq!(state.select_mode, SelectMode::Vertex);
+
+        state.cycle_selection_domain();
+        assert_eq!(state.selection_domain(), SelectionDomain::Object);
+
+        state.cycle_selection_domain();
+        assert_eq!(state.selection_domain(), SelectionDomain::Vertex);
+    }
+
+    #[test]
+    fn test_snap_and_proportional_controls_render() {
+        let ctx = egui::Context::default();
+        let mut state = AppState::new("en");
+
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                draw_snap_and_prop_cluster(ui, &mut state);
+            });
+        });
+
+        state.snap_enabled = true;
+        state.proportional_editing = true;
+
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                draw_snap_and_prop_cluster(ui, &mut state);
+            });
+        });
     }
 
     #[test]
