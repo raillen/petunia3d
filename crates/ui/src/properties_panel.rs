@@ -135,36 +135,46 @@ fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let (icon, tip) = if state.ui.inspector_detached {
-                        (PetuniaIcon::Minimize, "Dock Inspector in Sidepanel")
-                    } else {
-                        (
-                            PetuniaIcon::Maximize,
-                            "Detach Inspector into Floating Window",
-                        )
-                    };
-                    let (rect, resp) =
-                        ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::click());
-                    if ui.is_rect_visible(rect) {
-                        let fill = if resp.hovered() {
-                            tokens::BG_SURFACE_HOVER
-                        } else {
-                            Color32::TRANSPARENT
-                        };
-                        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
-                        let icon_rect =
-                            egui::Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
-                        IconRegistry::paint(
-                            ui.ctx(),
-                            ui.painter(),
-                            &icon,
-                            icon_rect,
-                            tokens::TEXT_SECONDARY,
+                    if state.ui.inspector_detached {
+                        let dock_resp = ui.button(
+                            egui::RichText::new("⇲ Dock")
+                                .size(11.0)
+                                .color(tokens::TEXT_PRIMARY),
                         );
-                    }
-                    if resp.on_hover_text(tip).clicked() {
-                        state.ui.inspector_detached = !state.ui.inspector_detached;
-                        state.mark_dirty();
+                        if dock_resp
+                            .on_hover_text("Ancorar Inspector de volta na barra lateral")
+                            .clicked()
+                        {
+                            state.ui.inspector_detached = false;
+                            state.mark_dirty();
+                        }
+                    } else {
+                        let (rect, resp) =
+                            ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::click());
+                        if ui.is_rect_visible(rect) {
+                            let fill = if resp.hovered() {
+                                tokens::BG_SURFACE_HOVER
+                            } else {
+                                Color32::TRANSPARENT
+                            };
+                            ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
+                            let icon_rect =
+                                egui::Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+                            IconRegistry::paint(
+                                ui.ctx(),
+                                ui.painter(),
+                                &PetuniaIcon::Maximize,
+                                icon_rect,
+                                tokens::TEXT_SECONDARY,
+                            );
+                        }
+                        if resp
+                            .on_hover_text("Destacar Inspector em Janela Flutuante")
+                            .clicked()
+                        {
+                            state.ui.inspector_detached = true;
+                            state.mark_dirty();
+                        }
                     }
                 });
             });

@@ -403,6 +403,7 @@ impl Keybinds {
             ("model.invert_selection", "Ctrl+I"),
             ("model.select_linked", "L"),
             ("model.delete", "Delete"),
+            ("model.duplicate", "Shift+D"),
             ("paint.paint", "B"),
         ];
         let mut kb = Self::default();

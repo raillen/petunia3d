@@ -150,6 +150,25 @@ pub fn right_panel(
             if !was_detached {
                 ui.separator();
                 properties_panel::draw(ctx, ui, state, tools, registry);
+            } else {
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label(
+                        egui::RichText::new("Inspector Flutuante")
+                            .size(11.0)
+                            .color(tokens::TEXT_MUTED),
+                    );
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui
+                            .button(egui::RichText::new("Reancorar").size(11.0))
+                            .on_hover_text("Reancorar o Painel de Propriedades na barra lateral")
+                            .clicked()
+                        {
+                            state.ui.inspector_detached = false;
+                            state.mark_dirty();
+                        }
+                    });
+                });
             }
         });
 

@@ -670,11 +670,64 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
         .map(|r| glam::Vec2::new(r.width(), r.height()))
         .unwrap_or(glam::Vec2::new(800.0, 600.0))
         * core.state.ui.viewport_pixels_per_point;
-    let mode = if core.state.mode == EditMode::Object {
-        SelectMode::Face
-    } else {
-        core.state.select_mode
-    };
+
+    if core.state.session.mode == EditMode::Object {
+        let is_wire =
+            core.state.shading == petunia_render::Shading::Wireframe || core.state.show_xray;
+        let mut closest_hit: Option<(usize, f32)> = None;
+        for (idx, asset) in core.state.project.assets.iter().enumerate() {
+            if !asset.visible || asset.locked {
+                continue;
+            }
+            if let Some(hit) = pick_mesh(
+                &asset.mesh,
+                &core.state.camera,
+                viewport,
+                glam::Vec2::new(nx, ny),
+                SelectMode::Face,
+                is_wire,
+            ) {
+                let dist = (hit.position - core.state.camera.eye()).length();
+                if closest_hit.is_none_or(|(_, min_dist)| dist < min_dist) {
+                    closest_hit = Some((idx, dist));
+                }
+            }
+        }
+
+        if let Some((best_idx, _)) = closest_hit {
+            if !core.shift_down {
+                for (idx, asset) in core.state.project.assets.iter_mut().enumerate() {
+                    if idx != best_idx {
+                        asset.mesh.deselect_all();
+                    }
+                }
+                core.state.project.active = best_idx;
+                if let Some(mesh) = core.state.project.active_mesh_mut() {
+                    mesh.select_all();
+                }
+            } else {
+                core.state.project.active = best_idx;
+                if let Some(mesh) = core.state.project.active_mesh_mut() {
+                    let any_selected = mesh.verts.iter().any(|v| v.selected);
+                    if any_selected {
+                        mesh.deselect_all();
+                    } else {
+                        mesh.select_all();
+                    }
+                }
+            }
+            core.state.mark_dirty();
+        } else if !core.shift_down {
+            for asset in &mut core.state.project.assets {
+                asset.mesh.deselect_all();
+            }
+            core.state.mark_dirty();
+        }
+        core.state.sync_selection();
+        return;
+    }
+
+    let mode = core.state.select_mode;
     let hit = core.state.project.active_mesh().and_then(|mesh| {
         pick_mesh(
             mesh,
@@ -686,56 +739,48 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
         )
     });
     if let Some(mesh) = core.state.project.active_mesh_mut() {
-        if core.state.session.mode == EditMode::Object {
-            if hit.is_some() {
-                mesh.select_all();
-            } else if !core.shift_down {
-                mesh.deselect_all();
-            }
-        } else {
-            // Shift toggles; a plain click replaces selection without ambiguous fallbacks.
-            let was_selected = hit.is_some_and(|h| match h.component {
-                PickComponent::Vertex(i) => mesh.verts.get(i).is_some_and(|v| v.selected),
-                PickComponent::Edge(a, b) => mesh.selected_edges.contains(&(a.min(b), a.max(b))),
-                PickComponent::Face(i) => mesh.faces.get(i).is_some_and(|f| f.selected),
-            });
-            if !core.shift_down {
-                mesh.deselect_all();
-            }
-            let selected = !core.shift_down || !was_selected;
-            if let Some(hit) = hit {
-                match hit.component {
-                    PickComponent::Vertex(i) => {
-                        if let Some(v) = mesh.verts.get_mut(i) {
-                            v.selected = selected;
-                        }
-                        mesh.sync_face_selection_from_verts();
+        // Shift toggles; a plain click replaces selection without ambiguous fallbacks.
+        let was_selected = hit.is_some_and(|h| match h.component {
+            PickComponent::Vertex(i) => mesh.verts.get(i).is_some_and(|v| v.selected),
+            PickComponent::Edge(a, b) => mesh.selected_edges.contains(&(a.min(b), a.max(b))),
+            PickComponent::Face(i) => mesh.faces.get(i).is_some_and(|f| f.selected),
+        });
+        if !core.shift_down {
+            mesh.deselect_all();
+        }
+        let selected = !core.shift_down || !was_selected;
+        if let Some(hit) = hit {
+            match hit.component {
+                PickComponent::Vertex(i) => {
+                    if let Some(v) = mesh.verts.get_mut(i) {
+                        v.selected = selected;
                     }
-                    PickComponent::Edge(a, b) => {
-                        let edge = (a.min(b), a.max(b));
-                        if selected {
-                            mesh.selected_edges.insert(edge);
-                        } else {
-                            mesh.selected_edges.remove(&edge);
-                        }
-                        for v in &mut mesh.verts {
-                            v.selected = false;
-                        }
-                        for &(a, b) in &mesh.selected_edges {
-                            for i in [a, b] {
-                                if let Some(v) = mesh.verts.get_mut(i as usize) {
-                                    v.selected = true;
-                                }
+                    mesh.sync_face_selection_from_verts();
+                }
+                PickComponent::Edge(a, b) => {
+                    let edge = (a.min(b), a.max(b));
+                    if selected {
+                        mesh.selected_edges.insert(edge);
+                    } else {
+                        mesh.selected_edges.remove(&edge);
+                    }
+                    for v in &mut mesh.verts {
+                        v.selected = false;
+                    }
+                    for &(a, b) in &mesh.selected_edges {
+                        for i in [a, b] {
+                            if let Some(v) = mesh.verts.get_mut(i as usize) {
+                                v.selected = true;
                             }
                         }
-                        mesh.sync_face_selection_from_verts();
                     }
-                    PickComponent::Face(i) => {
-                        if let Some(f) = mesh.faces.get_mut(i) {
-                            f.selected = selected;
-                        }
-                        mesh.sync_vert_selection_from_faces();
+                    mesh.sync_face_selection_from_verts();
+                }
+                PickComponent::Face(i) => {
+                    if let Some(f) = mesh.faces.get_mut(i) {
+                        f.selected = selected;
                     }
+                    mesh.sync_vert_selection_from_faces();
                 }
             }
         }
@@ -1184,6 +1229,15 @@ impl ApplicationHandler for WgpuApp {
                             | WKey::Digit2
                             | WKey::Digit3
                             | WKey::Digit4
+                            | WKey::Delete
+                            | WKey::Backspace
+                            | WKey::KeyD
+                            | WKey::KeyX
+                            | WKey::KeyA
+                            | WKey::KeyG
+                            | WKey::KeyR
+                            | WKey::KeyS
+                            | WKey::KeyZ
                     ),
                     ..
                 },
@@ -1519,6 +1573,15 @@ impl ApplicationHandler for GlApp {
                             | WKey::Digit2
                             | WKey::Digit3
                             | WKey::Digit4
+                            | WKey::Delete
+                            | WKey::Backspace
+                            | WKey::KeyD
+                            | WKey::KeyX
+                            | WKey::KeyA
+                            | WKey::KeyG
+                            | WKey::KeyR
+                            | WKey::KeyS
+                            | WKey::KeyZ
                     ),
                     ..
                 },
@@ -2024,5 +2087,91 @@ mod camera_shortcut_tests {
             assert_eq!(core.state.camera.proj, Projection::Ortho);
             assert_eq!(core.state.camera.view_preset(), Some(view));
         }
+    }
+
+    #[test]
+    fn test_pick_multiple_objects_in_object_mode() {
+        let mut core = Core::new();
+        core.state.session.mode = EditMode::Object;
+        assert_eq!(core.state.project.assets.len(), 1);
+        assert_eq!(core.state.project.active, 0);
+
+        // Cria segundo objeto e posiciona seus vértices longe do primeiro
+        let mut second_mesh = petunia_mesh::Mesh::cube(2.0);
+        for v in &mut second_mesh.verts {
+            v.pos[0] += 5.0; // Desloca para X = 5.0
+        }
+        core.state
+            .project
+            .assets
+            .push(petunia_project::Asset::new("Cube.001", second_mesh));
+        assert_eq!(core.state.project.assets.len(), 2);
+
+        // Clica no centro (0, 0) onde está o primeiro objeto (em [0, 0, 0])
+        handle_pick(&mut core, 0.0, 0.0);
+        assert_eq!(core.state.project.active, 0);
+        assert!(core.state.project.assets[0]
+            .mesh
+            .verts
+            .iter()
+            .any(|v| v.selected));
+
+        // Move a câmera para enquadrar o segundo objeto em [5, 0, 0]
+        core.state.camera.target = glam::Vec3::new(5.0, 0.0, 0.0);
+
+        // Agora o centro da tela (0, 0) aponta para o segundo objeto
+        handle_pick(&mut core, 0.0, 0.0);
+        assert_eq!(core.state.project.active, 1);
+        assert!(core.state.project.assets[1]
+            .mesh
+            .verts
+            .iter()
+            .any(|v| v.selected));
+        assert!(!core.state.project.assets[0]
+            .mesh
+            .verts
+            .iter()
+            .any(|v| v.selected));
+
+        // Clica no vazio (-0.99, -0.99)
+        handle_pick(&mut core, -0.99, -0.99);
+        assert!(!core.state.project.assets[0]
+            .mesh
+            .verts
+            .iter()
+            .any(|v| v.selected));
+        assert!(!core.state.project.assets[1]
+            .mesh
+            .verts
+            .iter()
+            .any(|v| v.selected));
+    }
+
+    #[test]
+    fn test_delete_and_duplicate_keys_in_object_mode() {
+        use winit::keyboard::KeyCode as WKey;
+        let mut core = Core::new();
+        core.state.session.mode = EditMode::Object;
+        core.state.ui.keybinds = petunia_config::keybinds::Keybinds::defaults();
+        assert_eq!(core.state.project.assets.len(), 1);
+
+        // Duplicação via Shift+D
+        core.shift_down = true;
+        core.on_key(PhysicalKey::Code(WKey::KeyD));
+        core.shift_down = false;
+        assert_eq!(
+            core.state.project.assets.len(),
+            2,
+            "Shift+D deve duplicar o objeto ativo"
+        );
+        assert_eq!(core.state.project.active, 1);
+
+        // Deleção via Delete
+        core.on_key(PhysicalKey::Code(WKey::Delete));
+        assert_eq!(
+            core.state.project.assets.len(),
+            1,
+            "Delete deve remover o objeto ativo"
+        );
     }
 }

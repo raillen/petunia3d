@@ -42,9 +42,15 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
             ui.separator();
 
             // 2. Área de rolagem com a árvore hierárquica completa
+            let scroll_max_h = if state.ui.inspector_detached {
+                f32::INFINITY
+            } else {
+                280.0
+            };
             ScrollArea::vertical()
                 .id_salt("outliner_tree_scroll")
-                .max_height(280.0)
+                .max_height(scroll_max_h)
+                .auto_shrink([false, false])
                 .show(ui, |ui| {
                     draw_tree_nodes(ui, state);
                 });
@@ -208,7 +214,19 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             default_node_height: Some(22.0),
             ..Default::default()
         })
+        .allow_drag_and_drop(false)
         .allow_multi_selection(false);
+
+    if let Some(mut tree_state) = egui_ltreeview::TreeViewState::<OutlinerNodeId>::load(ui, tree_id)
+    {
+        if let Some(active_asset) = state.project.assets.get(active_idx) {
+            let target = OutlinerNodeId::Asset(active_asset.id);
+            if !tree_state.selected().contains(&target) {
+                tree_state.set_one_selected(target);
+                tree_state.store(ui, tree_id);
+            }
+        }
+    }
 
     // Ações para meshes
     let mut toggle_vis_idx: Option<usize> = None;
@@ -245,6 +263,26 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     let mut delete_meas: Option<Uuid> = None;
     let mut toggle_all_meas_vis = false;
     let mut clear_all_meas = false;
+
+    // Atalhos de teclado no Outliner quando nenhum campo de texto está ativo
+    if !ui.ctx().wants_keyboard_input() {
+        if ui.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)) {
+            if let Some(ann_id) = state.selected_annotation {
+                delete_ann = Some(ann_id);
+            } else if let Some(meas_id) = state.selected_measurement {
+                delete_meas = Some(meas_id);
+            } else if active_idx < state.project.assets.len() {
+                delete_idx = Some(active_idx);
+            }
+        }
+        if ui.input(|i| (i.modifiers.shift || i.modifiers.command) && i.key_pressed(egui::Key::D)) {
+            if let Some(ann_id) = state.selected_annotation {
+                dup_ann = Some(ann_id);
+            } else if active_idx < state.project.assets.len() {
+                dup_idx = Some(active_idx);
+            }
+        }
+    }
 
     let show_ann_collection = !state.project.annotations.is_empty()
         || !state.project.annotation_groups.is_empty()
@@ -887,16 +925,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                                     outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
                                     let item_label = format!("{name} ({vc}v, {fc}f)");
-                                    let label_resp = ui.label(
-                                        egui::RichText::new(item_label)
-                                            .size(11.0)
-                                            .color(fg)
-                                            .background_color(if is_selected {
-                                                tokens::ACCENT_BLUE
-                                            } else {
-                                                Color32::TRANSPARENT
-                                            }),
+                                    let label_resp = ui.selectable_label(
+                                        is_selected,
+                                        egui::RichText::new(item_label).size(11.0).color(fg),
                                     );
+                                    if label_resp.clicked() {
+                                        state.set_active_asset_by_id(asset_id);
+                                        state.selected_annotation = None;
+                                        state.selected_measurement = None;
+                                        state.mark_dirty();
+                                    }
 
                                     label_resp.context_menu(|ui| {
                                         ui.menu_button("Move to Collection ›", |ui| {
@@ -979,18 +1017,15 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     ui.with_layout(
                                         egui::Layout::right_to_left(egui::Align::Center),
                                         |ui| {
-                                            if outliner_eye_button(
+                                            if outliner_icon_button(
                                                 ui,
-                                                visible,
-                                                if visible {
-                                                    "Hide in 3D Viewport"
-                                                } else {
-                                                    "Show in 3D Viewport"
-                                                },
+                                                &PetuniaIcon::Delete,
+                                                tokens::TEXT_MUTED,
+                                                "Delete object (Delete)",
                                             )
                                             .clicked()
                                             {
-                                                toggle_vis_idx = Some(i);
+                                                delete_idx = Some(i);
                                             }
 
                                             if outliner_lock_button(
@@ -1005,6 +1040,20 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             .clicked()
                                             {
                                                 toggle_lock_idx = Some(i);
+                                            }
+
+                                            if outliner_eye_button(
+                                                ui,
+                                                visible,
+                                                if visible {
+                                                    "Hide in 3D Viewport"
+                                                } else {
+                                                    "Show in 3D Viewport"
+                                                },
+                                            )
+                                            .clicked()
+                                            {
+                                                toggle_vis_idx = Some(i);
                                             }
                                         },
                                     );
@@ -1052,16 +1101,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                             outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
                             let item_label = format!("{name} ({vc}v, {fc}f)");
-                            let label_resp = ui.label(
-                                egui::RichText::new(item_label)
-                                    .size(11.0)
-                                    .color(fg)
-                                    .background_color(if is_selected {
-                                        tokens::ACCENT_BLUE
-                                    } else {
-                                        Color32::TRANSPARENT
-                                    }),
+                            let label_resp = ui.selectable_label(
+                                is_selected,
+                                egui::RichText::new(item_label).size(11.0).color(fg),
                             );
+                            if label_resp.clicked() {
+                                state.set_active_asset_by_id(asset_id);
+                                state.selected_annotation = None;
+                                state.selected_measurement = None;
+                                state.mark_dirty();
+                            }
 
                             label_resp.context_menu(|ui| {
                                 if !collections.is_empty() {
@@ -1130,18 +1179,15 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    if outliner_eye_button(
+                                    if outliner_icon_button(
                                         ui,
-                                        visible,
-                                        if visible {
-                                            "Hide in 3D Viewport"
-                                        } else {
-                                            "Show in 3D Viewport"
-                                        },
+                                        &PetuniaIcon::Delete,
+                                        tokens::TEXT_MUTED,
+                                        "Delete object (Delete)",
                                     )
                                     .clicked()
                                     {
-                                        toggle_vis_idx = Some(i);
+                                        delete_idx = Some(i);
                                     }
 
                                     if outliner_lock_button(
@@ -1156,6 +1202,20 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     .clicked()
                                     {
                                         toggle_lock_idx = Some(i);
+                                    }
+
+                                    if outliner_eye_button(
+                                        ui,
+                                        visible,
+                                        if visible {
+                                            "Hide in 3D Viewport"
+                                        } else {
+                                            "Show in 3D Viewport"
+                                        },
+                                    )
+                                    .clicked()
+                                    {
+                                        toggle_vis_idx = Some(i);
                                     }
                                 },
                             );
