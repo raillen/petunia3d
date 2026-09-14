@@ -709,3 +709,49 @@ fn test_frame_all_and_selection_dont_dirty_project() {
         "frame_all must not mark project dirty"
     );
 }
+
+#[test]
+fn test_instantiate_asset_command_and_undo() {
+    let mut state = AppState::default();
+    let asset_id = state.project.assets[0].id;
+    let initial_count = state.project.assets.len();
+
+    // 1. Instancia asset em posição específica
+    let cmd = petunia_core::InstantiateAssetCmd {
+        asset_id,
+        position: Some([5.0, 0.0, -2.0]),
+    };
+    state.dispatch(&cmd).expect("deve instanciar asset");
+    assert_eq!(state.project.assets.len(), initial_count + 1);
+    assert_eq!(state.project.active, initial_count);
+
+    let instantiated = &state.project.assets[state.project.active];
+    let center = instantiated.mesh.selection_center();
+    assert!((center[0] - 5.0).abs() < 1e-4);
+    assert!((center[1] - 0.0).abs() < 1e-4);
+    assert!((center[2] - (-2.0)).abs() < 1e-4);
+
+    // 2. Undo restaura estado anterior
+    assert!(state.undo());
+    assert_eq!(state.project.assets.len(), initial_count);
+
+    // 3. Redo restaura a instância
+    assert!(state.redo());
+    assert_eq!(state.project.assets.len(), initial_count + 1);
+
+    // 4. Teste via método auxiliar instantiate_asset_by_id
+    assert!(state.instantiate_asset_by_id(asset_id, Some([10.0, 2.0, 3.0])));
+    assert_eq!(state.project.assets.len(), initial_count + 2);
+    let center2 = state.project.assets.last().unwrap().mesh.selection_center();
+    assert!((center2[0] - 10.0).abs() < 1e-4);
+
+    // 5. Instanciação com ID inexistente falha graciosamente
+    assert!(!state.instantiate_asset_by_id(uuid::Uuid::new_v4(), None));
+}
+
+#[test]
+fn test_ui_state_defaults_wave_6() {
+    let state = AppState::default();
+    assert_eq!(state.ui.asset_thumbnail_size, 64.0);
+    assert!(!state.ui.inspector_detached);
+}

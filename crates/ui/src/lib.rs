@@ -146,9 +146,33 @@ pub fn right_panel(
         )
         .show(ctx, |ui| {
             outliner::draw(ui, state);
-            ui.separator();
-            properties_panel::draw(ctx, ui, state, tools, registry);
+            if !state.ui.inspector_detached {
+                ui.separator();
+                properties_panel::draw(ctx, ui, state, tools, registry);
+            }
         });
+
+    if state.ui.inspector_detached {
+        let mut is_open = true;
+        egui::Window::new("Properties Inspector")
+            .open(&mut is_open)
+            .default_size([280.0, 420.0])
+            .min_width(220.0)
+            .min_height(250.0)
+            .frame(
+                egui::Frame::new()
+                    .fill(tokens::BG_PANEL)
+                    .stroke(tokens::stroke_border())
+                    .inner_margin(egui::Margin::symmetric(6, 4)),
+            )
+            .show(ctx, |ui| {
+                properties_panel::draw(ctx, ui, state, tools, registry);
+            });
+        if !is_open {
+            state.ui.inspector_detached = false;
+            state.mark_dirty();
+        }
+    }
 }
 
 pub fn new_project(state: &mut AppState) {

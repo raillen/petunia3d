@@ -628,6 +628,8 @@ pub struct UiState {
     pub active_theme_id: String,
     pub active_icon_pack_id: String,
     pub active_keymap_id: String,
+    pub asset_thumbnail_size: f32,
+    pub inspector_detached: bool,
     pub timeline_frame: i32,
     pub timeline_start: i32,
     pub timeline_end: i32,
@@ -660,6 +662,8 @@ impl UiState {
             active_theme_id: "petunia-dark".to_string(),
             active_icon_pack_id: "tabler".to_string(),
             active_keymap_id: "petunia-default".to_string(),
+            asset_thumbnail_size: 64.0,
+            inspector_detached: false,
             timeline_frame: 1,
             timeline_start: 1,
             timeline_end: 250,
@@ -1232,6 +1236,33 @@ impl AppState {
                 v.pos[0] += cursor[0];
                 v.pos[1] += cursor[1];
                 v.pos[2] += cursor[2];
+            }
+            let name = new_asset.name.clone();
+            self.checkpoint("instantiate asset");
+            self.project.assets.push(new_asset);
+            self.project.active = self.project.assets.len() - 1;
+            self.sync_selection();
+            self.emit_mesh_changed();
+            self.set_status(format!("Asset '{}' instanciado na cena", name));
+            self.mark_dirty();
+            return true;
+        }
+        false
+    }
+
+    /// Cria uma nova instância de um asset da biblioteca na posição especificada ou no 3D Cursor.
+    pub fn instantiate_asset_by_id(
+        &mut self,
+        asset_id: uuid::Uuid,
+        position: Option<[f32; 3]>,
+    ) -> bool {
+        if let Some(pos) = self.project.assets.iter().position(|a| a.id == asset_id) {
+            let mut new_asset = self.project.assets[pos].duplicate();
+            let target_pos = position.unwrap_or(self.session.cursor_3d);
+            for v in &mut new_asset.mesh.verts {
+                v.pos[0] += target_pos[0];
+                v.pos[1] += target_pos[1];
+                v.pos[2] += target_pos[2];
             }
             let name = new_asset.name.clone();
             self.checkpoint("instantiate asset");

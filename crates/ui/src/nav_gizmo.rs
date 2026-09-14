@@ -10,6 +10,10 @@ use petunia_core::{
     Projection, SelectMode, SubdivideSelectionCmd, ViewPreset,
 };
 
+use crate::icon_registry::PetuniaIcon;
+use crate::tokens;
+use crate::widgets::PetuniaMenuItem;
+
 /// Screen coordinates of the 6 canonical world axes on the orientation sphere.
 #[derive(Debug, Clone, Copy)]
 pub struct ProjectedAxis {
@@ -513,85 +517,299 @@ pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
             egui::Frame::menu(ui.style()).show(ui, |ui| {
-                ui.set_min_width(170.0);
+                ui.set_min_width(190.0);
+
+                if state.is_active_locked() {
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            egui::RichText::new("Objeto Bloqueado")
+                                .color(tokens::TEXT_MUTED)
+                                .italics(),
+                        );
+                    });
+                    ui.separator();
+                    if PetuniaMenuItem::new("Fechar Menu")
+                        .shortcut(Some("Esc"))
+                        .show(ui)
+                        .clicked()
+                    {
+                        close_menu = true;
+                    }
+                    return;
+                }
 
                 let is_edit = state.mode == EditMode::Edit;
 
                 if is_edit {
                     match state.select_mode {
                         SelectMode::Vertex => {
-                            ui.label(egui::RichText::new("Vértice Contexto").strong());
+                            ui.label(
+                                egui::RichText::new("Vértice (Edit)")
+                                    .strong()
+                                    .color(tokens::TEXT_PRIMARY),
+                            );
                             ui.separator();
-                            if ui.button("Extrude Vértice · E").clicked() {
+                            if PetuniaMenuItem::new("Mover")
+                                .icon(PetuniaIcon::Move)
+                                .shortcut(Some("G"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.begin_modal(ModalKind::Move);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Extrude Vértice")
+                                .icon(PetuniaIcon::Extrude)
+                                .shortcut(Some("E"))
+                                .show(ui)
+                                .clicked()
+                            {
                                 let _ = state.begin_modal(ModalKind::Extrude);
                                 close_menu = true;
                             }
-                            if ui.button("Bevel Vértice · Ctrl+B").clicked() {
-                                let _ = state.begin_modal(ModalKind::Bevel);
+                            if PetuniaMenuItem::new("Merge no Centro")
+                                .shortcut(Some("Alt+M"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&petunia_core::MergeCenterCmd);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Subdividir")
+                                .icon(PetuniaIcon::Subdivide)
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&SubdivideSelectionCmd);
+                                close_menu = true;
+                            }
+                            ui.separator();
+                            if PetuniaMenuItem::new("Excluir Vértices")
+                                .icon(PetuniaIcon::Trash)
+                                .shortcut(Some("Delete"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&petunia_core::DeleteSelectionCmd);
                                 close_menu = true;
                             }
                         }
                         SelectMode::Edge => {
-                            ui.label(egui::RichText::new("Aresta Contexto").strong());
+                            ui.label(
+                                egui::RichText::new("Aresta (Edit)")
+                                    .strong()
+                                    .color(tokens::TEXT_PRIMARY),
+                            );
                             ui.separator();
-                            if ui.button("Bevel Aresta · Ctrl+B").clicked() {
+                            if PetuniaMenuItem::new("Mover")
+                                .icon(PetuniaIcon::Move)
+                                .shortcut(Some("G"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.begin_modal(ModalKind::Move);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Rotacionar")
+                                .icon(PetuniaIcon::Rotate)
+                                .shortcut(Some("R"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.begin_modal(ModalKind::Rotate);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Escalar")
+                                .icon(PetuniaIcon::Scale)
+                                .shortcut(Some("S"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.begin_modal(ModalKind::Scale);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Bevel Aresta")
+                                .icon(PetuniaIcon::Bevel)
+                                .shortcut(Some("Ctrl+B"))
+                                .show(ui)
+                                .clicked()
+                            {
                                 let _ = state.begin_modal(ModalKind::Bevel);
                                 close_menu = true;
                             }
-                            if ui.button("Loop Cut · Ctrl+R").clicked() {
+                            if PetuniaMenuItem::new("Loop Cut")
+                                .icon(PetuniaIcon::LoopCut)
+                                .shortcut(Some("Ctrl+R"))
+                                .show(ui)
+                                .clicked()
+                            {
                                 state.active_tool = "loop_cut".to_string();
                                 close_menu = true;
                             }
-                            if ui.button("Subdividir Aresta").clicked() {
+                            if PetuniaMenuItem::new("Subdividir")
+                                .icon(PetuniaIcon::Subdivide)
+                                .show(ui)
+                                .clicked()
+                            {
                                 let _ = state.dispatch(&SubdivideSelectionCmd);
+                                close_menu = true;
+                            }
+                            ui.separator();
+                            if PetuniaMenuItem::new("Excluir Arestas")
+                                .icon(PetuniaIcon::Trash)
+                                .shortcut(Some("Delete"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&petunia_core::DeleteSelectionCmd);
                                 close_menu = true;
                             }
                         }
                         SelectMode::Face => {
-                            ui.label(egui::RichText::new("Face Contexto").strong());
+                            ui.label(
+                                egui::RichText::new("Face (Edit)")
+                                    .strong()
+                                    .color(tokens::TEXT_PRIMARY),
+                            );
                             ui.separator();
-                            if ui.button("Extrude Região · E").clicked() {
+                            if PetuniaMenuItem::new("Extrude Região")
+                                .icon(PetuniaIcon::Extrude)
+                                .shortcut(Some("E"))
+                                .show(ui)
+                                .clicked()
+                            {
                                 let _ = state.begin_modal(ModalKind::Extrude);
                                 close_menu = true;
                             }
-                            if ui.button("Inset Faces · I").clicked() {
+                            if PetuniaMenuItem::new("Inset Faces")
+                                .icon(PetuniaIcon::Inset)
+                                .shortcut(Some("I"))
+                                .show(ui)
+                                .clicked()
+                            {
                                 let _ = state.begin_modal(ModalKind::Inset);
                                 close_menu = true;
                             }
-                            if ui.button("Bevel Face · Ctrl+B").clicked() {
+                            if PetuniaMenuItem::new("Bevel Face")
+                                .icon(PetuniaIcon::Bevel)
+                                .shortcut(Some("Ctrl+B"))
+                                .show(ui)
+                                .clicked()
+                            {
                                 let _ = state.begin_modal(ModalKind::Bevel);
                                 close_menu = true;
                             }
-                            if ui.button("Inverter Normais").clicked() {
+                            if PetuniaMenuItem::new("Push / Pull")
+                                .icon(PetuniaIcon::PushPull)
+                                .shortcut(Some("P"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.begin_modal(ModalKind::PushPull);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Subdividir")
+                                .icon(PetuniaIcon::Subdivide)
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&SubdivideSelectionCmd);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Inverter Normais").show(ui).clicked() {
                                 let _ = state.dispatch(&FlipNormalsCmd);
+                                close_menu = true;
+                            }
+                            if PetuniaMenuItem::new("Separar Seleção")
+                                .shortcut(Some("P"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&petunia_core::SeparateSelectionCmd);
+                                close_menu = true;
+                            }
+                            ui.separator();
+                            if PetuniaMenuItem::new("Excluir Faces")
+                                .icon(PetuniaIcon::Trash)
+                                .shortcut(Some("Delete"))
+                                .show(ui)
+                                .clicked()
+                            {
+                                let _ = state.dispatch(&petunia_core::DeleteSelectionCmd);
                                 close_menu = true;
                             }
                         }
                     }
                 } else {
-                    ui.label(egui::RichText::new("Objeto Contexto").strong());
+                    ui.label(
+                        egui::RichText::new("Objeto")
+                            .strong()
+                            .color(tokens::TEXT_PRIMARY),
+                    );
                     ui.separator();
-                    if ui.button("Mover · G").clicked() {
+                    if PetuniaMenuItem::new("Mover")
+                        .icon(PetuniaIcon::Move)
+                        .shortcut(Some("G"))
+                        .show(ui)
+                        .clicked()
+                    {
                         let _ = state.begin_modal(ModalKind::Move);
                         close_menu = true;
                     }
-                    if ui.button("Rotacionar · R").clicked() {
+                    if PetuniaMenuItem::new("Rotacionar")
+                        .icon(PetuniaIcon::Rotate)
+                        .shortcut(Some("R"))
+                        .show(ui)
+                        .clicked()
+                    {
                         let _ = state.begin_modal(ModalKind::Rotate);
                         close_menu = true;
                     }
-                    if ui.button("Escalar · S").clicked() {
+                    if PetuniaMenuItem::new("Escalar")
+                        .icon(PetuniaIcon::Scale)
+                        .shortcut(Some("S"))
+                        .show(ui)
+                        .clicked()
+                    {
                         let _ = state.begin_modal(ModalKind::Scale);
                         close_menu = true;
                     }
                     ui.separator();
-                    if ui.button("Duplicar").clicked() {
+                    if PetuniaMenuItem::new("Duplicar")
+                        .icon(PetuniaIcon::Duplicate)
+                        .shortcut(Some("Shift+D"))
+                        .show(ui)
+                        .clicked()
+                    {
                         let _ = state.dispatch(&DuplicateSelectionCmd);
+                        close_menu = true;
+                    }
+                    if PetuniaMenuItem::new("Cursor para Origem")
+                        .icon(PetuniaIcon::Cursor3D)
+                        .show(ui)
+                        .clicked()
+                    {
+                        state.session.cursor_3d = [0.0, 0.0, 0.0];
+                        state.set_status("3D Cursor centralizado na origem");
+                        close_menu = true;
+                    }
+                    if PetuniaMenuItem::new("Excluir Objeto")
+                        .icon(PetuniaIcon::Trash)
+                        .shortcut(Some("Delete"))
+                        .show(ui)
+                        .clicked()
+                    {
+                        let _ = state.dispatch(&petunia_core::DeleteAssetCmd { asset_index: None });
                         close_menu = true;
                     }
                 }
 
                 ui.separator();
-                if ui.button("Fechar Menu · Esc").clicked() {
+                if PetuniaMenuItem::new("Fechar Menu")
+                    .shortcut(Some("Esc"))
+                    .show(ui)
+                    .clicked()
+                {
                     close_menu = true;
                 }
             });

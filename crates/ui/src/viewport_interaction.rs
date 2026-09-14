@@ -1,7 +1,8 @@
 //! Overlays e arbitragem: modal > gizmo > navegação > seleção.
 use crate::{
     gizmo::{draw_gizmo, GizmoHandle, GizmoKind},
-    modal_viewport, tokens,
+    icon_registry::PetuniaIcon,
+    modal_viewport, tokens, widgets,
 };
 use egui::{Color32, PointerButton, Pos2, Rect};
 use glam::{Vec2, Vec3};
@@ -62,6 +63,51 @@ pub fn draw(
             state.camera_frame = None;
             state.camera.zoom(scroll);
             state.mark_dirty();
+        }
+    }
+
+    // Drag and Drop de Assets da Biblioteca para o Viewport 3D (P3D-044)
+    if egui::DragAndDrop::has_payload_of_type::<Uuid>(ctx) {
+        if let Some(hover_pos) = pointer {
+            painter.rect_stroke(
+                rect.shrink(3.0),
+                tokens::RADIUS_CONTAINER,
+                egui::Stroke::new(2.0_f32, tokens::ACCENT_BLUE),
+                egui::StrokeKind::Inside,
+            );
+
+            let ground_pt =
+                modal_viewport::plane_point(state, rect, hover_pos, Vec3::ZERO, Vec3::Y);
+            if let Some(pt) = ground_pt {
+                if let Some(sc) = modal_viewport::screen_point(&state.camera, rect, pt) {
+                    painter.circle_stroke(
+                        sc,
+                        14.0,
+                        egui::Stroke::new(2.0_f32, tokens::ACCENT_BLUE),
+                    );
+                    painter.circle_filled(sc, 3.0, tokens::ACCENT_BLUE);
+                    painter.text(
+                        sc + egui::vec2(0.0, 18.0),
+                        egui::Align2::CENTER_TOP,
+                        "Soltar para Instanciar",
+                        egui::FontId::proportional(11.0),
+                        tokens::TEXT_PRIMARY,
+                    );
+                }
+            }
+
+            if ctx.input(|i| i.pointer.any_released()) {
+                if let Some(payload) = egui::DragAndDrop::payload::<Uuid>(ctx) {
+                    let asset_id = *payload;
+                    let target_pos = ground_pt.map(|p| [p.x, p.y, p.z]);
+                    let _ = state.dispatch(&petunia_core::InstantiateAssetCmd {
+                        asset_id,
+                        position: target_pos,
+                    });
+                    egui::DragAndDrop::clear_payload(ctx);
+                    return true;
+                }
+            }
         }
     }
 
@@ -211,44 +257,88 @@ pub fn draw(
     response.context_menu(|ui| {
         if state.is_active_locked() {
             ui.label(
-                egui::RichText::new("Object Locked")
+                egui::RichText::new("Objeto Bloqueado")
                     .italics()
                     .color(tokens::TEXT_MUTED),
             );
             return;
         }
-        ui.label("Modelagem");
-        for (label, kind) in [
-            ("Mover · G", ModalKind::Move),
-            ("Rotacionar · R", ModalKind::Rotate),
-            ("Escalar · S", ModalKind::Scale),
-        ] {
-            if ui.button(label).clicked() {
-                state.pending_modal = Some(kind);
-                ui.close();
-            }
+        ui.label(
+            egui::RichText::new("Modelagem")
+                .strong()
+                .color(tokens::TEXT_PRIMARY),
+        );
+        ui.separator();
+        if widgets::PetuniaMenuItem::new("Mover")
+            .icon(PetuniaIcon::Move)
+            .shortcut(Some("G"))
+            .show(ui)
+            .clicked()
+        {
+            state.pending_modal = Some(ModalKind::Move);
+            ui.close();
+        }
+        if widgets::PetuniaMenuItem::new("Rotacionar")
+            .icon(PetuniaIcon::Rotate)
+            .shortcut(Some("R"))
+            .show(ui)
+            .clicked()
+        {
+            state.pending_modal = Some(ModalKind::Rotate);
+            ui.close();
+        }
+        if widgets::PetuniaMenuItem::new("Escalar")
+            .icon(PetuniaIcon::Scale)
+            .shortcut(Some("S"))
+            .show(ui)
+            .clicked()
+        {
+            state.pending_modal = Some(ModalKind::Scale);
+            ui.close();
         }
         let faces = state
             .project
             .active_mesh()
             .is_some_and(|m| m.selected_face_count() > 0);
         if faces {
-            for (label, kind) in [
-                ("Extrude · E", ModalKind::Extrude),
-                ("Inset · I", ModalKind::Inset),
-                ("Push/Pull · P", ModalKind::PushPull),
-            ] {
-                if ui.button(label).clicked() {
-                    state.pending_modal = Some(kind);
-                    ui.close();
-                }
+            ui.separator();
+            if widgets::PetuniaMenuItem::new("Extrude")
+                .icon(PetuniaIcon::Extrude)
+                .shortcut(Some("E"))
+                .show(ui)
+                .clicked()
+            {
+                state.pending_modal = Some(ModalKind::Extrude);
+                ui.close();
+            }
+            if widgets::PetuniaMenuItem::new("Inset")
+                .icon(PetuniaIcon::Inset)
+                .shortcut(Some("I"))
+                .show(ui)
+                .clicked()
+            {
+                state.pending_modal = Some(ModalKind::Inset);
+                ui.close();
+            }
+            if widgets::PetuniaMenuItem::new("Push / Pull")
+                .icon(PetuniaIcon::PushPull)
+                .shortcut(Some("P"))
+                .show(ui)
+                .clicked()
+            {
+                state.pending_modal = Some(ModalKind::PushPull);
+                ui.close();
             }
         }
         if state
             .project
             .active_mesh()
             .is_some_and(|m| !m.selected_edges.is_empty())
-            && ui.button("Bevel · Ctrl+B").clicked()
+            && widgets::PetuniaMenuItem::new("Bevel")
+                .icon(PetuniaIcon::Bevel)
+                .shortcut(Some("Ctrl+B"))
+                .show(ui)
+                .clicked()
         {
             state.pending_modal = Some(ModalKind::Bevel);
             ui.close();

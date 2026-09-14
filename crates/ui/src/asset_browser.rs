@@ -2,7 +2,7 @@
 //! Fornece visualização dedicada, busca, filtragem por categoria, instanciação
 //! na coordenada do 3D Cursor e gerenciamento de modelos salvos no projeto.
 
-use egui::{vec2, Align, Color32, Layout, RichText, ScrollArea, SidePanel, Ui};
+use egui::{vec2, Align, Color32, Layout, Rect, RichText, ScrollArea, SidePanel, Ui};
 use petunia_core::{AppState, DeleteAssetCmd, DuplicateAssetCmd};
 
 use crate::tokens;
@@ -78,6 +78,20 @@ fn draw_header(ui: &mut Ui, state: &mut AppState) {
             .data_mut(|d| d.insert_temp(filter_id, query.clone()));
         state.mark_dirty();
     }
+
+    ui.add_space(2.0);
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new("Miniaturas:")
+                .size(10.0)
+                .color(tokens::TEXT_MUTED),
+        );
+        ui.add(
+            egui::Slider::new(&mut state.ui.asset_thumbnail_size, 32.0..=128.0)
+                .show_value(false)
+                .step_by(16.0),
+        );
+    });
 }
 
 fn draw_categories(ui: &mut Ui, _state: &mut AppState) {
@@ -123,6 +137,14 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
         .trim()
         .to_lowercase();
 
+    let cat_id = egui::Id::new("asset_browser_active_category");
+    let active_cat = ui.ctx().data_mut(|d| {
+        d.get_temp::<String>(cat_id)
+            .unwrap_or_else(|| "all".to_string())
+    });
+
+    let thumb_sz = state.ui.asset_thumbnail_size.clamp(32.0, 128.0);
+
     let n = state.project.assets.len();
     if n == 0 {
         ui.add_space(20.0);
@@ -154,7 +176,52 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
 
             for i in 0..n {
                 let a = &state.project.assets[i];
-                if !query.is_empty() && !a.name.to_lowercase().contains(&query) {
+
+                // Filtragem por categoria
+                let cat_match = match active_cat.as_str() {
+                    "all" => true,
+                    "props" => {
+                        a.tags.iter().any(|t| t == "props")
+                            || a.collection
+                                .as_deref()
+                                .map(|c| c.eq_ignore_ascii_case("props"))
+                                .unwrap_or(false)
+                    }
+                    "chars" => {
+                        a.tags.iter().any(|t| t == "chars" || t == "character")
+                            || a.collection
+                                .as_deref()
+                                .map(|c| c.eq_ignore_ascii_case("chars") || c.eq_ignore_ascii_case("characters"))
+                                .unwrap_or(false)
+                    }
+                    "env" => {
+                        a.tags.iter().any(|t| t == "env" || t == "environment")
+                            || a.collection
+                                .as_deref()
+                                .map(|c| c.eq_ignore_ascii_case("env") || c.eq_ignore_ascii_case("environment"))
+                                .unwrap_or(false)
+                    }
+                    other => {
+                        a.tags.iter().any(|t| t == other)
+                            || a.collection
+                                .as_deref()
+                                .map(|c| c.eq_ignore_ascii_case(other))
+                                .unwrap_or(false)
+                    }
+                };
+                if !cat_match {
+                    continue;
+                }
+
+                // Filtragem por busca (nome, coleção, tags)
+                let search_match = query.is_empty()
+                    || a.name.to_lowercase().contains(&query)
+                    || a.tags.iter().any(|t| t.to_lowercase().contains(&query))
+                    || a.collection
+                        .as_deref()
+                        .map(|c| c.to_lowercase().contains(&query))
+                        .unwrap_or(false);
+                if !search_match {
                     continue;
                 }
 
@@ -163,6 +230,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                 let verts = a.mesh.vert_count();
                 let col = a.base_color;
                 let name = a.name.clone();
+                let asset_id = a.id;
 
                 let card_bg = if is_active {
                     tokens::BG_SURFACE_ACTIVE
@@ -182,29 +250,102 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                     .corner_radius(tokens::RADIUS_CONTROL)
                     .inner_margin(egui::Margin::symmetric(8, 6))
                     .show(ui, |ui| {
-                        // Linha 1: Ícone de cor + Nome + Status ativo
-                        ui.horizontal(|ui| {
-                            let (c_rect, _) = ui.allocate_exact_size(vec2(12.0, 12.0), egui::Sense::hover());
+                        if thumb_sz > 64.0 {
+                            // Layout Vertical: Thumbnail grande em cima, dados embaixo
+                            let (thumb_rect, thumb_resp) = ui.allocate_exact_size(
+                                vec2(ui.available_width(), thumb_sz * 0.7),
+                                egui::Sense::click_and_drag(),
+                            );
+                            if thumb_resp.drag_started() || thumb_resp.dragged() {
+                                egui::DragAndDrop::set_payload(ui.ctx(), asset_id);
+                                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                            }
+                            if thumb_resp.double_clicked() {
+                                to_instantiate = Some(i);
+                            } else if thumb_resp.clicked() {
+                                to_activate = Some(i);
+                            }
+
+                            // Renderiza thumbnail estilizado com base_color e silhueta
+                            let p = ui.painter();
+                            p.rect_filled(thumb_rect, tokens::RADIUS_SMALL, tokens::BG_INPUT);
                             let c_fill = Color32::from_rgb(
                                 (col[0] * 255.0) as u8,
                                 (col[1] * 255.0) as u8,
                                 (col[2] * 255.0) as u8,
                             );
-                            ui.painter().rect_filled(c_rect, tokens::RADIUS_SMALL, c_fill);
+                            let center = thumb_rect.center();
+                            let box_radius = (thumb_sz * 0.22).min(thumb_rect.height() * 0.4);
+                            p.rect_filled(
+                                Rect::from_center_size(center, vec2(box_radius * 2.0, box_radius * 2.0)),
+                                tokens::RADIUS_SMALL,
+                                c_fill.gamma_multiply(0.85),
+                            );
+                            p.rect_stroke(
+                                Rect::from_center_size(center, vec2(box_radius * 2.0, box_radius * 2.0)),
+                                tokens::RADIUS_SMALL,
+                                egui::Stroke::new(1.5_f32, Color32::WHITE.gamma_multiply(0.6)),
+                                egui::StrokeKind::Inside,
+                            );
 
-                            ui.label(RichText::new(&name).strong().size(11.5).color(tokens::TEXT_PRIMARY));
+                            ui.add_space(3.0);
+                            ui.horizontal(|ui| {
+                                ui.label(RichText::new(&name).strong().size(11.5).color(tokens::TEXT_PRIMARY));
+                                if is_active {
+                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                        ui.label(
+                                            RichText::new("● ATIVO")
+                                                .size(9.0)
+                                                .strong()
+                                                .color(tokens::ACCENT_BLUE),
+                                        );
+                                    });
+                                }
+                            });
+                        } else {
+                            // Layout Horizontal: Linha 1 com miniatura integrada
+                            ui.horizontal(|ui| {
+                                let (thumb_rect, thumb_resp) = ui.allocate_exact_size(
+                                    vec2(thumb_sz * 0.5, thumb_sz * 0.5),
+                                    egui::Sense::click_and_drag(),
+                                );
+                                if thumb_resp.drag_started() || thumb_resp.dragged() {
+                                    egui::DragAndDrop::set_payload(ui.ctx(), asset_id);
+                                    ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                                }
+                                if thumb_resp.double_clicked() {
+                                    to_instantiate = Some(i);
+                                } else if thumb_resp.clicked() {
+                                    to_activate = Some(i);
+                                }
 
-                            if is_active {
-                                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                    ui.label(
-                                        RichText::new("● ATIVO")
-                                            .size(9.0)
-                                            .strong()
-                                            .color(tokens::ACCENT_BLUE),
-                                    );
-                                });
-                            }
-                        });
+                                let c_fill = Color32::from_rgb(
+                                    (col[0] * 255.0) as u8,
+                                    (col[1] * 255.0) as u8,
+                                    (col[2] * 255.0) as u8,
+                                );
+                                ui.painter().rect_filled(thumb_rect, tokens::RADIUS_SMALL, c_fill);
+                                ui.painter().rect_stroke(
+                                    thumb_rect,
+                                    tokens::RADIUS_SMALL,
+                                    egui::Stroke::new(1.0_f32, Color32::WHITE.gamma_multiply(0.4)),
+                                    egui::StrokeKind::Inside,
+                                );
+
+                                ui.label(RichText::new(&name).strong().size(11.5).color(tokens::TEXT_PRIMARY));
+
+                                if is_active {
+                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                        ui.label(
+                                            RichText::new("● ATIVO")
+                                                .size(9.0)
+                                                .strong()
+                                                .color(tokens::ACCENT_BLUE),
+                                        );
+                                    });
+                                }
+                            });
+                        }
 
                         // Linha 2: Métricas de Geometria
                         ui.label(

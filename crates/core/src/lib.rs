@@ -35,13 +35,13 @@ pub use command::{
     CommandDispatcher, CommandError, CommandMetadata, CommandPaletteItem, CycleSelectionDomainCmd,
     DeleteAssetCmd, DeleteSelectionCmd, DuplicateAssetCmd, DuplicateSelectionCmd, ExportGlbCmd,
     ExportObjCmd, ExtrudeIndividualCmd, ExtrudeSelectedCmd, FlipDiagonalCmd, FlipNormalsCmd,
-    FrameSelectionCmd, ImportObjCmd, InsetFacesCmd, InvertSelectionCmd, MergeCenterCmd,
-    NewProjectCmd, PrimitiveKind, RedoCmd, ResetCameraCmd, RevolveCmd, SaveActiveAsAssetCmd,
-    SaveProjectAsCmd, SaveProjectCmd, SelectAllCmd, SelectLinkedCmd, SeparateSelectionCmd,
-    SetAssetCollectionCmd, SetSelectionDomainCmd, SubdivideSelectionCmd, ToggleCollectionLockCmd,
-    ToggleCollectionVisibilityCmd, ToggleCommandPaletteCmd, ToggleHelpCmd, ToggleLockAssetCmd,
-    ToggleProjectionCmd, ToggleSettingsCmd, ToggleVisibilityAssetCmd, ToggleWireframeCmd,
-    ToggleXRayCmd, UndoCmd,
+    FrameSelectionCmd, ImportObjCmd, InsetFacesCmd, InstantiateAssetCmd, InvertSelectionCmd,
+    MergeCenterCmd, NewProjectCmd, PrimitiveKind, RedoCmd, ResetCameraCmd, RevolveCmd,
+    SaveActiveAsAssetCmd, SaveProjectAsCmd, SaveProjectCmd, SelectAllCmd, SelectLinkedCmd,
+    SeparateSelectionCmd, SetAssetCollectionCmd, SetSelectionDomainCmd, SubdivideSelectionCmd,
+    ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd, ToggleCommandPaletteCmd, ToggleHelpCmd,
+    ToggleLockAssetCmd, ToggleProjectionCmd, ToggleSettingsCmd, ToggleVisibilityAssetCmd,
+    ToggleWireframeCmd, ToggleXRayCmd, UndoCmd,
 };
 pub use project_service::{sanitize_filename, ProjectService, ProjectServiceError};
 

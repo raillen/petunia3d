@@ -3,6 +3,37 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.27.0] - 2026-09-14 — Master Implementation Gauntlet: Wave 6 (Scene, Assets, Outliner & Inspector)
+
+### Adicionado
+- **P3D-042 / P3D-043 / P3D-044 / P3D-045 — Asset Browser, Filtragem & Drag-and-Drop Workflow (`crates/ui/src/asset_browser.rs`, `crates/ui/src/viewport_interaction.rs`, `crates/core/src/command.rs`)**:
+  - Novo comando semântico de domínio `model.instantiate_asset` (`InstantiateAssetCmd`) e método auxiliar `AppState::instantiate_asset_by_id`, permitindo criar instâncias independentes de modelos catalogados na biblioteca em coordenadas arbitrárias ou no 3D Cursor.
+  - Suporte de primeira classe para Drag-and-Drop (`egui::DragAndDrop`) arrastando miniaturas do Asset Browser diretamente para o Viewport 3D.
+  - Interseção por raycast contra o plano de chão $Y=0$ (`modal_viewport::plane_point`), exibição de indicador de alvo e anel no viewport e instanciação exata no ponto de soltura com limpeza de payload.
+  - Controle configurável de tamanho de miniaturas (`state.ui.asset_thumbnail_size`, 32px a 128px) com slider de zoom dinâmico e layouts responsivos para visualização em lista ou cartões expandidos.
+  - Filtragem multi-critério: busca textual abrangendo nome, tags e coleção, além de abas de categoria (Props, Chars, Env).
+- **P3D-046 / P3D-047 / P3D-082 — Outliner & Context Menus Padronizados (`crates/ui/src/outliner.rs`, `crates/ui/src/widgets.rs`)**:
+  - Modernização completa dos menus de contexto da árvore do Outliner e dos nós de objetos e coleções com o widget `PetuniaMenuItem`, ícones semânticos vetoriais e badges de atalho.
+  - Bloqueio rigoroso de assets bloqueados (`locked`), impedindo interação de gizmo, transformações e seleções acidentais no viewport.
+- **P3D-048 / P3D-078 — Inspector Destacável em Janela Flutuante (`crates/ui/src/lib.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Novo estado de UI `inspector_detached: bool` com botão de alternância estilizado no cabeçalho das abas de propriedades (`PetuniaIcon::Maximize` / `Minimize`).
+  - Quando ancorado: divide o painel lateral direito com o Outliner.
+  - Quando destacado: expande o Outliner para a altura total da barra lateral e abre o Properties Inspector em janela flutuante, redimensionável e móvel (`egui::Window`).
+- **P3D-049 — Live Transform Inspector (`crates/ui/src/properties_panel.rs`)**:
+  - Inspeção contínua e edição interativa de Location X, Y, Z e Scale diretamente sincronizados com o centróide real da geometria ativa (`mesh.selection_center()`).
+  - Atualização em tempo real da malha com checkpoint atômico único de histórico no evento `drag_stopped()`.
+  - Ação "Reset to Origin" centralizando o objeto e seus vértices de volta à origem do mundo `[0.0, 0.0, 0.0]`.
+- **P3D-082 / P3D-083 — Menus de Contexto do Viewport & Segregação de Propriedades de Ferramentas (`crates/ui/src/nav_gizmo.rs`, `crates/ui/src/viewport_interaction.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Menu de contexto RMB do Viewport totalmente adaptativo ao domínio de seleção ativo (`Object`, `Vertex`, `Edge`, `Face`), utilizando `PetuniaMenuItem`.
+  - Aba "tool" dedicada para parâmetros de ferramentas ativas de modelagem e transformação isolada das propriedades de objetos.
+- **Qualidade & Testes**:
+  - Adicionados testes de comandos unitários para instanciação de assets e undo.
+  - Adicionados novos fluxos de teste de UI com `egui_kittest` (totalizando 10 fluxos de integração).
+  - 88/88 testes de UI aprovados.
+  - `cargo fmt`, `cargo clippy -D warnings`, `xtask arch-check` e `xtask docs-check` aprovados com 100% de conformidade.
+
+---
+
 ## [0.26.0] - 2026-09-14 — Master Implementation Gauntlet: Wave 5 (Selection, Transform & Modeling Core)
 
 ### Adicionado

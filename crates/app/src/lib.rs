@@ -415,7 +415,7 @@ impl Core {
             "global.save_project" => {
                 self.save_requested = true;
             }
-            "global.toggle_wireframe" => {
+            "global.toggle_wireframe" | "view.toggle_wireframe" => {
                 self.state.shading = match self.state.shading {
                     petunia_render::Shading::Wireframe => petunia_render::Shading::Solid,
                     _ => petunia_render::Shading::Wireframe,
@@ -426,7 +426,7 @@ impl Core {
                 self.state.ui.show_help = !self.state.ui.show_help;
                 self.state.mark_dirty();
             }
-            "global.command_palette" => {
+            "global.command_palette" | "window.command_palette" => {
                 self.state.ui.show_command_palette = !self.state.ui.show_command_palette;
                 if self.state.ui.show_command_palette {
                     self.state.ui.command_palette_query.clear();
@@ -438,12 +438,12 @@ impl Core {
                 self.state.ui.show_settings = !self.state.ui.show_settings;
                 self.state.mark_dirty();
             }
-            "global.toggle_projection" => {
+            "global.toggle_projection" | "view.toggle_projection" => {
                 self.state.camera_frame = None;
                 self.state.camera.toggle_projection();
                 self.state.mark_dirty();
             }
-            "global.reset_camera" => {
+            "global.reset_camera" | "view.reset_camera" => {
                 self.state.camera_frame = None;
                 self.state.camera.reset();
                 self.state.mark_dirty();

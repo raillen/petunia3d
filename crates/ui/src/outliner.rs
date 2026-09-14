@@ -787,7 +787,11 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             .color(tokens::TEXT_PRIMARY),
                                     );
                                     col_resp.context_menu(|ui| {
-                                        if ui.button("Rename Collection").clicked() {
+                                        if widgets::PetuniaMenuItem::new("Rename Collection")
+                                            .icon(PetuniaIcon::Folder)
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             ui.data_mut(|d| {
                                                 d.insert_temp(rename_id, col_for_closure.clone());
                                                 d.insert_temp(
@@ -797,16 +801,30 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             });
                                             ui.close();
                                         }
-                                        if ui.button("Delete Collection").clicked() {
+                                        if widgets::PetuniaMenuItem::new("Delete Collection")
+                                            .icon(PetuniaIcon::Trash)
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             delete_col = Some(col_for_closure.clone());
                                             ui.close();
                                         }
                                         ui.separator();
-                                        if ui.button("Toggle Collection Visibility").clicked() {
+                                        if widgets::PetuniaMenuItem::new(
+                                            "Toggle Collection Visibility",
+                                        )
+                                        .icon(PetuniaIcon::Eye)
+                                        .show(ui)
+                                        .clicked()
+                                        {
                                             toggle_col_vis = Some(col_for_closure.clone());
                                             ui.close();
                                         }
-                                        if ui.button("Toggle Collection Lock").clicked() {
+                                        if widgets::PetuniaMenuItem::new("Toggle Collection Lock")
+                                            .icon(PetuniaIcon::Lock)
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             toggle_col_lock = Some(col_for_closure.clone());
                                             ui.close();
                                         }
@@ -882,7 +900,10 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                                     label_resp.context_menu(|ui| {
                                         ui.menu_button("Move to Collection ›", |ui| {
-                                            if ui.button("None (Root)").clicked() {
+                                            if widgets::PetuniaMenuItem::new("None (Root)")
+                                                .show(ui)
+                                                .clicked()
+                                            {
                                                 move_to_col = Some((i, None));
                                                 ui.close();
                                             }
@@ -896,37 +917,60 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                                 } else {
                                                     col.clone()
                                                 };
-                                                if ui.button(label).clicked() {
+                                                if widgets::PetuniaMenuItem::new(&label)
+                                                    .icon(PetuniaIcon::Folder)
+                                                    .show(ui)
+                                                    .clicked()
+                                                {
                                                     move_to_col = Some((i, Some(col.clone())));
                                                     ui.close();
                                                 }
                                             }
                                         });
                                         ui.separator();
-                                        let lock_txt = if locked {
-                                            "Unlock Object"
+                                        let (lock_txt, lock_icon) = if locked {
+                                            ("Unlock Object", PetuniaIcon::Unlock)
                                         } else {
-                                            "Lock Object"
+                                            ("Lock Object", PetuniaIcon::Lock)
                                         };
-                                        if ui.button(lock_txt).clicked() {
+                                        if widgets::PetuniaMenuItem::new(lock_txt)
+                                            .icon(lock_icon)
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             toggle_lock_idx = Some(i);
                                             ui.close();
                                         }
                                         let iso_txt = if state.isolate_active && is_selected {
                                             "Restore Visibility (Exit Isolate)"
                                         } else {
-                                            "Isolate Object (Numpad /)"
+                                            "Isolate Object"
                                         };
-                                        if ui.button(iso_txt).clicked() {
+                                        if widgets::PetuniaMenuItem::new(iso_txt)
+                                            .icon(PetuniaIcon::Eye)
+                                            .shortcut(Some("Numpad /"))
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             isolate_idx = Some(i);
                                             ui.close();
                                         }
                                         ui.separator();
-                                        if ui.button("Duplicate · Shift+D").clicked() {
+                                        if widgets::PetuniaMenuItem::new("Duplicate")
+                                            .icon(PetuniaIcon::Duplicate)
+                                            .shortcut(Some("Shift+D"))
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             dup_idx = Some(i);
                                             ui.close();
                                         }
-                                        if ui.button("Delete · X").clicked() {
+                                        if widgets::PetuniaMenuItem::new("Delete")
+                                            .icon(PetuniaIcon::Trash)
+                                            .shortcut(Some("Delete"))
+                                            .show(ui)
+                                            .clicked()
+                                        {
                                             delete_idx = Some(i);
                                             ui.close();
                                         }
@@ -1023,7 +1067,11 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 if !collections.is_empty() {
                                     ui.menu_button("Move to Collection ›", |ui| {
                                         for col in &collections {
-                                            if ui.button(col).clicked() {
+                                            if widgets::PetuniaMenuItem::new(col)
+                                                .icon(PetuniaIcon::Folder)
+                                                .show(ui)
+                                                .clicked()
+                                            {
                                                 move_to_col = Some((i, Some(col.clone())));
                                                 ui.close();
                                             }
@@ -1031,30 +1079,49 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                     });
                                     ui.separator();
                                 }
-                                let lock_txt = if locked {
-                                    "Unlock Object"
+                                let (lock_txt, lock_icon) = if locked {
+                                    ("Unlock Object", PetuniaIcon::Unlock)
                                 } else {
-                                    "Lock Object"
+                                    ("Lock Object", PetuniaIcon::Lock)
                                 };
-                                if ui.button(lock_txt).clicked() {
+                                if widgets::PetuniaMenuItem::new(lock_txt)
+                                    .icon(lock_icon)
+                                    .show(ui)
+                                    .clicked()
+                                {
                                     toggle_lock_idx = Some(i);
                                     ui.close();
                                 }
                                 let iso_txt = if state.isolate_active && is_selected {
                                     "Restore Visibility (Exit Isolate)"
                                 } else {
-                                    "Isolate Object (Numpad /)"
+                                    "Isolate Object"
                                 };
-                                if ui.button(iso_txt).clicked() {
+                                if widgets::PetuniaMenuItem::new(iso_txt)
+                                    .icon(PetuniaIcon::Eye)
+                                    .shortcut(Some("Numpad /"))
+                                    .show(ui)
+                                    .clicked()
+                                {
                                     isolate_idx = Some(i);
                                     ui.close();
                                 }
                                 ui.separator();
-                                if ui.button("Duplicate · Shift+D").clicked() {
+                                if widgets::PetuniaMenuItem::new("Duplicate")
+                                    .icon(PetuniaIcon::Duplicate)
+                                    .shortcut(Some("Shift+D"))
+                                    .show(ui)
+                                    .clicked()
+                                {
                                     dup_idx = Some(i);
                                     ui.close();
                                 }
-                                if ui.button("Delete · X").clicked() {
+                                if widgets::PetuniaMenuItem::new("Delete")
+                                    .icon(PetuniaIcon::Trash)
+                                    .shortcut(Some("Delete"))
+                                    .show(ui)
+                                    .clicked()
+                                {
                                     delete_idx = Some(i);
                                     ui.close();
                                 }

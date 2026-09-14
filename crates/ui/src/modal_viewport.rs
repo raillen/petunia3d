@@ -347,7 +347,13 @@ fn projected_distance(
     }
 }
 
-fn plane_point(state: &AppState, rect: Rect, pos: Pos2, pivot: Vec3, normal: Vec3) -> Option<Vec3> {
+pub(crate) fn plane_point(
+    state: &AppState,
+    rect: Rect,
+    pos: Pos2,
+    pivot: Vec3,
+    normal: Vec3,
+) -> Option<Vec3> {
     let nx = (pos.x - rect.left()) / rect.width() * 2.0 - 1.0;
     let ny = 1.0 - (pos.y - rect.top()) / rect.height() * 2.0;
     let (origin, direction) = state.camera.ray(nx, ny);
@@ -360,7 +366,7 @@ fn plane_point(state: &AppState, rect: Rect, pos: Pos2, pivot: Vec3, normal: Vec
     (distance >= 0.0 && point.is_finite()).then_some(point)
 }
 
-fn screen_point(camera: &petunia_core::Camera, rect: Rect, point: Vec3) -> Option<Pos2> {
+pub(crate) fn screen_point(camera: &petunia_core::Camera, rect: Rect, point: Vec3) -> Option<Pos2> {
     let clip = camera.view_proj() * point.extend(1.0);
     if !clip.is_finite() || clip.w <= 0.0 {
         return None;

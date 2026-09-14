@@ -606,6 +606,19 @@ impl CommandDispatcher {
             .with_docs(DocsTopic::Modeling),
             SeparateSelectionCmd,
         );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.instantiate_asset",
+                "Instantiate Asset",
+                "Instantiate a library asset into the active 3D scene",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Assets),
+            InstantiateAssetCmd {
+                asset_id: uuid::Uuid::nil(),
+                position: None,
+            },
+        );
 
         // 5. Visualização (View)
         d.register_with_meta(
@@ -948,6 +961,54 @@ impl Command for DuplicateAssetCmd {
         state.project.assets.push(copy);
         state.project.active = state.project.assets.len() - 1;
         state.set_status(format!("Duplicated {}", copy_name));
+        Ok(())
+    }
+}
+
+/// Comando para instanciar um asset na cena em uma posição específica ou no 3D Cursor.
+#[derive(Debug, Clone)]
+pub struct InstantiateAssetCmd {
+    pub asset_id: uuid::Uuid,
+    pub position: Option<[f32; 3]>,
+}
+
+impl Command for InstantiateAssetCmd {
+    fn label(&self) -> &'static str {
+        "instantiate asset"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.project.assets.iter().any(|a| a.id == self.asset_id) {
+            Ok(())
+        } else {
+            Err("Asset not found in project library")
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(asset) = state
+            .project
+            .assets
+            .iter()
+            .find(|a| a.id == self.asset_id)
+            .cloned()
+        else {
+            return Err(CommandError::Execution("Asset not found".to_string()));
+        };
+
+        let mut instance = asset.duplicate();
+        let target_pos = self.position.unwrap_or(state.session.cursor_3d);
+        for v in &mut instance.mesh.verts {
+            v.pos[0] += target_pos[0];
+            v.pos[1] += target_pos[1];
+            v.pos[2] += target_pos[2];
+        }
+        let name = instance.name.clone();
+        state.project.assets.push(instance);
+        state.project.active = state.project.assets.len() - 1;
+        state.sync_selection();
+        state.emit_mesh_changed();
+        state.set_status(format!("Instantiated '{}'", name));
         Ok(())
     }
 }

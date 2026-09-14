@@ -132,6 +132,40 @@ fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
                         state.mark_dirty();
                     }
                 }
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let (icon, tip) = if state.ui.inspector_detached {
+                        (PetuniaIcon::Minimize, "Dock Inspector in Sidepanel")
+                    } else {
+                        (
+                            PetuniaIcon::Maximize,
+                            "Detach Inspector into Floating Window",
+                        )
+                    };
+                    let (rect, resp) =
+                        ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::click());
+                    if ui.is_rect_visible(rect) {
+                        let fill = if resp.hovered() {
+                            tokens::BG_SURFACE_HOVER
+                        } else {
+                            Color32::TRANSPARENT
+                        };
+                        ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
+                        let icon_rect =
+                            egui::Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+                        IconRegistry::paint(
+                            ui.ctx(),
+                            ui.painter(),
+                            &icon,
+                            icon_rect,
+                            tokens::TEXT_SECONDARY,
+                        );
+                    }
+                    if resp.on_hover_text(tip).clicked() {
+                        state.ui.inspector_detached = !state.ui.inspector_detached;
+                        state.mark_dirty();
+                    }
+                });
             });
         });
 }
@@ -159,12 +193,19 @@ fn draw_tab_tool(
     _tools: &ToolRegistry,
     fields: bool,
 ) {
-    if !fields {
-        let active_id = state.active_tool.clone();
-        egui::CollapsingHeader::new(format!("Active Tool: {active_id}"))
+    let active_id = state.active_tool.clone();
+    egui::CollapsingHeader::new(format!("Active Tool: {active_id}"))
+        .default_open(true)
+        .show(ui, |ui| {
+            crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active_id);
+        });
+
+    if !fields && state.modal.is_some() {
+        ui.add_space(4.0);
+        egui::CollapsingHeader::new("Active Transform Operation")
             .default_open(true)
             .show(ui, |ui| {
-                crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active_id);
+                tool_fields::draw(ui, state);
             });
     }
 }
@@ -253,16 +294,69 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
 
             ui.add_space(4.0);
 
-            // Location X, Y, Z com cores semânticas nos rótulos
+            // Location X, Y, Z vinculados ao centróide da malha ativa (P3D-049)
+            let cur_loc = if let Some(asset) = state.project.assets.get(idx) {
+                asset.mesh.selection_center()
+            } else {
+                [0.0, 0.0, 0.0]
+            };
+            let mut edit_loc = cur_loc;
+            let mut loc_changed = false;
+            let mut loc_stopped = false;
+
             ui.label(egui::RichText::new("Location").strong().size(11.0));
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
-                ui.add(egui::DragValue::new(&mut state.transform_delta[0]).speed(0.05));
+                let rx = ui.add(egui::DragValue::new(&mut edit_loc[0]).speed(0.05));
+                if rx.changed() {
+                    loc_changed = true;
+                }
+                if rx.drag_stopped() {
+                    loc_stopped = true;
+                }
+
                 ui.label(egui::RichText::new("Y").color(tokens::AXIS_Y).strong());
-                ui.add(egui::DragValue::new(&mut state.transform_delta[1]).speed(0.05));
+                let ry = ui.add(egui::DragValue::new(&mut edit_loc[1]).speed(0.05));
+                if ry.changed() {
+                    loc_changed = true;
+                }
+                if ry.drag_stopped() {
+                    loc_stopped = true;
+                }
+
                 ui.label(egui::RichText::new("Z").color(tokens::AXIS_Z).strong());
-                ui.add(egui::DragValue::new(&mut state.transform_delta[2]).speed(0.05));
+                let rz = ui.add(egui::DragValue::new(&mut edit_loc[2]).speed(0.05));
+                if rz.changed() {
+                    loc_changed = true;
+                }
+                if rz.drag_stopped() {
+                    loc_stopped = true;
+                }
             });
+
+            if loc_changed {
+                let delta = [
+                    edit_loc[0] - cur_loc[0],
+                    edit_loc[1] - cur_loc[1],
+                    edit_loc[2] - cur_loc[2],
+                ];
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    let has_sel = asset.mesh.verts.iter().any(|v| v.selected);
+                    for v in &mut asset.mesh.verts {
+                        if !has_sel || v.selected {
+                            v.pos[0] += delta[0];
+                            v.pos[1] += delta[1];
+                            v.pos[2] += delta[2];
+                        }
+                    }
+                }
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+            if loc_stopped {
+                state.checkpoint("transform object location");
+                state.mark_dirty();
+            }
 
             ui.add_space(2.0);
 
@@ -291,7 +385,7 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
 
             ui.add_space(2.0);
 
-            // Scale
+            // Scale uniforme interativo
             ui.label(egui::RichText::new("Scale").strong().size(11.0));
             ui.horizontal(|ui| {
                 ui.label(
@@ -299,12 +393,56 @@ fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
                         .size(11.0)
                         .color(tokens::TEXT_SECONDARY),
                 );
-                ui.add(
-                    egui::DragValue::new(&mut state.transform_scale)
-                        .speed(0.02)
-                        .range(0.01..=100.0),
+                let mut s_val = 1.0_f32;
+                let s_resp = ui.add(
+                    egui::DragValue::new(&mut s_val)
+                        .speed(0.01)
+                        .range(0.01..=10.0)
+                        .custom_formatter(|n, _| format!("{:.2}x", n)),
                 );
+                if s_resp.changed() && (s_val - 1.0).abs() > 0.001 {
+                    if let Some(asset) = state.project.assets.get_mut(idx) {
+                        let c = glam::Vec3::from(asset.mesh.selection_center());
+                        for v in &mut asset.mesh.verts {
+                            let p = glam::Vec3::from(v.pos);
+                            let np = c + (p - c) * s_val;
+                            v.pos = np.to_array();
+                        }
+                    }
+                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                }
+                if s_resp.drag_stopped() {
+                    state.checkpoint("scale object");
+                    state.mark_dirty();
+                }
             });
+
+            ui.add_space(3.0);
+
+            // Botão "Reset Transform" para centralizar na origem do mundo
+            if widgets::petunia_action_button(
+                ui,
+                Some(PetuniaIcon::Transform),
+                "Reset to Origin",
+                false,
+            )
+            .on_hover_text("Centraliza o objeto na origem do mundo (0, 0, 0)")
+            .clicked()
+            {
+                state.checkpoint("reset transform to origin");
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    let center = asset.mesh.selection_center();
+                    for v in &mut asset.mesh.verts {
+                        v.pos[0] -= center[0];
+                        v.pos[1] -= center[1];
+                        v.pos[2] -= center[2];
+                    }
+                }
+                state.emit_mesh_changed();
+                state.set_status("Objeto centralizado na origem");
+                state.mark_dirty();
+            }
 
             ui.separator();
 
