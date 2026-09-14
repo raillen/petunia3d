@@ -154,11 +154,15 @@ pub fn right_panel(
 
     if state.ui.inspector_detached {
         let mut is_open = true;
+        let screen_rect = ctx.screen_rect();
+        let max_w = (screen_rect.width() - 32.0).max(280.0);
+        let max_h = (screen_rect.height() - 32.0).max(250.0);
         egui::Window::new("Properties Inspector")
             .open(&mut is_open)
             .default_size([280.0, 420.0])
             .min_width(220.0)
             .min_height(250.0)
+            .max_size(egui::vec2(max_w, max_h))
             .frame(
                 egui::Frame::new()
                     .fill(tokens::BG_PANEL)

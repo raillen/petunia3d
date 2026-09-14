@@ -27,6 +27,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     // Modal/overlay centralizado
     let screen_rect = ctx.screen_rect();
     let palette_width = 560.0_f32.min(screen_rect.width() - 32.0);
+    let max_h = (screen_rect.height() - 64.0).max(300.0);
 
     egui::Window::new("Command Palette")
         .title_bar(false)
@@ -34,6 +35,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         .collapsible(false)
         .anchor(Align2::CENTER_TOP, vec2(0.0, 72.0))
         .fixed_size(vec2(palette_width, 0.0))
+        .max_size(vec2(palette_width, max_h))
         .frame(
             egui::Frame::new()
                 .fill(tokens::BG_PANEL)
@@ -118,7 +120,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             } else {
                 egui::ScrollArea::vertical()
                     .max_height(340.0)
-                    .auto_shrink([false, true])
+                    .auto_shrink([true, true])
                     .show(ui, |ui| {
                         ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
 

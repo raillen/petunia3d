@@ -165,7 +165,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
 
     ScrollArea::vertical()
         .id_salt("asset_browser_cards_scroll")
-        .auto_shrink([false, false])
+        .auto_shrink([true, false])
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = vec2(0.0, 6.0);
 

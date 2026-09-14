@@ -22,11 +22,14 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let screen_rect = ctx.screen_rect();
     let default_width = (screen_rect.width() * 0.65).clamp(420.0, 780.0);
     let default_height = (screen_rect.height() * 0.60).clamp(340.0, 600.0);
+    let max_width = (screen_rect.width() - 32.0).max(420.0);
+    let max_height = (screen_rect.height() - 32.0).max(340.0);
 
     Window::new(RichText::new("Project Asset Library").strong().size(14.0))
         .open(&mut open)
         .default_size(vec2(default_width, default_height))
         .min_size(vec2(380.0, 280.0))
+        .max_size(vec2(max_width, max_height))
         .resizable(true)
         .collapsible(false)
         .frame(
@@ -108,11 +111,13 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
                 .data_mut(|d| d.insert_temp(filter_id, search_query.clone()));
         }
 
-        ui.label(
-            RichText::new(format!("Total: {} asset(s)", state.project.assets.len()))
-                .size(11.0)
-                .color(tokens::TEXT_SECONDARY),
-        );
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            ui.label(
+                RichText::new(format!("Total: {} asset(s)", state.project.assets.len()))
+                    .size(11.0)
+                    .color(tokens::TEXT_SECONDARY),
+            );
+        });
     });
 
     ui.add_space(8.0);
@@ -125,7 +130,7 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
     let mut to_remove: Option<usize> = None;
 
     ScrollArea::vertical()
-        .auto_shrink([false, false])
+        .auto_shrink([true, false])
         .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing = vec2(10.0, 10.0);

@@ -28,9 +28,18 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
   - Aba "tool" dedicada para parâmetros de ferramentas ativas de modelagem e transformação isolada das propriedades de objetos.
 - **Qualidade & Testes**:
   - Adicionados testes de comandos unitários para instanciação de assets e undo.
-  - Adicionados novos fluxos de teste de UI com `egui_kittest` (totalizando 10 fluxos de integração).
-  - 88/88 testes de UI aprovados.
+  - Adicionados novos fluxos de teste de UI com `egui_kittest` (totalizando 14 fluxos de integração).
+  - 88/88 testes de UI e 14/14 fluxos kittest aprovados.
   - `cargo fmt`, `cargo clippy -D warnings`, `xtask arch-check` e `xtask docs-check` aprovados com 100% de conformidade.
+
+### Corrigido
+- **Resolução de Expansão Horizontal Infinita em Janelas Modais / Flutuantes (`crates/ui`)**:
+  - Eliminado o ciclo de feedback de redimensionamento horizontal infinito em todas as janelas modais (`Settings`, `Asset Library Drawer`, `Reference Set Manager`, `Properties Inspector Detached`, `Command Palette`, `Recovery Dialog`).
+  - Aplicada restrição estrita de teto dimensional `.max_size(...)` amarrada à resolução de tela (`ctx.screen_rect()`) em todas as instâncias de `egui::Window`.
+  - Configurado `auto_shrink([true, false])` em áreas de rolagem verticais (`ScrollArea::vertical()`), prevenindo que o layout solicite expansão horizontal descontrolada.
+  - Corrigido o widget `petunia_search_box`: alocação explícita de bounding box para o ícone de busca e largura desejada protegida contra estiramento abusivo de contêineres pais.
+  - Corrigida a alocação de células de grid em `reference_manager.rs`, substituindo `ui.available_width() * 0.48` por largura de coluna fixa determinística (`min_col_width(240.0)`).
+  - Adicionados 4 novos testes de estabilidade multi-frame com `egui_kittest` cobrindo 10 quadros consecutivos sem mutação cumulativa de largura.
 
 ---
 

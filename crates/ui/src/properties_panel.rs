@@ -30,6 +30,7 @@ pub fn draw(
     // 2. Área principal com os controles da aba selecionada
     ScrollArea::vertical()
         .id_salt("properties_content_scroll")
+        .auto_shrink([true, false])
         .show(ui, |ui| {
             let fields = state.workspace == Workspace::Model && tool_fields::draw(ui, state);
             if fields && state.active_tool == "transform" {

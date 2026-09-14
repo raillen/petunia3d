@@ -37,10 +37,15 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let mut remove_index = None;
     let mut align_preset = None;
 
+    let screen_rect = ctx.screen_rect();
+    let max_w = (screen_rect.width() - 32.0).max(540.0);
+    let max_h = (screen_rect.height() - 32.0).max(420.0);
+
     egui::Window::new(format!("{} · P3D-013", state.t("refs.manager_title")))
         .open(&mut open)
         .default_size(vec2(720.0, 560.0))
         .min_size(vec2(540.0, 420.0))
+        .max_size(vec2(max_w, max_h))
         .collapsible(false)
         .resizable(true)
         .show(ctx, |ui| {
@@ -76,37 +81,40 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             ui.add_space(8.0);
 
             // Grade de cartões dos 6 slots ortográficos canônicos
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                egui::Grid::new("reference_slots_grid")
-                    .num_columns(2)
-                    .spacing(vec2(14.0, 14.0))
-                    .min_col_width(ui.available_width() * 0.48)
-                    .show(ui, |ui| {
-                        for (i, &(axis, label, coord_hint, preset)) in SLOTS.iter().enumerate() {
-                            let matching_idx = state.project.refs.iter().position(|r| {
-                                r.axis == axis
-                                    || (axis == RefAxis::Right && r.axis == RefAxis::Side)
-                            });
+            egui::ScrollArea::vertical()
+                .auto_shrink([true, false])
+                .show(ui, |ui| {
+                    egui::Grid::new("reference_slots_grid")
+                        .num_columns(2)
+                        .spacing(vec2(14.0, 14.0))
+                        .min_col_width(240.0)
+                        .show(ui, |ui| {
+                            for (i, &(axis, label, coord_hint, preset)) in SLOTS.iter().enumerate()
+                            {
+                                let matching_idx = state.project.refs.iter().position(|r| {
+                                    r.axis == axis
+                                        || (axis == RefAxis::Right && r.axis == RefAxis::Side)
+                                });
 
-                            draw_slot_card(
-                                ui,
-                                ctx,
-                                state,
-                                axis,
-                                label,
-                                coord_hint,
-                                preset,
-                                matching_idx,
-                                &mut remove_index,
-                                &mut align_preset,
-                            );
+                                draw_slot_card(
+                                    ui,
+                                    ctx,
+                                    state,
+                                    axis,
+                                    label,
+                                    coord_hint,
+                                    preset,
+                                    matching_idx,
+                                    &mut remove_index,
+                                    &mut align_preset,
+                                );
 
-                            if i % 2 == 1 {
-                                ui.end_row();
+                                if i % 2 == 1 {
+                                    ui.end_row();
+                                }
                             }
-                        }
-                    });
-            });
+                        });
+                });
 
             ui.add_space(10.0);
             ui.separator();
@@ -399,8 +407,9 @@ fn draw_slot_card(
                 });
             } else {
                 // Slot Vazio
+                let card_w = ui.available_width().clamp(200.0, 320.0);
                 let empty_rect = ui
-                    .allocate_exact_size(vec2(ui.available_width(), 70.0), egui::Sense::hover())
+                    .allocate_exact_size(vec2(card_w, 70.0), egui::Sense::hover())
                     .0;
                 ui.painter().rect_filled(empty_rect, 4.0, tokens::BG_INPUT);
                 ui.painter().rect_stroke(

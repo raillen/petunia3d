@@ -25,11 +25,14 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let screen_rect = ctx.screen_rect();
     let default_width = (screen_rect.width() * 0.70).clamp(520.0, 840.0);
     let default_height = (screen_rect.height() * 0.70).clamp(420.0, 680.0);
+    let max_width = (screen_rect.width() - 32.0).max(460.0);
+    let max_height = (screen_rect.height() - 32.0).max(360.0);
 
     Window::new(RichText::new(state.t("settings.title")).strong().size(14.0))
         .open(&mut open)
         .default_size(vec2(default_width, default_height))
         .min_size(vec2(460.0, 360.0))
+        .max_size(vec2(max_width, max_height))
         .resizable(true)
         .collapsible(false)
         .frame(
@@ -126,7 +129,7 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
     ui.add_space(8.0);
 
     ScrollArea::vertical()
-        .auto_shrink([false, false])
+        .auto_shrink([true, false])
         .show(ui, |ui| {
             for manifest in themes {
                 let is_active = state.ui.active_theme_id == manifest.id;
@@ -250,7 +253,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(8.0);
 
     ScrollArea::vertical()
-        .auto_shrink([false, false])
+        .auto_shrink([true, false])
         .show(ui, |ui| {
             for pack in packs {
                 let is_active = state.ui.active_icon_pack_id == pack.id;
@@ -522,11 +525,11 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
     let all_bindings = state.ui.keybinds.all_bindings();
 
     ScrollArea::vertical()
-        .auto_shrink([false, false])
+        .auto_shrink([true, false])
         .show(ui, |ui| {
             egui::Grid::new("keymaps_table_grid")
                 .striped(true)
-                .min_col_width(200.0)
+                .min_col_width(120.0)
                 .spacing(vec2(16.0, 6.0))
                 .show(ui, |ui| {
                     ui.label(

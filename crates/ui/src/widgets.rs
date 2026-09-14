@@ -246,22 +246,47 @@ impl<'a> PetuniaWorkspacePill<'a> {
 
 /// Campo de busca padronizado com ícone Phosphor de lupa e botão de limpar.
 pub fn petunia_search_box(ui: &mut Ui, query: &mut String, hint: &str) -> Response {
+    petunia_search_box_impl(ui, query, hint, None)
+}
+
+/// Campo de busca padronizado com largura explícita.
+pub fn petunia_search_box_with_width(
+    ui: &mut Ui,
+    query: &mut String,
+    hint: &str,
+    desired_width: f32,
+) -> Response {
+    petunia_search_box_impl(ui, query, hint, Some(desired_width))
+}
+
+fn petunia_search_box_impl(
+    ui: &mut Ui,
+    query: &mut String,
+    hint: &str,
+    fixed_width: Option<f32>,
+) -> Response {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
-        let search_rect =
-            Rect::from_center_size(ui.cursor().min + vec2(8.0, 10.0), vec2(16.0, 16.0));
+        let icon_size = vec2(16.0, 16.0);
+        let (icon_rect, _) = ui.allocate_exact_size(icon_size, egui::Sense::hover());
         IconRegistry::paint(
             ui.ctx(),
             ui.painter(),
             &PetuniaIcon::Search,
-            search_rect,
+            icon_rect,
             tokens::TEXT_MUTED,
         );
 
+        let clear_width = if query.is_empty() { 0.0 } else { 18.0 };
+        let width = fixed_width.unwrap_or_else(|| {
+            let avail = ui.available_width() - clear_width - 4.0;
+            avail.clamp(60.0, 320.0)
+        });
+
         let edit = TextEdit::singleline(query)
             .hint_text(hint)
-            .desired_width(ui.available_width().max(80.0));
+            .desired_width(width);
 
         let resp = ui.add(edit);
 

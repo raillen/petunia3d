@@ -179,3 +179,67 @@ fn test_kittest_properties_panel_tabs_flow() {
     drop(harness_tool);
     assert_eq!(state.ui.properties_tab, "tool");
 }
+
+#[test]
+fn test_kittest_settings_modal_stability_over_multiple_frames() {
+    let mut state = AppState::new("en");
+    state.ui.show_settings = true;
+
+    for tab in ["appearance", "icons", "language", "keymap"] {
+        state.ui.settings_tab = tab.to_string();
+        let mut harness = Harness::builder().build(|ctx| {
+            petunia_ui::settings_modal::draw(ctx, &mut state);
+        });
+        // Executa 10 frames consecutivos para assegurar que não há runaway horizontal
+        harness.run_steps(10);
+        drop(harness);
+    }
+}
+
+#[test]
+fn test_kittest_asset_library_drawer_stability_over_multiple_frames() {
+    let mut state = AppState::new("en");
+    state.ui.show_asset_library = true;
+
+    // Adiciona alguns assets para preencher a gaveta
+    for _ in 0..4 {
+        state.save_active_as_asset();
+    }
+
+    let mut harness = Harness::builder().build(|ctx| {
+        petunia_ui::asset_library_drawer::draw(ctx, &mut state);
+    });
+
+    // Executa 10 frames consecutivos para garantir largura estável e sem expansão
+    harness.run_steps(10);
+    drop(harness);
+}
+
+#[test]
+fn test_kittest_reference_manager_multi_frame_stability() {
+    let mut state = AppState::new("pt-BR");
+    state.ui.show_reference_manager = true;
+
+    let mut harness = Harness::builder().build(|ctx| {
+        petunia_ui::reference_manager::draw(ctx, &mut state);
+    });
+
+    // 10 frames em slots vazios (onde empty_rect era alocado sem restrição)
+    harness.run_steps(10);
+    drop(harness);
+}
+
+#[test]
+fn test_kittest_detached_inspector_multi_frame_stability() {
+    let mut state = AppState::new("en");
+    state.ui.inspector_detached = true;
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+
+    let mut harness = Harness::builder().build(|ctx| {
+        petunia_ui::right_panel(ctx, &mut state, &tools, &mut registry);
+    });
+
+    harness.run_steps(10);
+    drop(harness);
+}

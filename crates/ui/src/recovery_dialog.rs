@@ -21,6 +21,8 @@ pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<
     let mut action = None;
     let screen_rect = ctx.screen_rect();
     let width = (screen_rect.width() * 0.5).clamp(420.0, 560.0);
+    let max_w = (screen_rect.width() - 32.0).max(420.0);
+    let max_h = (screen_rect.height() - 32.0).max(240.0);
 
     Window::new(
         RichText::new(state.t("recovery.title"))
@@ -29,6 +31,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<
             .color(tokens::ACCENT_AMBER),
     )
     .default_size(vec2(width, 240.0))
+    .max_size(vec2(max_w, max_h))
     .resizable(false)
     .collapsible(false)
     .frame(
