@@ -134,6 +134,7 @@ pub fn right_panel(
     tools: &ToolRegistry,
     registry: &mut ModuleRegistry,
 ) {
+    let was_detached = state.ui.inspector_detached;
     let max_width = (ctx.screen_rect().width() * 0.45).clamp(240.0, 420.0);
     egui::SidePanel::right("props")
         .default_width(tokens::PROPERTIES_DEFAULT_WIDTH)
@@ -146,13 +147,13 @@ pub fn right_panel(
         )
         .show(ctx, |ui| {
             outliner::draw(ui, state);
-            if !state.ui.inspector_detached {
+            if !was_detached {
                 ui.separator();
                 properties_panel::draw(ctx, ui, state, tools, registry);
             }
         });
 
-    if state.ui.inspector_detached {
+    if was_detached && state.ui.inspector_detached {
         let mut is_open = true;
         let screen_rect = ctx.screen_rect();
         let max_w = (screen_rect.width() - 32.0).max(280.0);
@@ -170,7 +171,9 @@ pub fn right_panel(
                     .inner_margin(egui::Margin::symmetric(6, 4)),
             )
             .show(ctx, |ui| {
-                properties_panel::draw(ctx, ui, state, tools, registry);
+                ui.push_id("detached_inspector", |ui| {
+                    properties_panel::draw(ctx, ui, state, tools, registry);
+                });
             });
         if !is_open {
             state.ui.inspector_detached = false;

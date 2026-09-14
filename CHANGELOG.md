@@ -33,6 +33,12 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
   - `cargo fmt`, `cargo clippy -D warnings`, `xtask arch-check` e `xtask docs-check` aprovados com 100% de conformidade.
 
 ### Corrigido
+- **Resolução de Conflito de LayerId ao Destacar/Ancorar o Inspector (`crates/ui/src/lib.rs`, `crates/ui/src/tool_fields.rs`)**:
+  - Corrigido o pânico `Widget changed layer_id during the frame from Background to Middle` que ocorria ao clicar para destacar o painel de propriedades para uma janela flutuante.
+  - Implementado snapshot de frame (`was_detached`) no `right_panel`, garantindo que o inspector nunca seja desenhado simultaneamente no painel lateral (`Background`) e na janela flutuante (`Middle`) no mesmo frame de transição.
+  - Isolamento de IDs de widgets filhos da janela flutuante através de `ui.push_id("detached_inspector", ...)`.
+  - Escopo de IDs de widgets numéricos de ferramentas (`tool_fields`) associados dinamicamente ao container pai (`ui.id().with(...)`), eliminando colisões de identificadores estáticos globais entre camadas.
+  - Adicionados testes de regressão de transição e isolamento de camadas em `crates/ui/tests/kittest_ui_flows.rs`.
 - **Resolução de Expansão Horizontal Infinita em Janelas Modais / Flutuantes (`crates/ui`)**:
   - Eliminado o ciclo de feedback de redimensionamento horizontal infinito em todas as janelas modais (`Settings`, `Asset Library Drawer`, `Reference Set Manager`, `Properties Inspector Detached`, `Command Palette`, `Recovery Dialog`).
   - Aplicada restrição estrita de teto dimensional `.max_size(...)` amarrada à resolução de tela (`ctx.screen_rect()`) em todas as instâncias de `egui::Window`.

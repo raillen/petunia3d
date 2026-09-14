@@ -93,8 +93,8 @@ fn selected_kind(state: &AppState) -> Option<ModalKind> {
         })
 }
 
-fn field_id(kind: ModalKind, index: usize) -> egui::Id {
-    egui::Id::new((SESSION_ID, kind.label(), index))
+fn field_id(ui: &egui::Ui, kind: ModalKind, index: usize) -> egui::Id {
+    ui.id().with((SESSION_ID, kind.label(), index))
 }
 
 /// Returns true when the selected tool has editable numeric properties.
@@ -162,7 +162,7 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
     let mut apply = false;
     let mut cancel = false;
     ui.add_enabled_ui(!blocked, |ui| {
-        egui::Grid::new((SESSION_ID, "grid"))
+        egui::Grid::new(ui.id().with((SESSION_ID, "grid")))
             .num_columns(3)
             .show(ui, |ui| {
                 for index in 0..if transform(kind) { 3 } else { 1 } {
@@ -173,7 +173,7 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
                     });
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut session.values[index])
-                            .id(field_id(kind, index))
+                            .id(field_id(ui, kind, index))
                             .desired_width(100.0)
                             .char_limit(64),
                     );

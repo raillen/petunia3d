@@ -243,3 +243,74 @@ fn test_kittest_detached_inspector_multi_frame_stability() {
     harness.run_steps(10);
     drop(harness);
 }
+
+#[test]
+fn test_kittest_full_draw_with_all_modals() {
+    let mut state = AppState::new("en");
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+
+    // Test with each modal open during full UI draw
+    for modal in 0..5 {
+        state.ui.show_settings = modal == 0;
+        state.ui.show_asset_library = modal == 1;
+        state.ui.show_command_palette = modal == 2;
+        state.ui.show_reference_manager = modal == 3;
+        state.ui.inspector_detached = modal == 4;
+
+        let mut harness = Harness::builder().build(|ctx| {
+            petunia_ui::draw(ctx, &mut state, &tools, &mut registry, &mut action);
+        });
+
+        harness.run_steps(3);
+        drop(harness);
+    }
+}
+
+#[test]
+fn test_kittest_inspector_detachment_transition() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    state.borrow_mut().active_tool = "transform".to_string();
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+
+    let state_clone = state.clone();
+    let mut harness = Harness::builder().build(move |ctx| {
+        petunia_ui::draw(
+            ctx,
+            &mut state_clone.borrow_mut(),
+            &tools,
+            &mut registry,
+            &mut action,
+        );
+    });
+    harness.run_steps(2);
+
+    // Detach mid-session
+    state.borrow_mut().ui.inspector_detached = true;
+    harness.run_steps(3);
+
+    // Dock back
+    state.borrow_mut().ui.inspector_detached = false;
+    harness.run_steps(3);
+    drop(harness);
+}
+
+#[test]
+fn test_kittest_inspector_layer_collision_prevention() {
+    let mut state = AppState::new("en");
+    state.active_tool = "transform".to_string();
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+
+    // Verifies that toggling inspector_detached inside right_panel closure
+    // cleanly snapshots was_detached and never double-renders or causes layer collision.
+    let mut harness = Harness::builder().build(|ctx| {
+        petunia_ui::right_panel(ctx, &mut state, &tools, &mut registry);
+        state.ui.inspector_detached = !state.ui.inspector_detached;
+    });
+    harness.run_steps(6);
+    drop(harness);
+}
