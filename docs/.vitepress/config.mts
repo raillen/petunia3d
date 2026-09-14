@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import bibleSidebar from './bibleSidebar';
 
 export default withMermaid(
   defineConfig({
@@ -27,12 +28,14 @@ export default withMermaid(
         { text: 'Começando', link: '/getting-started/' },
         { text: 'Manual', link: '/manual/' },
         { text: 'Ferramentas', link: '/tools/' },
+        { text: 'Bíblia (SSOT)', link: '/bible/' },
         { text: 'Personalização', link: '/customization/' },
         { text: 'Atalhos', link: '/shortcuts/' },
         { text: 'Desenvolvedores', link: '/developers/' },
         { text: 'Changelog', link: '/changelog/' },
       ],
       sidebar: {
+        '/bible/': bibleSidebar,
         '/getting-started/': [
           {
             text: 'Primeiros Passos',
@@ -179,14 +182,14 @@ export default withMermaid(
             text: 'Desenvolvedores',
             items: [
               { text: 'Portal do Desenvolvedor', link: '/developers/' },
-              { text: 'Arquitetura de 14 Crates', link: '/developers/architecture' },
+              { text: 'Arquitetura de 17 Crates', link: '/developers/architecture' },
               { text: 'Compilação & Build', link: '/developers/building' },
               { text: 'Arquitetura de UI egui', link: '/developers/ui-architecture' },
               { text: 'Pipeline de Renderização', link: '/developers/rendering' },
               { text: 'Sistema de Comandos (Undo/Redo)', link: '/developers/command-system' },
               { text: 'Estratégia de Testes', link: '/developers/testing' },
               { text: 'Registros de Decisões (ADRs)', link: '/developers/adr/' },
-              { text: 'Especificações do Livro Vivo', link: '/developers/specs/' },
+              { text: 'Bíblia de Implementação (P3D)', link: '/bible/' },
             ],
           },
           {

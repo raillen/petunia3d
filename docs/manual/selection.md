@@ -7,6 +7,9 @@ O Petunia3D oferece controle rigoroso sobre os modos de seleção, garantindo qu
 ## 1. Modo Objeto vs. Modo de Edição
 
 - **Modo Objeto (`Tab` ou tecla `0`)**: Permite selecionar, mover, rotacionar e escalar malhas inteiras na cena como unidades atômicas.
+  - **Seleção Direta no Viewport**: Clicar com o botão esquerdo (`LMB`) sobre qualquer objeto visível e desbloqueado na cena calcula o raio tridimensional contra a câmera e ativa o objeto mais próximo imediatamente.
+  - **Alternância com Shift**: Segure `Shift` enquanto clica para alternar a seleção de objetos adicionais sem desselecionar os atuais.
+  - **Sincronização com o Outliner**: A seleção na viewport é bidirecional e sincronizada em tempo real com a árvore do Outliner.
 - **Modo de Edição (`Tab` com malha selecionada)**: Entra na malha ativa para editar sua topologia de vértices, arestas e faces.
 
 ---

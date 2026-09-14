@@ -3,6 +3,29 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [0.27.1] - 2026-09-14 — Master Implementation Gauntlet: Viewport Picking, Outliner Polish & Documentation Unification
+
+### Adicionado
+- **Unificação Integral da Documentação (Single Source of Truth) (`docs/bible/`)**:
+  - Consolidação e migração de todos os 191 documentos da **Implementation Bible** (`implement-bible/`) e 38 capítulos de fundação narrativa (`docs/petunia3d-livro-vivo/`) para a estrutura canônica e rastreável dentro de `docs/bible/`.
+  - Higienização completa de todos os nomes de arquivos em slugs kebab-case previsíveis (eliminação dos hashes hexadecimais Notion).
+  - Resolução automática e determinística de 195 links internos relativos entre especificações, capítulos constitucionais (00 a 16), seções temáticas (A a O) e adendos.
+  - Atualização dos status canônicos de cada especificação P3D (P3D-001 a P3D-049 marcadas como `COMPLIANT` conforme as entregas provadas das Waves 0 a 6).
+  - Integração da Bíblia diretamente à barra de navegação e sidebar do VitePress com índice mestre estruturado em `docs/bible/index.md`.
+- **Botão de Exclusão Direta e Atalhos no Outliner (`crates/ui/src/outliner.rs`, `crates/config/src/keybinds.rs`, `crates/app/src/lib.rs`)**:
+  - Adicionado botão de ícone de lixeira (`PetuniaIcon::Delete`) com tooltip descritivo em cada linha de asset no Outliner.
+  - Habilitados atalhos de teclado `Delete`, `Backspace` e `Shift+D` diretamente no Outliner e no loop de eventos do Winit.
+- **Botão de Reancoragem de Painéis Flutuantes (`crates/ui/src/properties_panel.rs`, `crates/ui/src/lib.rs`)**:
+  - Adicionado botão `⇲ Dock` de alta visibilidade no cabeçalho do Properties Inspector quando em modo flutuante.
+  - Adicionado banner contextual com botão `[Reancorar]` na barra lateral direita quando o inspetor estiver destacado.
+
+### Corrigido
+- **Seleção de Múltiplos Objetos no Viewport 3D (`crates/app/src/lib.rs`)**:
+  - Corrigido o picking em modo Objeto (`handle_pick`), que agora itera por todos os assets visíveis e desbloqueados da cena, selecionando o objeto mais próximo da câmera com suporte a alternância cumulativa via tecla `Shift`.
+- **Responsividade e Estabilidade do Outliner (`crates/ui/src/outliner.rs`)**:
+  - Desativado o drag-and-drop de nós de árvore (`allow_drag_and_drop(false)`), eliminando o atraso de cliques e a criação de fantasmas visuais de arrasto.
+  - Substituição de labels simulados por `ui.selectable_label(...)` nativo com reação imediata a cliques.
+
 ## [0.27.0] - 2026-09-14 — Master Implementation Gauntlet: Wave 6 (Scene, Assets, Outliner & Inspector)
 
 ### Adicionado

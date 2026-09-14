@@ -1,12 +1,16 @@
 # Macroarquitetura de Crates
 
-O Petunia3D é construído sob uma arquitetura modular estrita em Cargo Workspace composta por 14 crates altamente coesos e desacoplados, garantindo limites explícitos de domínio:
+O Petunia3D é construído sob uma arquitetura modular estrita em Cargo Workspace composta por **17 crates** altamente coesos e desacoplados, garantindo limites explícitos de domínio:
+
+> Para a especificação canônica detalhada de invariantes e limites, consulte [Capítulo 04 da Bíblia de Implementação](/bible/constitution/04-invariantes-de-arquitetura-modularidade-e-co).
 
 ```mermaid
 graph TD
+    Root["petunia3d (Binário Desktop Raiz)"]
     App["petunia_app (Runtime / Windowing / Winit)"]
     CLI["petunia_cli (Headless CLI / Automação)"]
     FFI["petunia_ffi (C-ABI / Cross-Language)"]
+    Xtask["xtask (Automação CI/CD / Integridade)"]
     UI["petunia_ui (egui Presentation Layer)"]
     RenderWGPU["petunia_render_wgpu (WebGPU Pipeline)"]
     RenderGL["petunia_render_gl (OpenGL Glow Pipeline)"]
@@ -59,4 +63,6 @@ graph TD
 | `crates/app` | Orquestração da janela desktop, loop de eventos do `winit` e inicialização de contexto gráfico. |
 | `crates/cli` | Utilitário de linha de comando autônomo e 100% headless para automação, pipelines e conversão de arquivos. |
 | `crates/ffi` | Camada de interoperabilidade C-ABI (`cdylib` / `rlib`) e header canônico C/C++ (`include/petunia.h`) para frontends externos. |
+| `crates/xtask` | Ferramenta interna de automação, CI/CD, prevenção de drift documental (`docs-check`) e validação arquitetural (`arch-check`). |
+| `src/main.rs` | Ponto de entrada do executável desktop `petunia3d`, unindo o runtime `petunia_app` com renderizadores gráficos. |
 

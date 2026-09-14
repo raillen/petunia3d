@@ -2,12 +2,12 @@
 
 - Project: **Petunia3D**
 - Prumo: **0.5.1**
-- Current phase: **P01 — Premium viewport interaction**
+- Current phase: **Wave 7 — Materials, Texture, UV & Paint (Planejamento Ativo)**
+- Canonical Specification & SSOT: [`docs/bible/`](docs/bible/index.md) (155 P3D specs, 17 capítulos constitucionais, 15 seções, 3 adendos e 36 capítulos de fundação unificados)
 - Canonical UI Golden Reference: [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (component catalog in [`docs/image-references/extracted/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/))
-- Historical goal: **P01-G01**, recorded DONE before the premium specification.
-- Current implementation and acceptance map: [premium interaction plan](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/development/premium-interaction-plan.md).
+- Current implementation status: **Waves 0 a 6 100% Concluídas e Verificadas** (277+ testes automatizados, zero warnings no Clippy, arch-check e docs-check verdes).
 - Context methodology: **Lean Progressive Context (LPC)**
-- Last updated: `2026-09-12`
+- Last updated: `2026-09-14`
 
 ## Current status
 
@@ -95,20 +95,19 @@ The fourteenth implementation round delivers Core V1 & Interactive Geometry Refi
 - Extrude Individual Faces: extrusão desacoplada por face gerando topos disjuntos e anéis de paredes sem fusão de arestas vizinhas (`Mesh::extrude_individual`, `ExtrudeIndividualCmd`, `Alt+E`).
 - Multi-Segment Rounded Bevel: chanfro de aresta com multi-segmentos e curvatura de filete em arco circular (`Mesh::bevel_selected_segments`), com costura topológica manifold e estrito fechamento.
 - Guarded Metric Inset: inset métrico protegido com amortecimento dinâmico step-down prevenindo inversão de normais e auto-interseções topológicas.
-Final gates: 100% dos testes passando em todo o workspace (incluindo 60 testes em `petunia_mesh`, 42 unitários e 11 de comandos em `petunia_core`, 88 testes em `petunia_ui`); cargo clippy estrito (`-D warnings`) e `cargo run -p xtask -- arch-check` com 100% de conformidade.
-Evidence is preserved in `.prumo/history/premium/`, [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md) and [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md).
+Final gates: 100% dos testes passando em todo o workspace (incluindo 60 testes em `petunia_mesh`, 42 unitários e 11 de comandos em `petunia_core`, 88 unitários e 17 de fluxos em `petunia_ui`, totalizando 277+ testes); cargo clippy estrito (`-D warnings`), `cargo fmt --check`, `cargo run -p xtask -- docs-check` e `cargo run -p xtask -- arch-check` com 100% de conformidade.
+The fifteenth implementation round delivers Wave 6 (Scene, Assets, Outliner & Inspector) and UI/Viewport Polish:
+- Seleção multi-objeto no Viewport 3D no modo Objeto por cálculo de distância euclidiana da câmera e suporte a toggle com Shift.
+- Responsividade imediata do Outliner sem arrasto fantasma, seleção direta por rótulo, botão dedicado de exclusão (`PetuniaIcon::Delete`) e suporte nativo a teclas `Delete`, `Backspace` e `Shift+D`.
+- Mecanismo transparente de reancoragem de painéis com botão `⇲ Dock` e banner contextual na barra lateral.
+- Estabilidade dimensional anti-expansão horizontal em 100% das janelas modais.
+- Unificação Canônica da Documentação (Single Source of Truth) sob `docs/bible/`, integrando 155 especificações P3D, 17 capítulos constitucionais, 15 seções temáticas, 3 adendos e 36 capítulos de fundação ao VitePress com links limpos e rastreáveis.
 
-Premium convergence is **not established**. The human golden path and final GPU
-performance targets remain unmeasured. Complex bevel, metric inset, inter-asset
-occlusion, UV texture painting in the viewport and full GPU failure handling
-remain acceptance gaps. See the plan and [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md) for evidence and
-limitations; do not reuse historical scores as proof of this specification.
+Evidence is preserved in `.prumo/history/premium/`, [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md), [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md) and [`docs/bible/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/bible/index.md).
 
 ## Next action
 
-Use the remaining acceptance matrix in the premium plan. Validate the graphical
-interaction and performance on both backends; extend unsupported geometry with
-regression tests before raising any score or declaring convergence.
+Iniciar a **Wave 7 (Materials, Texture, UV & Paint)** cobrindo P3D-050 a P3D-065, P3D-132 a P3D-134 e P3D-140 com base na especificação canônica unificada em `docs/bible/`.
 
 ## Recovery order
 

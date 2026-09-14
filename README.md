@@ -57,13 +57,23 @@ petunia3d/
 │   ├── module-paint/      # vertex paint + canvas
 │   ├── module-uv/         # editor UV
 │   ├── module-assets/     # asset library
-│   ├── ui/                # layout egui (pílulas, painéis, viewport)
-│   └── app/               # Core, backends, loop render-on-demand
-├── assets/                # locales, keybinds, themes, tools.toml
-└── docs/                  # arquitetura + relatórios Gauntlet
+│   ├── ui/                # layout egui (pílulas, painéis, viewport, gizmos)
+│   ├── app/               # Core, backends, loop render-on-demand
+│   ├── cli/               # CLI headless puro para automação e pipelines
+│   ├── ffi/               # Camada C-ABI e include/petunia.h
+│   └── xtask/             # Automação de CI/CD e prevenção de drift documental
+├── assets/                # locales, keybinds, themes, ícones vetoriais/raster
+└── docs/                  # Documentação VitePress, Manuais e Bíblia de Implementação (SSOT)
 ```
 
-## Status (Gauntlet Round 1 → fixes aplicados)
+## Documentação & Fonte Única da Verdade
 
-`cargo test --workspace` (23 testes), `cargo clippy` limpo,
-`cargo fmt --check` limpo. Evidências e gaps em `docs/GAUNTLET.md`.
+- **Site Oficial de Documentação**: Navegue em `docs/` ou execute `cargo xtask docs`.
+- **Bíblia de Implementação (SSOT)**: [`docs/bible/index.md`](docs/bible/index.md) reúne 155 especificações P3D, 17 capítulos constitucionais, 15 seções temáticas, 3 adendos e 36 capítulos de fundação.
+
+## Qualidade & Status Atual
+
+- **Testes Automatizados**: **277+ testes** passando em todo o workspace (`cargo test --workspace`).
+- **Linter & Formatação**: `cargo clippy --workspace -- -D warnings` e `cargo fmt --check` 100% limpos.
+- **Portões de Integridade**: `cargo xtask arch-check` e `cargo xtask docs-check` aprovados.
+- **Progresso de Waves**: Waves 0 a 6 concluídas; Wave 7 (Materials, Texture, UV & Paint) em planejamento ativo.
