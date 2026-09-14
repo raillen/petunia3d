@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 import bibleSidebar from './bibleSidebar';
+import modernizationSidebar from './modernizationSidebar';
 
 export default withMermaid(
   defineConfig({
@@ -29,6 +30,7 @@ export default withMermaid(
         { text: 'Manual', link: '/manual/' },
         { text: 'Ferramentas', link: '/tools/' },
         { text: 'Bíblia (SSOT)', link: '/bible/' },
+        { text: 'Modernização', link: '/modernization/' },
         { text: 'Personalização', link: '/customization/' },
         { text: 'Atalhos', link: '/shortcuts/' },
         { text: 'Desenvolvedores', link: '/developers/' },
@@ -36,6 +38,7 @@ export default withMermaid(
       ],
       sidebar: {
         '/bible/': bibleSidebar,
+        '/modernization/': modernizationSidebar,
         '/getting-started/': [
           {
             text: 'Primeiros Passos',
