@@ -191,7 +191,11 @@ fn display_entries(state: &AppState) -> Vec<ToolbarEntry> {
     ordered
         .into_iter()
         .filter(|entry| {
-            !state.ui.toolbar_hidden.iter().any(|hidden| hidden == entry.id)
+            !state
+                .ui
+                .toolbar_hidden
+                .iter()
+                .any(|hidden| hidden == entry.id)
                 && (!entry.edit_only || in_edit)
         })
         .collect()
@@ -256,12 +260,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     );
 }
 
-fn draw_model_tools(
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    _tools: &ToolRegistry,
-    compact: bool,
-) {
+fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegistry, compact: bool) {
     if state.mode != petunia_core::EditMode::Edit
         && canonical_toolbar_entries()
             .iter()
@@ -312,12 +311,7 @@ fn draw_model_tools(
     }
 }
 
-fn draw_model_entry(
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    entry: &ToolbarEntry,
-    compact: bool,
-) {
+fn draw_model_entry(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEntry, compact: bool) {
     match entry.id {
         "select" => draw_select_group(ui, state, compact),
         "transform" => draw_transform_group(ui, state, compact),
@@ -325,12 +319,7 @@ fn draw_model_entry(
     }
 }
 
-fn draw_entry_button(
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    entry: &ToolbarEntry,
-    compact: bool,
-) {
+fn draw_entry_button(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEntry, compact: bool) {
     let label = state.t(entry.label_key);
     let hint = if entry.key.is_empty() {
         label.clone()
@@ -360,7 +349,10 @@ fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
         if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
-            .selected(matches!(state.active_tool.as_str(), "select" | "select_box"))
+            .selected(matches!(
+                state.active_tool.as_str(),
+                "select" | "select_box"
+            ))
             .compact(compact)
             .tooltip(&format!("{label} · [Q/B]"))
             .show(ui)
@@ -370,7 +362,10 @@ fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
             state.pending_modal = None;
             state.mark_dirty();
         }
-        popup_response = Some(ui.small_button("▾").on_hover_text(state.t("toolbar.configure")));
+        popup_response = Some(
+            ui.small_button("▾")
+                .on_hover_text(state.t("toolbar.configure")),
+        );
     });
     if let Some(response) = popup_response {
         egui::Popup::menu(&response).show(|ui| {
@@ -385,7 +380,10 @@ fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
                 ui.close();
             }
             if ui
-                .selectable_label(state.active_tool == "select_box", state.t("tools.select_box"))
+                .selectable_label(
+                    state.active_tool == "select_box",
+                    state.t("tools.select_box"),
+                )
                 .clicked()
             {
                 state.active_tool = "select_box".into();
@@ -439,7 +437,10 @@ fn draw_transform_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) 
         {
             activate_transform_child(state, current_id);
         }
-        popup_response = Some(ui.small_button("▾").on_hover_text(state.t("tools.transform")));
+        popup_response = Some(
+            ui.small_button("▾")
+                .on_hover_text(state.t("tools.transform")),
+        );
     });
     if let Some(response) = popup_response {
         egui::Popup::menu(&response).show(|ui| {
@@ -485,16 +486,21 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
             state.ui.toolbar_order.clone()
         };
         // Purga ids legados que agora pertencem a grupos/modifiers.
-        order.retain(|id| canonical_toolbar_entries().iter().any(|entry| entry.id == id));
+        order.retain(|id| {
+            canonical_toolbar_entries()
+                .iter()
+                .any(|entry| entry.id == id)
+        });
         for entry in canonical_toolbar_entries() {
             if !order.iter().any(|id| id == entry.id) {
                 order.push(entry.id.to_string());
             }
         }
-        state
-            .ui
-            .toolbar_hidden
-            .retain(|id| canonical_toolbar_entries().iter().any(|entry| entry.id == id));
+        state.ui.toolbar_hidden.retain(|id| {
+            canonical_toolbar_entries()
+                .iter()
+                .any(|entry| entry.id == id)
+        });
 
         let mut dirty = false;
         let mut move_up = None;
@@ -510,7 +516,8 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
                         .map(|entry| state.t(entry.label_key))
                         .unwrap_or_else(|| id.clone());
                     ui.horizontal(|ui| {
-                        let mut visible = !state.ui.toolbar_hidden.iter().any(|hidden| hidden == id);
+                        let mut visible =
+                            !state.ui.toolbar_hidden.iter().any(|hidden| hidden == id);
                         if ui.checkbox(&mut visible, "").changed() {
                             if visible {
                                 state.ui.toolbar_hidden.retain(|hidden| hidden != id);
@@ -655,7 +662,10 @@ mod tests {
 
     #[test]
     fn modifier_operations_are_not_toolbar_tools() {
-        let ids: Vec<&str> = canonical_toolbar_entries().iter().map(|entry| entry.id).collect();
+        let ids: Vec<&str> = canonical_toolbar_entries()
+            .iter()
+            .map(|entry| entry.id)
+            .collect();
         assert!(!ids.contains(&"mirror"));
         assert!(!ids.contains(&"symmetrize"));
         assert!(ids.contains(&"transform"));
@@ -674,7 +684,10 @@ mod tests {
             "select".to_string(),
             "merge".to_string(),
         ];
-        let shown: Vec<&str> = display_entries(&state).iter().map(|entry| entry.id).collect();
+        let shown: Vec<&str> = display_entries(&state)
+            .iter()
+            .map(|entry| entry.id)
+            .collect();
         assert_eq!(&shown[..2], &["select", "merge"]);
         assert!(!shown.contains(&"knife"));
     }
