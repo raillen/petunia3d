@@ -274,7 +274,7 @@ Implementação do Gizmo de Orientação 3D interativo, 3D Cursor posicional e m
 
 | Perspectiva | Nota R1 | Nota R2 | Ganhos Materiais e Evidências |
 |---|---:|---:|---|
-| **Interação e gizmos** | 8.0 | **8.8/10** | Gizmo de Orientação 3D interativo no canto do viewport ([`nav_gizmo.rs`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/ui/src/nav_gizmo.rs)) com 6 eixos ordenados por profundidade, alinhamento ortogonal por clique, drag orbit, e botões integrados de Zoom, Pan e alternância Persp/Ortho. 3D Cursor posicional com `Shift+RMB`. |
+| **Interação e gizmos** | 8.0 | **8.8/10** | Gizmo de Orientação 3D interativo no canto do viewport ([`nav_gizmo.rs`](crates/ui/src/nav_gizmo.rs)) com 6 eixos ordenados por profundidade, alinhamento ortogonal por clique, drag orbit, e botões integrados de Zoom, Pan e alternância Persp/Ortho. 3D Cursor posicional com `Shift+RMB`. |
 | **Ergonomia e ferramentas** | 7.5 | **8.5/10** | Menu contextual RMB adaptativo por componente (Vértice: Extrude/Bevel; Aresta: Bevel/Loop Cut/Subdivide; Face: Extrude/Inset/Bevel/Normais; Objeto: Mover/Rotacionar/Escalar/Duplicar). Seletores diretos de Shading no cabeçalho do viewport. |
 | **Renderização e overlays** | 6.0 | **8.0/10** | 4 modos de Viewport Shading expostos diretamente no header (Wireframe, Solid, Material Preview, Rendered). Renderização do 3D Cursor com anel pontilhado bicolor e crosshair. |
 | **Robustez e topologia** | 7.0 | **8.2/10** | 132 testes passando sem regressão. Picking com fallback gracioso ao plano de chão $Y = 0$. Zero panics em caminhos interativos. |

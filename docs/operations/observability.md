@@ -42,6 +42,6 @@ O Petunia3D utiliza a infraestrutura padrão do ecossistema Rust (`log` / `env_l
 
 ## 3. Monitoramento de Memória
 
-- A pegada de memória é auditada periodicamente (conforme registrado em [`docs/GAUNTLET.md`](../GAUNTLET.md)):
+- A pegada de memória é auditada periodicamente (conforme registrado em `docs/GAUNTLET.md` e no [changelog](../changelog/)):
   - VmRSS baseline: $\le 80$ MB.
   - Destruição e prune de texturas de assets deletados via verificação de UUIDs no frame draw.

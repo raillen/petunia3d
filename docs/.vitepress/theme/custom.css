@@ -101,3 +101,52 @@
   border-radius: 4px;
   margin: 1.5rem 0;
 }
+
+/* Acessibilidade: foco sempre visível e inconfundível */
+:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeito a quem prefere movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Tabelas com rolagem horizontal em telas estreitas (sem quebrar o layout) */
+@media (max-width: 768px) {
+  .vp-doc table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+  .vp-doc th,
+  .vp-doc td {
+    padding: 0.5rem 0.75rem;
+    white-space: nowrap;
+  }
+  .vp-doc td:first-child,
+  .vp-doc th:first-child {
+    white-space: normal;
+  }
+}
+
+/* Imagens fluidas: nunca estouram a coluna de leitura */
+.vp-doc img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Código inline longo quebra em vez de vazar */
+.vp-doc :not(pre) > code {
+  overflow-wrap: anywhere;
+}

@@ -66,22 +66,22 @@ O objetivo futuro do projeto é transformar o Petunia3D em um **núcleo de model
 
 A documentação detalhada desta auditoria está dividida nos seguintes relatórios técnicos:
 
-* [`01-current-architecture.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/01-current-architecture.md): Mapeamento físico de crates, camadas reais e diagramas de fluxo de execução.
-* [`02-dependency-analysis.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/02-dependency-analysis.md): Grafo de dependências real, violações de direção e análise de ciclos.
-* [`03-ui-coupling.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/03-ui-coupling.md): Inventário de imports e tipos egui vazando para o domínio e regras de negócio na UI.
-* [`04-state-ownership.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/04-state-ownership.md): Anatomia do God State, segregação necessária e ciclo de vida de dados.
-* [`05-command-system.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/05-command-system.md): Avaliação do sistema de comandos atual vs requisitos de desacoplamento.
-* [`06-tool-system.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/06-tool-system.md): Ciclo de vida real de ferramentas, máquinas de estado e rastreio de adição de ferramentas.
-* [`07-renderer-boundary.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/07-renderer-boundary.md): Isolamento dos backends wgpu e OpenGL e capacidade de renderização offscreen.
-* [`08-project-assets-io.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/08-project-assets-io.md): Fronteiras de I/O de arquivos, serialização, assets e desacoplamento de file pickers.
-* [`09-modularity-extension-cost.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/09-modularity-extension-cost.md): Matriz quantitativa de custo de extensão e hotspots de acoplamento.
-* [`10-headless-readiness.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/10-headless-readiness.md): Diagnóstico de prontidão para execução e testes headless.
-* [`11-cross-language-ui.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/11-cross-language-ui.md): Análise técnica de viabilidade para frontends em C++, C#, Go, Python e Web.
-* [`12-testing-gaps.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/12-testing-gaps.md): Distribuição da suíte de testes e lacunas de cobertura sem UI.
-* [`13-findings.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/13-findings.md): Catálogo padronizado de achados de auditoria (P0 a P3).
-* [`14-scorecard.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/14-scorecard.md): Scorecard detalhado com critérios de evidência técnica.
-* [`15-target-architecture-options.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/15-target-architecture-options.md): Comparativo de arquiteturas-alvo e recomendação pragmática.
-* [`16-remediation-plan.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/architecture-decoupling/16-remediation-plan.md): Plano Diretor estruturado em Gauntlet Loops incrementais (G0 a G10).
+* [`01-current-architecture.md`](./01-current-architecture.md): Mapeamento físico de crates, camadas reais e diagramas de fluxo de execução.
+* [`02-dependency-analysis.md`](./02-dependency-analysis.md): Grafo de dependências real, violações de direção e análise de ciclos.
+* [`03-ui-coupling.md`](./03-ui-coupling.md): Inventário de imports e tipos egui vazando para o domínio e regras de negócio na UI.
+* [`04-state-ownership.md`](./04-state-ownership.md): Anatomia do God State, segregação necessária e ciclo de vida de dados.
+* [`05-command-system.md`](./05-command-system.md): Avaliação do sistema de comandos atual vs requisitos de desacoplamento.
+* [`06-tool-system.md`](./06-tool-system.md): Ciclo de vida real de ferramentas, máquinas de estado e rastreio de adição de ferramentas.
+* [`07-renderer-boundary.md`](./07-renderer-boundary.md): Isolamento dos backends wgpu e OpenGL e capacidade de renderização offscreen.
+* [`08-project-assets-io.md`](./08-project-assets-io.md): Fronteiras de I/O de arquivos, serialização, assets e desacoplamento de file pickers.
+* [`09-modularity-extension-cost.md`](./09-modularity-extension-cost.md): Matriz quantitativa de custo de extensão e hotspots de acoplamento.
+* [`10-headless-readiness.md`](./10-headless-readiness.md): Diagnóstico de prontidão para execução e testes headless.
+* [`11-cross-language-ui.md`](./11-cross-language-ui.md): Análise técnica de viabilidade para frontends em C++, C#, Go, Python e Web.
+* [`12-testing-gaps.md`](./12-testing-gaps.md): Distribuição da suíte de testes e lacunas de cobertura sem UI.
+* [`13-findings.md`](./13-findings.md): Catálogo padronizado de achados de auditoria (P0 a P3).
+* [`14-scorecard.md`](./14-scorecard.md): Scorecard detalhado com critérios de evidência técnica.
+* [`15-target-architecture-options.md`](./15-target-architecture-options.md): Comparativo de arquiteturas-alvo e recomendação pragmática.
+* [`16-remediation-plan.md`](./16-remediation-plan.md): Plano Diretor estruturado em Gauntlet Loops incrementais (G0 a G10).
 
 ---
 

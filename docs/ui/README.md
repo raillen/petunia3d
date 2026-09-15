@@ -74,7 +74,7 @@ Os testes verificam contraste mínimo de 4,5:1 nos pares de texto efetivamente u
 
 ## 6. Referência Visual Premium Canônica (`Blender.svg`)
 
-A interface final de produção do Petunia3D adota formalmente como **Golden Reference** o mockup de alta fidelidade especificado em [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (e seu raster de visualização [`docs/image-references/Blender.png`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.png)).
+A interface final de produção do Petunia3D adota formalmente como **Golden Reference** o mockup de alta fidelidade especificado em [`docs/image-references/Blender.svg`](../../docs/image-references/Blender.svg) (e seu raster de visualização [`docs/image-references/Blender.png`](../../docs/image-references/Blender.png)).
 A composição espacial, dimensões nominais (1920 × 1080), painéis sanfonados, hierarquia e catálogo de ícones do Petunia3D convergem para este padrão de produção.
 
 ### Especificação dos Painéis e Elementos
@@ -94,7 +94,7 @@ A composição espacial, dimensões nominais (1920 × 1080), painéis sanfonados
 3. **Left Toolbar (x: 0–45px)**:
    - Coluna de ferramentas com alvos de clique ergonômicos de 40 × 40 px e sub-ferramentas integradas: Select Box/Circle/Lasso, Cursor 3D, Move, Rotate, Scale, Transform, Annotate, Measure, Add Primitive, Extrude Region, Inset Faces, Bevel, Loop Cut, Poly Build, Spin, Smooth, Edge Slide, Shrink/Fatten, Shear, Rip Region.
 4. **Central 3D Viewport**:
-   - Canvas isolado renderizado via [`PhysicalViewport`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/crates/core/src/viewport.rs) com suporte a DPI e clipping exato.
+   - Canvas isolado renderizado via [`PhysicalViewport`](../../crates/core/src/viewport.rs) com suporte a DPI e clipping exato.
    - **Gizmo de Navegação de Eixos** interativo no canto superior direito: esfera de rotação com eixos ortogonais X/Y/Z clicáveis, botões de zoom interativo, pan e alternância de câmera orto/perspectiva.
    - **3D Cursor**: Indicador de mira tridimensional para inserção de primitivas e definição de pivô.
    - Grade tridimensional infinita com eixos coloridos (X vermelho, Y verde, Z azul).
@@ -113,5 +113,5 @@ A composição espacial, dimensões nominais (1920 × 1080), painéis sanfonados
    - Telemetria de geometria em tempo real: contagem de Vértices, Faces, Triângulos, Objetos ativos, Consumo de Memória RAM/VRAM e versão da aplicação.
 
 ### Extração de Assets Vetoriais
-A suíte completa com os 268 elementos vetoriais individuais de `Blender.svg` foi extraída de forma limpa pelo script [`scripts/extract_svg_elements.py`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/scripts/extract_svg_elements.py) e está catalogada com previews e documentação em [`docs/image-references/extracted/README.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/README.md) e galeria visual interativa em [`docs/image-references/extracted/index.html`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/index.html).
+A suíte completa com os 268 elementos vetoriais individuais de `Blender.svg` foi extraída de forma limpa pelo script [`scripts/extract_svg_elements.py`](../../scripts/extract_svg_elements.py) e está catalogada com previews e documentação em [`docs/image-references/extracted/README.md`](../../docs/image-references/extracted/README.md) e galeria visual interativa em [`docs/image-references/extracted/index.html`](../../docs/image-references/extracted/index.html).
 

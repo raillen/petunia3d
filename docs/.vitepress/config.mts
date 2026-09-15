@@ -6,16 +6,18 @@ import modernizationSidebar from './modernizationSidebar';
 export default withMermaid(
   defineConfig({
     title: 'Petunia3D',
+    lang: 'pt-BR',
     description: 'Documentação Oficial e Manual do Usuário — Modelador 3D Low-Poly',
-    base: process.env.GITHUB_PAGES ? '/simple3d-modeling/' : '/',
+    base: process.env.GITHUB_PAGES ? '/petunia3d/' : '/',
     cleanUrls: true,
     lastUpdated: true,
-    ignoreDeadLinks: true,
+    ignoreDeadLinks: false,
     srcExclude: [
       '**/image-references/**',
       '**/contracts/**',
       '**/GAUNTLET*.md',
       '**/README.md',
+      '**/PRUMO.md',
     ],
     head: [
       ['link', { rel: 'icon', type: 'image/svg+xml', href: '/assets/logo.svg' }],
@@ -27,12 +29,32 @@ export default withMermaid(
       nav: [
         { text: 'Início', link: '/' },
         { text: 'Começando', link: '/getting-started/' },
-        { text: 'Manual', link: '/manual/' },
-        { text: 'Ferramentas', link: '/tools/' },
-        { text: 'Bíblia (SSOT)', link: '/bible/' },
-        { text: 'Modernização', link: '/modernization/' },
+        {
+          text: 'Manual',
+          items: [
+            { text: 'Manual do Usuário', link: '/manual/' },
+            { text: 'Ferramentas', link: '/tools/' },
+            { text: 'Tutoriais', link: '/tutorials/' },
+          ],
+        },
+        {
+          text: 'Referência',
+          items: [
+            { text: 'Referência Técnica', link: '/reference/' },
+            { text: 'Atalhos', link: '/shortcuts/' },
+            { text: 'FAQ', link: '/faq' },
+            { text: 'Solução de Problemas', link: '/troubleshooting/' },
+            { text: 'Releases', link: '/releases/' },
+          ],
+        },
         { text: 'Personalização', link: '/customization/' },
-        { text: 'Atalhos', link: '/shortcuts/' },
+        {
+          text: 'Bíblia',
+          items: [
+            { text: 'Bíblia (SSOT)', link: '/bible/' },
+            { text: 'Modernização', link: '/modernization/' },
+          ],
+        },
         { text: 'Desenvolvedores', link: '/developers/' },
         { text: 'Changelog', link: '/changelog/' },
       ],
@@ -222,9 +244,9 @@ export default withMermaid(
             items: [
               { text: 'Changelog Completo', link: '/changelog/' },
               { text: 'Releases & Destaques', link: '/releases/' },
-              { text: 'v0.6.0 (Atual)', link: '/releases/v0.6.0' },
-              { text: 'v0.5.0', link: '/releases/v0.5.0' },
-              { text: 'v0.4.0', link: '/releases/v0.4.0' },
+              { text: 'v0.32.0 (Atual)', link: '/releases/v0.32.0' },
+              { text: 'v0.31.0', link: '/releases/v0.31.0' },
+              { text: 'v0.30.0', link: '/releases/v0.30.0' },
             ],
           },
         ],
@@ -234,9 +256,9 @@ export default withMermaid(
             items: [
               { text: 'Changelog Completo', link: '/changelog/' },
               { text: 'Releases & Destaques', link: '/releases/' },
-              { text: 'v0.6.0 (Atual)', link: '/releases/v0.6.0' },
-              { text: 'v0.5.0', link: '/releases/v0.5.0' },
-              { text: 'v0.4.0', link: '/releases/v0.4.0' },
+              { text: 'v0.32.0 (Atual)', link: '/releases/v0.32.0' },
+              { text: 'v0.31.0', link: '/releases/v0.31.0' },
+              { text: 'v0.30.0', link: '/releases/v0.30.0' },
             ],
           },
         ],
@@ -279,10 +301,10 @@ export default withMermaid(
         },
       },
       socialLinks: [
-        { icon: 'github', link: 'https://github.com/raillen/simple3d-modeling' },
+        { icon: 'github', link: 'https://github.com/raillen/petunia3d' },
       ],
       editLink: {
-        pattern: 'https://github.com/raillen/simple3d-modeling/edit/main/docs/:path',
+        pattern: 'https://github.com/raillen/petunia3d/edit/main/docs/:path',
         text: 'Editar esta página no GitHub',
       },
       footer: {
@@ -291,6 +313,9 @@ export default withMermaid(
       },
       lastUpdated: {
         text: 'Última atualização',
+      },
+      outline: {
+        label: 'Nesta página',
       },
       docFooter: {
         prev: 'Página anterior',

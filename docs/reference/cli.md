@@ -69,3 +69,21 @@ SIMPLE3D_SPIN=1 cargo run --release
 ## 5. Stable Commands (Garantia de Estabilidade)
 
 A invocação via `PETUNIA_BACKEND=gl|wgpu` e flags de logging constituem a superfície pública estável de controle da aplicação antes da inicialização do loop gráfico interativo.
+
+---
+
+## 6. Comandos Headless (`petunia-cli`)
+
+Automação e pipelines sem interface gráfica:
+
+```bash
+petunia-cli new cena.petunia Cube     # novo projeto com primitiva
+petunia-cli info cena.petunia         # metadados, malhas, vértices, faces
+petunia-cli convert cena.petunia cena.obj
+petunia-cli transform in.petunia out.petunia --select-all --subdivide
+petunia-cli bench                      # bateria de desempenho headless
+petunia-cli mcp                        # servidor MCP sobre stdio (--mcp-stdio)
+```
+
+Primitivas aceitas no `new`: `Cube`, `Plane`, `Sphere`, `Cylinder8`,
+`Capsule`, `Cone`. Formatos: `.petunia`, `.obj`, `.glb` (ver [matriz](./formats.md)).

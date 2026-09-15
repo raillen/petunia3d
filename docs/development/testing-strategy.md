@@ -44,7 +44,7 @@ Para aprovação de qualquer alteração no repositório:
 
 ## 4. Evidence Expectations (Expectativas de Evidências)
 
-- **Relatórios Gauntlet**: Todas as mudanças estruturais relevantes devem atualizar o documento canônico [`docs/GAUNTLET.md`](../GAUNTLET.md) com métricas empíricas:
+- **Relatórios Gauntlet**: Todas as mudanças estruturais relevantes devem atualizar o documento canônico `docs/GAUNTLET.md` com métricas empíricas:
   - Tempo de startup até o primeiro frame exibido (meta: $\le 500$ ms).
   - Pegada de memória RAM residente (VmRSS) em idle (meta: $\le 100$ MB).
   - Taxa de quadros estável em cena teste de modelagem ($\ge 60$ FPS em hardware modesto).

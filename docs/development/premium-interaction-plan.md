@@ -1,7 +1,7 @@
 # Interação premium — plano e evidências
 
 Status: em implementação; os critérios do `GAUNTLET_PREMIUM_PROMPT.md` continuam integrais.
-Referência Visual Canônica de Produção: [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (catálogo de 268 elementos extraídos em [`docs/image-references/extracted/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/)).
+Referência Visual Canônica de Produção: [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (catálogo de 268 elementos extraídos em [`docs/image-references/extracted/`](../../image-references/extracted/)).
 
 ## Auditoria inicial — 2026-09-12
 
