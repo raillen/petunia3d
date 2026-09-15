@@ -19,10 +19,13 @@ impl Tool for TransformTool {
         "✥"
     }
     fn shortcut(&self) -> &'static str {
-        "G"
+        "T"
     }
     fn on_activate(&self, state: &mut AppState) {
-        state.pending_modal = Some(petunia_core::ModalKind::Move);
+        // Universal Transform is a persistent gizmo mode, not an implicit Move
+        // transaction. G/R/S still start the individual modal operations.
+        state.pending_modal = None;
+        state.set_status(state.t("hints.transform"));
         state.mark_dirty();
     }
 }
