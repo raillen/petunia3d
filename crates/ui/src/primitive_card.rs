@@ -17,17 +17,17 @@ use crate::tokens;
 use petunia_config::{TextId, text_id};
 
 /// Desenha o cartão da sessão de criação ativa (nada se inválida/ausente).
-pub fn draw_primitive_card(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) {
+pub fn draw_primitive_card(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Rect> {
     if !state.primitive_session_valid() {
         state.finalize_primitive_session();
-        return;
+        return None;
     }
-    let Some(session) = state.session.primitive_session.clone() else {
-        return;
-    };
+    let session = state.session.primitive_session.clone()?;
     let descriptor = session.descriptor;
     let title = state.t_id(descriptor.name_key());
     let anchor = creation_anchor(state, viewport_rect, session.asset_id);
+    let max_card_width = (viewport_rect.width() - 24.0).clamp(96.0, 300.0);
+    let max_card_height = (viewport_rect.height() - 24.0).clamp(96.0, 520.0);
 
     let mut next: Option<PrimitiveDescriptor> = None;
     let mut confirm = false;
@@ -35,6 +35,9 @@ pub fn draw_primitive_card(ui: &mut Ui, state: &mut AppState, viewport_rect: Rec
     let win = egui::Window::new(title)
         .id(egui::Id::new("primitive_last_op"))
         .default_pos(anchor)
+        .default_width(max_card_width.min(260.0))
+        .max_width(max_card_width)
+        .max_height(max_card_height)
         .constrain_to(viewport_rect)
         .collapsible(false)
         .resizable(false)
@@ -91,6 +94,8 @@ pub fn draw_primitive_card(ui: &mut Ui, state: &mut AppState, viewport_rect: Rec
     } else if confirm {
         state.confirm_primitive();
     }
+
+    win.map(|window| window.response.rect.intersect(viewport_rect))
 }
 
 /// Campos por espécie. Retorna o descritor reconstruído quando algo mudou.
@@ -556,7 +561,7 @@ fn param_row(
         }
         if ui
             .add_sized(
-                vec2(110.0, 20.0),
+                vec2(ui.available_width().clamp(40.0, 110.0), 20.0),
                 egui::DragValue::new(value).range(range).speed(speed),
             )
             .changed()
@@ -590,7 +595,7 @@ fn param_row_u32(
         let mut v = *value as i64;
         if ui
             .add_sized(
-                vec2(110.0, 20.0),
+                vec2(ui.available_width().clamp(40.0, 110.0), 20.0),
                 egui::DragValue::new(&mut v)
                     .range(*range.start() as i64..=*range.end() as i64)
                     .speed(speed),
@@ -626,7 +631,7 @@ fn param_caps(
             (false, false) => text_id::PRIMS_CAP_NONE,
         };
         egui::ComboBox::from_id_salt("primitive_cap_combo")
-            .width(ui.available_width().clamp(96.0, 160.0))
+            .width(ui.available_width().clamp(64.0, 160.0))
             .selected_text(state.t_id(current))
             .show_ui(ui, |ui| {
                 for (id, top, bottom) in [
@@ -662,7 +667,7 @@ fn param_fill(ui: &mut Ui, state: &mut AppState, fill: &mut CircleFill) -> bool 
         )
         .on_hover_text(state.t_id(text_id::PRIMS_TIP_FILL));
         egui::ComboBox::from_id_salt("primitive_fill_combo")
-            .width(ui.available_width().clamp(96.0, 160.0))
+            .width(ui.available_width().clamp(64.0, 160.0))
             .selected_text(match fill {
                 CircleFill::None => state.t_id(text_id::PRIMS_FILL_NONE),
                 CircleFill::Disc => state.t_id(text_id::PRIMS_FILL_DISC),
@@ -744,7 +749,7 @@ mod tests {
         let viewport = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1280.0, 800.0));
         ctx.run_ui(egui::RawInput::default(), |ui| {
             egui::CentralPanel::default().show(ui, |ui| {
-                draw_primitive_card(ui, &mut state, viewport);
+                let _ = draw_primitive_card(ui, &mut state, viewport);
             });
         })
         .textures_delta
@@ -807,7 +812,7 @@ mod tests {
                 egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1280.0, 800.0));
             ctx.run_ui(egui::RawInput::default(), |ui| {
                 egui::CentralPanel::default().show(ui, |ui| {
-                    draw_primitive_card(ui, &mut state, viewport);
+                    let _ = draw_primitive_card(ui, &mut state, viewport);
                 });
             })
             .textures_delta

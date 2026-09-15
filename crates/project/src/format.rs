@@ -166,6 +166,7 @@ mod tests {
                 skin_data: None,
                 favorite: false,
                 tags: vec![],
+                modifiers: vec![],
             }],
             active: 42,
             palette: vec![],

@@ -21,12 +21,24 @@ pub enum GizmoHandle {
     Plane(u8),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GizmoInteraction {
+    pub kind: GizmoKind,
+    pub handle: GizmoHandle,
+}
+
 const COLORS: [Color32; 3] = [
     Color32::from_rgb(240, 85, 85),
     Color32::from_rgb(100, 220, 120),
     Color32::from_rgb(95, 150, 255),
 ];
 const AXES: [Vec3; 3] = [Vec3::X, Vec3::Y, Vec3::Z];
+
+/// Visual gizmo extent in logical points. Large viewports retain the familiar
+/// 80pt reach; narrow panes shrink the gizmo instead of covering the model.
+fn gizmo_extent_points(viewport: Rect) -> f32 {
+    (viewport.width().min(viewport.height()) * 0.14).clamp(56.0, 80.0)
+}
 
 /// Calcula eixos de coordenadas locais a partir da seleção da malha.
 pub fn local_axes_for_mesh(mesh: &petunia_mesh::Mesh) -> [Vec3; 3] {
@@ -103,7 +115,7 @@ pub fn draw_gizmo_oriented(
         Projection::Ortho => 2.0 * camera.ortho_half_h / viewport.height(),
         Projection::Perspective => 2.0 * depth * (camera.fov_y * 0.5).tan() / viewport.height(),
     };
-    let length = world_per_point * 80.0;
+    let length = world_per_point * gizmo_extent_points(viewport);
     let project = |point: Vec3| -> Option<Pos2> {
         let clip = camera.view_proj() * point.extend(1.0);
         if !clip.is_finite() || clip.w <= 0.0 || clip.z < 0.0 || clip.z > clip.w {
@@ -234,6 +246,190 @@ pub fn draw_gizmo_oriented(
     best.map(|(_, handle)| handle)
 }
 
+/// Combined Move/Rotate/Scale gizmo for the Universal Transform tool.
+pub fn draw_universal_gizmo_oriented(
+    painter: &Painter,
+    camera: &Camera,
+    viewport: Rect,
+    pivot: Vec3,
+    pointer: Option<Pos2>,
+    axes: [Vec3; 3],
+) -> Option<GizmoInteraction> {
+    if viewport.height() <= 0.0 || !pivot.is_finite() {
+        return None;
+    }
+    let depth = (pivot - camera.eye()).dot(camera.forward());
+    if depth <= camera.near || depth >= camera.far {
+        return None;
+    }
+    let world_per_point = match camera.proj {
+        Projection::Ortho => 2.0 * camera.ortho_half_h / viewport.height(),
+        Projection::Perspective => 2.0 * depth * (camera.fov_y * 0.5).tan() / viewport.height(),
+    };
+    let length = world_per_point * gizmo_extent_points(viewport);
+    let project = |point: Vec3| -> Option<Pos2> {
+        let clip = camera.view_proj() * point.extend(1.0);
+        if !clip.is_finite() || clip.w <= 0.0 || clip.z < 0.0 || clip.z > clip.w {
+            return None;
+        }
+        Some(Pos2::new(
+            viewport.center().x + clip.x / clip.w * viewport.width() * 0.5,
+            viewport.center().y - clip.y / clip.w * viewport.height() * 0.5,
+        ))
+    };
+    let center = project(pivot)?;
+    let mut best: Option<(f32, GizmoInteraction)> = None;
+    let mut consider = |distance: f32, kind: GizmoKind, handle: GizmoHandle| {
+        if best.is_none_or(|(previous, _)| distance < previous) {
+            best = Some((distance, GizmoInteraction { kind, handle }));
+        }
+    };
+
+    let center_distance = pointer.map_or(f32::INFINITY, |point| point.distance(center));
+    let center_hovered = center_distance <= 7.0;
+    painter.circle(
+        center,
+        7.0,
+        Color32::from_black_alpha(115),
+        Stroke::new(
+            1.5,
+            if center_hovered {
+                Color32::WHITE
+            } else {
+                Color32::from_white_alpha(190)
+            },
+        ),
+    );
+    painter.circle_filled(center, 2.5, Color32::from_white_alpha(210));
+    if center_hovered {
+        consider(center_distance, GizmoKind::Translate, GizmoHandle::Center);
+    }
+
+    for (normal, &base_color) in COLORS.iter().enumerate() {
+        let a = axes[(normal + 1) % 3] * length;
+        let b = axes[(normal + 2) % 3] * length;
+        let corners: Option<Vec<_>> = [(0.18, 0.18), (0.34, 0.18), (0.34, 0.34), (0.18, 0.34)]
+            .into_iter()
+            .map(|(u, v)| project(pivot + a * u + b * v))
+            .collect();
+        let Some(corners) = corners else {
+            continue;
+        };
+        let hovered = pointer.is_some_and(|point| inside_convex(&corners, point));
+        let color = if hovered { Color32::WHITE } else { base_color };
+        painter.add(Shape::convex_polygon(
+            corners,
+            color.gamma_multiply(0.20),
+            Stroke::new(1.0, color),
+        ));
+        if hovered {
+            consider(5.0, GizmoKind::Translate, GizmoHandle::Plane(normal as u8));
+        }
+    }
+
+    for (axis, &base_color) in COLORS.iter().enumerate() {
+        let a = axes[(axis + 1) % 3] * length * 0.58;
+        let b = axes[(axis + 2) % 3] * length * 0.58;
+        let mut previous = None;
+        let mut ring_lines = Vec::new();
+        let mut ring_distance = f32::INFINITY;
+        for step in 0..=48 {
+            let angle = step as f32 / 48.0 * std::f32::consts::TAU;
+            let current = project(pivot + a * angle.cos() + b * angle.sin());
+            if let (Some(start), Some(end)) = (previous, current) {
+                if let Some(pointer) = pointer {
+                    ring_distance = ring_distance.min(segment_distance(pointer, start, end));
+                }
+                ring_lines.push([start, end]);
+            }
+            previous = current;
+        }
+        let ring_hovered = ring_distance <= 5.0;
+        for line in ring_lines {
+            painter.line_segment(
+                line,
+                Stroke::new(
+                    if ring_hovered { 3.0 } else { 1.5 },
+                    if ring_hovered {
+                        Color32::WHITE
+                    } else {
+                        base_color.gamma_multiply(0.75)
+                    },
+                ),
+            );
+        }
+        if ring_hovered {
+            consider(
+                ring_distance,
+                GizmoKind::Rotate,
+                GizmoHandle::Axis(axis as u8),
+            );
+        }
+
+        let (Some(start), Some(move_end)) = (
+            project(pivot + axes[axis] * length * 0.12),
+            project(pivot + axes[axis] * length * 0.82),
+        ) else {
+            continue;
+        };
+        if start.distance(move_end) < 10.0 {
+            continue;
+        }
+        let move_distance = pointer.map_or(f32::INFINITY, |point| {
+            segment_distance(point, start, move_end)
+        });
+        let move_hovered = move_distance <= 6.0;
+        let move_color = if move_hovered {
+            Color32::WHITE
+        } else {
+            base_color
+        };
+        painter.line_segment(
+            [start, move_end],
+            Stroke::new(5.0, Color32::from_black_alpha(170)),
+        );
+        painter.line_segment([start, move_end], Stroke::new(2.5, move_color));
+        let direction = (move_end - start).normalized();
+        let perpendicular = Vec2::new(-direction.y, direction.x);
+        painter.add(Shape::convex_polygon(
+            vec![
+                move_end,
+                move_end - direction * 11.0 + perpendicular * 4.5,
+                move_end - direction * 11.0 - perpendicular * 4.5,
+            ],
+            move_color,
+            Stroke::NONE,
+        ));
+        if move_hovered {
+            consider(
+                move_distance,
+                GizmoKind::Translate,
+                GizmoHandle::Axis(axis as u8),
+            );
+        }
+
+        if let Some(scale_end) = project(pivot + axes[axis] * length * 1.04) {
+            let scale_rect = Rect::from_center_size(scale_end, Vec2::splat(9.0));
+            let scale_hovered = pointer.is_some_and(|point| scale_rect.expand(3.0).contains(point));
+            let scale_color = if scale_hovered {
+                Color32::WHITE
+            } else {
+                base_color
+            };
+            painter.line_segment(
+                [move_end, scale_end],
+                Stroke::new(1.5, base_color.gamma_multiply(0.65)),
+            );
+            painter.rect_filled(scale_rect, 1.5, scale_color);
+            if scale_hovered {
+                consider(1.0, GizmoKind::Scale, GizmoHandle::Axis(axis as u8));
+            }
+        }
+    }
+
+    best.map(|(_, interaction)| interaction)
+}
+
 fn segment_distance(point: Pos2, start: Pos2, end: Pos2) -> f32 {
     let edge = end - start;
     let t = if edge.length_sq() > 1e-6 {
@@ -343,5 +539,15 @@ mod tests {
             assert!(!inside_convex(&square, Pos2::new(11.0, 5.0)));
             square.reverse();
         }
+    }
+
+    #[test]
+    fn gizmo_extent_is_responsive_but_keeps_accessible_floor() {
+        let tiny = Rect::from_min_size(Pos2::ZERO, Vec2::new(220.0, 180.0));
+        let medium = Rect::from_min_size(Pos2::ZERO, Vec2::new(520.0, 420.0));
+        let large = Rect::from_min_size(Pos2::ZERO, Vec2::new(1280.0, 800.0));
+        assert_eq!(gizmo_extent_points(tiny), 56.0);
+        assert!(gizmo_extent_points(medium) > gizmo_extent_points(tiny));
+        assert_eq!(gizmo_extent_points(large), 80.0);
     }
 }

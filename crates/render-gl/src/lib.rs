@@ -457,6 +457,7 @@ impl GlRenderer {
             if !obj.visible {
                 continue;
             }
+            let mesh = obj.evaluated_mesh();
             // Fast path: fingerprint idêntico → sem triangulação, sem upload.
             if cache_hit && let Some(&(count, stride, cached_tex)) = self.mesh_slots.get(&obj.id) {
                 let tex_canvas = obj.texture.as_ref().or_else(|| {
@@ -573,9 +574,9 @@ impl GlRenderer {
                 || mat_profile == petunia_project::ShaderProfile::Unlit
                 || mat_profile == petunia_project::ShaderProfile::Emissive;
             let triangles = if obj_unlit {
-                obj.mesh.to_triangles_unlit()
+                mesh.to_triangles_unlit()
             } else {
-                obj.mesh.to_triangles_smooth(smooth)
+                mesh.to_triangles_smooth(smooth)
             };
             for (pos, n, mut col, uv) in triangles {
                 if (col[0] - 0.72).abs() < 0.02
@@ -790,8 +791,9 @@ impl GlRenderer {
             if !obj.visible {
                 continue;
             }
+            let mesh = obj.evaluated_mesh();
             if show_edges {
-                for (a, b, sel) in obj.mesh.to_edges() {
+                for (a, b, sel) in mesh.to_edges() {
                     let c = if sel {
                         [1.0, 0.35, 0.1]
                     } else if wire {
@@ -807,7 +809,7 @@ impl GlRenderer {
                     data.extend_from_slice(&c);
                 }
             } else {
-                for (a, b, sel) in obj.mesh.to_edges() {
+                for (a, b, sel) in mesh.to_edges() {
                     if sel {
                         let c = [1.0, 0.35, 0.1];
                         let lift = 0.001;
@@ -820,7 +822,7 @@ impl GlRenderer {
             }
             if state.show_triangulation {
                 let diag_c = [0.3, 0.65, 0.95];
-                for (a, b) in obj.mesh.triangulation_wireframe() {
+                for (a, b) in mesh.triangulation_wireframe() {
                     let lift = if wire { 0.0 } else { 0.0012 };
                     data.extend_from_slice(&[a[0], a[1] + lift, a[2]]);
                     data.extend_from_slice(&diag_c);

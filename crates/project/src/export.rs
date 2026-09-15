@@ -14,7 +14,7 @@ pub enum ExportError {
 }
 
 pub fn export_obj(asset: &Asset) -> String {
-    asset.mesh.to_obj()
+    asset.evaluated_mesh().to_obj()
 }
 
 /// Exporta assets como um único GLB (uma mesh por asset).
@@ -41,7 +41,7 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
     }
     let mut parts = Vec::new();
     for a in picked {
-        let mut m = a.mesh.clone();
+        let mut m = a.evaluated_mesh();
         m.triangulate();
         // M6: valida em vez de panicar (malha pode vir de arquivo hostil)
         if !m

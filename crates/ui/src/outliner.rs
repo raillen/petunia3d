@@ -304,7 +304,7 @@ fn draw_scene_filter_menu(ui: &mut Ui, state: &mut AppState) {
     let tip = state.t("scene.filter");
     let resp = outliner_icon_button(ui, &PetuniaIcon::Filter, tokens::TEXT_SECONDARY, &tip);
     egui::Popup::menu(&resp).show(|ui| {
-        ui.set_min_width(200.0);
+        ui.set_min_width(160.0);
         let mut dirty = false;
         for (label_key, field) in [
             ("scene.f_collections", 0u8),

@@ -106,6 +106,7 @@ axis_unlock = "Destravar eixo"
 overflow = "Mais ferramentas da viewport"
 orientation = "Orientação"
 pivot = "Ponto de Pivô"
+drop_to_instantiate = "Soltar para Instanciar"
 
 [toolbar]
 configure = "Configurar Barra"
@@ -116,6 +117,7 @@ two_columns = "2 colunas"
 move_up = "Subir"
 move_down = "Descer"
 visible = "Visível"
+planned = "Recurso planejado"
 
 [dock]
 side = "Lado do dock"
@@ -133,7 +135,7 @@ tool_bevel = "Ferramenta Bevel"
 tool_mirror = "Ferramenta Mirror"
 tool_subdivide = "Ferramenta Subdivide"
 tab_object = "Objeto"
-tab_modify = "Modificar"
+tab_modify = "Modificadores"
 tab_material = "Material"
 tab_selection = "Seleção"
 search = "Buscar propriedades..."
@@ -182,16 +184,24 @@ selected = "selecionados"
 
 [geometry]
 title = "Geometria"
+tris = "Triângulos"
 
 [modifiers]
 title = "Modificadores"
 empty = "Sem modificadores na pilha."
 add = "Adicionar"
+enable = "Ativar modificador"
+remove = "Remover modificador"
+axis = "Eixo"
+add_mirror = "Adicionar Espelho"
+add_symmetry = "Adicionar Simetria"
 
 [display]
 title = "Exibição"
 
 [context]
+modeling = "Modelagem"
+object_locked = "Objeto Bloqueado"
 rename = "Renomear"
 export = "Exportar..."
 show = "Mostrar na Viewport 3D"
@@ -225,6 +235,7 @@ frame_all = "Enquadrar tudo"
 [tools]
 select = "Seleção"
 select_box = "Seleção em caixa"
+select_lasso = "Seleção em laço"
 cursor_3d = "Cursor 3D"
 move = "Mover"
 rotate = "Rotacionar"
@@ -325,6 +336,26 @@ no_mesh = "Sem malha ativa"
 revolve_open_hint = "Ângulos abaixo de 360° deixam o perfil aberto."
 revolve_need_edges = "Selecione ao menos 2 arestas conectadas."
 cursor_to_origin = "Cursor para origem global"
+
+[tool_properties]
+title = "Propriedades da ferramenta"
+universal_transform = "Transformação unificada"
+choose_transform = "Escolha uma alça de transformação ou use G/R/S."
+blocked = "Confirme ou cancele a operação na viewport antes de editar estes campos."
+error_number = "Informe um número finito em cada campo."
+value = "Valor"
+displacement = "Deslocamento"
+rotation_xyz = "Rotação XYZ"
+scale_xyz = "Escala por eixo"
+extrude_distance = "Distância de extrusão"
+inset_factor = "Fator de inset"
+bevel_width = "Largura do bevel"
+pushpull_distance = "Distância de Push/Pull"
+preview_hint = "As alterações são pré-visualizadas em tempo real. Enter aplica; Esc cancela."
+rotation_hint = "Ângulos em graus, Euler XYZ, em torno do centro da seleção."
+bevel_hint = "Suporta uma aresta convexa manifold com cantos simples; um segmento."
+cuts = "Cortes"
+profile_usage = "Clique em uma vista ortográfica para adicionar pontos. Clique perto do primeiro ponto para fechar o perfil."
 
 [props]
 name = "Nome"

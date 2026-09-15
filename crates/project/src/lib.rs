@@ -98,6 +98,54 @@ impl Canvas {
     }
 }
 
+/// Operação não destrutiva persistente avaliada sobre a malha-base do asset.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum ModifierKind {
+    Mirror {
+        axis: usize,
+        weld: f32,
+    },
+    Symmetry {
+        axis: usize,
+        positive_to_negative: bool,
+        weld: f32,
+    },
+}
+
+/// Instância ordenada de modifier. O UUID mantém identidade estável para UI,
+/// reordenação e futuras animações/serialization migrations.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct ModifierInstance {
+    pub id: Uuid,
+    pub enabled: bool,
+    pub kind: ModifierKind,
+}
+
+impl ModifierInstance {
+    pub fn mirror(axis: usize, weld: f32) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            enabled: true,
+            kind: ModifierKind::Mirror {
+                axis: axis.min(2),
+                weld: weld.max(0.0),
+            },
+        }
+    }
+
+    pub fn symmetry(axis: usize, positive_to_negative: bool, weld: f32) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            enabled: true,
+            kind: ModifierKind::Symmetry {
+                axis: axis.min(2),
+                positive_to_negative,
+                weld: weld.max(0.0),
+            },
+        }
+    }
+}
+
 /// Um asset do projeto. `id` nunca muda (rename seguro).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Asset {
@@ -121,6 +169,8 @@ pub struct Asset {
     pub favorite: bool,
     #[serde(default)]
     pub tags: Vec<String>,
+    #[serde(default)]
+    pub modifiers: Vec<ModifierInstance>,
 }
 
 impl Asset {
@@ -139,12 +189,36 @@ impl Asset {
             skin_data: None,
             favorite: false,
             tags: Vec::new(),
+            modifiers: Vec::new(),
         }
     }
 
     /// Obtém o material atribuído ao asset a partir do projeto.
     pub fn material<'a>(&self, project: &'a Project) -> Option<&'a Material> {
         self.material_id.and_then(|id| project.get_material(id))
+    }
+
+    /// Avalia a pilha de modifiers sem alterar a malha-base.
+    /// Render, preview e export usam este resultado; edição continua operando
+    /// sobre `mesh`, preservando a natureza não destrutiva da pilha.
+    pub fn evaluated_mesh(&self) -> Mesh {
+        let mut mesh = self.mesh.clone();
+        for modifier in &self.modifiers {
+            if !modifier.enabled {
+                continue;
+            }
+            match modifier.kind {
+                ModifierKind::Mirror { axis, weld } => mesh.mirror(axis, weld),
+                ModifierKind::Symmetry {
+                    axis,
+                    positive_to_negative,
+                    weld,
+                } => {
+                    mesh.symmetrize(axis, positive_to_negative, weld);
+                }
+            }
+        }
+        mesh
     }
 
     /// Duplicata com novo UUID.

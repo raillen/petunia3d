@@ -382,6 +382,63 @@ impl PetuniaIcon {
 static TEXTURE_CACHE: LazyLock<RwLock<HashMap<String, TextureHandle>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
+// -------------------------------------------------- Golden Reference SVG toolbar assets
+const SVG_TOOL_SELECT_BOX: &str = include_str!("../../../assets/ui/icons/toolbar/select_box.svg");
+const SVG_TOOL_CURSOR_3D: &str = include_str!("../../../assets/ui/icons/toolbar/cursor_3d.svg");
+const SVG_TOOL_MOVE: &str = include_str!("../../../assets/ui/icons/toolbar/move.svg");
+const SVG_TOOL_ROTATE: &str = include_str!("../../../assets/ui/icons/toolbar/rotate.svg");
+const SVG_TOOL_SCALE: &str = include_str!("../../../assets/ui/icons/toolbar/scale.svg");
+const SVG_TOOL_TRANSFORM: &str = include_str!("../../../assets/ui/icons/toolbar/transform.svg");
+const SVG_TOOL_ANNOTATE: &str = include_str!("../../../assets/ui/icons/toolbar/annotate.svg");
+const SVG_TOOL_MEASURE: &str = include_str!("../../../assets/ui/icons/toolbar/measure.svg");
+const SVG_TOOL_ADD_PRIMITIVE: &str =
+    include_str!("../../../assets/ui/icons/toolbar/add_primitive.svg");
+
+fn embedded_toolbar_svg(id: &str) -> Option<&'static str> {
+    match id {
+        "select_box" => Some(SVG_TOOL_SELECT_BOX),
+        "cursor_3d" => Some(SVG_TOOL_CURSOR_3D),
+        "move" => Some(SVG_TOOL_MOVE),
+        "rotate" => Some(SVG_TOOL_ROTATE),
+        "scale" => Some(SVG_TOOL_SCALE),
+        "transform" => Some(SVG_TOOL_TRANSFORM),
+        "annotate" => Some(SVG_TOOL_ANNOTATE),
+        "measure" => Some(SVG_TOOL_MEASURE),
+        "add_primitive" => Some(SVG_TOOL_ADD_PRIMITIVE),
+        _ => None,
+    }
+}
+
+fn rasterize_svg(svg: &str, size: u32) -> Option<ColorImage> {
+    let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).ok()?;
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size)?;
+    let source = tree.size();
+    let scale_x = size as f32 / source.width();
+    let scale_y = size as f32 / source.height();
+    let scale = scale_x.min(scale_y);
+    let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+    Some(ColorImage::from_rgba_unmultiplied(
+        [size as usize, size as usize],
+        pixmap.data(),
+    ))
+}
+
+fn get_or_load_toolbar_svg(ctx: &Context, id: &str) -> Option<TextureHandle> {
+    let cache_key = format!("svg-toolbar:{id}");
+    if let Ok(cache) = TEXTURE_CACHE.read()
+        && let Some(handle) = cache.get(&cache_key)
+    {
+        return Some(handle.clone());
+    }
+    let image = rasterize_svg(embedded_toolbar_svg(id)?, 64)?;
+    let handle = ctx.load_texture(cache_key.clone(), image, TextureOptions::LINEAR);
+    if let Ok(mut cache) = TEXTURE_CACHE.write() {
+        cache.insert(cache_key, handle.clone());
+    }
+    Some(handle)
+}
+
 // -------------------------------------------------- Bytes Embutidos dos PNGs de Properties Tabs
 // NOTA (Wave 9): os PNGs da toolbar foram removidos — inalcançáveis, pois toda
 // ferramenta tem arte vetorial (`is_toolbar_vector_tool`). Restam os PNGs das
@@ -715,7 +772,12 @@ impl IconRegistry {
         // 2. Arte de domínio Petunia (ferramentas, vetores, PNGs Figma): vale para
         // TODOS os pacotes, por decisão — pacote muda o chrome, não a ferramenta.
         if is_toolbar_vector_tool(&id) {
-            icons::paint(painter, &id, target_rect, tint);
+            if let Some(texture) = get_or_load_toolbar_svg(ctx, &id) {
+                let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
+                painter.image(texture.id(), target_rect, uv, tint);
+            } else {
+                icons::paint(painter, &id, target_rect, tint);
+            }
             return;
         }
 

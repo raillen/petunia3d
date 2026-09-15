@@ -86,7 +86,7 @@ pub fn draw(
             painter.text(
                 sc + egui::vec2(0.0, 18.0),
                 egui::Align2::CENTER_TOP,
-                "Soltar para Instanciar",
+                state.t("viewport.drop_to_instantiate"),
                 egui::FontId::proportional(11.0),
                 tokens::TEXT_PRIMARY,
             );
@@ -225,62 +225,94 @@ pub fn draw(
     if handle_annotation_gizmo(ctx, state, rect, painter, pointer) {
         return true;
     }
-    if !state.is_active_locked()
+    let transform_tool_active = matches!(
+        state.active_tool.as_str(),
+        "transform" | "move" | "rotate" | "scale"
+    );
+    if transform_tool_active
+        && !state.is_active_locked()
         && let Some(mesh) = state.project.active_mesh().filter(|m| {
             m.has_selection() || state.selection_domain() == petunia_core::SelectionDomain::Object
         })
     {
         let pivot = state.calculate_pivot(state.session.pivot_point);
-        let kind = match state.gizmo_mode {
-            ModalKind::Rotate => GizmoKind::Rotate,
-            ModalKind::Scale => GizmoKind::Scale,
-            _ => GizmoKind::Translate,
-        };
         let axes = if state.transform_orientation == petunia_core::TransformOrientation::Local {
             crate::gizmo::local_axes_for_mesh(mesh)
         } else {
             [Vec3::X, Vec3::Y, Vec3::Z]
         };
-        if let Some(handle) = crate::gizmo::draw_gizmo_oriented(
-            painter,
-            &state.camera,
-            rect,
-            pivot,
-            kind,
-            pointer,
-            axes,
-        ) {
+        let interaction = if state.active_tool == "transform" {
+            crate::gizmo::draw_universal_gizmo_oriented(
+                painter,
+                &state.camera,
+                rect,
+                pivot,
+                pointer,
+                axes,
+            )
+        } else {
+            let kind = match state.active_tool.as_str() {
+                "rotate" => GizmoKind::Rotate,
+                "scale" => GizmoKind::Scale,
+                _ => GizmoKind::Translate,
+            };
+            crate::gizmo::draw_gizmo_oriented(
+                painter,
+                &state.camera,
+                rect,
+                pivot,
+                kind,
+                pointer,
+                axes,
+            )
+            .map(|handle| crate::gizmo::GizmoInteraction { kind, handle })
+        };
+        if let Some(interaction) = interaction {
             ctx.set_cursor_icon(egui::CursorIcon::Grab);
             if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
                 && let Some(pos) = pointer
             {
-                let constraint = match handle {
+                let constraint = match interaction.handle {
                     GizmoHandle::Center => ModalConstraint::Free,
                     GizmoHandle::Axis(a) => ModalConstraint::Axis(a as usize),
                     GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
                 };
-                modal_viewport::start_handle(ctx, state, state.gizmo_mode, constraint, pos);
+                let kind = match interaction.kind {
+                    GizmoKind::Translate => ModalKind::Move,
+                    GizmoKind::Rotate => ModalKind::Rotate,
+                    GizmoKind::Scale => ModalKind::Scale,
+                };
+                modal_viewport::start_handle(ctx, state, kind, constraint, pos);
                 state.ui.box_select_start = None;
                 return true;
             }
         }
     }
+    let object_locked_label = state.t("context.object_locked");
+    let modeling_label = state.t("context.modeling");
+    let move_label = state.t("tools.move");
+    let rotate_label = state.t("tools.rotate");
+    let scale_label = state.t("tools.scale");
+    let extrude_label = state.t("tools.extrude");
+    let inset_label = state.t("tools.inset");
+    let pushpull_label = state.t("tools.pushpull");
+    let bevel_label = state.t("tools.bevel");
     response.context_menu(|ui| {
         if state.is_active_locked() {
             ui.label(
-                egui::RichText::new("Objeto Bloqueado")
+                egui::RichText::new(object_locked_label.as_str())
                     .italics()
                     .color(tokens::TEXT_MUTED),
             );
             return;
         }
         ui.label(
-            egui::RichText::new("Modelagem")
+            egui::RichText::new(modeling_label.as_str())
                 .strong()
                 .color(tokens::TEXT_PRIMARY),
         );
         ui.separator();
-        if widgets::PetuniaMenuItem::new("Mover")
+        if widgets::PetuniaMenuItem::new(move_label.as_str())
             .icon(PetuniaIcon::Move)
             .shortcut(Some("G"))
             .show(ui)
@@ -289,7 +321,7 @@ pub fn draw(
             state.pending_modal = Some(ModalKind::Move);
             ui.close();
         }
-        if widgets::PetuniaMenuItem::new("Rotacionar")
+        if widgets::PetuniaMenuItem::new(rotate_label.as_str())
             .icon(PetuniaIcon::Rotate)
             .shortcut(Some("R"))
             .show(ui)
@@ -298,7 +330,7 @@ pub fn draw(
             state.pending_modal = Some(ModalKind::Rotate);
             ui.close();
         }
-        if widgets::PetuniaMenuItem::new("Escalar")
+        if widgets::PetuniaMenuItem::new(scale_label.as_str())
             .icon(PetuniaIcon::Scale)
             .shortcut(Some("S"))
             .show(ui)
@@ -313,7 +345,7 @@ pub fn draw(
             .is_some_and(|m| m.selected_face_count() > 0);
         if faces {
             ui.separator();
-            if widgets::PetuniaMenuItem::new("Extrude")
+            if widgets::PetuniaMenuItem::new(extrude_label.as_str())
                 .icon(PetuniaIcon::Extrude)
                 .shortcut(Some("E"))
                 .show(ui)
@@ -322,7 +354,7 @@ pub fn draw(
                 state.pending_modal = Some(ModalKind::Extrude);
                 ui.close();
             }
-            if widgets::PetuniaMenuItem::new("Inset")
+            if widgets::PetuniaMenuItem::new(inset_label.as_str())
                 .icon(PetuniaIcon::Inset)
                 .shortcut(Some("I"))
                 .show(ui)
@@ -331,7 +363,7 @@ pub fn draw(
                 state.pending_modal = Some(ModalKind::Inset);
                 ui.close();
             }
-            if widgets::PetuniaMenuItem::new("Push / Pull")
+            if widgets::PetuniaMenuItem::new(pushpull_label.as_str())
                 .icon(PetuniaIcon::PushPull)
                 .shortcut(Some("P"))
                 .show(ui)
@@ -345,7 +377,7 @@ pub fn draw(
             .project
             .active_mesh()
             .is_some_and(|m| !m.selected_edges.is_empty())
-            && widgets::PetuniaMenuItem::new("Bevel")
+            && widgets::PetuniaMenuItem::new(bevel_label.as_str())
                 .icon(PetuniaIcon::Bevel)
                 .shortcut(Some("Ctrl+B"))
                 .show(ui)
