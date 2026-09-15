@@ -15,6 +15,10 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{LazyLock, RwLock};
+
+static AVAILABLE_LOCALES: LazyLock<RwLock<Vec<String>>> =
+    LazyLock::new(|| RwLock::new(discover_available_locales()));
 
 pub struct I18n {
     pub lang: String,
@@ -23,22 +27,23 @@ pub struct I18n {
 }
 
 impl I18n {
+    /// Lista de idiomas já descoberta em cache. O filesystem não é tocado no
+    /// hot path de menus egui; o watcher chama [`Self::refresh_available`].
     pub fn available() -> Vec<String> {
-        let mut out = vec!["en".to_string()];
-        if let Ok(entries) = fs::read_dir(locales_dir()) {
-            for e in entries.flatten() {
-                let p = e.path();
-                if p.extension().map(|x| x == "toml").unwrap_or(false)
-                    && let Some(stem) = p.file_stem().and_then(|s| s.to_str())
-                    && stem != "en"
-                    && !out.contains(&stem.to_string())
-                {
-                    out.push(stem.to_string());
-                }
-            }
+        match AVAILABLE_LOCALES.read() {
+            Ok(locales) => locales.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
         }
-        out.sort();
-        out
+    }
+
+    /// Reescaneia os arquivos de locale. Deve ser chamado somente em eventos de
+    /// mudança do watcher ou por ações explícitas de atualização.
+    pub fn refresh_available() {
+        let locales = discover_available_locales();
+        match AVAILABLE_LOCALES.write() {
+            Ok(mut cached) => *cached = locales,
+            Err(poisoned) => *poisoned.into_inner() = locales,
+        }
     }
 
     pub fn load(lang: &str) -> Self {
@@ -401,6 +406,24 @@ fn locales_dir() -> PathBuf {
         }
     }
     PathBuf::from("assets/locales")
+}
+
+fn discover_available_locales() -> Vec<String> {
+    let mut out = vec!["en".to_string()];
+    if let Ok(entries) = fs::read_dir(locales_dir()) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "toml")
+                && let Some(stem) = path.file_stem().and_then(|stem| stem.to_str())
+                && stem != "en"
+                && !out.iter().any(|locale| locale == stem)
+            {
+                out.push(stem.to_string());
+            }
+        }
+    }
+    out.sort();
+    out
 }
 
 /// Locales embutidos como reserva (Wave 7): binários instalados sem o diretório
