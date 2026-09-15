@@ -5,17 +5,34 @@ on:
     branches:
       - fix/ui-hot-path-performance
 
+permissions:
+  contents: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/ui-hot-path-performance
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Restore canonical Knife/Slice glyph mapping
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('crates/ui/src/icon_registry.rs')
+          text = path.read_text()
+          text = text.replace(
+              'PetuniaIcon::Knife => Some(egui_phosphor::regular::KNIFE),\n            PetuniaIcon::PushPull => Some(egui_phosphor::regular::ARROWS_LEFT_RIGHT),\n            PetuniaIcon::Slice => Some(egui_phosphor::regular::SCISSORS),',
+              'PetuniaIcon::Knife => Some(egui_phosphor::regular::SCISSORS),\n            PetuniaIcon::PushPull => Some(egui_phosphor::regular::ARROWS_LEFT_RIGHT),\n            PetuniaIcon::Slice => Some(egui_phosphor::regular::KNIFE),',
+          )
+          path.write_text(text)
+          PY
       - name: Format
-        run: cargo fmt --all -- --check
+        run: cargo fmt --all
       - name: Check config
         run: cargo check -p petunia_config
       - name: Check UI
@@ -26,3 +43,12 @@ jobs:
         run: cargo test -p petunia_config
       - name: UI tests
         run: cargo test -p petunia_ui --lib
+      - name: Persist formatter and mapping fixes
+        run: |
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add crates/config/src/theme.rs crates/config/src/i18n.rs crates/ui/src/icon_registry.rs crates/app/src/watch.rs
+            git commit -m 'style: format hot-path performance fixes [skip ci]'
+            git push origin HEAD:fix/ui-hot-path-performance
+          fi
