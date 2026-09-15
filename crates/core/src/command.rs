@@ -518,6 +518,56 @@ impl CommandDispatcher {
         );
         d.register_with_meta(
             CommandMetadata::new(
+                "model.add_wedge",
+                "Add Wedge",
+                "Add a wedge/ramp primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Wedge),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_circle",
+                "Add Circle",
+                "Add a circle/disc primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Circle),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_torus",
+                "Add Torus",
+                "Add a torus primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Torus),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.add_icosphere",
+                "Add Icosphere",
+                "Add an icosphere primitive",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            AddPrimitiveCmd::new(PrimitiveKind::Icosphere),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.revolve",
+                "Revolve 360",
+                "Revolve selected profile 360 degrees around an axis",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            RevolveCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
                 "model.extrude",
                 "Extrude",
                 "Extrude selected faces along surface normal",
@@ -940,23 +990,20 @@ impl Command for AddPrimitiveCmd {
         "add primitive"
     }
 
+    /// Sem checkpoint do dispatcher: `begin_primitive` captura a transação
+    /// única da sessão (sem isso, cada criação empilharia dois checkpoints).
+    fn is_destructive(&self) -> bool {
+        false
+    }
+
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
-        let mut mesh = self.kind.generate_mesh();
-        if self.at_cursor {
-            let cursor = state.cursor_3d;
-            for v in &mut mesh.verts {
-                v.pos[0] += cursor[0];
-                v.pos[1] += cursor[1];
-                v.pos[2] += cursor[2];
-            }
+        // Caminho canônico único: sessão de criação (§82), nunca inserção seca.
+        // `at_cursor` é sempre verdadeiro nos chamadores (offset do cursor 3D).
+        if state.begin_primitive(self.kind, self.name.clone()) {
+            Ok(())
+        } else {
+            Err(CommandError::Execution("bulk creation failed".to_string()))
         }
-        let name = self
-            .name
-            .clone()
-            .unwrap_or_else(|| self.kind.default_name().to_string());
-        state.project.add(&name, mesh);
-        state.set_status(format!("Added {}", name));
-        Ok(())
     }
 }
 

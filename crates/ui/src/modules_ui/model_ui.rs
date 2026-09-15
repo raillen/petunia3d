@@ -107,13 +107,18 @@ fn draw_paint(ui: &mut Ui, state: &mut AppState) {
 fn draw_primitives(ui: &mut Ui, state: &mut AppState) {
     let l_title = state.t("tools.primitives");
     ui.label(l_title);
+    // Dez espécies (grupos do menu Add); cada uma abre a sessão de criação.
     let items: Vec<(&str, String)> = vec![
         ("Cube", state.t("prims.cube")),
         ("Plane", state.t("prims.plane")),
+        ("Wedge", state.t("prims.wedge")),
         ("Cylinder8", state.t("prims.cylinder")),
-        ("Sphere", state.t("prims.sphere")),
-        ("Capsule", state.t("prims.capsule")),
         ("Cone", state.t("prims.cone")),
+        ("Circle", state.t("prims.circle")),
+        ("Torus", state.t("prims.torus")),
+        ("Sphere", state.t("prims.sphere")),
+        ("Icosphere", state.t("prims.icosphere")),
+        ("Capsule", state.t("prims.capsule")),
     ];
     for (name, label) in items {
         if ui.button(label).clicked() {
@@ -165,6 +170,7 @@ fn draw_extrude(ui: &mut Ui, state: &mut AppState) {
     let l_title = state.t("tools.extrude");
     let l_dist = state.t("actions.distance");
     let l_go = state.t("actions.extrude");
+    let l_individual = state.t("actions.extrude_individual");
     ui.label(l_title);
     if ui
         .add(egui::Slider::new(&mut state.extrude_dist, -2.0..=2.0).text(l_dist))
@@ -172,9 +178,14 @@ fn draw_extrude(ui: &mut Ui, state: &mut AppState) {
     {
         state.mark_dirty();
     }
-    if ui.button(l_go).clicked() {
-        petunia_module_model::ExtrudeTool::apply(state);
-    }
+    ui.horizontal(|ui| {
+        if ui.button(l_go).clicked() {
+            petunia_module_model::ExtrudeTool::apply(state);
+        }
+        if ui.button(l_individual).on_hover_text("Alt+E").clicked() {
+            petunia_module_model::ExtrudeTool::apply_individual(state);
+        }
+    });
 }
 
 fn draw_inset(ui: &mut Ui, state: &mut AppState) {

@@ -14,7 +14,7 @@ description: Catálogo canônico de comandos gerados a partir do CommandDispatch
 > **Single Source of Truth (P3D-100, P3D-119)**
 > Todos os comandos do Petunia3D são registrados centralmente no `CommandDispatcher`, permitindo despacho transacional com histórico (Undo/Redo), Command Palette e telemetria.
 
-Total de comandos registrados no motor: **57**.
+Total de comandos registrados no motor: **62**.
 
 ## Tabela Geral de Comandos
 
@@ -32,12 +32,16 @@ Total de comandos registrados no motor: **57**.
 | `file.save_as` | **Save Project As** | `File` | Sim | — | Save active project to a new file |
 | `file.save_asset` | **Save Active Model as Asset** | `File` | Sim | Assets | Save active mesh to project asset library |
 | `help.documentation` | **Documentation** | `Help` | Não | GettingStarted | Open official documentation online |
-| `model.add_capsule` | **Add Capsule** | `Model` | Sim | Modeling | Add a capsule primitive |
-| `model.add_cone` | **Add Cone** | `Model` | Sim | Modeling | Add a cone primitive |
-| `model.add_cube` | **Add Cube** | `Model` | Sim | Modeling | Add a 3D box primitive |
-| `model.add_cylinder` | **Add Cylinder** | `Model` | Sim | Modeling | Add a cylinder primitive |
-| `model.add_plane` | **Add Plane** | `Model` | Sim | Modeling | Add a flat plane primitive |
-| `model.add_sphere` | **Add Sphere** | `Model` | Sim | Modeling | Add a low-poly sphere primitive |
+| `model.add_capsule` | **Add Capsule** | `Model` | Não | Modeling | Add a capsule primitive |
+| `model.add_circle` | **Add Circle** | `Model` | Não | Modeling | Add a circle/disc primitive |
+| `model.add_cone` | **Add Cone** | `Model` | Não | Modeling | Add a cone primitive |
+| `model.add_cube` | **Add Cube** | `Model` | Não | Modeling | Add a 3D box primitive |
+| `model.add_cylinder` | **Add Cylinder** | `Model` | Não | Modeling | Add a cylinder primitive |
+| `model.add_icosphere` | **Add Icosphere** | `Model` | Não | Modeling | Add an icosphere primitive |
+| `model.add_plane` | **Add Plane** | `Model` | Não | Modeling | Add a flat plane primitive |
+| `model.add_sphere` | **Add Sphere** | `Model` | Não | Modeling | Add a low-poly sphere primitive |
+| `model.add_torus` | **Add Torus** | `Model` | Não | Modeling | Add a torus primitive |
+| `model.add_wedge` | **Add Wedge** | `Model` | Não | Modeling | Add a wedge/ramp primitive |
 | `model.bevel` | **Bevel Edges** | `Model` | Sim | Bevel | Bevel selected mesh edges |
 | `model.extrude` | **Extrude** | `Model` | Sim | Extrude | Extrude selected faces along surface normal |
 | `model.extrude_individual` | **Extrude Individual** | `Model` | Sim | Extrude | Extrude selected faces individually |
@@ -46,6 +50,7 @@ Total de comandos registrados no motor: **57**.
 | `model.inset` | **Inset Faces** | `Model` | Sim | Modeling | Inset selected faces towards interior |
 | `model.instantiate_asset` | **Instantiate Asset** | `Model` | Sim | Assets | Instantiate a library asset into the active 3D scene |
 | `model.merge` | **Merge Center** | `Model` | Sim | Modeling | Merge selected vertices into center point |
+| `model.revolve` | **Revolve 360** | `Model` | Sim | Modeling | Revolve selected profile 360 degrees around an axis |
 | `model.separate_selection` | **Separate Selection** | `Model` | Sim | Modeling | Separate selected geometry into a new object |
 | `model.subdivide` | **Subdivide** | `Model` | Sim | LoopCut | Subdivide selected geometry |
 | `select.all` | **Select All** | `Select` | Não | — | Select all geometry elements in active mesh |

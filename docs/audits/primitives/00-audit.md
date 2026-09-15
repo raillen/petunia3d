@@ -50,6 +50,12 @@ Verificado no código, não em claims. Legenda: OK / PARCIAL / AUSENTE / QUEBRAD
 - **P10**: `primitive_pipeline_tests.rs` — 10 espécies × save/load/OBJ/GLB + cancel-nunca-salva.
 - **P11**: `docs/manual/primitives.md`, CHANGELOG, gates abaixo.
 
+## Pós-gauntlet: unificação do caminho de criação (modelagem)
+
+- `AddPrimitiveCmd::execute` e `PrimitivesTool::add_primitive` roteiam pela sessão (`begin_primitive`); `is_destructive()=false` no comando (checkpoint único, sem duplicar com o dispatcher).
+- `model_primitives_list` com as 10 espécies; botão Extrude Individual no form; `model.revolve` + `model.add_{wedge,circle,torus,icosphere}` registrados (paleta/docs via `docs-generate`).
+- Restante inventariado (fora deste slice): Merge by distance (só `merge_center` existe; `weld(eps)` pronto no mesh), Bevel multi-segmento sem UI (spec P3D-032 fixa 1 segmento — expor exige adendo), Quick Symmetry e Origin/Pivot Presets (candidatos Era 1, inexistentes), Sweep sem UI (extensão V1.x futura por design).
+
 ## Achados corrigidos no caminho
 
 - Windings do frustum/cápsula/esfera derivados à mão e verificados pelo audit (3 inversões pegas antes de commitar qualquer geometria).
