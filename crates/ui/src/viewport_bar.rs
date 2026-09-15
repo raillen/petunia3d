@@ -8,7 +8,7 @@
 //! 6. Diagnóstico de Cena (Overlays e X-Ray com ícones vetoriais dedicados);
 //! 7. 4 Esferas de Sombreamento no estilo canônico do Blender (Wireframe, Solid, Material, Rendered).
 
-use egui::{Color32, CornerRadius, Rect, Ui, pos2, vec2};
+use egui::{Color32, CornerRadius, Rect, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2};
 use petunia_core::{
     AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode, InvertSelectionCmd,
     MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff, SelectAllCmd, SelectionDomain,
@@ -192,6 +192,9 @@ fn draw_selection_domain_cluster(ui: &mut Ui, state: &mut AppState) {
                 24.0
             };
             let (rect, resp) = ui.allocate_exact_size(vec2(width, 22.0), egui::Sense::click());
+            resp.widget_info(|| {
+                WidgetInfo::selected(WidgetType::Button, true, is_active, &name)
+            });
             if ui.is_rect_visible(rect) {
                 let painter = ui.painter();
                 let fill = if is_active {
@@ -205,6 +208,14 @@ fn draw_selection_domain_cluster(ui: &mut Ui, state: &mut AppState) {
 
                 let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
                 IconRegistry::paint(ui.ctx(), painter, &icon, icon_rect, fg);
+                if resp.has_focus() {
+                    painter.rect_stroke(
+                        rect,
+                        tokens::RADIUS_CONTROL,
+                        tokens::stroke_focus(),
+                        StrokeKind::Inside,
+                    );
+                }
             }
 
             if resp
@@ -647,7 +658,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .show(ui)
                 .clicked()
             {
-                let _ = state.dispatch(&petunia_core::RevolveCmd::default());
+                state.active_tool = "revolve".into();
+                state.mark_dirty();
                 ui.close();
             }
         });
@@ -768,9 +780,9 @@ fn draw_axis_lock_controls(ui: &mut Ui, state: &mut AppState) {
             };
 
             let tooltip = if is_locked {
-                format!("Eixo {label} travado · Clique para destravar (ou atalho {label})")
+                format!("{} {label}", state.t("viewport.axis_unlock"))
             } else {
-                format!("Travar eixo {label} na edição · Atalho {label}")
+                format!("{} {label}", state.t("viewport.axis_lock"))
             };
 
             if ui.add(btn).on_hover_text(tooltip).clicked() {
@@ -817,6 +829,15 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
 
         // --- Snapping Magnético (Segmented: Botão Mestre + Chevron Popover) ---
         let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+        let snap_tip = state.t("viewport.snap_tip");
+        resp.widget_info(|| {
+            WidgetInfo::selected(
+                WidgetType::Button,
+                true,
+                state.snap_enabled,
+                snap_tip.clone(),
+            )
+        });
         if ui.is_rect_visible(rect) {
             let is_active = state.snap_enabled;
             let bg = if is_active {
@@ -849,11 +870,21 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
                 icon_rect,
                 fg,
             );
+            if resp.has_focus() {
+                ui.painter().rect_stroke(
+                    rect,
+                    CornerRadius {
+                        nw: 4,
+                        sw: 4,
+                        ne: 0,
+                        se: 0,
+                    },
+                    tokens::stroke_focus(),
+                    StrokeKind::Inside,
+                );
+            }
         }
-        if resp
-            .on_hover_text("Snapping Magnético · Shift+Tab")
-            .clicked()
-        {
+        if resp.on_hover_text(snap_tip).clicked() {
             state.snap_enabled = !state.snap_enabled;
             state.snap_settings.enabled = state.snap_enabled;
             state.mark_dirty();
@@ -914,6 +945,15 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
 
         // --- Edição Proporcional (Segmented: Botão Mestre + Chevron Popover) ---
         let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+        let prop_tip = state.t("viewport.prop_tip");
+        resp.widget_info(|| {
+            WidgetInfo::selected(
+                WidgetType::Button,
+                true,
+                state.proportional_editing,
+                prop_tip.clone(),
+            )
+        });
         if ui.is_rect_visible(rect) {
             let is_active = state.proportional_editing;
             let bg = if is_active {
@@ -946,8 +986,21 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
                 icon_rect,
                 fg,
             );
+            if resp.has_focus() {
+                ui.painter().rect_stroke(
+                    rect,
+                    CornerRadius {
+                        nw: 4,
+                        sw: 4,
+                        ne: 0,
+                        se: 0,
+                    },
+                    tokens::stroke_focus(),
+                    StrokeKind::Inside,
+                );
+            }
         }
-        if resp.on_hover_text("Edição Proporcional · O").clicked() {
+        if resp.on_hover_text(prop_tip).clicked() {
             state.proportional_editing = !state.proportional_editing;
             state.proportional_settings.enabled = state.proportional_editing;
             state.mark_dirty();
@@ -1003,6 +1056,15 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
         ui.spacing_mut().item_spacing = vec2(1.0, 0.0);
 
         let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 22.0), egui::Sense::click());
+        let overlays_tip = state.t("viewport.overlays_tip");
+        resp.widget_info(|| {
+            WidgetInfo::selected(
+                WidgetType::Button,
+                true,
+                state.show_overlays,
+                overlays_tip.clone(),
+            )
+        });
         if ui.is_rect_visible(rect) {
             let is_active = state.show_overlays;
             let bg = if is_active {
@@ -1035,11 +1097,21 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
                 icon_rect,
                 fg,
             );
+            if resp.has_focus() {
+                ui.painter().rect_stroke(
+                    rect,
+                    CornerRadius {
+                        nw: 4,
+                        sw: 4,
+                        ne: 0,
+                        se: 0,
+                    },
+                    tokens::stroke_focus(),
+                    StrokeKind::Inside,
+                );
+            }
         }
-        if resp
-            .on_hover_text("Alternar Exibição de Overlays")
-            .clicked()
-        {
+        if resp.on_hover_text(overlays_tip).clicked() {
             state.show_overlays = !state.show_overlays;
             state.mark_dirty();
         }
@@ -1204,6 +1276,15 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
 
     // X-Ray
     let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    let xray_tip = state.t("viewport.xray_tip");
+    resp.widget_info(|| {
+        WidgetInfo::selected(
+            WidgetType::Button,
+            true,
+            state.show_xray,
+            xray_tip.clone(),
+        )
+    });
     if ui.is_rect_visible(rect) {
         let is_active = state.show_xray;
         let bg = if is_active {
@@ -1221,17 +1302,31 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
         ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
         let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
         IconRegistry::paint(ui.ctx(), ui.painter(), &PetuniaIcon::XRay, icon_rect, fg);
+        if resp.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                tokens::RADIUS_CONTROL,
+                tokens::stroke_focus(),
+                StrokeKind::Inside,
+            );
+        }
     }
-    if resp
-        .on_hover_text("Modo Raio-X / Transparência de Malha · Alt+Z")
-        .clicked()
-    {
+    if resp.on_hover_text(xray_tip).clicked() {
         state.show_xray = !state.show_xray;
         state.mark_dirty();
     }
 
     // Triangulação
     let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
+    let tri_tip = state.t("viewport.tri_tip");
+    resp.widget_info(|| {
+        WidgetInfo::selected(
+            WidgetType::Button,
+            true,
+            state.show_triangulation,
+            tri_tip.clone(),
+        )
+    });
     if ui.is_rect_visible(rect) {
         let is_active = state.show_triangulation;
         let bg = if is_active {
@@ -1258,11 +1353,16 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
             egui::Stroke::new(1.0_f32, fg.gamma_multiply(0.5)),
             egui::StrokeKind::Inside,
         );
+        if resp.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                tokens::RADIUS_CONTROL,
+                tokens::stroke_focus(),
+                StrokeKind::Inside,
+            );
+        }
     }
-    if resp
-        .on_hover_text("Inspeção de Triangulação (Diagonais Internas de Quads/N-gons)")
-        .clicked()
-    {
+    if resp.on_hover_text(tri_tip).clicked() {
         state.show_triangulation = !state.show_triangulation;
         state.mark_dirty();
     }
@@ -1270,27 +1370,15 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
 
 /// Cluster 7: Os 4 modos canônicos de sombreamento no estilo esférico do Blender com ícones vetoriais.
 fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
+    let wire_tip = state.t("shading.tip_wireframe");
+    let solid_tip = state.t("shading.tip_solid");
+    let mat_tip = state.t("shading.tip_material");
+    let rend_tip = state.t("shading.tip_rendered");
     let modes = [
-        (
-            Shading::Wireframe,
-            PetuniaIcon::ShadingWireframe,
-            "Wireframe (Z 4)",
-        ),
-        (
-            Shading::Solid,
-            PetuniaIcon::ShadingSolid,
-            "Solid / Clay (Z 6)",
-        ),
-        (
-            Shading::Smooth,
-            PetuniaIcon::ShadingMaterial,
-            "Material Preview (Z 2)",
-        ),
-        (
-            Shading::Unlit,
-            PetuniaIcon::ShadingRendered,
-            "Rendered View (Z 8)",
-        ),
+        (Shading::Wireframe, PetuniaIcon::ShadingWireframe, wire_tip),
+        (Shading::Solid, PetuniaIcon::ShadingSolid, solid_tip),
+        (Shading::Smooth, PetuniaIcon::ShadingMaterial, mat_tip),
+        (Shading::Unlit, PetuniaIcon::ShadingRendered, rend_tip),
     ];
 
     ui.horizontal(|ui| {
@@ -1298,6 +1386,9 @@ fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
         for (shading, icon, hint) in modes {
             let is_active = state.shading == shading;
             let (rect, resp) = ui.allocate_exact_size(vec2(22.0, 22.0), egui::Sense::click());
+            resp.widget_info(|| {
+                WidgetInfo::selected(WidgetType::Button, true, is_active, hint.clone())
+            });
             if ui.is_rect_visible(rect) {
                 let bg = if is_active {
                     tokens::ACCENT_BLUE
@@ -1314,6 +1405,14 @@ fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.painter().rect_filled(rect, CornerRadius::same(11), bg);
                 let icon_rect = Rect::from_center_size(rect.center(), vec2(16.0, 16.0));
                 IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
+                if resp.has_focus() {
+                    ui.painter().rect_stroke(
+                        rect,
+                        CornerRadius::same(11),
+                        tokens::stroke_focus(),
+                        StrokeKind::Inside,
+                    );
+                }
             }
             if resp.on_hover_text(hint).clicked() {
                 state.shading = shading;

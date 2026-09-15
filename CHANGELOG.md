@@ -17,6 +17,7 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 - **Convergência (Wave 9)**: removidos `tiles_workspace.rs`, `app_icons.rs` e PNGs inalcançáveis da toolbar; pilots P1 com gate (`flex_layout`, `inbox_bridge`) mantidos com veredito no ledger.
 - **Primitivas V1 (gauntlet dedicado)**: dez espécies validadas (Cube/Box W/H/D, Plane, Wedge, Cylinder/Cone via gerador frustum com tampas, Circle/Disc, Torus, UV Sphere com polos soldados, Icosphere 0–3, Capsule parametrizada); defaults low-poly; menu Add agrupado; sessão + cartão com Reset e estatísticas; i18n en/pt-BR completa das superfícies; pipeline save/load/OBJ/GLB por espécie.
 - **Mapa da interface**: `docs/public/ui-map.json` (190 nós: componentes, posições, interdependências) + `docs/developers/ui-component-map.md`, validados por `cargo xtask ui-check` dentro do `docs-check`.
+- **Modelagem — gaps funcionais/a11y/i18n**: `symmetrize` (copia +eixo/−eixo com solda, `SymmetrizeCmd`/`SymmetrizeTool`), merge by distance (`WeldCmd` + slider log), Tool tab com estados desabilitados e motivos, anéis de foco + `widget_info` nos controles custom (domínio, snap/prop, overlays, X-Ray, sombreamento, pills), tooltips de sombreamento e toggles i18n en/pt-BR, Slice XYZ e revolve com hint de perfil aberto + nome `Revolve` sem `360°` fixo.
 
 ## [0.32.0] - 2026-09-14 — Wave 10: Animation & Rigging (P3D-066, P3D-067, P3D-135 a P3D-139)
 

@@ -50,6 +50,13 @@ Verificado no código, não em claims. Legenda: OK / PARCIAL / AUSENTE / QUEBRAD
 - **P10**: `primitive_pipeline_tests.rs` — 10 espécies × save/load/OBJ/GLB + cancel-nunca-salva.
 - **P11**: `docs/manual/primitives.md`, CHANGELOG, gates abaixo.
 
+## Pós-gauntlet: slice UI/UX de modelagem
+
+- `draw_revolve` na Tool tab (segments 3–64, angle 5–360, eixo X/Y/Z, centro = seleção); menu passa a só armar `active_tool="revolve"`.
+- `draw_bevel` com slider de segmentos 1–4 (default 1, spec P3D-032); `BevelTool::apply` usa `bevel_selected_segments` quando > 1.
+- Nomes de asset canônicos (`Cylinder`, não `Cylinder8`); `actions.revolve`/`actions.angle` en/pt-BR.
+- Restante (UI/UX + a11y, exaustivo): simetria ausente; merge só center; sem disabled-states na Tool tab; sem focus ring em shelf pills/shading spheres/selection rects; ativação por teclado ausente nos botões custom; strings hardcoded PT/EN (MESH_TOOLS, model_ui, bevel status, cutting hints, can_execute); `Tool::icon()` legado sem uso visual.
+
 ## Pós-gauntlet: unificação do caminho de criação (modelagem)
 
 - `AddPrimitiveCmd::execute` e `PrimitivesTool::add_primitive` roteiam pela sessão (`begin_primitive`); `is_destructive()=false` no comando (checkpoint único, sem duplicar com o dispatcher).

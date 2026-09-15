@@ -1,4 +1,4 @@
-use petunia_core::AppState;
+use petunia_core::{AppState, WeldCmd};
 
 use super::Tool;
 
@@ -34,5 +34,14 @@ impl MergeTool {
         }
         state.sync_selection();
         state.emit_mesh_changed();
+    }
+
+    pub fn apply_by_distance(state: &mut AppState) {
+        let cmd = WeldCmd {
+            eps: state.merge_dist.max(0.0),
+        };
+        if let Err(err) = state.dispatch(&cmd) {
+            state.set_status(format!("merge by distance: {err}"));
+        }
     }
 }

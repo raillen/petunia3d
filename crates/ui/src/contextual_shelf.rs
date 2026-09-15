@@ -6,7 +6,7 @@
 //! larguras medidas por galley (nunca `len() * k`), cápsula de fundo com tamanho
 //! exato do conteúdo e modos responsivos (Full → Compact → Overflow → Pill).
 
-use egui::{FontId, Rect, Response, RichText, Ui, pos2, vec2};
+use egui::{FontId, Rect, Response, RichText, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2};
 use petunia_core::{
     AppState, DuplicateSelectionCmd, EditMode, MergeCenterCmd, ModalKind, SubdivideSelectionCmd,
     Workspace,
@@ -619,6 +619,14 @@ fn draw_shelf_pill(
     let desired_size = vec2(pill_width(cmd.icon.is_some(), tw), PILL_H);
 
     let (rect, resp) = ui.allocate_exact_size(desired_size, egui::Sense::click());
+    let accessible_label = if cmd.label.is_empty() {
+        cmd.tooltip.clone()
+    } else {
+        cmd.label.clone()
+    };
+    resp.widget_info(|| {
+        WidgetInfo::selected(WidgetType::Button, true, is_active, accessible_label.clone())
+    });
     if ui.is_rect_visible(rect) {
         let fill = if is_active {
             bg
@@ -651,6 +659,14 @@ fn draw_shelf_pill(
                 label,
                 PILL_FONT,
                 fg,
+            );
+        }
+        if resp.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                tokens::RADIUS_PILL,
+                tokens::stroke_focus(),
+                StrokeKind::Inside,
             );
         }
     }

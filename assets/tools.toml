@@ -18,4 +18,5 @@ connect = true
 dissolve = true
 mirror = true
 merge = true
+symmetrize = true
 paint = true

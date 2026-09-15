@@ -53,9 +53,9 @@ pub use command::{
     MergeCenterCmd, NewProjectCmd, PrimitiveKind, RedoCmd, ResetCameraCmd, RevolveCmd,
     SaveActiveAsAssetCmd, SaveProjectAsCmd, SaveProjectCmd, SelectAllCmd, SelectLinkedCmd,
     SeparateSelectionCmd, SetAssetCollectionCmd, SetSelectionDomainCmd, SubdivideSelectionCmd,
-    ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd, ToggleCommandPaletteCmd, ToggleHelpCmd,
-    ToggleLockAssetCmd, ToggleProjectionCmd, ToggleSettingsCmd, ToggleVisibilityAssetCmd,
-    ToggleWireframeCmd, ToggleXRayCmd, UndoCmd,
+    SymmetrizeCmd, ToggleCollectionLockCmd, ToggleCollectionVisibilityCmd, ToggleCommandPaletteCmd,
+    ToggleHelpCmd, ToggleLockAssetCmd, ToggleProjectionCmd, ToggleSettingsCmd,
+    ToggleVisibilityAssetCmd, ToggleWireframeCmd, ToggleXRayCmd, UndoCmd, WeldCmd,
 };
 pub use project_service::{ProjectService, ProjectServiceError, sanitize_filename};
 

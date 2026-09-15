@@ -867,6 +867,119 @@ impl Mesh {
         }
     }
 
+    /// Funde duplicados e retorna quantos vértices foram removidos.
+    pub fn weld_merged_count(&mut self, eps: f32) -> usize {
+        let before = self.verts.len();
+        self.weld(eps.max(0.0));
+        before.saturating_sub(self.verts.len())
+    }
+
+    /// Symmetrize (§8.11): copia um lado para o outro e solda a costura.
+    ///
+    /// `positive_to_negative` = true copia +eixo para −eixo (descarta o lado
+    /// negativo); false faz o inverso. Vértices com `|coord| <= eps` são
+    /// considerados sobre o plano, mantidos e snapados para 0 no eixo.
+    /// Retorna quantos vértices foram espelhados. No-op (0) sem lado fonte,
+    /// para nunca apagar a malha por direção vazia.
+    pub fn symmetrize(&mut self, axis: usize, positive_to_negative: bool, eps: f32) -> usize {
+        let ax = axis.min(2);
+        let eps = eps.max(0.0);
+        let center_eps = if eps > 0.0 { eps } else { 1e-5 };
+        let n = self.verts.len();
+        if n == 0 {
+            return 0;
+        }
+        let mut new_id: Vec<Option<u32>> = vec![None; n];
+        let mut is_source = vec![false; n];
+        let mut new_verts: Vec<Vertex> = Vec::with_capacity(n * 2);
+        for (i, v) in self.verts.iter().enumerate() {
+            let c = v.pos[ax];
+            let is_center = c.abs() <= center_eps;
+            let on_source = if positive_to_negative {
+                c > center_eps
+            } else {
+                c < -center_eps
+            };
+            if is_center || on_source {
+                let mut nv = v.clone();
+                if is_center {
+                    nv.pos[ax] = 0.0;
+                }
+                new_id[i] = Some(new_verts.len() as u32);
+                is_source[i] = on_source && !is_center;
+                new_verts.push(nv);
+            }
+        }
+        let source_count = is_source.iter().filter(|&&s| s).count();
+        if source_count == 0 {
+            return 0;
+        }
+        // Espelha os vértices fonte.
+        let mut mirror_of: Vec<Option<u32>> = vec![None; n];
+        for i in 0..n {
+            if is_source[i] {
+                let orig_new = new_id[i].expect("fonte sempre mantida") as usize;
+                let mut mv = new_verts[orig_new].clone();
+                mv.pos[ax] = -mv.pos[ax];
+                mirror_of[i] = Some(new_verts.len() as u32);
+                new_verts.push(mv);
+            }
+        }
+        // Faces mantidas + cópias espelhadas das que tocam o lado fonte.
+        let mut kept: Vec<Face> = Vec::new();
+        let mut mirrored: Vec<Face> = Vec::new();
+        for f in &self.faces {
+            if f.verts.iter().all(|vi| {
+                (*vi as usize) < n && new_id[*vi as usize].is_some()
+            }) {
+                let mut nf = Face::with_uv(
+                    f.verts
+                        .iter()
+                        .map(|vi| new_id[*vi as usize].expect("vert mantido"))
+                        .collect(),
+                    f.uv.clone(),
+                );
+                nf.selected = f.selected;
+                nf.material_slot = f.material_slot;
+                kept.push(nf);
+                let touches_source = f
+                    .verts
+                    .iter()
+                    .any(|vi| is_source[*vi as usize]);
+                if touches_source {
+                    let mut mverts: Vec<u32> = f
+                        .verts
+                        .iter()
+                        .map(|vi| {
+                            let idx = *vi as usize;
+                            if is_source[idx] {
+                                mirror_of[idx].expect("espelho da fonte")
+                            } else {
+                                new_id[idx].expect("centro mantido")
+                            }
+                        })
+                        .collect();
+                    mverts.reverse();
+                    let mut muv = f.uv.clone();
+                    muv.reverse();
+                    let mut mf = Face::with_uv(mverts, muv);
+                    mf.selected = f.selected;
+                    mf.material_slot = f.material_slot;
+                    mirrored.push(mf);
+                }
+            }
+        }
+        self.verts = new_verts;
+        kept.extend(mirrored);
+        self.faces = kept;
+        if eps > 0.0 {
+            self.weld(eps);
+        }
+        self.selected_edges.clear();
+        self.sync_vert_selection_from_faces();
+        source_count
+    }
+
     pub fn merge_center(&mut self) {
         let sel: Vec<u32> = self
             .verts
@@ -1815,5 +1928,42 @@ mod region_tests {
         assert_eq!((mesh.verts.len(), mesh.faces.len()), (12, 10));
         assert!(mesh.verts.iter().any(|v| v.pos[1] < 0.0));
         assert!(mesh.verts.iter().any(|v| v.pos[1] > 0.0));
+    }
+
+    #[test]
+    fn weld_merges_duplicates_within_eps() {
+        let mut mesh = Mesh::cube(2.0);
+        let before = mesh.verts.len();
+        // Duplica um vértice exatamente.
+        let dup = mesh.verts[0].clone();
+        mesh.verts.push(dup);
+        assert_eq!(mesh.verts.len(), before + 1);
+        let removed = mesh.weld_merged_count(0.0001);
+        assert_eq!(removed, 1);
+        assert_eq!(mesh.verts.len(), before);
+    }
+
+    #[test]
+    fn symmetrize_copies_positive_to_negative_and_snaps_center() {
+        let mut mesh = Mesh::default();
+        mesh.verts.push(Vertex::new(1.0, 0.0, 0.0));
+        mesh.verts.push(Vertex::new(0.0, 1.0, 0.0));
+        mesh.verts.push(Vertex::new(-5.0, 0.0, 0.0));
+        let mirrored = mesh.symmetrize(0, true, 0.001);
+        assert_eq!(mirrored, 1);
+        // Fonte + centro + espelho; lado negativo original descartado.
+        assert_eq!(mesh.verts.len(), 3);
+        assert!(mesh.verts.iter().any(|v| (v.pos[0] + 1.0).abs() < 1e-5));
+        assert!(mesh.verts.iter().any(|v| v.pos[0].abs() < 1e-6));
+        assert!(!mesh.verts.iter().any(|v| (v.pos[0] + 5.0).abs() < 1e-5));
+    }
+
+    #[test]
+    fn symmetrize_without_source_is_noop() {
+        let mut mesh = Mesh::default();
+        mesh.verts.push(Vertex::new(-1.0, 0.0, 0.0));
+        let before = format!("{mesh:?}");
+        assert_eq!(mesh.symmetrize(0, true, 0.001), 0);
+        assert_eq!(format!("{mesh:?}"), before);
     }
 }

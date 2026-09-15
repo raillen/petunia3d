@@ -14,11 +14,12 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **316**.
+Total de chaves de localização cadastradas: **347**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
 | `actions.amount` | Amount | Qtd |
+| `actions.angle` | Angle | Ângulo |
 | `actions.apply_scale` | Apply scale | Aplicar escala |
 | `actions.bevel` | Bevel | Bevel |
 | `actions.connect` | Bridge Faces | Conectar Faces |
@@ -33,16 +34,32 @@ Total de chaves de localização cadastradas: **316**.
 | `actions.flip_normals` | Flip Normals | Inverter Normais |
 | `actions.inset` | Inset | Inset |
 | `actions.invert` | Invert (Ctrl+I) | Inverter (Ctrl+I) |
+| `actions.merge_by_distance` | Merge by distance | Fundir por distância |
 | `actions.merge_center` | Merge center | Fundir no centro |
+| `actions.merge_distance` | Distance | Distância |
 | `actions.mirror` | Mirror | Espelhar |
 | `actions.move` | Move | Mover |
+| `actions.need_edit` | Requires Edit mode | Requer modo Edição |
+| `actions.need_selection` | Select geometry first | Selecione a geometria primeiro |
+| `actions.no_mesh` | No active mesh | Sem malha ativa |
 | `actions.pushpull` | Push/Pull | Push/Pull |
 | `actions.recalculate_normals` | Recalc Normals | Recalcular Normais |
+| `actions.revolve` | Revolve | Revolver |
+| `actions.revolve_need_edges` | Select at least 2 connected edges first. | Selecione ao menos 2 arestas conectadas. |
+| `actions.revolve_open_hint` | Angles below 360° leave the profile open. | Ângulos abaixo de 360° deixam o perfil aberto. |
 | `actions.scale` | Scale | Escala |
 | `actions.select_all` | All | Tudo |
 | `actions.select_linked` | Linked (L) | Conectados (L) |
 | `actions.slice` | Slice Plane | Fatiar Plano |
+| `actions.slice_cap` | Slice (Cap) | Fatiar (tampa) |
+| `actions.slice_x` | Slice X | Fatiar X |
+| `actions.slice_y` | Slice Y | Fatiar Y |
+| `actions.slice_z` | Slice Z | Fatiar Z |
 | `actions.subdivide` | Subdivide | Subdividir |
+| `actions.symmetrize` | Symmetrize | Simetrizar |
+| `actions.symmetrize_dir` | Direction | Direção |
+| `actions.symmetrize_dir_neg` | − to + | − para + |
+| `actions.symmetrize_dir_pos` | + to − | + para − |
 | `actions.triangulate` | Triangulate | Triangular |
 | `actions.weld_eps` | Weld | Solda |
 | `animate.auto_rig` | Auto-Rig | Auto-Rig |
@@ -108,9 +125,11 @@ Total de chaves de localização cadastradas: **316**.
 | `hints.paint` | B: click the mesh to paint vertex colors. Alt+click: pick. | B: clique na malha p/ pintar. Alt+clique: conta-gotas. |
 | `hints.primitives` | A: add low-poly primitive. | A: adiciona primitiva low-poly. |
 | `hints.pushpull` | P: push/pull along normals. | P: empurra/puxa ao longo das normais. |
+| `hints.revolve` | Select connected edges, then revolve them around an axis. | Selecione arestas conectadas e revolva ao redor de um eixo. |
 | `hints.select` | Click to select. 1/2/3: vertex/edge/face. | Clique p/ selecionar. 1/2/3: vértice/aresta/face. |
 | `hints.slice` | Shift+K: drag a cutting plane; Enter applies, Esc cancels. | Shift+K: arraste o plano de corte; Enter aplica, Esc cancela. |
 | `hints.subdivide` | W: subdivide (loop cut). Triangulate below. | W: subdivide (loop cut). Triangular abaixo. |
+| `hints.symmetrize` | Alt+M: copy one side across the axis and weld the seam. | Alt+M: copia um lado para o outro no eixo e solda a costura. |
 | `hints.transform` | G/R/S: move, rotate, scale with mouse. Enter applies; Esc cancels. | G/R/S: mover, rotacionar, escalar com mouse. Enter aplica; Esc cancela. |
 | `keymap.capture` | capture… | capturar… |
 | `keymap.unsupported_key` | Key not supported by the keymap | Tecla não suportada pelo keymap |
@@ -260,6 +279,10 @@ Total de chaves de localização cadastradas: **316**.
 | `shading.smooth` | Smooth | Suave |
 | `shading.solid` | Flat | Plano |
 | `shading.textured` | Textured | Textura |
+| `shading.tip_material` | Material Preview (Z 2) | Prévia de Material (Z 2) |
+| `shading.tip_rendered` | Rendered View (Z 8) | Vista Renderizada (Z 8) |
+| `shading.tip_solid` | Solid / Clay (Z 6) | Sólido / Clay (Z 6) |
+| `shading.tip_wireframe` | Wireframe (Z 4) | Arame (Z 4) |
 | `shading.unlit` | Unlit | Sem Luz |
 | `shading.wire` | Wireframe | Arame |
 | `tools.add_primitive` | Add Primitive | Adicionar primitiva |
@@ -284,13 +307,14 @@ Total de chaves de localização cadastradas: **316**.
 | `tools.picker` | Picker | Conta-gotas |
 | `tools.primitives` | Add | Adicionar |
 | `tools.pushpull` | Push/Pull | Push/Pull |
-| `tools.revolve` | Revolve 360° | Revolução 360° |
+| `tools.revolve` | Revolve | Revolução |
 | `tools.rotate` | Rotate | Rotacionar |
 | `tools.scale` | Scale | Escalar |
 | `tools.select` | Select | Seleção |
 | `tools.select_box` | Box Select | Seleção em caixa |
 | `tools.slice` | Slice | Fatiar |
 | `tools.subdivide` | Cut | Cortar |
+| `tools.symmetrize` | Symmetrize | Simetrizar |
 | `tools.transform` | Transform | Transformar |
 | `tools.uv_project` | Project | Projetar |
 | `tools.uv_seam` | Seam | Costura |
@@ -329,6 +353,13 @@ Total de chaves de localização cadastradas: **316**.
 | `uv.title` | UV editor | Editor UV |
 | `view.frame` | Frame | Enquadrar |
 | `view.frame_all` | Frame All | Enquadrar tudo |
+| `viewport.axis_lock` | Lock axis | Travar eixo |
+| `viewport.axis_unlock` | Unlock axis | Destravar eixo |
+| `viewport.overlays_tip` | Toggle Overlays display | Alternar exibição de Overlays |
+| `viewport.prop_tip` | Proportional Editing · O | Edição Proporcional · O |
+| `viewport.snap_tip` | Magnetic Snapping · Shift+Tab | Snapping Magnético · Shift+Tab |
+| `viewport.tri_tip` | Triangulation inspection (internal diagonals of quads/n-gons) | Inspeção de triangulação (diagonais internas de quads/n-gons) |
+| `viewport.xray_tip` | X-Ray / Mesh transparency mode · Alt+Z | Modo Raio-X / Transparência de Malha · Alt+Z |
 | `ws.animate` | ANIMATE | ANIMATE |
 | `ws.export` | EXPORT | EXPORT |
 | `ws.model` | MODEL | MODEL |

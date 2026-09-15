@@ -628,6 +628,26 @@ impl CommandDispatcher {
         );
         d.register_with_meta(
             CommandMetadata::new(
+                "model.weld",
+                "Merge by Distance",
+                "Weld duplicate vertices within distance",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            WeldCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
+                "model.symmetrize",
+                "Symmetrize",
+                "Copy one side to the other across an axis",
+                CommandCategory::Model,
+            )
+            .with_docs(DocsTopic::Modeling),
+            SymmetrizeCmd::default(),
+        );
+        d.register_with_meta(
+            CommandMetadata::new(
                 "model.flip_normals",
                 "Flip Normals",
                 "Reverse orientation of face normals",
@@ -1466,6 +1486,91 @@ impl Command for MergeCenterCmd {
         };
         mesh.merge_center();
         state.set_status("Merged selection at center");
+        Ok(())
+    }
+}
+
+/// Comando para fundir vértices duplicados por distância (merge by distance).
+#[derive(Debug, Clone)]
+pub struct WeldCmd {
+    pub eps: f32,
+}
+
+impl Default for WeldCmd {
+    fn default() -> Self {
+        Self { eps: 0.01 }
+    }
+}
+
+impl Command for WeldCmd {
+    fn label(&self) -> &'static str {
+        "weld"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if state.project.active_mesh().is_none() {
+            Err("No active mesh")
+        } else {
+            Ok(())
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        let removed = mesh.weld_merged_count(self.eps.max(0.0));
+        state.set_status(format!("Welded {removed} vertices (eps {:.4})", self.eps));
+        Ok(())
+    }
+}
+
+/// Comando para tornar a malha simétrica copiando um lado para o outro.
+#[derive(Debug, Clone)]
+pub struct SymmetrizeCmd {
+    pub axis: usize,
+    pub positive_to_negative: bool,
+    pub eps: f32,
+}
+
+impl Default for SymmetrizeCmd {
+    fn default() -> Self {
+        Self {
+            axis: 0,
+            positive_to_negative: true,
+            eps: 0.001,
+        }
+    }
+}
+
+impl Command for SymmetrizeCmd {
+    fn label(&self) -> &'static str {
+        "symmetrize"
+    }
+
+    fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
+        if state.mode != EditMode::Edit {
+            Err("Requires Edit mode")
+        } else if state.project.active_mesh().is_none() {
+            Err("No active mesh")
+        } else {
+            Ok(())
+        }
+    }
+
+    fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
+        let Some(mesh) = state.project.active_mesh_mut() else {
+            return Err(CommandError::NoActiveAsset);
+        };
+        let mirrored = mesh.symmetrize(self.axis, self.positive_to_negative, self.eps);
+        if mirrored == 0 {
+            return Err(CommandError::Execution(
+                "Nothing to symmetrize on this side".into(),
+            ));
+        }
+        state.set_status(format!("Symmetrized {mirrored} vertices"));
         Ok(())
     }
 }

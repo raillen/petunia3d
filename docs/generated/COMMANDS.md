@@ -14,7 +14,7 @@ description: Catálogo canônico de comandos gerados a partir do CommandDispatch
 > **Single Source of Truth (P3D-100, P3D-119)**
 > Todos os comandos do Petunia3D são registrados centralmente no `CommandDispatcher`, permitindo despacho transacional com histórico (Undo/Redo), Command Palette e telemetria.
 
-Total de comandos registrados no motor: **62**.
+Total de comandos registrados no motor: **64**.
 
 ## Tabela Geral de Comandos
 
@@ -53,6 +53,8 @@ Total de comandos registrados no motor: **62**.
 | `model.revolve` | **Revolve 360** | `Model` | Sim | Modeling | Revolve selected profile 360 degrees around an axis |
 | `model.separate_selection` | **Separate Selection** | `Model` | Sim | Modeling | Separate selected geometry into a new object |
 | `model.subdivide` | **Subdivide** | `Model` | Sim | LoopCut | Subdivide selected geometry |
+| `model.symmetrize` | **Symmetrize** | `Model` | Sim | Modeling | Copy one side to the other across an axis |
+| `model.weld` | **Merge by Distance** | `Model` | Sim | Modeling | Weld duplicate vertices within distance |
 | `select.all` | **Select All** | `Select` | Não | — | Select all geometry elements in active mesh |
 | `select.cycle_domain` | **Cycle Selection Domain** | `Select` | Não | — | Toggle between Object and last component domain |
 | `select.domain_edge` | **Select Domain: Edge** | `Select` | Não | — | Switch interaction to Edge domain |

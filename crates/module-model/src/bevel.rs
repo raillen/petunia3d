@@ -31,11 +31,18 @@ impl Tool for BevelTool {
 impl BevelTool {
     pub fn apply(state: &mut AppState) {
         let amt = state.bevel_amount;
+        let segs = state.bevel_segments.clamp(1, 4);
         state.checkpoint("bevel");
         let (ok, skipped) = state
             .project
             .active_mesh_mut()
-            .map(|m| m.bevel_selected(amt))
+            .map(|m| {
+                if segs > 1 {
+                    m.bevel_selected_segments(amt, segs)
+                } else {
+                    m.bevel_selected(amt)
+                }
+            })
             .unwrap_or((0, 0));
         if skipped > 0 {
             state.set_status(format!(

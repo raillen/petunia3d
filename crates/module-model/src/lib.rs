@@ -24,6 +24,7 @@ pub mod push_pull;
 pub mod select;
 pub mod slice;
 pub mod subdivide;
+pub mod symmetrize;
 pub mod transform;
 
 pub use bevel::BevelTool;
@@ -40,6 +41,7 @@ pub use push_pull::PushPullTool;
 pub use select::SelectTool;
 pub use slice::SliceTool;
 pub use subdivide::SubdivideTool;
+pub use symmetrize::SymmetrizeTool;
 pub use transform::TransformTool;
 
 /// Contrato mínimo de ferramenta (pequeno de propósito).
@@ -92,6 +94,7 @@ impl ToolRegistry {
         r.register::<DissolveTool>(&enabled);
         r.register::<MirrorTool>(&enabled);
         r.register::<MergeTool>(&enabled);
+        r.register::<SymmetrizeTool>(&enabled);
         r.register::<PaintTool>(&enabled);
         r
     }
@@ -126,6 +129,7 @@ mod tests {
             Box::new(DissolveTool),
             Box::new(MirrorTool),
             Box::new(MergeTool),
+            Box::new(SymmetrizeTool),
             Box::new(PaintTool),
         ];
         for tool in tools {
