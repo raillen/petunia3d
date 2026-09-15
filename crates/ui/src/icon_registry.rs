@@ -409,6 +409,9 @@ static TEXTURE_CACHE: LazyLock<RwLock<HashMap<String, TextureHandle>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
 // -------------------------------------------------- Golden Reference SVG toolbar assets
+// NOTA: os SVGs da toolbar são tiles Figma com fundo escuro embutido —
+// servem só de reserva. O caminho canônico são os PNGs transparentes
+// abaixo (arte clara p/ UI escura).
 const SVG_TOOL_SELECT_BOX: &str = include_str!("../../../assets/ui/icons/toolbar/select_box.svg");
 const SVG_TOOL_CURSOR_3D: &str = include_str!("../../../assets/ui/icons/toolbar/cursor_3d.svg");
 const SVG_TOOL_MOVE: &str = include_str!("../../../assets/ui/icons/toolbar/move.svg");
@@ -465,10 +468,67 @@ fn get_or_load_toolbar_svg(ctx: &Context, id: &str) -> Option<TextureHandle> {
     Some(handle)
 }
 
+// ------------------------------------------- PNGs da toolbar (arte canônica)
+// Tiles Figma com fundo transparente + glifos claros: o que os botões da
+// toolbar escura realmente exibem. Os SVGs gêmeos carregam o fundo do botão
+// embutido (duplo-fundo, ilegível a 20px) e ficam como reserva.
+const PNG_TOOL_SELECT_BOX: &[u8] =
+    include_bytes!("../../../assets/ui/icons/toolbar/select_box.png");
+const PNG_TOOL_CURSOR_3D: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/cursor_3d.png");
+const PNG_TOOL_MOVE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/move.png");
+const PNG_TOOL_ROTATE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/rotate.png");
+const PNG_TOOL_SCALE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/scale.png");
+const PNG_TOOL_TRANSFORM: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/transform.png");
+const PNG_TOOL_ANNOTATE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/annotate.png");
+const PNG_TOOL_MEASURE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/measure.png");
+const PNG_TOOL_ADD_PRIMITIVE: &[u8] =
+    include_bytes!("../../../assets/ui/icons/toolbar/add_primitive.png");
+
+fn embedded_toolbar_png(id: &str) -> Option<&'static [u8]> {
+    match id {
+        "select_box" => Some(PNG_TOOL_SELECT_BOX),
+        "cursor_3d" => Some(PNG_TOOL_CURSOR_3D),
+        "move" => Some(PNG_TOOL_MOVE),
+        "rotate" => Some(PNG_TOOL_ROTATE),
+        "scale" => Some(PNG_TOOL_SCALE),
+        "transform" => Some(PNG_TOOL_TRANSFORM),
+        "annotate" => Some(PNG_TOOL_ANNOTATE),
+        "measure" => Some(PNG_TOOL_MEASURE),
+        "add_primitive" => Some(PNG_TOOL_ADD_PRIMITIVE),
+        _ => None,
+    }
+}
+
+/// Decodifica preservando RGBA original (diferente da máscara alfa das abas:
+/// aqui as cores — laranja do select, setas — fazem parte da arte).
+fn decode_png_to_color(bytes: &[u8]) -> Option<ColorImage> {
+    let img = image::load_from_memory(bytes).ok()?;
+    let rgba = img.to_rgba8();
+    let (w, h) = rgba.dimensions();
+    Some(ColorImage::from_rgba_unmultiplied(
+        [w as usize, h as usize],
+        &rgba,
+    ))
+}
+
+fn get_or_load_toolbar_png(ctx: &Context, id: &str) -> Option<TextureHandle> {
+    let cache_key = format!("png-toolbar:{id}");
+    if let Ok(cache) = TEXTURE_CACHE.read()
+        && let Some(handle) = cache.get(&cache_key)
+    {
+        return Some(handle.clone());
+    }
+    let image = decode_png_to_color(embedded_toolbar_png(id)?)?;
+    let handle = ctx.load_texture(cache_key.clone(), image, TextureOptions::LINEAR);
+    if let Ok(mut cache) = TEXTURE_CACHE.write() {
+        cache.insert(cache_key, handle.clone());
+    }
+    Some(handle)
+}
+
 // -------------------------------------------------- Bytes Embutidos dos PNGs de Properties Tabs
-// NOTA (Wave 9): os PNGs da toolbar foram removidos — inalcançáveis, pois toda
-// ferramenta tem arte vetorial (`is_toolbar_vector_tool`). Restam os PNGs das
-// abas de properties (arte raster sem fonte SVG).
+// Os PNGs da toolbar voltaram a ser o caminho canônico (fundo transparente);
+// os SVGs gêmeos seguem como reserva p/ `paint_pack`.
 const PNG_TAB_01: &[u8] = include_bytes!("../../../assets/ui/icons/properties/data_tab_01.png");
 const PNG_TAB_02: &[u8] = include_bytes!("../../../assets/ui/icons/properties/data_tab_02.png");
 const PNG_TAB_03: &[u8] = include_bytes!("../../../assets/ui/icons/properties/data_tab_03.png");
@@ -797,8 +857,12 @@ impl IconRegistry {
 
         // 2. Arte de domínio Petunia (ferramentas, vetores, PNGs Figma): vale para
         // TODOS os pacotes, por decisão — pacote muda o chrome, não a ferramenta.
+        // Ordem: PNG transparente (arte canônica) → SVG (reserva) → vetor.
         if is_toolbar_vector_tool(&id) {
-            if let Some(texture) = get_or_load_toolbar_svg(ctx, &id) {
+            if let Some(texture) = get_or_load_toolbar_png(ctx, &id) {
+                let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
+                painter.image(texture.id(), target_rect, uv, tint);
+            } else if let Some(texture) = get_or_load_toolbar_svg(ctx, &id) {
                 let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
                 painter.image(texture.id(), target_rect, uv, tint);
             } else {

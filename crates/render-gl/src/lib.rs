@@ -703,18 +703,8 @@ impl GlRenderer {
                 glow::TEXTURE_WRAP_T,
                 glow::CLAMP_TO_EDGE as i32,
             );
-            // placeholder; upload real abaixo
-            gl.tex_image_2d(
-                glow::TEXTURE_2D,
-                0,
-                glow::RGBA8 as i32,
-                1.max(w as i32),
-                1.max(h as i32),
-                0,
-                glow::RGBA,
-                glow::UNSIGNED_BYTE,
-                PixelUnpackData::Slice(None),
-            );
+            // Sem placeholder: o bloco de hash abaixo faz o upload real com
+            // dados imediatamente (evita VRAM não inicializada entre frames).
             self.asset_tex.insert(
                 id,
                 RefTex {
@@ -726,26 +716,32 @@ impl GlRenderer {
                 },
             );
         }
-        // upload só se o conteúdo mudou (dirty por hash — §36)
-        let h = fnv1a(pixels);
+        // upload só se o conteúdo mudou (dirty por hash — §36).
+        // NOTA: `hash_now` (u64) NÃO pode se chamar `h`: sombreava a altura e o
+        // upload ia com altura-lixo (cubo preto). Upload via tex_image_2d com
+        // dados, mesmo padrão do caminho de referências.
+        let hash_now = fnv1a(pixels);
         let slot = self
             .asset_tex
             .get_mut(&id)
             .ok_or_else(|| "OpenGL texture cache entry missing".to_owned())?;
-        if slot.hash != h {
+        if slot.hash != hash_now {
             gl.bind_texture(glow::TEXTURE_2D, Some(slot.tex));
-            gl.tex_sub_image_2d(
+            gl.tex_image_2d(
                 glow::TEXTURE_2D,
                 0,
+                glow::RGBA8 as i32,
+                1.max(w as i32),
+                1.max(h as i32),
                 0,
-                0,
-                w as i32,
-                h as i32,
                 glow::RGBA,
                 glow::UNSIGNED_BYTE,
                 PixelUnpackData::Slice(Some(pixels)),
             );
-            slot.hash = h;
+            slot.hash = hash_now;
+            slot.w = w;
+            slot.h = h;
+            slot.len = pixels.len();
         }
         Ok(slot.tex)
     }

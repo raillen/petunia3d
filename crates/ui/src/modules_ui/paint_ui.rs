@@ -133,47 +133,49 @@ pub fn draw_paint_panel(
                 }
                 state.render.canvas_dirty = false;
             }
-            ui.horizontal_wrapped(|ui| {
-                let brushes = [
-                    (0, "Pixel", crate::icon_registry::PetuniaIcon::PaintBrush),
-                    (1, "Soft", crate::icon_registry::PetuniaIcon::PaintBrush),
-                    (
-                        2,
-                        "Borracha",
-                        crate::icon_registry::PetuniaIcon::PaintEraser,
-                    ),
-                    (3, "Preencher", crate::icon_registry::PetuniaIcon::PaintFill),
-                    (
-                        4,
-                        "Conta-gotas",
-                        crate::icon_registry::PetuniaIcon::PaintPicker,
-                    ),
-                    (5, "Linha", crate::icon_registry::PetuniaIcon::PaintLine),
-                    (6, "Retângulo", crate::icon_registry::PetuniaIcon::PaintRect),
-                ];
-                for (kind, label, icon) in brushes {
-                    let sel = state.paint_brush_kind == kind;
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
-                        let (icon_rect, _) =
-                            ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
-                        crate::icon_registry::IconRegistry::paint(
-                            ui.ctx(),
-                            ui.painter(),
-                            &icon,
-                            icon_rect,
-                            if sel {
-                                crate::tokens::TEXT_ACTIVE
-                            } else {
-                                crate::tokens::TEXT_SECONDARY
-                            },
-                        );
-                        if ui.selectable_label(sel, label).clicked() {
-                            state.paint_brush_kind = kind;
-                        }
-                    });
-                }
-            });
+            // Pincéis em linhas de largura total (uma por pincel): `horizontal`
+            // aninhado dentro de `horizontal_wrapped` nunca quebra linha e os
+            // últimos pincéis transbordavam invisíveis além do painel.
+            // Layout vertical não tem esse modo de falha em nenhuma largura.
+            let brushes = [
+                (0, "Pixel", crate::icon_registry::PetuniaIcon::PaintBrush),
+                (1, "Soft", crate::icon_registry::PetuniaIcon::PaintBrush),
+                (
+                    2,
+                    "Borracha",
+                    crate::icon_registry::PetuniaIcon::PaintEraser,
+                ),
+                (3, "Preencher", crate::icon_registry::PetuniaIcon::PaintFill),
+                (
+                    4,
+                    "Conta-gotas",
+                    crate::icon_registry::PetuniaIcon::PaintPicker,
+                ),
+                (5, "Linha", crate::icon_registry::PetuniaIcon::PaintLine),
+                (6, "Retângulo", crate::icon_registry::PetuniaIcon::PaintRect),
+            ];
+            for (kind, label, icon) in brushes {
+                let sel = state.paint_brush_kind == kind;
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = egui::vec2(6.0, 0.0);
+                    let (icon_rect, _) =
+                        ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
+                    crate::icon_registry::IconRegistry::paint(
+                        ui.ctx(),
+                        ui.painter(),
+                        &icon,
+                        icon_rect,
+                        if sel {
+                            crate::tokens::TEXT_ACTIVE
+                        } else {
+                            crate::tokens::TEXT_SECONDARY
+                        },
+                    );
+                    if ui.selectable_label(sel, label).clicked() {
+                        state.paint_brush_kind = kind;
+                    }
+                });
+            }
 
             ui.checkbox(&mut state.paint_isolate_selection, "Isolar Faces (Mask)")
                 .on_hover_text("Confinar traço 3D exclusivamente às faces selecionadas");
