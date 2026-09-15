@@ -1,6 +1,10 @@
 //! Barra lateral vertical de ferramentas do Petunia3D (`Toolbar`).
-//! Renderiza as ferramentas com os ícones extraídos da Golden Reference (`assets/ui/icons/toolbar/`)
-//! com 40px de largura e suporte a destaque ativo e atalhos de teclado.
+//!
+//! A toolbar é deliberadamente compacta e agrupada: seleção e transformação
+//! são famílias (split buttons) em vez de uma lista de botões concorrentes.
+//! Operações que pertencem ao Modifier Stack (Mirror/Symmetry) não aparecem
+//! aqui. A configuração do usuário continua controlando ordem/visibilidade
+//! dos grupos e das ferramentas de modelagem destrutivas.
 
 use egui::{ScrollArea, Ui, vec2};
 use petunia_core::{AppState, ModalKind, Workspace};
@@ -10,7 +14,6 @@ use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
 use crate::widgets::PetuniaToolbarButton;
 
-/// Seção da paleta Model na toolbar esquerda.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarSection {
     Primary,
@@ -18,33 +21,28 @@ pub enum ToolbarSection {
     Mesh,
 }
 
-/// Entrada configurável da toolbar (dono único da ordem/atalhos do Model).
 pub struct ToolbarEntry {
-    /// Id da ferramenta (`active_tool`).
     pub id: &'static str,
     pub icon: PetuniaIcon,
-    /// Chave de atalho exibida na dica (vazia = sem atalho).
     pub key: &'static str,
-    /// Chave de tradução do rótulo (`tools.*`).
     pub label_key: &'static str,
     pub section: ToolbarSection,
-    /// Só aparece no modo de edição de malha.
     pub edit_only: bool,
-    /// Gizmo associado (trio Move/Rotate/Scale).
-    pub gizmo: Option<ModalKind>,
 }
 
-/// Ordem canônica da paleta Model (usada quando o usuário nunca configurou).
+/// Ordem canônica da paleta Model.
+///
+/// `select` e `transform` representam grupos. Os filhos ficam no popover do
+/// grupo, portanto não consomem quatro/cinco linhas da toolbar.
 pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
     vec![
         ToolbarEntry {
             id: "select",
             icon: PetuniaIcon::SelectBox,
-            key: "B",
-            label_key: "tools.select_box",
+            key: "Q/B",
+            label_key: "tools.select",
             section: ToolbarSection::Primary,
             edit_only: false,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "cursor_3d",
@@ -53,43 +51,14 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.cursor_3d",
             section: ToolbarSection::Primary,
             edit_only: false,
-            gizmo: None,
-        },
-        ToolbarEntry {
-            id: "move",
-            icon: PetuniaIcon::Move,
-            key: "G",
-            label_key: "tools.move",
-            section: ToolbarSection::Primary,
-            edit_only: false,
-            gizmo: Some(ModalKind::Move),
-        },
-        ToolbarEntry {
-            id: "rotate",
-            icon: PetuniaIcon::Rotate,
-            key: "R",
-            label_key: "tools.rotate",
-            section: ToolbarSection::Primary,
-            edit_only: false,
-            gizmo: Some(ModalKind::Rotate),
-        },
-        ToolbarEntry {
-            id: "scale",
-            icon: PetuniaIcon::Scale,
-            key: "S",
-            label_key: "tools.scale",
-            section: ToolbarSection::Primary,
-            edit_only: false,
-            gizmo: Some(ModalKind::Scale),
         },
         ToolbarEntry {
             id: "transform",
             icon: PetuniaIcon::Transform,
-            key: "T",
+            key: "T · G/R/S",
             label_key: "tools.transform",
             section: ToolbarSection::Primary,
             edit_only: false,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "measure",
@@ -98,7 +67,6 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.measure",
             section: ToolbarSection::Inspect,
             edit_only: false,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "annotate",
@@ -107,7 +75,6 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.annotate",
             section: ToolbarSection::Inspect,
             edit_only: false,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "extrude",
@@ -116,7 +83,6 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.extrude",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "inset",
@@ -125,7 +91,6 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.inset",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "bevel",
@@ -134,7 +99,6 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.bevel",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "loop_cut",
@@ -143,7 +107,6 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.loop_cut",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "knife",
@@ -152,16 +115,14 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.knife",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "pushpull",
             icon: PetuniaIcon::PushPull,
-            key: "",
+            key: "P",
             label_key: "tools.pushpull",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "slice",
@@ -170,34 +131,22 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.slice",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "subdivide",
             icon: PetuniaIcon::Subdivide,
-            key: "",
+            key: "W",
             label_key: "tools.subdivide",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "draw_profile",
             icon: PetuniaIcon::DrawProfile,
-            key: "",
+            key: "Shift+P",
             label_key: "tools.draw_profile",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
-        },
-        ToolbarEntry {
-            id: "mirror",
-            icon: PetuniaIcon::Custom("mirror"),
-            key: "Ctrl+M",
-            label_key: "tools.mirror",
-            section: ToolbarSection::Mesh,
-            edit_only: true,
-            gizmo: None,
         },
         ToolbarEntry {
             id: "merge",
@@ -206,43 +155,34 @@ pub fn canonical_toolbar_entries() -> Vec<ToolbarEntry> {
             label_key: "tools.merge",
             section: ToolbarSection::Mesh,
             edit_only: true,
-            gizmo: None,
-        },
-        ToolbarEntry {
-            id: "symmetrize",
-            icon: PetuniaIcon::Custom("symmetrize"),
-            key: "Alt+M",
-            label_key: "tools.symmetrize",
-            section: ToolbarSection::Mesh,
-            edit_only: true,
-            gizmo: None,
         },
     ]
 }
 
-/// Ordem de exibição = configuração do usuário (ou canônica), menos ocultos,
-/// mais ferramentas novas ao final (compatibilidade futura).
+fn clone_entry(entry: &ToolbarEntry) -> ToolbarEntry {
+    ToolbarEntry {
+        id: entry.id,
+        icon: entry.icon,
+        key: entry.key,
+        label_key: entry.label_key,
+        section: entry.section,
+        edit_only: entry.edit_only,
+    }
+}
+
 fn display_entries(state: &AppState) -> Vec<ToolbarEntry> {
     let canonical = canonical_toolbar_entries();
-    let mut ordered: Vec<ToolbarEntry> = Vec::with_capacity(canonical.len());
+    let mut ordered = Vec::with_capacity(canonical.len());
     if state.ui.toolbar_order.is_empty() {
         ordered = canonical;
     } else {
         for id in &state.ui.toolbar_order {
-            if let Some(pos) = canonical.iter().position(|e| e.id == id.as_str()) {
-                ordered.push(ToolbarEntry {
-                    id: canonical[pos].id,
-                    icon: canonical[pos].icon,
-                    key: canonical[pos].key,
-                    label_key: canonical[pos].label_key,
-                    section: canonical[pos].section,
-                    edit_only: canonical[pos].edit_only,
-                    gizmo: canonical[pos].gizmo,
-                });
+            if let Some(entry) = canonical.iter().find(|entry| entry.id == id.as_str()) {
+                ordered.push(clone_entry(entry));
             }
         }
         for entry in canonical {
-            if !ordered.iter().any(|e| e.id == entry.id) {
+            if !ordered.iter().any(|candidate| candidate.id == entry.id) {
                 ordered.push(entry);
             }
         }
@@ -250,41 +190,32 @@ fn display_entries(state: &AppState) -> Vec<ToolbarEntry> {
     let in_edit = state.mode == petunia_core::EditMode::Edit;
     ordered
         .into_iter()
-        .filter(|e| !state.ui.toolbar_hidden.iter().any(|h| h == e.id) && (!e.edit_only || in_edit))
+        .filter(|entry| {
+            !state.ui.toolbar_hidden.iter().any(|hidden| hidden == entry.id)
+                && (!entry.edit_only || in_edit)
+        })
         .collect()
 }
 
-/// Ativa a entrada da toolbar (único ponto de mutação).
 fn apply_toolbar_entry(state: &mut AppState, entry: &ToolbarEntry) {
-    match entry.id {
-        "select" => state.active_tool = "select".into(),
-        "move" | "rotate" | "scale" => {
-            state.active_tool = "transform".into();
-            if let Some(gizmo) = entry.gizmo {
-                state.gizmo_mode = gizmo;
-            }
-        }
-        _ => state.active_tool = entry.id.into(),
-    }
+    state.active_tool = entry.id.into();
     state.pending_modal = None;
     state.mark_dirty();
 }
 
 fn entry_is_active(state: &AppState, entry: &ToolbarEntry) -> bool {
     match entry.id {
-        "select" => state.active_tool == "select" || state.active_tool == "select_box",
-        "move" | "rotate" | "scale" => {
-            state.active_tool == "transform" && entry.gizmo.is_some_and(|g| state.gizmo_mode == g)
-        }
-        "transform" => state.active_tool == "transform",
+        "select" => matches!(state.active_tool.as_str(), "select" | "select_box"),
+        "transform" => matches!(
+            state.active_tool.as_str(),
+            "transform" | "move" | "rotate" | "scale"
+        ),
         _ => state.active_tool == entry.id,
     }
 }
 
-/// Reserva vertical do rodapé (engrenagem de configuração fixada).
 const TOOLBAR_FOOTER: f32 = 44.0;
 
-/// Renderiza a barra lateral vertical de ferramentas.
 pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     let min_width = tokens::TOOLBAR_MIN_WIDTH;
     let max_width = tokens::TOOLBAR_MAX_WIDTH;
@@ -307,7 +238,6 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
                     .max_height((ui.available_height() - TOOLBAR_FOOTER).max(80.0))
                     .show(ui, |ui| {
                         ui.spacing_mut().item_spacing = vec2(0.0, 3.0);
-
                         match state.workspace {
                             Workspace::Model => draw_model_tools(ui, state, tools, compact),
                             Workspace::Paint => draw_paint_tools(ui, state, compact),
@@ -315,11 +245,8 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
                             Workspace::Animate => draw_animate_tools(ui, state, compact),
                         }
                     });
-                // Engrenagem modesta, sempre fixada no rodapé (fora da rolagem).
                 ui.separator();
-                ui.vertical_centered(|ui| {
-                    draw_toolbar_config(ui, state);
-                });
+                ui.vertical_centered(|ui| draw_toolbar_config(ui, state));
             });
         });
     crate::regions::record(
@@ -329,29 +256,35 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     );
 }
 
-fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegistry, compact: bool) {
-    // Normalização defensiva: se não estiver no modo de edição e a ferramenta ativa
-    // for exclusiva de malha, reverte para a seleção básica de objetos.
+fn draw_model_tools(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    _tools: &ToolRegistry,
+    compact: bool,
+) {
     if state.mode != petunia_core::EditMode::Edit
         && canonical_toolbar_entries()
             .iter()
-            .any(|e| e.edit_only && e.id == state.active_tool)
+            .any(|entry| entry.edit_only && entry.id == state.active_tool)
     {
         state.active_tool = "select".into();
         state.mark_dirty();
     }
 
     let entries = display_entries(state);
-    // 2 colunas exigem ~100px; abaixo disso volta a 1 (responsivo).
     let two_cols = state.ui.toolbar_columns.clamp(1, 2) == 2 && ui.available_width() >= 100.0;
-    let compact = if two_cols { true } else { compact };
+    let compact = two_cols || compact;
     let mut seen_section = false;
+
     for section in [
         ToolbarSection::Primary,
         ToolbarSection::Inspect,
         ToolbarSection::Mesh,
     ] {
-        let group: Vec<&ToolbarEntry> = entries.iter().filter(|e| e.section == section).collect();
+        let group: Vec<&ToolbarEntry> = entries
+            .iter()
+            .filter(|entry| entry.section == section)
+            .collect();
         if group.is_empty() {
             continue;
         }
@@ -361,25 +294,43 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
             ui.add_space(3.0);
         }
         seen_section = true;
+
         if two_cols {
             for pair in group.chunks(2) {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing = vec2(3.0, 3.0);
                     for entry in pair {
-                        draw_entry_button(ui, state, entry, true);
+                        draw_model_entry(ui, state, entry, true);
                     }
                 });
             }
         } else {
             for entry in group {
-                draw_entry_button(ui, state, entry, compact);
+                draw_model_entry(ui, state, entry, compact);
             }
         }
     }
 }
 
-/// Botão de uma entrada da toolbar.
-fn draw_entry_button(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEntry, compact: bool) {
+fn draw_model_entry(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    entry: &ToolbarEntry,
+    compact: bool,
+) {
+    match entry.id {
+        "select" => draw_select_group(ui, state, compact),
+        "transform" => draw_transform_group(ui, state, compact),
+        _ => draw_entry_button(ui, state, entry, compact),
+    }
+}
+
+fn draw_entry_button(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    entry: &ToolbarEntry,
+    compact: bool,
+) {
     let label = state.t(entry.label_key);
     let hint = if entry.key.is_empty() {
         label.clone()
@@ -397,16 +348,126 @@ fn draw_entry_button(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEnt
     }
 }
 
-/// Engrenagem de configuração da toolbar: visibilidade, ordem e colunas.
-///
-/// Tudo opera de imediato sobre `UiState` (sem placebo): esconder remove o
-/// atalho, ↑/↓ reordena, 1/2 alterna as colunas, Redefinir volta ao canônico.
+fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    let box_mode = state.active_tool == "select_box";
+    let label_key = if box_mode {
+        "tools.select_box"
+    } else {
+        "tools.select"
+    };
+    let label = state.t(label_key);
+    let mut popup_response = None;
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+        if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
+            .selected(matches!(state.active_tool.as_str(), "select" | "select_box"))
+            .compact(compact)
+            .tooltip(&format!("{label} · [Q/B]"))
+            .show(ui)
+            .clicked()
+        {
+            state.active_tool = if box_mode { "select_box" } else { "select" }.into();
+            state.pending_modal = None;
+            state.mark_dirty();
+        }
+        popup_response = Some(ui.small_button("▾").on_hover_text(state.t("toolbar.configure")));
+    });
+    if let Some(response) = popup_response {
+        egui::Popup::menu(&response).show(|ui| {
+            ui.set_max_width(190.0);
+            if ui
+                .selectable_label(state.active_tool == "select", state.t("tools.select"))
+                .clicked()
+            {
+                state.active_tool = "select".into();
+                state.ui.box_select_start = None;
+                state.mark_dirty();
+                ui.close();
+            }
+            if ui
+                .selectable_label(state.active_tool == "select_box", state.t("tools.select_box"))
+                .clicked()
+            {
+                state.active_tool = "select_box".into();
+                state.ui.box_select_start = None;
+                state.mark_dirty();
+                ui.close();
+            }
+            ui.add_enabled(false, egui::Button::new("Lasso"))
+                .on_hover_text("Planned selection behavior");
+        });
+    }
+}
+
+fn transform_child(state: &AppState) -> (&'static str, PetuniaIcon, &'static str, &'static str) {
+    match state.active_tool.as_str() {
+        "move" => ("move", PetuniaIcon::Move, "tools.move", "G"),
+        "rotate" => ("rotate", PetuniaIcon::Rotate, "tools.rotate", "R"),
+        "scale" => ("scale", PetuniaIcon::Scale, "tools.scale", "S"),
+        _ => ("transform", PetuniaIcon::Transform, "tools.transform", "T"),
+    }
+}
+
+fn activate_transform_child(state: &mut AppState, id: &str) {
+    state.active_tool = id.into();
+    state.pending_modal = None;
+    match id {
+        "move" => state.gizmo_mode = ModalKind::Move,
+        "rotate" => state.gizmo_mode = ModalKind::Rotate,
+        "scale" => state.gizmo_mode = ModalKind::Scale,
+        _ => {}
+    }
+    state.mark_dirty();
+}
+
+fn draw_transform_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    let (current_id, icon, label_key, key) = transform_child(state);
+    let label = state.t(label_key);
+    let active = matches!(
+        state.active_tool.as_str(),
+        "transform" | "move" | "rotate" | "scale"
+    );
+    let mut popup_response = None;
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
+        if PetuniaToolbarButton::new(icon, &label)
+            .selected(active)
+            .compact(compact)
+            .tooltip(&format!("{label} · [{key}]"))
+            .show(ui)
+            .clicked()
+        {
+            activate_transform_child(state, current_id);
+        }
+        popup_response = Some(ui.small_button("▾").on_hover_text(state.t("tools.transform")));
+    });
+    if let Some(response) = popup_response {
+        egui::Popup::menu(&response).show(|ui| {
+            ui.set_max_width(190.0);
+            for (id, label_key, shortcut) in [
+                ("transform", "tools.transform", "T"),
+                ("move", "tools.move", "G"),
+                ("rotate", "tools.rotate", "R"),
+                ("scale", "tools.scale", "S"),
+            ] {
+                let text = format!("{}    {}", state.t(label_key), shortcut);
+                if ui.selectable_label(state.active_tool == id, text).clicked() {
+                    activate_transform_child(state, id);
+                    ui.close();
+                }
+            }
+        });
+    }
+}
+
 fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
     let gear_tip = state.t("toolbar.configure");
-    let resp =
+    let response =
         crate::widgets::PetuniaIconButton::new(PetuniaIcon::Settings, &gear_tip, 24.0).show(ui);
-    egui::Popup::menu(&resp).show(|ui| {
-        ui.set_min_width(250.0);
+    egui::Popup::menu(&response).show(|ui| {
+        // Não imponha 250px a um menu que normalmente precisa de ~180px.
+        ui.set_min_width(176.0);
+        ui.set_max_width(230.0);
         ui.label(
             egui::RichText::new(state.t("toolbar.configure"))
                 .strong()
@@ -415,25 +476,29 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
         );
         ui.separator();
 
-        // Semeia a ordem editável a partir do exibido (sem mutar no draw).
         let mut order: Vec<String> = if state.ui.toolbar_order.is_empty() {
             canonical_toolbar_entries()
                 .iter()
-                .map(|e| e.id.to_string())
+                .map(|entry| entry.id.to_string())
                 .collect()
         } else {
             state.ui.toolbar_order.clone()
         };
-        // Ferramentas novas entram ao final.
+        // Purga ids legados que agora pertencem a grupos/modifiers.
+        order.retain(|id| canonical_toolbar_entries().iter().any(|entry| entry.id == id));
         for entry in canonical_toolbar_entries() {
             if !order.iter().any(|id| id == entry.id) {
                 order.push(entry.id.to_string());
             }
         }
+        state
+            .ui
+            .toolbar_hidden
+            .retain(|id| canonical_toolbar_entries().iter().any(|entry| entry.id == id));
 
         let mut dirty = false;
-        let mut move_up: Option<usize> = None;
-        let mut move_down: Option<usize> = None;
+        let mut move_up = None;
+        let mut move_down = None;
         egui::ScrollArea::vertical()
             .id_salt("toolbar_config_scroll")
             .max_height(320.0)
@@ -441,15 +506,15 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
                 for (idx, id) in order.iter().enumerate() {
                     let label = canonical_toolbar_entries()
                         .iter()
-                        .find(|e| e.id == id.as_str())
-                        .map(|e| state.t(e.label_key))
+                        .find(|entry| entry.id == id.as_str())
+                        .map(|entry| state.t(entry.label_key))
                         .unwrap_or_else(|| id.clone());
                     ui.horizontal(|ui| {
-                        let mut visible = !state.ui.toolbar_hidden.iter().any(|h| h == id);
+                        let mut visible = !state.ui.toolbar_hidden.iter().any(|hidden| hidden == id);
                         if ui.checkbox(&mut visible, "").changed() {
                             if visible {
-                                state.ui.toolbar_hidden.retain(|h| h != id);
-                            } else if !state.ui.toolbar_hidden.iter().any(|h| h == id) {
+                                state.ui.toolbar_hidden.retain(|hidden| hidden != id);
+                            } else if !state.ui.toolbar_hidden.iter().any(|hidden| hidden == id) {
                                 state.ui.toolbar_hidden.push(id.clone());
                             }
                             dirty = true;
@@ -482,6 +547,7 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
                     });
                 }
             });
+
         if let Some(idx) = move_up
             && idx > 0
         {
@@ -496,8 +562,7 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
             state.ui.toolbar_order = order.clone();
             dirty = true;
         }
-        // Persiste a ordem semeada mesmo sem reordenar (estabiliza a lista).
-        if state.ui.toolbar_order.is_empty() {
+        if state.ui.toolbar_order != order {
             state.ui.toolbar_order = order;
             dirty = true;
         }
@@ -533,22 +598,16 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
     });
 }
 
-/// Paleta Animate (Wave 3): seleção + transform de pose. Sem ferramentas
-/// fictícias: só ações que operam hoje (objetos/armatures via gizmo).
 fn draw_animate_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
-    let entries = canonical_toolbar_entries();
-    for id in ["select", "move", "rotate", "scale"] {
-        if let Some(entry) = entries.iter().find(|e| e.id == id) {
-            draw_entry_button(ui, state, entry, compact);
-        }
-    }
+    draw_select_group(ui, state, compact);
+    draw_transform_group(ui, state, compact);
 }
 
 fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
-    let is_active = state.active_tool == "paint";
+    let active = state.active_tool == "paint";
     let label = state.t("tools.paint");
     if PetuniaToolbarButton::new(PetuniaIcon::Custom("paint"), &label)
-        .selected(is_active)
+        .selected(active)
         .compact(compact)
         .tooltip(&label)
         .show(ui)
@@ -560,18 +619,7 @@ fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
 }
 
 fn draw_uv_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
-    let is_active = state.active_tool == "select";
-    let label = state.t("tools.select");
-    if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
-        .selected(is_active)
-        .compact(compact)
-        .tooltip(&label)
-        .show(ui)
-        .clicked()
-    {
-        state.active_tool = "select".into();
-        state.mark_dirty();
-    }
+    draw_select_group(ui, state, compact);
 }
 
 #[cfg(test)]
@@ -583,111 +631,51 @@ mod tests {
     fn test_toolbar_renders_without_panic_in_all_modes() {
         let ctx = egui::Context::default();
         let tools = ToolRegistry::default();
-
         for mode in [EditMode::Object, EditMode::Edit, EditMode::TexturePaint] {
             let mut state = AppState::new("en");
             state.mode = mode;
-
-            ctx.run_ui(egui::RawInput::default(), |ui| {
-                draw(ui, &mut state, &tools);
-            })
-            .textures_delta
-            .clear();
+            ctx.run_ui(egui::RawInput::default(), |ui| draw(ui, &mut state, &tools))
+                .textures_delta
+                .clear();
         }
     }
 
     #[test]
-    fn test_mesh_tools_hidden_in_object_mode_and_normalizes_tool() {
-        let ctx = egui::Context::default();
-        let tools = ToolRegistry::default();
+    fn mesh_tools_are_hidden_in_object_mode() {
         let mut state = AppState::new("en");
         state.mode = EditMode::Object;
         state.active_tool = "extrude".into();
-
-        ctx.run_ui(egui::RawInput::default(), |ui| {
-            draw(ui, &mut state, &tools);
-        })
-        .textures_delta
-        .clear();
-
-        // Deveria normalizar para a ferramenta padrão de seleção em Object Mode
+        let ctx = egui::Context::default();
+        let tools = ToolRegistry::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| draw(ui, &mut state, &tools))
+            .textures_delta
+            .clear();
         assert_eq!(state.active_tool, "select");
     }
 
     #[test]
-    fn test_mesh_tools_allowed_in_edit_mode() {
-        let ctx = egui::Context::default();
-        let tools = ToolRegistry::default();
-        let mut state = AppState::new("en");
-        state.mode = EditMode::Edit;
-        state.active_tool = "extrude".into();
-
-        ctx.run_ui(egui::RawInput::default(), |ui| {
-            draw(ui, &mut state, &tools);
-        })
-        .textures_delta
-        .clear();
-
-        // No Edit Mode, a ferramenta de malha permanece ativa
-        assert_eq!(state.active_tool, "extrude");
+    fn modifier_operations_are_not_toolbar_tools() {
+        let ids: Vec<&str> = canonical_toolbar_entries().iter().map(|entry| entry.id).collect();
+        assert!(!ids.contains(&"mirror"));
+        assert!(!ids.contains(&"symmetrize"));
+        assert!(ids.contains(&"transform"));
+        assert!(!ids.contains(&"move"));
+        assert!(!ids.contains(&"rotate"));
+        assert!(!ids.contains(&"scale"));
     }
 
     #[test]
-    fn test_toolbar_config_hides_reorders_and_two_columns() {
-        use petunia_core::EditMode;
-        let ctx = egui::Context::default();
-        let tools = ToolRegistry::default();
+    fn toolbar_config_filters_legacy_entries() {
         let mut state = AppState::new("en");
         state.mode = EditMode::Edit;
-
-        // Esconder remove da exibição.
-        state.ui.toolbar_hidden = vec!["knife".to_string(), "slice".to_string()];
-        let shown: Vec<&str> = display_entries(&state).iter().map(|e| e.id).collect();
-        assert!(!shown.contains(&"knife") && !shown.contains(&"slice"));
-        assert!(shown.contains(&"mirror") && shown.contains(&"symmetrize"));
-
-        // Ordem customizada é respeitada.
-        state.ui.toolbar_hidden.clear();
-        state.ui.toolbar_order = vec!["symmetrize".to_string(), "select".to_string()];
-        let shown: Vec<&str> = display_entries(&state).iter().map(|e| e.id).collect();
-        assert_eq!(&shown[..2], &["symmetrize", "select"]);
-
-        // 2 colunas renderizam sem pânico.
-        state.ui.toolbar_columns = 2;
-        ctx.run_ui(egui::RawInput::default(), |ui| {
-            draw(ui, &mut state, &tools);
-        })
-        .textures_delta
-        .clear();
-    }
-
-    #[test]
-    fn test_toolbar_renders_with_compact_and_expanded_widths() {
-        let tools = ToolRegistry::default();
-
-        // 1. Largura compacta padrão
-        let ctx = egui::Context::default();
-        let mut state = AppState::new("en");
-        state.mode = EditMode::Edit;
-        ctx.run_ui(egui::RawInput::default(), |ui| {
-            draw(ui, &mut state, &tools);
-        })
-        .textures_delta
-        .clear();
-
-        // 2. Toolbar com dimensões expandidas para exibir ícones + rótulos de texto
-        let ctx = egui::Context::default();
-        let raw_input = egui::RawInput {
-            screen_rect: Some(egui::Rect::from_min_size(
-                egui::Pos2::ZERO,
-                egui::vec2(1920.0, 1080.0),
-            )),
-            ..Default::default()
-        };
-        ctx.run_ui(raw_input, |ui| {
-            draw(ui, &mut state, &tools);
-        })
-        .textures_delta
-        .clear();
+        state.ui.toolbar_hidden = vec!["knife".to_string(), "mirror".to_string()];
+        state.ui.toolbar_order = vec![
+            "symmetrize".to_string(),
+            "select".to_string(),
+            "merge".to_string(),
+        ];
+        let shown: Vec<&str> = display_entries(&state).iter().map(|entry| entry.id).collect();
+        assert_eq!(&shown[..2], &["select", "merge"]);
+        assert!(!shown.contains(&"knife"));
     }
 }
