@@ -1,0 +1,77 @@
+name: modeling-convergence-wave-1
+
+on:
+  push:
+    branches:
+      - ux/modeling-tool-system-convergence
+    paths:
+      - scripts/apply_wave1_subdivide_modifiers.py
+      - .github/workflows/wave1-subdivide-modifiers.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-validate:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ux/modeling-tool-system-convergence
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Apply Wave 1 implementation
+        run: python3 scripts/apply_wave1_subdivide_modifiers.py
+
+      - name: Format
+        run: cargo fmt --all
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Check Wave 1 crates
+        run: cargo check -p petunia_mesh -p petunia_project -p petunia_module_model
+
+      - name: Clippy Wave 1 crates
+        run: cargo clippy -p petunia_mesh -p petunia_project -p petunia_module_model --all-targets -- -D warnings
+
+      - name: Test mesh subdivision
+        run: cargo test -p petunia_mesh --test subdivide_cuts
+
+      - name: Test full mesh crate
+        run: cargo test -p petunia_mesh
+
+      - name: Test modifier stack
+        run: cargo test -p petunia_project --test modifier_stack
+
+      - name: Test full project crate
+        run: cargo test -p petunia_project
+
+      - name: Test modeling module
+        run: cargo test -p petunia_module_model
+
+      - name: Remove staging automation
+        run: |
+          rm -f scripts/apply_wave1_subdivide_modifiers.py
+          rm -f .github/workflows/wave1-subdivide-modifiers.yml
+
+      - name: Commit validated Wave 1
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: make subdivision cut count exact and test modifier domain [skip ci]"
+          git push origin HEAD:ux/modeling-tool-system-convergence
