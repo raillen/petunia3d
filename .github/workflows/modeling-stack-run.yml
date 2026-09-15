@@ -21,7 +21,9 @@ jobs:
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
       - name: Apply modeling convergence implementation
-        run: python3 scripts/apply_modeling_convergence.py
+        run: |
+          python3 scripts/apply_modeling_convergence.py
+          python3 scripts/fix_modeling_convergence.py
       - name: Format
         run: cargo fmt --all
       - name: Install Linux UI dependencies
@@ -54,6 +56,7 @@ jobs:
       - name: Remove staging automation
         run: |
           rm -f scripts/apply_modeling_convergence.py
+          rm -f scripts/fix_modeling_convergence.py
           rm -f .github/workflows/modeling-convergence-stack.yml
           rm -f .github/workflows/modeling-stack-run.yml
       - name: Commit validated implementation
