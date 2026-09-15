@@ -1,0 +1,702 @@
+name: modeling-convergence-stack
+
+on:
+  push:
+    branches:
+      - ux/modeling-tool-system-convergence
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ux/modeling-tool-system-convergence
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Apply modifier, subdivide, performance and SVG patches
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"pattern not found in {path}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, count))
+
+          def replace_region(path, start_marker, end_marker, replacement):
+              p = Path(path)
+              text = p.read_text()
+              start = text.index(start_marker)
+              end = text.index(end_marker, start)
+              p.write_text(text[:start] + replacement + text[end:])
+
+          # ------------------------------------------------------------------
+          # Persistent non-destructive modifier stack on each Asset.
+          project = Path('crates/project/src/lib.rs')
+          text = project.read_text()
+          marker = '/// Um asset do projeto. `id` nunca muda (rename seguro).\n'
+          modifier_defs = r'''/// Non-destructive object modifier evaluated from the immutable base mesh.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum ModifierKind {
+    Mirror {
+        axis: usize,
+        weld: f32,
+    },
+    Symmetry {
+        axis: usize,
+        positive_to_negative: bool,
+        weld: f32,
+    },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct ModifierInstance {
+    pub id: Uuid,
+    pub enabled: bool,
+    pub kind: ModifierKind,
+}
+
+impl ModifierInstance {
+    pub fn mirror() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            enabled: true,
+            kind: ModifierKind::Mirror {
+                axis: 0,
+                weld: 0.001,
+            },
+        }
+    }
+
+    pub fn symmetry() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            enabled: true,
+            kind: ModifierKind::Symmetry {
+                axis: 0,
+                positive_to_negative: true,
+                weld: 0.001,
+            },
+        }
+    }
+}
+
+'''
+          if modifier_defs not in text:
+              text = text.replace(marker, modifier_defs + marker, 1)
+          text = text.replace(
+              '    pub mesh: Mesh,\n    pub visible: bool,',
+              '    pub mesh: Mesh,\n    #[serde(default)]\n    pub modifiers: Vec<ModifierInstance>,\n    pub visible: bool,',
+              1,
+          )
+          text = text.replace(
+              '            mesh,\n            visible: true,',
+              '            mesh,\n            modifiers: Vec::new(),\n            visible: true,',
+              1,
+          )
+          asset_impl_marker = '''    /// Obtém o material atribuído ao asset a partir do projeto.
+    pub fn material<'a>(&self, project: &'a Project) -> Option<&'a Material> {
+'''
+          evaluated = r'''    /// Evaluates the non-destructive modifier stack without mutating the base mesh.
+    pub fn evaluated_mesh(&self) -> Mesh {
+        let mut mesh = self.mesh.clone();
+        for modifier in &self.modifiers {
+            if !modifier.enabled {
+                continue;
+            }
+            match &modifier.kind {
+                ModifierKind::Mirror { axis, weld } => mesh.mirror(*axis, *weld),
+                ModifierKind::Symmetry {
+                    axis,
+                    positive_to_negative,
+                    weld,
+                } => {
+                    mesh.symmetrize(*axis, *positive_to_negative, *weld);
+                }
+            }
+        }
+        mesh
+    }
+
+'''
+          if evaluated not in text:
+              text = text.replace(asset_impl_marker, evaluated + asset_impl_marker, 1)
+          project.write_text(text)
+
+          # Direct test literal in format.rs.
+          replace(
+              'crates/project/src/format.rs',
+              '                mesh: bad_mesh,\n                visible: true,',
+              '                mesh: bad_mesh,\n                modifiers: Vec::new(),\n                visible: true,',
+              1,
+          )
+
+          # Modifiers are no longer registered as destructive toolbar tools.
+          replace(
+              'crates/module-model/src/lib.rs',
+              '        r.register::<MirrorTool>(&enabled);\n',
+              '',
+              1,
+          )
+          replace(
+              'crates/module-model/src/lib.rs',
+              '        r.register::<SymmetrizeTool>(&enabled);\n',
+              '',
+              1,
+          )
+
+          # Real modifier stack UI in the Modifiers tab.
+          replace(
+              'crates/ui/src/properties_panel.rs',
+              'use petunia_project::{AlphaMode, Material, ShaderProfile};',
+              'use petunia_project::{AlphaMode, Material, ModifierInstance, ModifierKind, ShaderProfile};',
+              1,
+          )
+          modifier_ui = r'''/// Persistent non-destructive modifier stack for the inspected object.
+fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
+    let section_title = state.t("modifiers.title");
+    let inspected = inspected_asset_idx(state);
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "modifiers",
+        inspector_widgets::SectionOpts {
+            title: &section_title,
+            summary: inspected
+                .and_then(|idx| state.project.assets.get(idx))
+                .map(|asset| format!("{}", asset.modifiers.len()))
+                .as_deref(),
+            default_open: true,
+            force_open,
+        },
+        |ui| {
+            let Some(idx) = inspected.filter(|idx| *idx < state.project.assets.len()) else {
+                ui.label(RichText::new(state.t("empty.no_selection")).color(tokens::TEXT_MUTED));
+                return;
+            };
+
+            let snapshot = state.project.assets[idx].modifiers.clone();
+            if snapshot.is_empty() {
+                ui.label(
+                    RichText::new(state.t("modifiers.empty"))
+                        .size(11.0)
+                        .color(tokens::TEXT_MUTED),
+                );
+            }
+
+            let mut move_up = None;
+            let mut move_down = None;
+            let mut remove = None;
+            for (position, modifier) in snapshot.iter().enumerate() {
+                let title = match modifier.kind {
+                    ModifierKind::Mirror { .. } => state.t("tools.mirror"),
+                    ModifierKind::Symmetry { .. } => state.t("tools.symmetrize"),
+                };
+                egui::Frame::group(ui.style())
+                    .fill(tokens::bg_panel(state))
+                    .stroke(tokens::stroke_border_dyn(state))
+                    .corner_radius(tokens::RADIUS_CONTROL)
+                    .inner_margin(egui::Margin::same(7))
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            let mut enabled = modifier.enabled;
+                            if ui.checkbox(&mut enabled, "").changed() {
+                                state.checkpoint("toggle modifier");
+                                if let Some(item) = state.project.assets[idx].modifiers.get_mut(position) {
+                                    item.enabled = enabled;
+                                }
+                                state.emit_mesh_changed();
+                                state.mark_dirty();
+                            }
+                            ui.label(RichText::new(&title).strong().size(11.5));
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                if ui.small_button("×").on_hover_text(state.t("ui.delete")).clicked() {
+                                    remove = Some(position);
+                                }
+                                if ui.small_button("↓").on_hover_text(state.t("toolbar.move_down")).clicked() {
+                                    move_down = Some(position);
+                                }
+                                if ui.small_button("↑").on_hover_text(state.t("toolbar.move_up")).clicked() {
+                                    move_up = Some(position);
+                                }
+                            });
+                        });
+                        ui.separator();
+
+                        match modifier.kind {
+                            ModifierKind::Mirror { axis, weld } => {
+                                let mut new_axis = axis;
+                                ui.horizontal(|ui| {
+                                    ui.label("Axis");
+                                    for (candidate, label) in [(0usize, "X"), (1, "Y"), (2, "Z")] {
+                                        if ui.selectable_label(new_axis == candidate, label).clicked() {
+                                            new_axis = candidate;
+                                        }
+                                    }
+                                });
+                                let mut new_weld = weld;
+                                ui.horizontal(|ui| {
+                                    ui.label("Weld");
+                                    ui.add(egui::DragValue::new(&mut new_weld).range(0.0..=0.1).speed(0.0005));
+                                });
+                                if new_axis != axis || (new_weld - weld).abs() > f32::EPSILON {
+                                    state.checkpoint("edit mirror modifier");
+                                    if let Some(item) = state.project.assets[idx].modifiers.get_mut(position)
+                                        && let ModifierKind::Mirror { axis, weld } = &mut item.kind
+                                    {
+                                        *axis = new_axis;
+                                        *weld = new_weld.max(0.0);
+                                    }
+                                    state.emit_mesh_changed();
+                                    state.mark_dirty();
+                                }
+                            }
+                            ModifierKind::Symmetry {
+                                axis,
+                                positive_to_negative,
+                                weld,
+                            } => {
+                                let mut new_axis = axis;
+                                ui.horizontal(|ui| {
+                                    ui.label("Axis");
+                                    for (candidate, label) in [(0usize, "X"), (1, "Y"), (2, "Z")] {
+                                        if ui.selectable_label(new_axis == candidate, label).clicked() {
+                                            new_axis = candidate;
+                                        }
+                                    }
+                                });
+                                let mut direction = positive_to_negative;
+                                ui.horizontal(|ui| {
+                                    ui.label("Direction");
+                                    ui.selectable_value(&mut direction, true, "+ → −");
+                                    ui.selectable_value(&mut direction, false, "− → +");
+                                });
+                                let mut new_weld = weld;
+                                ui.horizontal(|ui| {
+                                    ui.label("Weld");
+                                    ui.add(egui::DragValue::new(&mut new_weld).range(0.0..=0.1).speed(0.0005));
+                                });
+                                if new_axis != axis
+                                    || direction != positive_to_negative
+                                    || (new_weld - weld).abs() > f32::EPSILON
+                                {
+                                    state.checkpoint("edit symmetry modifier");
+                                    if let Some(item) = state.project.assets[idx].modifiers.get_mut(position)
+                                        && let ModifierKind::Symmetry {
+                                            axis,
+                                            positive_to_negative,
+                                            weld,
+                                        } = &mut item.kind
+                                    {
+                                        *axis = new_axis;
+                                        *positive_to_negative = direction;
+                                        *weld = new_weld.max(0.0);
+                                    }
+                                    state.emit_mesh_changed();
+                                    state.mark_dirty();
+                                }
+                            }
+                        }
+                    });
+                ui.add_space(5.0);
+            }
+
+            let len = state.project.assets[idx].modifiers.len();
+            if let Some(position) = move_up
+                && position > 0
+                && position < len
+            {
+                state.checkpoint("reorder modifier");
+                state.project.assets[idx].modifiers.swap(position, position - 1);
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+            if let Some(position) = move_down
+                && position + 1 < len
+            {
+                state.checkpoint("reorder modifier");
+                state.project.assets[idx].modifiers.swap(position, position + 1);
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+            if let Some(position) = remove
+                && position < state.project.assets[idx].modifiers.len()
+            {
+                state.checkpoint("remove modifier");
+                state.project.assets[idx].modifiers.remove(position);
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+
+            let add_label = state.t("modifiers.add");
+            widgets::PetuniaMenuButton::new(&add_label).show(ui, |ui| {
+                if widgets::PetuniaMenuItem::new(&state.t("tools.mirror"))
+                    .show(ui)
+                    .clicked()
+                {
+                    state.checkpoint("add mirror modifier");
+                    state.project.assets[idx].modifiers.push(ModifierInstance::mirror());
+                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                    ui.close();
+                }
+                if widgets::PetuniaMenuItem::new(&state.t("tools.symmetrize"))
+                    .show(ui)
+                    .clicked()
+                {
+                    state.checkpoint("add symmetry modifier");
+                    state.project.assets[idx].modifiers.push(ModifierInstance::symmetry());
+                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                    ui.close();
+                }
+            });
+        },
+    );
+}
+
+'''
+          replace_region(
+              'crates/ui/src/properties_panel.rs',
+              '/// Seção Modifiers:',
+              '/// Seção Display:',
+              modifier_ui,
+          )
+
+          # Renderer WGPU evaluates modifiers only when scene revision changes.
+          wgpu = Path('crates/render-wgpu/src/lib.rs')
+          text = wgpu.read_text()
+          target = '''        for obj in &scene.assets {
+            if !obj.visible {
+                continue;
+            }
+            if !is_wire {
+'''
+          repl = '''        for obj in &scene.assets {
+            if !obj.visible {
+                continue;
+            }
+            let mesh = obj.evaluated_mesh();
+            if !is_wire {
+'''
+          if target not in text:
+              raise SystemExit('wgpu asset loop not found')
+          text = text.replace(target, repl, 1)
+          text = text.replace('obj.mesh.to_triangles_unlit()', 'mesh.to_triangles_unlit()')
+          text = text.replace('obj.mesh.to_triangles_smooth(smooth)', 'mesh.to_triangles_smooth(smooth)')
+          text = text.replace('obj.mesh.to_edges()', 'mesh.to_edges()')
+          text = text.replace('obj.mesh.triangulation_wireframe()', 'mesh.triangulation_wireframe()')
+          wgpu.write_text(text)
+
+          # Renderer OpenGL uses the same evaluated mesh.
+          gl = Path('crates/render-gl/src/lib.rs')
+          text = gl.read_text()
+          target = '''        for obj in &state.project.assets {
+            if !obj.visible {
+                continue;
+            }
+'''
+          if target not in text:
+              raise SystemExit('gl asset loop not found')
+          text = text.replace(target, target + '            let mesh = obj.evaluated_mesh();\n', 1)
+          text = text.replace('obj.mesh.to_triangles_unlit()', 'mesh.to_triangles_unlit()')
+          text = text.replace('obj.mesh.to_triangles_smooth(smooth)', 'mesh.to_triangles_smooth(smooth)')
+          gl.write_text(text)
+
+          # Exports bake the evaluated result instead of silently dropping modifiers.
+          replace(
+              'crates/project/src/export.rs',
+              'pub fn export_obj(asset: &Asset) -> String {\n    asset.mesh.to_obj()\n}',
+              'pub fn export_obj(asset: &Asset) -> String {\n    asset.evaluated_mesh().to_obj()\n}',
+              1,
+          )
+          replace(
+              'crates/project/src/pipeline.rs',
+              '        let mut mesh = asset.mesh.clone();',
+              '        let mut mesh = asset.evaluated_mesh();',
+              1,
+          )
+
+          # Scene revision includes modifier order, enable flags and parameters.
+          replace(
+              'crates/core/src/render_revision.rs',
+              'use petunia_project::Project;',
+              'use petunia_project::{ModifierKind, Project};',
+              1,
+          )
+          fingerprint_marker = '''        h = mix(h, asset.visible as u64);
+        h = mix(h, asset.mesh.verts.len() as u64);
+'''
+          fingerprint_mods = '''        h = mix(h, asset.visible as u64);
+        h = mix(h, asset.modifiers.len() as u64);
+        for modifier in &asset.modifiers {
+            h = hash_bytes(h, modifier.id.as_bytes());
+            h = mix(h, modifier.enabled as u64);
+            match &modifier.kind {
+                ModifierKind::Mirror { axis, weld } => {
+                    h = mix(h, 1);
+                    h = mix(h, *axis as u64);
+                    h = hash_f32(h, *weld);
+                }
+                ModifierKind::Symmetry {
+                    axis,
+                    positive_to_negative,
+                    weld,
+                } => {
+                    h = mix(h, 2);
+                    h = mix(h, *axis as u64);
+                    h = mix(h, *positive_to_negative as u64);
+                    h = hash_f32(h, *weld);
+                }
+            }
+        }
+        h = mix(h, asset.mesh.verts.len() as u64);
+'''
+          replace('crates/core/src/render_revision.rs', fingerprint_marker, fingerprint_mods, 1)
+
+          # ------------------------------------------------------------------
+          # Subdivide gets an explicit number-of-cuts parameter.
+          replace(
+              'crates/core/src/state.rs',
+              '    pub bevel_segments: u32,\n    pub revolve_segments: u32,',
+              '    pub bevel_segments: u32,\n    pub subdivide_cuts: u32,\n    pub revolve_segments: u32,',
+              1,
+          )
+          replace(
+              'crates/core/src/state.rs',
+              '            bevel_segments: 1,\n            revolve_segments: 16,',
+              '            bevel_segments: 1,\n            subdivide_cuts: 1,\n            revolve_segments: 16,',
+              1,
+          )
+          replace(
+              'crates/module-model/src/subdivide.rs',
+              '''        if let Some(m) = state.project.active_mesh_mut() {
+            m.subdivide_selected();
+        }
+''',
+              '''        let cuts = state.subdivide_cuts.clamp(1, 6);
+        if let Some(m) = state.project.active_mesh_mut() {
+            for _ in 0..cuts {
+                m.subdivide_selected();
+            }
+        }
+''',
+              1,
+          )
+          subdivide_ui_old = '''    ui.label(l_title);
+    ui.small(state.t("hints.subdivide"));
+    let reason = selection_guard(state);
+'''
+          subdivide_ui_new = '''    ui.label(l_title);
+    ui.small(state.t("hints.subdivide"));
+    let mut cuts = state.subdivide_cuts as i64;
+    if ui
+        .add(
+            egui::Slider::new(&mut cuts, 1..=6)
+                .text(state.t("prims.segments"))
+                .step_by(1.0),
+        )
+        .changed()
+    {
+        state.subdivide_cuts = cuts.clamp(1, 6) as u32;
+        state.mark_dirty();
+    }
+    let reason = selection_guard(state);
+'''
+          replace('crates/ui/src/modules_ui/model_ui.rs', subdivide_ui_old, subdivide_ui_new, 1)
+
+          # ------------------------------------------------------------------
+          # Remove redundant full redraws on every raw cursor event. egui-winit
+          # already requests repaint when pointer movement changes UI state.
+          app = Path('crates/app/src/lib.rs')
+          text = app.read_text()
+          text, wgpu_count = re.subn(
+              r'(WindowEvent::CursorMoved\s*\{\s*position,\s*\.\.\s*\}\s*=>\s*\{\s*\n'
+              r'\s*self\.core\.last_mouse\s*=\s*Some\(\(position\.x,\s*position\.y\)\);\s*\n)'
+              r'\s*gfx\.window\.request_redraw\(\);\s*\n(\s*\})',
+              r'''            WindowEvent::CursorMoved { position, .. } => {
+                self.core.last_mouse = Some((position.x, position.y));
+            }''',
+              text,
+              count=1,
+          )
+          text, gl_count = re.subn(
+              r'(WindowEvent::CursorMoved\s*\{\s*position,\s*\.\.\s*\}\s*=>\s*\{\s*\n'
+              r'\s*self\.core\.last_mouse\s*=\s*Some\(\(position\.x,\s*position\.y\)\);\s*\n)'
+              r'\s*g\.gl_window\.window\(\)\.request_redraw\(\);\s*\n(\s*\})',
+              r'''            WindowEvent::CursorMoved { position, .. } => {
+                self.core.last_mouse = Some((position.x, position.y));
+            }''',
+              text,
+              count=1,
+          )
+          if (wgpu_count, gl_count) != (1, 1):
+              raise SystemExit(f'cursor redraw patterns: {wgpu_count=} {gl_count=}')
+          app.write_text(text)
+
+          # ------------------------------------------------------------------
+          # SVG becomes the Petunia toolbar icon source of truth.
+          replace(
+              'crates/ui/Cargo.toml',
+              'image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }',
+              'image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }\nresvg = "0.45"',
+              1,
+          )
+
+          registry = Path('crates/ui/src/icon_registry.rs')
+          text = registry.read_text()
+          png_marker = 'fn get_embedded_png_bytes(id: &str) -> Option<&\'static [u8]> {'
+          svg_func = r'''fn get_embedded_svg_str(id: &str) -> Option<&'static str> {
+    Some(match id {
+        "select_box" | "select" => include_str!("../../../assets/ui/icons/toolbar/select_box.svg"),
+        "cursor_3d" => include_str!("../../../assets/ui/icons/toolbar/cursor_3d.svg"),
+        "move" => include_str!("../../../assets/ui/icons/toolbar/move.svg"),
+        "rotate" => include_str!("../../../assets/ui/icons/toolbar/rotate.svg"),
+        "scale" => include_str!("../../../assets/ui/icons/toolbar/scale.svg"),
+        "transform" => include_str!("../../../assets/ui/icons/toolbar/transform.svg"),
+        "annotate" => include_str!("../../../assets/ui/icons/toolbar/annotate.svg"),
+        "measure" => include_str!("../../../assets/ui/icons/toolbar/measure.svg"),
+        "add_primitive" | "primitives" => include_str!("../../../assets/ui/icons/toolbar/add_primitive.svg"),
+        _ => return None,
+    })
+}
+
+fn decode_svg_to_alpha_mask(svg: &str) -> Option<ColorImage> {
+    let options = resvg::usvg::Options::default();
+    let tree = resvg::usvg::Tree::from_str(svg, &options).ok()?;
+    let source = tree.size();
+    let target = 80u32;
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(target, target)?;
+    let scale_x = target as f32 / source.width();
+    let scale_y = target as f32 / source.height();
+    let transform = resvg::tiny_skia::Transform::from_scale(scale_x, scale_y);
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+    let pixels = pixmap
+        .data()
+        .chunks_exact(4)
+        .map(|rgba| Color32::from_rgba_unmultiplied(255, 255, 255, rgba[3]))
+        .collect();
+    Some(ColorImage::new([target as usize, target as usize], pixels))
+}
+
+'''
+          if svg_func not in text:
+              if png_marker not in text:
+                  raise SystemExit('png marker not found in icon_registry')
+              text = text.replace(png_marker, svg_func + png_marker, 1)
+          method_marker = '''    /// Obtém ou carrega uma textura em cache (executado uma única vez por ícone rasterizado).
+    pub fn get_or_load_texture(ctx: &Context, id: &str) -> Option<TextureHandle> {
+'''
+          svg_method = r'''    /// Rasteriza SVG uma única vez e mantém a textura no cache GPU.
+    pub fn get_or_load_svg_texture(ctx: &Context, id: &str) -> Option<TextureHandle> {
+        let key = format!("svg:{id}");
+        if let Ok(cache) = TEXTURE_CACHE.read()
+            && let Some(handle) = cache.get(&key)
+        {
+            return Some(handle.clone());
+        }
+        let svg = get_embedded_svg_str(id)?;
+        let image = decode_svg_to_alpha_mask(svg)?;
+        let handle = ctx.load_texture(
+            format!("petunia_svg_icon_{id}"),
+            image,
+            TextureOptions::LINEAR,
+        );
+        if let Ok(mut cache) = TEXTURE_CACHE.write() {
+            cache.insert(key, handle.clone());
+        }
+        Some(handle)
+    }
+
+'''
+          if svg_method not in text:
+              text = text.replace(method_marker, svg_method + method_marker, 1)
+          text = text.replace(
+              '''        if is_toolbar_vector_tool(&id) {
+            icons::paint(painter, &id, target_rect, tint);
+            return;
+        }
+''',
+              '''        if is_toolbar_vector_tool(&id) {
+            if let Some(texture) = Self::get_or_load_svg_texture(ctx, &id) {
+                let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
+                painter.image(texture.id(), target_rect, uv, tint);
+            } else {
+                icons::paint(painter, &id, target_rect, tint);
+            }
+            return;
+        }
+''',
+              1,
+          )
+          registry.write_text(text)
+          PY
+
+          mkdir -p assets/ui/icons/toolbar
+          cp docs/image-references/extracted/toolbar/buttons/tool_01_select_box_40x40.svg assets/ui/icons/toolbar/select_box.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_02_cursor_40x40.svg assets/ui/icons/toolbar/cursor_3d.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_03_move_40x40.svg assets/ui/icons/toolbar/move.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_04_rotate_40x40.svg assets/ui/icons/toolbar/rotate.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_05_scale_40x40.svg assets/ui/icons/toolbar/scale.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_06_transform_40x40.svg assets/ui/icons/toolbar/transform.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_07_annotate_40x40.svg assets/ui/icons/toolbar/annotate.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_08_measure_40x40.svg assets/ui/icons/toolbar/measure.svg
+          cp docs/image-references/extracted/toolbar/buttons/tool_09_add_primitive_40x40.svg assets/ui/icons/toolbar/add_primitive.svg
+
+          cat > assets/icons/petunia/icons.toml <<'TOML'
+          [icons]
+          select_box = "assets/ui/icons/toolbar/select_box.svg"
+          cursor_3d = "assets/ui/icons/toolbar/cursor_3d.svg"
+          move = "assets/ui/icons/toolbar/move.svg"
+          rotate = "assets/ui/icons/toolbar/rotate.svg"
+          scale = "assets/ui/icons/toolbar/scale.svg"
+          transform = "assets/ui/icons/toolbar/transform.svg"
+          annotate = "assets/ui/icons/toolbar/annotate.svg"
+          measure = "assets/ui/icons/toolbar/measure.svg"
+          add_primitive = "assets/ui/icons/toolbar/add_primitive.svg"
+          TOML
+
+          cargo fmt --all
+          rm .github/workflows/modeling-convergence-stack.yml
+      - name: Install Linux UI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwayland-dev libxkbcommon-dev libgtk-3-dev libegl1-mesa-dev libgl1-mesa-dev
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Check project and core
+        run: |
+          cargo check -p petunia_project
+          cargo check -p petunia_core
+      - name: Check renderers
+        run: |
+          cargo check -p petunia_render_wgpu
+          cargo check -p petunia_render_gl
+      - name: Check UI and app
+        run: |
+          cargo check -p petunia_ui
+          cargo check -p petunia_app
+      - name: Focused tests
+        run: |
+          cargo test -p petunia_project
+          cargo test -p petunia_core --lib
+          cargo test -p petunia_ui --lib
+      - name: Commit validated stack batch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: add modifier stack, SVG icons and modeling polish [skip ci]'
+          git push origin HEAD:ux/modeling-tool-system-convergence
