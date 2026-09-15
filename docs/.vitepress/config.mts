@@ -189,6 +189,7 @@ export default withMermaid(
               { text: 'Arquitetura de 17 Crates', link: '/developers/architecture' },
               { text: 'Compilação & Build', link: '/developers/building' },
               { text: 'Arquitetura de UI egui', link: '/developers/ui-architecture' },
+              { text: 'Mapa de Componentes UI', link: '/developers/ui-component-map' },
               { text: 'Pipeline de Renderização', link: '/developers/rendering' },
               { text: 'Sistema de Comandos (Undo/Redo)', link: '/developers/command-system' },
               { text: 'Estratégia de Testes', link: '/developers/testing' },

@@ -2,6 +2,8 @@
 //! Gerencia tarefas de documentação, integridade e drift prevention.
 
 use anyhow::{Context, Result, bail};
+use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -17,6 +19,7 @@ fn main() -> Result<()> {
         "docs-generate" => task_docs_generate()?,
         "docs-check" => task_docs_check()?,
         "arch-check" => task_arch_check()?,
+        "ui-check" => task_ui_check()?,
         "help" | "--help" | "-h" => print_help(),
         other => {
             eprintln!("Comando desconhecido: {other}\n");
@@ -40,6 +43,7 @@ COMANDOS:
     docs-generate Gera exclusivamente os catálogos e referências em docs/generated/
     docs-check    Valida integridade, ausência de drift em docs/generated/ e build sem erros
     arch-check    Valida a integridade dos relatórios da auditoria arquitetural
+    ui-check      Valida o mapa de componentes UI (docs/public/ui-map.json) contra o código
     help          Exibe esta mensagem de ajuda
 "#
     );
@@ -151,6 +155,7 @@ fn task_docs_check() -> Result<()> {
         "customization/index.md",
         "shortcuts/index.md",
         "developers/index.md",
+        "developers/ui-component-map.md",
         "changelog/index.md",
         "generated/COMMANDS.md",
         "generated/KEYBINDS.md",
@@ -224,7 +229,10 @@ fn task_docs_check() -> Result<()> {
         println!("✅ Changelog vivo validado e 100% sincronizado (P3D-117).");
     }
 
-    // 4. Executar build do VitePress
+    // 4. Validar mapa de componentes UI contra o código
+    task_ui_check()?;
+
+    // 5. Executar build do VitePress
     println!("📦 Validando build oficial do VitePress...");
     let status = Command::new("pnpm")
         .arg("run")
@@ -239,6 +247,288 @@ fn task_docs_check() -> Result<()> {
 
     println!("🎉 Verificação de integridade concluída com sucesso!");
     Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+struct UiMapNode {
+    id: String,
+    kind: String,
+    file: String,
+    entry: String,
+    #[allow(dead_code)]
+    line: Option<u32>,
+    #[allow(dead_code)]
+    position: Option<String>,
+    region: Option<String>,
+    #[serde(default)]
+    children: Vec<String>,
+    #[allow(dead_code)]
+    #[serde(default)]
+    reads: Vec<String>,
+    #[allow(dead_code)]
+    #[serde(default)]
+    writes: Vec<String>,
+    #[allow(dead_code)]
+    #[serde(default)]
+    dispatches: Vec<String>,
+    #[allow(dead_code)]
+    #[serde(default)]
+    opens: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct UiMap {
+    version: u32,
+    #[allow(dead_code)]
+    roots: Vec<String>,
+    nodes: Vec<UiMapNode>,
+}
+
+/// Valida o mapa de componentes UI contra o código (drift prevention).
+///
+/// Falha em: JSON inválido, ids duplicados, kind desconhecido, arquivo
+/// ausente, símbolo de entrada ausente no arquivo, região fora de
+/// `RegionSlot`, filho inexistente, ciclo. Símbolos públicos sem nó são
+/// apenas avisos (guia de cobertura, não quebra).
+fn task_ui_check() -> Result<()> {
+    println!("🗺️ Validando mapa de componentes UI...");
+    let root = root_dir();
+    let map_path = root.join("docs").join("public").join("ui-map.json");
+    let text = std::fs::read_to_string(&map_path)
+        .with_context(|| format!("Falha ao ler {}", map_path.display()))?;
+    let map: UiMap =
+        serde_json::from_str(&text).with_context(|| "docs/public/ui-map.json inválido")?;
+    if map.version != 1 {
+        bail!(
+            "ui-map.json: version {} não suportada (esperado 1)",
+            map.version
+        );
+    }
+    if map.nodes.is_empty() {
+        bail!("ui-map.json: nenhum nó documentado");
+    }
+
+    const KINDS: &[&str] = &[
+        "shell",
+        "shell_bar",
+        "toolbar",
+        "panel",
+        "section",
+        "tab_bar",
+        "tab",
+        "form",
+        "grid",
+        "list",
+        "canvas",
+        "data_table",
+        "button_row",
+        "menu",
+        "modal",
+        "dialog",
+        "file_picker",
+        "overlay",
+        "hud",
+        "gizmo",
+        "viewport_overlay",
+        "measurement_tool",
+        "widget",
+        "token_system",
+        "icon_system",
+        "devtool",
+        "status",
+        "service",
+        "helper",
+    ];
+
+    // Regiões canônicas lidas do próprio RegionSlot (fonte única).
+    let regions_src = std::fs::read_to_string(root.join("crates/ui/src/regions.rs"))?;
+    let mut valid_regions = HashSet::new();
+    let mut in_enum = false;
+    for line in regions_src.lines() {
+        let t = line.trim();
+        if t.starts_with("pub enum RegionSlot") {
+            in_enum = true;
+            continue;
+        }
+        if in_enum {
+            if t.starts_with('}') {
+                break;
+            }
+            let variant: String = t
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !variant.is_empty() {
+                valid_regions.insert(variant);
+            }
+        }
+    }
+    if valid_regions.is_empty() {
+        bail!("RegionSlot não encontrado em crates/ui/src/regions.rs");
+    }
+
+    let mut ids = HashSet::new();
+    let mut by_id: HashMap<&str, &UiMapNode> = HashMap::new();
+    for node in &map.nodes {
+        if !ids.insert(node.id.clone()) {
+            bail!("ui-map.json: id duplicado '{}'", node.id);
+        }
+        if !KINDS.contains(&node.kind.as_str()) {
+            bail!(
+                "ui-map.json: kind desconhecido '{}' no nó '{}'",
+                node.kind,
+                node.id
+            );
+        }
+        if let Some(region) = &node.region
+            && !valid_regions.contains(region)
+        {
+            bail!(
+                "ui-map.json: região '{}' fora de RegionSlot (nó '{}')",
+                region,
+                node.id
+            );
+        }
+        let file_path = root.join(&node.file);
+        if !file_path.exists() {
+            bail!(
+                "ui-map.json: arquivo ausente '{}' (nó '{}')",
+                node.file,
+                node.id
+            );
+        }
+        let content = std::fs::read_to_string(&file_path)?;
+        let probes = [
+            format!("fn {}(", node.entry),
+            format!("struct {}", node.entry),
+            format!("enum {}", node.entry),
+            format!("mod {}", node.entry),
+        ];
+        if !probes.iter().any(|p| content.contains(p.as_str())) {
+            bail!(
+                "ui-map.json: símbolo '{}' ausente em {} (nó '{}')",
+                node.entry,
+                node.file,
+                node.id
+            );
+        }
+        by_id.insert(node.id.as_str(), node);
+    }
+    for node in &map.nodes {
+        for child in &node.children {
+            if !by_id.contains_key(child.as_str()) {
+                bail!(
+                    "ui-map.json: filho '{}' do nó '{}' não existe",
+                    child,
+                    node.id
+                );
+            }
+        }
+    }
+    // Aciclicidade via DFS a partir de cada nó.
+    fn visit<'a>(
+        id: &'a str,
+        by_id: &HashMap<&'a str, &'a UiMapNode>,
+        stack: &mut Vec<&'a str>,
+    ) -> Result<()> {
+        if stack.contains(&id) {
+            bail!("ui-map.json: ciclo envolvendo '{}' ({:?})", id, stack);
+        }
+        stack.push(id);
+        if let Some(node) = by_id.get(id) {
+            for child in &node.children {
+                visit(child, by_id, stack)?;
+            }
+        }
+        stack.pop();
+        Ok(())
+    }
+    for node in &map.nodes {
+        visit(node.id.as_str(), &by_id, &mut Vec::new())?;
+    }
+    println!(
+        "✅ Mapa válido: {} nós, {} regiões, filhos acíclicos.",
+        map.nodes.len(),
+        valid_regions.len()
+    );
+
+    // Cobertura: símbolos públicos de UI sem nó (aviso, não quebra).
+    let covered: HashSet<(String, String)> = map
+        .nodes
+        .iter()
+        .map(|n| (n.file.clone(), n.entry.clone()))
+        .collect();
+    let mut uncovered = Vec::new();
+    collect_ui_symbols(&root.join("crates/ui/src"), &root, &covered, &mut uncovered);
+    uncovered.sort();
+    uncovered.dedup();
+    if !uncovered.is_empty() {
+        println!("⚠️ {} símbolos públicos sem nó no mapa:", uncovered.len());
+        for item in uncovered.iter().take(20) {
+            println!("   - {item}");
+        }
+        if uncovered.len() > 20 {
+            println!("   ... e outros {}", uncovered.len() - 20);
+        }
+    }
+    Ok(())
+}
+
+/// Coleta `arquivo::Simbolo` públicos de topo (`pub fn/struct/enum/mod` sem
+/// indentação) e registra os ausentes da cobertura do mapa.
+fn collect_ui_symbols(
+    dir: &Path,
+    root: &Path,
+    covered: &HashSet<(String, String)>,
+    out: &mut Vec<String>,
+) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_ui_symbols(&path, root, covered, out);
+            continue;
+        }
+        if path.extension().map(|e| e != "rs").unwrap_or(true) {
+            continue;
+        }
+        let Ok(content) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let rel = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+        // Módulos de teste vivem no fim do arquivo por convenção: ignora tudo
+        // a partir do primeiro `#[cfg(test)]`.
+        let body = match content.find("#[cfg(test)]") {
+            Some(pos) => &content[..pos],
+            None => content.as_str(),
+        };
+        for line in body.lines() {
+            for prefix in [
+                "pub fn ",
+                "pub struct ",
+                "pub enum ",
+                "pub mod ",
+                "pub const ",
+            ] {
+                if let Some(rest) = line.strip_prefix(prefix) {
+                    let name: String = rest
+                        .chars()
+                        .take_while(|c| c.is_alphanumeric() || *c == '_')
+                        .collect();
+                    if !name.is_empty() && !covered.contains(&(rel.clone(), name.clone())) {
+                        out.push(format!("{rel}::{name}"));
+                    }
+                    break;
+                }
+            }
+        }
+    }
 }
 
 fn task_arch_check() -> Result<()> {
