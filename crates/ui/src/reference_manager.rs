@@ -29,6 +29,7 @@ const SLOTS: [(RefAxis, &str, &str, ViewPreset); 6] = [
 
 /// Renderiza a janela utilitária do Gerenciador de Referências (P3D-013).
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
+    puffin::profile_function!();
     if !state.ui.show_reference_manager {
         return;
     }

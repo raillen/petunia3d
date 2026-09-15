@@ -54,7 +54,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     let obj_count = state.project.assets.len();
     let frame_ms = state.render.stats.frame_ms;
 
-    egui::Panel::bottom("status_bar")
+    let bar_resp = egui::Panel::bottom("status_bar")
         .exact_size(tokens::STATUS_BAR_HEIGHT)
         .frame(
             egui::Frame::new()
@@ -154,6 +154,11 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
                 });
             });
         });
+    crate::regions::record(
+        ui.ctx(),
+        crate::regions::RegionSlot::StatusBar,
+        bar_resp.response.rect,
+    );
 }
 
 #[cfg(test)]

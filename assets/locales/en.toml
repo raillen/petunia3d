@@ -20,6 +20,9 @@ mesh = "Mesh"
 close = "Close"
 visible = "Visible"
 lock = "Lock"
+collapse = "Collapse section"
+expand = "Expand section"
+dock_split_hint = "Drag to resize panels"
 
 [menu]
 file = "File"
@@ -202,6 +205,8 @@ reproject = "Planar"
 scale = "Scale"
 selected = "sel faces"
 hint = "Click: select face. Drag: move UVs. Wheel: scale."
+preview_3d = "3D preview"
+faces = "Faces"
 
 [refs]
 manager_title = "Reference Set Manager"

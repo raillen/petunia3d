@@ -4432,6 +4432,7 @@ dependencies = [
  "petunia_mesh",
  "petunia_project",
  "petunia_render",
+ "puffin",
  "raw-window-handle",
  "uuid",
  "winit",
@@ -4447,6 +4448,7 @@ dependencies = [
  "petunia_mesh",
  "petunia_project",
  "petunia_render",
+ "puffin",
  "wgpu",
 ]
 

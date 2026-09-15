@@ -13,7 +13,7 @@ use crate::widgets::{
 
 /// Renderiza o cabeçalho superior completo da aplicação.
 pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
-    egui::Panel::top("main_header")
+    let header_resp = egui::Panel::top("main_header")
         .default_size(tokens::TOP_HEADER_HEIGHT)
         .size_range(tokens::TOP_HEADER_HEIGHT..=tokens::TOP_HEADER_MAX_HEIGHT)
         .resizable(true)
@@ -76,6 +76,11 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
                 });
             });
         });
+    crate::regions::record(
+        ui.ctx(),
+        crate::regions::RegionSlot::Header,
+        header_resp.response.rect,
+    );
 }
 
 fn draw_app_brand(ui: &mut Ui) {
@@ -406,8 +411,8 @@ fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
             .corner_radius(tokens::RADIUS_PILL);
 
         if ui.add(button).clicked() {
-            state.workspace = ws;
-            state.mark_dirty();
+            // Transição com memória de layout por workspace (Wave 3).
+            state.switch_workspace(ws);
         }
     }
 }

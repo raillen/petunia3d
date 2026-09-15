@@ -15,7 +15,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     let min_width = tokens::TOOLBAR_MIN_WIDTH;
     let max_width = tokens::TOOLBAR_MAX_WIDTH;
 
-    egui::Panel::left("main_toolbar")
+    let toolbar_resp = egui::Panel::left("main_toolbar")
         .default_size(min_width)
         .size_range(min_width..=max_width)
         .resizable(true)
@@ -37,11 +37,16 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
                             Workspace::Model => draw_model_tools(ui, state, tools, compact),
                             Workspace::Paint => draw_paint_tools(ui, state, compact),
                             Workspace::Uv => draw_uv_tools(ui, state, compact),
-                            Workspace::Animate => {}
+                            Workspace::Animate => draw_animate_tools(ui, state, compact),
                         }
                     });
             });
         });
+    crate::regions::record(
+        ui.ctx(),
+        crate::regions::RegionSlot::LeftTools,
+        toolbar_resp.response.rect,
+    );
 }
 
 const MESH_TOOLS: &[(PetuniaIcon, &str, &str, &str)] = &[
@@ -113,58 +118,12 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
         state.mark_dirty();
     }
 
-    // 1. Ferramentas Primárias de Interação e Transformação
-    let primary_tools = [
-        (PetuniaIcon::SelectBox, "select_box", "B"),
-        (PetuniaIcon::Cursor3D, "cursor_3d", "Shift+RMB"),
-        (PetuniaIcon::Move, "move", "G"),
-        (PetuniaIcon::Rotate, "rotate", "R"),
-        (PetuniaIcon::Scale, "scale", "S"),
-        (PetuniaIcon::Transform, "transform", "T"),
-    ];
-
-    for (icon, id, key) in primary_tools {
-        let is_active = match id {
-            "move" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Move,
-            "rotate" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Rotate,
-            "scale" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Scale,
-            "select_box" => state.active_tool == "select" || state.active_tool == "select_box",
-            _ => state.active_tool == id,
-        };
-        let label = state.t(&format!("tools.{id}"));
-        let hint = format!("{label} · [{key}]");
-
-        if PetuniaToolbarButton::new(icon, &label)
-            .selected(is_active)
-            .compact(compact)
-            .tooltip(&hint)
-            .show(ui)
-            .clicked()
-        {
-            match id {
-                "move" => {
-                    state.active_tool = "transform".into();
-                    state.gizmo_mode = ModalKind::Move;
-                }
-                "rotate" => {
-                    state.active_tool = "transform".into();
-                    state.gizmo_mode = ModalKind::Rotate;
-                }
-                "scale" => {
-                    state.active_tool = "transform".into();
-                    state.gizmo_mode = ModalKind::Scale;
-                }
-                "select_box" => {
-                    state.active_tool = "select".into();
-                }
-                _ => {
-                    state.active_tool = id.into();
-                }
-            }
-            state.pending_modal = None;
-            state.mark_dirty();
-        }
-    }
+    // 1. Ferramentas Primárias de Interação e Transformação (ordem canônica:
+    // seleção, cursor, trio Move/Rotate/Scale, transform livre).
+    select_box_button(ui, state, compact);
+    cursor_3d_button(ui, state, compact);
+    transform_gizmo_buttons(ui, state, compact);
+    free_transform_button(ui, state, compact);
 
     ui.add_space(3.0);
     ui.separator();
@@ -230,6 +189,89 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
             }
         }
     }
+}
+
+/// Botão de seleção por caixa (semântica única, Model objeto + Animate).
+fn select_box_button(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    let is_active = state.active_tool == "select" || state.active_tool == "select_box";
+    let label = state.t("tools.select_box");
+    let hint = format!("{label} · [B]");
+    if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
+        .selected(is_active)
+        .compact(compact)
+        .tooltip(&hint)
+        .show(ui)
+        .clicked()
+    {
+        state.active_tool = "select".into();
+        state.pending_modal = None;
+        state.mark_dirty();
+    }
+}
+
+fn cursor_3d_button(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    let label = state.t("tools.cursor_3d");
+    let hint = format!("{label} · [Shift+RMB]");
+    if PetuniaToolbarButton::new(PetuniaIcon::Cursor3D, &label)
+        .selected(state.active_tool == "cursor_3d")
+        .compact(compact)
+        .tooltip(&hint)
+        .show(ui)
+        .clicked()
+    {
+        state.active_tool = "cursor_3d".into();
+        state.pending_modal = None;
+        state.mark_dirty();
+    }
+}
+
+/// Trio Move/Rotate/Scale por gizmo: mesma semântica no Model (objeto) e no
+/// Animate (pose). Dono único do trio (§3.2).
+fn transform_gizmo_buttons(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    for (icon, id, key, gizmo) in [
+        (PetuniaIcon::Move, "move", "G", ModalKind::Move),
+        (PetuniaIcon::Rotate, "rotate", "R", ModalKind::Rotate),
+        (PetuniaIcon::Scale, "scale", "S", ModalKind::Scale),
+    ] {
+        let is_active = state.active_tool == "transform" && state.gizmo_mode == gizmo;
+        let label = state.t(&format!("tools.{id}"));
+        let hint = format!("{label} · [{key}]");
+        if PetuniaToolbarButton::new(icon, &label)
+            .selected(is_active)
+            .compact(compact)
+            .tooltip(&hint)
+            .show(ui)
+            .clicked()
+        {
+            state.active_tool = "transform".into();
+            state.gizmo_mode = gizmo;
+            state.pending_modal = None;
+            state.mark_dirty();
+        }
+    }
+}
+
+fn free_transform_button(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    let label = state.t("tools.transform");
+    let hint = format!("{label} · [T]");
+    if PetuniaToolbarButton::new(PetuniaIcon::Transform, &label)
+        .selected(state.active_tool == "transform")
+        .compact(compact)
+        .tooltip(&hint)
+        .show(ui)
+        .clicked()
+    {
+        state.active_tool = "transform".into();
+        state.pending_modal = None;
+        state.mark_dirty();
+    }
+}
+
+/// Paleta Animate (Wave 3): seleção + transform de pose. Sem ferramentas
+/// fictícias: só ações que operam hoje (objetos/armatures via gizmo).
+fn draw_animate_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+    select_box_button(ui, state, compact);
+    transform_gizmo_buttons(ui, state, compact);
 }
 
 fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {

@@ -20,6 +20,9 @@ mesh = "Malha"
 close = "Fechar"
 visible = "Visível"
 lock = "Bloquear"
+collapse = "Recolher painel"
+expand = "Expandir painel"
+dock_split_hint = "Arraste para redimensionar os painéis"
 
 [menu]
 file = "Arquivo"
@@ -202,6 +205,8 @@ reproject = "Planar"
 scale = "Escala"
 selected = "faces sel"
 hint = "Clique: seleciona face. Arraste: move UVs. Scroll: escala."
+preview_3d = "Prévia 3D"
+faces = "Faces"
 
 [refs]
 manager_title = "Gerenciador de Conjunto de Referências"

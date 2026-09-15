@@ -5,7 +5,7 @@
 //! antes dos closures; mutações via índices, nunca com iterator vivo.
 
 use petunia_core::Projection;
-use petunia_core::{AppState, ModuleRegistry, ProjectService, RefAxis};
+use petunia_core::{AppState, ModuleRegistry, ProjectService, RefAxis, Workspace};
 use petunia_module_model::ToolRegistry;
 use petunia_project::export;
 
@@ -44,6 +44,7 @@ pub mod palette_complete;
 pub mod properties_panel;
 pub mod recovery_dialog;
 pub mod reference_manager;
+pub mod regions;
 pub mod settings_modal;
 pub mod status_bar;
 pub mod tiles_workspace;
@@ -56,6 +57,7 @@ pub mod twill_bridge;
 pub mod viewport_bar;
 mod viewport_interaction;
 pub mod widgets;
+pub mod workspaces;
 
 pub use recovery_dialog::{RecoveryAction, draw as draw_recovery_dialog};
 pub use tokens::apply_theme_to_egui;
@@ -133,8 +135,13 @@ pub fn draw(
             state.ui.active_icon_pack_id.clone(),
         );
     });
+    // Wave 2: reseta as regiões do shell; cada painel registra a sua ao desenhar.
+    regions::reset(ui.ctx());
 
     main_header::draw(ui, state, action);
+    // A status bar é o ÚNICO `Panel::bottom` do shell: dois painéis bottom
+    // empilhados deslocam o segundo em ~11px. A Timeline do Animate vive como
+    // faixa fixa dentro da área central (ver `animate_workspace_center`).
     status_bar::draw(ui, state, tools);
     asset_browser::draw(ui, state);
     toolbar::draw(ui, state, tools);
@@ -150,7 +157,7 @@ pub fn draw(
 }
 
 fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
-    egui::Panel::top("viewport_context_bar")
+    let bar = egui::Panel::top("viewport_context_bar")
         .default_size(tokens::VIEWPORT_BAR_HEIGHT)
         .size_range(tokens::VIEWPORT_BAR_HEIGHT..=tokens::VIEWPORT_BAR_MAX_HEIGHT)
         .resizable(true)
@@ -165,17 +172,30 @@ fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
                 viewport_bar::draw(ui, state);
             });
         });
+    regions::record(
+        ui.ctx(),
+        regions::RegionSlot::ViewportToolbar,
+        bar.response.rect,
+    );
 }
 
+/// Dock direito: Outliner e Inspector como painéis independentes (Wave 2).
+///
+/// Substitui o empilhamento único por split vertical com divisor arrastável,
+/// colapso independente e rolagem própria por seção. A posição do divisor e os
+/// colapsos vivem em `UiState` (dono único, §3.2) e sobrevivem à troca de
+/// workspace. O destacamento do Inspector continua opcional, mas não é mais o
+/// único alívio para o espremedimento.
 pub fn right_panel(
     ui: &mut egui::Ui,
     state: &mut AppState,
     tools: &ToolRegistry,
     registry: &mut ModuleRegistry,
 ) {
+    puffin::profile_function!();
     let was_detached = state.ui.inspector_detached;
     let max_width = (ui.ctx().viewport_rect().width() * 0.45).clamp(240.0, 420.0);
-    egui::Panel::right("props")
+    let dock = egui::Panel::right("props")
         .default_size(tokens::PROPERTIES_DEFAULT_WIDTH)
         .size_range(220.0..=max_width)
         .frame(
@@ -185,13 +205,15 @@ pub fn right_panel(
                 .inner_margin(egui::Margin::symmetric(6, 4)),
         )
         .show(ui, |ui| {
-            outliner::draw(ui, state);
-            if !was_detached {
-                ui.separator();
-                properties_panel::draw(ui, state, tools, registry);
-            } else {
-                ui.separator();
+            // Wave 2: zera o espaçamento vertical entre alocações do dock para que
+            // as seções somem exatamente à altura do painel (sem invadir a status
+            // bar). Interiores restauram o espaçamento padrão na sua raiz.
+            let dock_spacing = ui.spacing().item_spacing;
+            ui.spacing_mut().item_spacing.y = 0.0;
+            if was_detached {
+                // Aviso primeiro (altura própria), Outliner preenche o restante.
                 ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = dock_spacing;
                     ui.label(
                         egui::RichText::new("Inspector Flutuante")
                             .size(11.0)
@@ -208,21 +230,47 @@ pub fn right_panel(
                         }
                     });
                 });
+                ui.separator();
+                let rest = ui.available_rect_before_wrap();
+                let body = ui.allocate_ui_with_layout(
+                    rest.size(),
+                    egui::Layout::top_down_justified(egui::Align::LEFT),
+                    |ui| {
+                        ui.spacing_mut().item_spacing = dock_spacing;
+                        egui::ScrollArea::vertical()
+                            .id_salt("dock_outliner_full_scroll")
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                outliner::draw_body(ui, state);
+                            });
+                    },
+                );
+                regions::record(
+                    ui.ctx(),
+                    regions::RegionSlot::RightOutliner,
+                    body.response.rect,
+                );
+            } else {
+                draw_split_dock(ui, state, tools, registry, dock_spacing);
             }
+            // Restaura o espaçamento do painel (higiene; nada mais aloca abaixo).
+            ui.spacing_mut().item_spacing = dock_spacing;
         });
+    regions::record(ui.ctx(), regions::RegionSlot::RightDock, dock.response.rect);
 
     if was_detached && state.ui.inspector_detached {
         let mut is_open = true;
         let ctx = ui.ctx().clone();
+        // Wave 2 (§9.4): máximo nunca excede a viewport útil.
         let screen_rect = ctx.viewport_rect();
-        let max_w = (screen_rect.width() - 32.0).max(280.0);
-        let max_h = (screen_rect.height() - 32.0).max(250.0);
-        egui::Window::new("Properties Inspector")
+        let avail_w = (screen_rect.width() - 24.0).clamp(240.0, 640.0);
+        let avail_h = (screen_rect.height() - 24.0).clamp(240.0, 760.0);
+        let win = egui::Window::new("Properties Inspector")
             .open(&mut is_open)
             .default_size([280.0, 420.0])
-            .min_width(220.0)
-            .min_height(250.0)
-            .max_size(egui::vec2(max_w, max_h))
+            .min_width(220.0_f32.min(avail_w))
+            .min_height(200.0_f32.min(avail_h))
+            .max_size(egui::vec2(avail_w, avail_h))
             .frame(
                 egui::Frame::new()
                     .fill(tokens::bg_panel(state))
@@ -234,11 +282,151 @@ pub fn right_panel(
                     properties_panel::draw(ui, state, tools, registry);
                 });
             });
+        if let Some(win) = win {
+            regions::record(&ctx, regions::RegionSlot::RightInspector, win.response.rect);
+        }
         if !is_open {
             state.ui.inspector_detached = false;
             state.mark_dirty();
         }
     }
+}
+
+/// Cabeçalho slim de seção do dock com colapso explícito.
+fn dock_section_header(ui: &mut egui::Ui, title: String, collapsed: bool, tooltip: String) -> bool {
+    let mut clicked = false;
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = egui::vec2(4.0, 0.0);
+        let glyph = if collapsed { "+" } else { "–" };
+        if ui.small_button(glyph).on_hover_text(&tooltip).clicked() {
+            clicked = true;
+        }
+        if ui
+            .selectable_label(!collapsed, egui::RichText::new(title).size(11.0).strong())
+            .on_hover_text(&tooltip)
+            .clicked()
+        {
+            clicked = true;
+        }
+    });
+    clicked
+}
+
+fn draw_split_dock(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    tools: &ToolRegistry,
+    registry: &mut ModuleRegistry,
+    interior_spacing: egui::Vec2,
+) {
+    let avail = ui.available_rect_before_wrap();
+    let total_h = avail.height();
+    let total_w = avail.width();
+    let (out_h, insp_h) = regions::split_heights(
+        total_h,
+        state.ui.right_dock_split,
+        state.ui.outliner_collapsed,
+        state.ui.inspector_collapsed,
+    );
+
+    // 1. Outliner (topo)
+    let out_title = state.t("ui.outliner");
+    let out_tip = state.t(if state.ui.outliner_collapsed {
+        "ui.expand"
+    } else {
+        "ui.collapse"
+    });
+    let out_resp = ui.allocate_ui_with_layout(
+        egui::vec2(total_w, out_h),
+        egui::Layout::top_down_justified(egui::Align::LEFT),
+        |ui| {
+            // Interiores usam espaçamento normal; o empilhamento do dock usa 0.
+            ui.spacing_mut().item_spacing = interior_spacing;
+            if dock_section_header(ui, out_title, state.ui.outliner_collapsed, out_tip) {
+                state.ui.outliner_collapsed = !state.ui.outliner_collapsed;
+                state.mark_dirty();
+            }
+            if !state.ui.outliner_collapsed {
+                egui::ScrollArea::vertical()
+                    .id_salt("dock_outliner_scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        outliner::draw_body(ui, state);
+                    });
+            }
+        },
+    );
+    regions::record(
+        ui.ctx(),
+        regions::RegionSlot::RightOutliner,
+        out_resp.response.rect,
+    );
+
+    // 2. Divisor arrastável
+    let (sep_rect, sep_resp) = ui.allocate_exact_size(
+        egui::vec2(total_w, regions::DOCK_SEPARATOR_H),
+        egui::Sense::drag(),
+    );
+    let sep_fill = if sep_resp.dragged() {
+        tokens::ACCENT_BLUE
+    } else if sep_resp.hovered() {
+        tokens::BG_SURFACE_HOVER
+    } else {
+        egui::Color32::TRANSPARENT
+    };
+    ui.painter().rect_filled(sep_rect, 2.0, sep_fill);
+    let mid_y = sep_rect.center().y;
+    ui.painter().line_segment(
+        [
+            egui::pos2(sep_rect.min.x + 10.0, mid_y),
+            egui::pos2(sep_rect.max.x - 10.0, mid_y),
+        ],
+        egui::Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
+    );
+    let split_tip = state.t("ui.dock_split_hint");
+    let sep_resp = sep_resp.on_hover_text(split_tip);
+    if sep_resp.hovered() || sep_resp.dragged() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
+    }
+    if sep_resp.dragged()
+        && let Some(pos) = ui.input(|i| i.pointer.hover_pos().or(i.pointer.interact_pos()))
+    {
+        let new_split = ((pos.y - avail.min.y) / total_h.max(1.0)).clamp(0.25, 0.75);
+        if (new_split - state.ui.right_dock_split).abs() > f32::EPSILON {
+            state.ui.right_dock_split = new_split;
+            // Arrastar reabre ambas as seções: o gesto declara intenção de ver as duas.
+            state.ui.outliner_collapsed = false;
+            state.ui.inspector_collapsed = false;
+            state.mark_dirty();
+        }
+    }
+
+    // 3. Inspector (base)
+    let insp_title = state.t("ui.properties");
+    let insp_tip = state.t(if state.ui.inspector_collapsed {
+        "ui.expand"
+    } else {
+        "ui.collapse"
+    });
+    let insp_resp = ui.allocate_ui_with_layout(
+        egui::vec2(total_w, insp_h.max(regions::DOCK_HEADER_H)),
+        egui::Layout::top_down_justified(egui::Align::LEFT),
+        |ui| {
+            ui.spacing_mut().item_spacing = interior_spacing;
+            if dock_section_header(ui, insp_title, state.ui.inspector_collapsed, insp_tip) {
+                state.ui.inspector_collapsed = !state.ui.inspector_collapsed;
+                state.mark_dirty();
+            }
+            if !state.ui.inspector_collapsed {
+                properties_panel::draw(ui, state, tools, registry);
+            }
+        },
+    );
+    regions::record(
+        ui.ctx(),
+        regions::RegionSlot::RightInspector,
+        insp_resp.response.rect,
+    );
 }
 
 pub fn new_project(state: &mut AppState) {
@@ -529,111 +717,224 @@ fn viewport(ui: &mut egui::Ui, state: &mut AppState) {
     egui::CentralPanel::default()
         .frame(egui::Frame::new().fill(egui::Color32::TRANSPARENT))
         .show(ui, |ui| {
-            let rect = ui.available_rect_before_wrap();
-            let ctx = ui.ctx().clone();
-            state.ui.viewport_rect = Some(rect_to_logical(rect));
-            state.ui.viewport_pixels_per_point = ctx.pixels_per_point();
-            state.camera.aspect = rect.width() / rect.height().max(1.0);
-            let p = ui.painter_at(rect);
-            // mira central
-            p.circle_stroke(
-                rect.center(),
-                4.0,
-                egui::Stroke::new(1.0_f32, egui::Color32::from_gray(120)),
-            );
-            // overlay do Draw Profile
-            if !state.profile.points.is_empty() {
-                draw_profile_overlay(&p, rect, state);
-            }
-            // indicador de vista ortográfica
-            if state.camera.proj == Projection::Ortho {
-                p.text(
-                    rect.min + egui::vec2(8.0, 8.0),
-                    egui::Align2::LEFT_TOP,
-                    "ORTHO",
-                    egui::FontId::monospace(11.0),
-                    egui::Color32::LIGHT_BLUE,
-                );
-            }
-            let resp = ui.allocate_rect(rect, egui::Sense::click_and_drag());
-            if viewport_interaction::draw(&ctx, state, rect, &p, &resp) {
-                return;
-            }
-
-            // Barra contextual horizontal flutuante na base da viewport
-            let shelf_rect = contextual_shelf::draw(ui, state, rect);
-            let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
-                ui.input(|i| {
-                    i.pointer
-                        .interact_pos()
-                        .or(i.pointer.hover_pos())
-                        .is_some_and(|pos| sr.contains(pos))
-                })
-            });
-
-            if pointer_on_shelf {
-                state.ui.box_select_start = None;
-                return;
-            }
-            if resp.drag_started_by(egui::PointerButton::Primary)
-                && let Some(pos) = resp.interact_pointer_pos()
+            if state.workspace == Workspace::Uv {
+                uv_workspace_center(ui, state);
+            } else if state.workspace == Workspace::Animate
+                && workspaces::profile_for(state.workspace).bottom
+                    == workspaces::BottomPaneKind::Timeline
             {
-                state.ui.box_select_start = Some([pos.x, pos.y]);
-            }
-            if resp.dragged_by(egui::PointerButton::Primary)
-                && let (Some(start), Some(curr)) =
-                    (state.ui.box_select_start, resp.interact_pointer_pos())
-            {
-                let r = egui::Rect::from_two_pos(egui::pos2(start[0], start[1]), curr);
-                p.rect_filled(
-                    r,
-                    0.0,
-                    egui::Color32::from_rgba_unmultiplied(255, 160, 40, 40),
-                );
-                p.rect_stroke(
-                    r,
-                    0.0,
-                    egui::Stroke::new(1.0f32, egui::Color32::from_rgb(255, 160, 40)),
-                    egui::StrokeKind::Outside,
-                );
-                state.mark_dirty();
-            }
-            if resp.drag_stopped_by(egui::PointerButton::Primary)
-                && let (Some(start), Some(curr)) = (
-                    state.ui.box_select_start.take(),
-                    resp.interact_pointer_pos(),
-                )
-            {
-                let dx = (curr.x - start[0]).abs();
-                let dy = (curr.y - start[1]).abs();
-                if dx > 8.0 || dy > 8.0 {
-                    let to_ndc = |pos: egui::Pos2| -> [f32; 2] {
-                        let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
-                        let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
-                        [nx, ny]
-                    };
-                    let p0 = to_ndc(egui::pos2(start[0], start[1]));
-                    let p1 = to_ndc(curr);
-                    let shift = ui.input(|i| i.modifiers.shift);
-                    let vp = state.session.camera.view_proj().to_cols_array();
-                    let _ = state.dispatch(&petunia_core::BoxSelectCmd {
-                        p0,
-                        p1,
-                        view_proj: vp,
-                        add: shift,
-                    });
-                }
-            }
-            if resp.clicked() {
-                state.ui.box_select_start = None;
-                if let Some(pos) = resp.interact_pointer_pos() {
-                    let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
-                    let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
-                    state.ui.pending_pick = Some((nx, ny));
-                    state.mark_dirty();
-                }
+                animate_workspace_center(ui, state);
+            } else {
+                let rect = ui.available_rect_before_wrap();
+                viewport_3d(ui, state, rect);
             }
         });
+}
+
+/// Centro do workspace Animate (Wave 3 — §6.4): viewport 3D + faixa real de
+/// Timeline abaixo. Faixa com altura fixa canônica; a viewport 3D registra o
+/// retângulo restante (a superfície GPU segue `viewport_rect`).
+fn animate_workspace_center(ui: &mut egui::Ui, state: &mut AppState) {
+    puffin::profile_function!();
+    let total = ui.available_rect_before_wrap();
+    let strip_h = tokens::TIMELINE_HEIGHT;
+    let vp_rect = egui::Rect::from_min_max(
+        total.min,
+        egui::pos2(total.max.x, (total.max.y - strip_h).max(total.min.y)),
+    );
+    viewport_3d(ui, state, vp_rect);
+    // Faixa posicionada explicitamente (não via cursor): soma exata ao total.
+    let strip_rect = egui::Rect::from_min_max(egui::pos2(total.min.x, vp_rect.max.y), total.max);
+    regions::record(ui.ctx(), regions::RegionSlot::BottomDock, strip_rect);
+    ui.painter()
+        .rect_filled(strip_rect, 0.0, tokens::bg_panel(state));
+    ui.painter().rect_stroke(
+        strip_rect,
+        0.0,
+        tokens::stroke_border_dyn(state),
+        egui::StrokeKind::Inside,
+    );
+    let inner = strip_rect.shrink2(egui::vec2(8.0, 4.0));
+    let mut strip_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner));
+    timeline::draw_contents(&mut strip_ui, state);
+}
+
+/// Centro do workspace UV (Wave 3 — §6.3): editor UV 2D + prévia 3D.
+///
+/// Janela larga: lado a lado. Janela estreita (<760px): alternador, nunca os
+/// dois esmagados. A prévia 3D registra o `viewport_rect` que posiciona a
+/// superfície GPU — nenhum acoplamento novo com o app.
+fn uv_workspace_center(ui: &mut egui::Ui, state: &mut AppState) {
+    puffin::profile_function!();
+    let total = ui.available_rect_before_wrap();
+    if total.width() < 760.0 {
+        ui.horizontal(|ui| {
+            let editor_label = state.t("uv.title");
+            let preview_label = state.t("uv.preview_3d");
+            if ui
+                .selectable_label(!state.ui.uv_show_preview, editor_label)
+                .clicked()
+            {
+                state.ui.uv_show_preview = false;
+                state.mark_dirty();
+            }
+            if ui
+                .selectable_label(state.ui.uv_show_preview, preview_label)
+                .clicked()
+            {
+                state.ui.uv_show_preview = true;
+                state.mark_dirty();
+            }
+        });
+        ui.separator();
+        if state.ui.uv_show_preview {
+            viewport_3d(ui, state, ui.available_rect_before_wrap());
+        } else {
+            let pane = ui.available_rect_before_wrap();
+            regions::record(ui.ctx(), regions::RegionSlot::UvEditor, pane);
+            egui::ScrollArea::vertical()
+                .id_salt("uv_editor_narrow_scroll")
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    modules_ui::uv_ui::draw_uv_panel(ui, state);
+                });
+        }
+    } else {
+        let gap = ui.spacing().item_spacing.x;
+        let left_w = (total.width() * 0.45).clamp(320.0, 560.0);
+        let left = ui.allocate_ui_with_layout(
+            egui::vec2(left_w, total.height()),
+            egui::Layout::top_down_justified(egui::Align::LEFT),
+            |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("uv_editor_scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        modules_ui::uv_ui::draw_uv_panel(ui, state);
+                    });
+            },
+        );
+        regions::record(ui.ctx(), regions::RegionSlot::UvEditor, left.response.rect);
+        let right_rect = egui::Rect::from_min_max(
+            egui::pos2(left.response.rect.max.x + gap, total.min.y),
+            total.max,
+        );
+        viewport_3d(ui, state, right_rect);
+    }
+}
+
+fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
+    puffin::profile_function!();
+    {
+        let ctx = ui.ctx().clone();
+        regions::record(&ctx, regions::RegionSlot::Viewport, rect);
+        state.ui.viewport_rect = Some(rect_to_logical(rect));
+        state.ui.viewport_pixels_per_point = ctx.pixels_per_point();
+        state.camera.aspect = rect.width() / rect.height().max(1.0);
+        let p = ui.painter_at(rect);
+        // mira central
+        p.circle_stroke(
+            rect.center(),
+            4.0,
+            egui::Stroke::new(1.0_f32, egui::Color32::from_gray(120)),
+        );
+        // overlay do Draw Profile
+        if !state.profile.points.is_empty() {
+            draw_profile_overlay(&p, rect, state);
+        }
+        // indicador de vista ortográfica
+        if state.camera.proj == Projection::Ortho {
+            p.text(
+                rect.min + egui::vec2(8.0, 8.0),
+                egui::Align2::LEFT_TOP,
+                "ORTHO",
+                egui::FontId::monospace(11.0),
+                egui::Color32::LIGHT_BLUE,
+            );
+        }
+        let resp = ui.allocate_rect(rect, egui::Sense::click_and_drag());
+        if viewport_interaction::draw(&ctx, state, rect, &p, &resp) {
+            return;
+        }
+
+        // Barra contextual horizontal flutuante na base da viewport.
+        // Posicionada dentro do `rect` da viewport (nunca da tela global).
+        let shelf_rect = contextual_shelf::draw(ui, state, rect);
+        if let Some(shelf) = shelf_rect {
+            regions::record(&ctx, regions::RegionSlot::Shelf, shelf);
+        }
+        let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
+            ui.input(|i| {
+                i.pointer
+                    .interact_pos()
+                    .or(i.pointer.hover_pos())
+                    .is_some_and(|pos| sr.contains(pos))
+            })
+        });
+
+        if pointer_on_shelf {
+            state.ui.box_select_start = None;
+            return;
+        }
+        if resp.drag_started_by(egui::PointerButton::Primary)
+            && let Some(pos) = resp.interact_pointer_pos()
+        {
+            state.ui.box_select_start = Some([pos.x, pos.y]);
+        }
+        if resp.dragged_by(egui::PointerButton::Primary)
+            && let (Some(start), Some(curr)) =
+                (state.ui.box_select_start, resp.interact_pointer_pos())
+        {
+            let r = egui::Rect::from_two_pos(egui::pos2(start[0], start[1]), curr);
+            p.rect_filled(
+                r,
+                0.0,
+                egui::Color32::from_rgba_unmultiplied(255, 160, 40, 40),
+            );
+            p.rect_stroke(
+                r,
+                0.0,
+                egui::Stroke::new(1.0f32, egui::Color32::from_rgb(255, 160, 40)),
+                egui::StrokeKind::Outside,
+            );
+            state.mark_dirty();
+        }
+        if resp.drag_stopped_by(egui::PointerButton::Primary)
+            && let (Some(start), Some(curr)) = (
+                state.ui.box_select_start.take(),
+                resp.interact_pointer_pos(),
+            )
+        {
+            let dx = (curr.x - start[0]).abs();
+            let dy = (curr.y - start[1]).abs();
+            if dx > 8.0 || dy > 8.0 {
+                let to_ndc = |pos: egui::Pos2| -> [f32; 2] {
+                    let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
+                    let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
+                    [nx, ny]
+                };
+                let p0 = to_ndc(egui::pos2(start[0], start[1]));
+                let p1 = to_ndc(curr);
+                let shift = ui.input(|i| i.modifiers.shift);
+                let vp = state.session.camera.view_proj().to_cols_array();
+                let _ = state.dispatch(&petunia_core::BoxSelectCmd {
+                    p0,
+                    p1,
+                    view_proj: vp,
+                    add: shift,
+                });
+            }
+        }
+        if resp.clicked() {
+            state.ui.box_select_start = None;
+            if let Some(pos) = resp.interact_pointer_pos() {
+                let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
+                let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
+                state.ui.pending_pick = Some((nx, ny));
+                state.mark_dirty();
+            }
+        }
+    }
 }
 
 fn draw_profile_overlay(p: &egui::Painter, rect: egui::Rect, state: &AppState) {

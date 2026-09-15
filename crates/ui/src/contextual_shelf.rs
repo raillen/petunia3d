@@ -15,6 +15,7 @@ use crate::tokens;
 /// Renderiza a barra contextual horizontal flutuante na base do Viewport 3D.
 /// Retorna o `Rect` ocupado pela shelf para permitir bloqueio de eventos na cena 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Rect> {
+    puffin::profile_function!();
     let screen_w = viewport_rect.width();
     if screen_w < 380.0 {
         return None;

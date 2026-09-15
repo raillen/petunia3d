@@ -37,24 +37,29 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
     egui::CollapsingHeader::new("Outliner")
         .default_open(true)
         .show(ui, |ui| {
-            // 1. Cabeçalho do Outliner com contagem, ações e busca
-            draw_outliner_header(ui, state);
+            draw_body(ui, state);
+        });
+}
 
-            ui.separator();
+/// Conteúdo do Outliner sem o cabeçalho colapsável externo.
+///
+/// O dock direito (Wave 2) usa cabeçalho próprio com colapso explícito em
+/// `UiState`; este corpo preenche a altura que o pai disponibilizar.
+pub fn draw_body(ui: &mut Ui, state: &mut AppState) {
+    // 1. Cabeçalho do Outliner com contagem, ações e busca
+    draw_outliner_header(ui, state);
 
-            // 2. Área de rolagem com a árvore hierárquica completa
-            let scroll_max_h = if state.ui.inspector_detached {
-                f32::INFINITY
-            } else {
-                280.0
-            };
-            ScrollArea::vertical()
-                .id_salt("outliner_tree_scroll")
-                .max_height(scroll_max_h)
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    draw_tree_nodes(ui, state);
-                });
+    ui.separator();
+
+    // 2. Área de rolagem com a árvore hierárquica completa.
+    // Wave 2: sem cap fixo de 280px — o pai (split do dock / tile) limita.
+    let scroll_max_h = ui.available_height().max(120.0);
+    ScrollArea::vertical()
+        .id_salt("outliner_tree_scroll")
+        .max_height(scroll_max_h)
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            draw_tree_nodes(ui, state);
         });
 }
 

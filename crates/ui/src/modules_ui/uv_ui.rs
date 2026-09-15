@@ -62,8 +62,8 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
                 state.t("uv.selected"),
                 state.uv_selected.len()
             ));
-            // canvas UV 0..1
-            let size = ui.available_width().min(320.0);
+            // canvas UV 0..1 (preenche o pai: inspector estreito ou editor central).
+            let size = ui.available_width().clamp(200.0, 720.0);
             let (rect, resp) =
                 ui.allocate_exact_size(egui::vec2(size, size), egui::Sense::click_and_drag());
             let p = ui.painter_at(rect);
@@ -129,4 +129,28 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
             }
             ui.small(state.t("uv.hint"));
         });
+}
+
+/// Resumo UV para o inspector do workspace UV (Wave 3).
+///
+/// O editor interativo mora no centro (§6.3); aqui só o essencial de contexto,
+/// sem duplicar widgets interativos.
+pub fn draw_uv_summary(ui: &mut Ui, state: &mut AppState) {
+    ui.label(egui::RichText::new(state.t("uv.title")).size(12.0).strong());
+    if let Some(asset) = state.project.assets.get(state.project.active) {
+        let selected = asset.mesh.faces.iter().filter(|f| f.selected).count();
+        ui.label(format!("{}: {}", state.t("ui.assets"), asset.name));
+        ui.label(format!(
+            "{}: {} / {}",
+            state.t("uv.faces"),
+            selected,
+            asset.mesh.faces.len()
+        ));
+    }
+    ui.label(format!(
+        "{}: {}",
+        state.t("uv.selected"),
+        state.uv_selected.len()
+    ));
+    ui.small(state.t("uv.hint"));
 }

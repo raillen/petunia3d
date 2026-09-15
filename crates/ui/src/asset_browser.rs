@@ -17,7 +17,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
     let min_w = 220.0;
     let max_w = 340.0;
 
-    egui::Panel::left("asset_browser_panel")
+    let browser_resp = egui::Panel::left("asset_browser_panel")
         .default_size(260.0)
         .size_range(min_w..=max_w)
         .resizable(true)
@@ -36,6 +36,11 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
             ui.separator();
             draw_footer_actions(ui, state);
         });
+    crate::regions::record(
+        ui.ctx(),
+        crate::regions::RegionSlot::AssetBrowser,
+        browser_resp.response.rect,
+    );
 }
 
 fn draw_header(ui: &mut Ui, state: &mut AppState) {

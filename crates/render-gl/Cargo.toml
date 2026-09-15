@@ -15,6 +15,7 @@ glam = { workspace = true }
 bytemuck = "1"
 uuid = { workspace = true }
 petunia_project = { workspace = true }
+puffin = { workspace = true }
 winit = "0.30"
 glutin = "0.32"
 glutin-winit = "0.5"

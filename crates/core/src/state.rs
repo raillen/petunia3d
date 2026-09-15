@@ -658,6 +658,17 @@ pub struct UiState {
     pub active_keymap_id: String,
     pub asset_thumbnail_size: f32,
     pub inspector_detached: bool,
+    /// Fração da altura do dock direito ocupada pelo Outliner (Wave 2).
+    /// Persistente na sessão; ajustada pelo divisor arrastável (0.25..=0.75).
+    pub right_dock_split: f32,
+    /// Colapso independente dos painéis do dock direito (Wave 2).
+    pub outliner_collapsed: bool,
+    pub inspector_collapsed: bool,
+    /// Memória de layout por workspace (Wave 3): voltar a um workspace restaura
+    /// seu split, aba do inspector e colapsos. Indexada por `workspace_index`.
+    pub workspace_memory: [WorkspaceUiMemory; 4],
+    /// No workspace UV estreito, alterna entre editor UV e prévia 3D (Wave 3).
+    pub uv_show_preview: bool,
     pub timeline_frame: i32,
     pub timeline_start: i32,
     pub timeline_end: i32,
@@ -692,6 +703,11 @@ impl UiState {
             active_keymap_id: "petunia-default".to_string(),
             asset_thumbnail_size: 64.0,
             inspector_detached: false,
+            right_dock_split: 0.42,
+            outliner_collapsed: false,
+            inspector_collapsed: false,
+            workspace_memory: Default::default(),
+            uv_show_preview: true,
             timeline_frame: 1,
             timeline_start: 1,
             timeline_end: 250,
@@ -717,6 +733,49 @@ impl Default for UiState {
     }
 }
 
+/// Motivo do dirty para rastreio de loops de repaint contínuo (Wave 1 — §16.6).
+/// Usar `mark_dirty_reason` em vez de `mark_dirty` quando o motivo é conhecido;
+/// builds de desenvolvimento registram via `tracing` para identificar poluição.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DirtyReason {
+    CameraOrbit,
+    CameraPan,
+    CameraZoom,
+    Selection,
+    GeometryEdit,
+    MaterialEdit,
+    TransformModal,
+    TimelinePlayback,
+    UiInteraction,
+    FileEvent,
+    Unknown,
+}
+
+/// Memória de layout do dock por workspace (Wave 3 — §6.5).
+#[derive(Debug, Clone)]
+pub struct WorkspaceUiMemory {
+    pub dock_split: f32,
+    pub inspector_tab: String,
+    pub outliner_collapsed: bool,
+    pub inspector_collapsed: bool,
+}
+
+impl Default for WorkspaceUiMemory {
+    fn default() -> Self {
+        Self {
+            dock_split: 0.42,
+            inspector_tab: "object".to_string(),
+            outliner_collapsed: false,
+            inspector_collapsed: false,
+        }
+    }
+}
+
+/// Índice da memória de layout para um workspace (enum sem payload: 0..4).
+pub fn workspace_index(workspace: Workspace) -> usize {
+    workspace as usize
+}
+
 /// 5. RECURSOS E TELEMETRIA DA GPU: contadores de renderização e sinalizadores de buffer.
 #[derive(Debug, Clone)]
 pub struct RenderResources {
@@ -724,6 +783,8 @@ pub struct RenderResources {
     pub canvas_dirty: bool,
     pub backend_name: String,
     pub stats: RenderStats,
+    /// Último motivo registrado (diagnóstico dev; não afeta decisão de redraw).
+    pub last_dirty_reason: Option<DirtyReason>,
 }
 
 impl Default for RenderResources {
@@ -739,11 +800,18 @@ impl RenderResources {
             canvas_dirty: true,
             backend_name: String::new(),
             stats: RenderStats::default(),
+            last_dirty_reason: None,
         }
     }
 
     pub fn mark_dirty(&mut self) {
         self.dirty = true;
+    }
+
+    pub fn mark_dirty_reason(&mut self, reason: DirtyReason) {
+        self.dirty = true;
+        self.last_dirty_reason = Some(reason);
+        tracing::trace!(?reason, "mark_dirty");
     }
 
     pub fn consume_dirty(&mut self) -> bool {
@@ -815,6 +883,31 @@ impl AppState {
     /// Marca para render-on-demand (§33).
     pub fn mark_dirty(&mut self) {
         self.render.mark_dirty();
+    }
+
+    /// Troca de workspace com memória de layout por workspace (Wave 3 — §6.5).
+    ///
+    /// Dono único da transição (§3.2): salva split/aba/colapsos do workspace
+    /// atual e restaura os do destino. Projeto, seleção e undo são
+    /// compartilhados — só a composição do shell muda.
+    pub fn switch_workspace(&mut self, next: Workspace) {
+        let prev = self.session.workspace;
+        if prev == next {
+            return;
+        }
+        self.ui.workspace_memory[workspace_index(prev)] = WorkspaceUiMemory {
+            dock_split: self.ui.right_dock_split,
+            inspector_tab: self.ui.properties_tab.clone(),
+            outliner_collapsed: self.ui.outliner_collapsed,
+            inspector_collapsed: self.ui.inspector_collapsed,
+        };
+        let restored = self.ui.workspace_memory[workspace_index(next)].clone();
+        self.ui.right_dock_split = restored.dock_split;
+        self.ui.properties_tab = restored.inspector_tab;
+        self.ui.outliner_collapsed = restored.outliner_collapsed;
+        self.ui.inspector_collapsed = restored.inspector_collapsed;
+        self.session.workspace = next;
+        self.mark_dirty();
     }
 
     /// Retorna se o eixo especificado (0 = X, 1 = Y, 2 = Z) está travado na atividade de edição atual.
@@ -1364,5 +1457,53 @@ impl AppState {
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), crate::project_service::ProjectServiceError> {
         crate::project_service::ProjectService::load_project(self, path.as_ref())
+    }
+}
+
+#[cfg(test)]
+mod workspace_memory_tests {
+    use super::*;
+    use crate::selection::Workspace;
+
+    #[test]
+    fn switch_saves_and_restores_dock_layout() {
+        let mut state = AppState::new("en");
+        state.ui.right_dock_split = 0.6;
+        state.ui.properties_tab = "material".to_string();
+        state.ui.inspector_collapsed = true;
+
+        state.switch_workspace(Workspace::Paint);
+        assert_eq!(state.session.workspace, Workspace::Paint);
+        // Destino visita pela 1ª vez: padrões.
+        assert_eq!(state.ui.right_dock_split, 0.42);
+        assert!(!state.ui.inspector_collapsed);
+
+        state.ui.right_dock_split = 0.3;
+        state.switch_workspace(Workspace::Model);
+        // Retorno restaura a memória do Model.
+        assert_eq!(state.ui.right_dock_split, 0.6);
+        assert_eq!(state.ui.properties_tab, "material");
+        assert!(state.ui.inspector_collapsed);
+
+        // E a do Paint foi salva ao sair.
+        state.switch_workspace(Workspace::Paint);
+        assert_eq!(state.ui.right_dock_split, 0.3);
+    }
+
+    #[test]
+    fn switch_to_same_workspace_is_noop() {
+        let mut state = AppState::new("en");
+        state.ui.right_dock_split = 0.7;
+        state.switch_workspace(Workspace::Model);
+        assert_eq!(state.ui.right_dock_split, 0.7);
+    }
+
+    #[test]
+    fn workspace_index_covers_all_workspaces() {
+        let mut seen = [false; 4];
+        for ws in Workspace::all() {
+            seen[workspace_index(ws)] = true;
+        }
+        assert!(seen.iter().all(|s| *s));
     }
 }

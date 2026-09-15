@@ -13,3 +13,4 @@ wgpu = { workspace = true }
 glam = { workspace = true }
 bytemuck = "1"
 petunia_project = { workspace = true }
+puffin = { workspace = true }

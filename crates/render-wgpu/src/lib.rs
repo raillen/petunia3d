@@ -1,5 +1,6 @@
 //! Renderer wgpu: malha sombreada + arestas + grid estilo Blender + quads de referência.
-//! Propositalmente simples: reconstrói os buffers por frame (ok para low-poly).
+//! Buffers de malha/arestas/referência são revisionados: câmera atualiza só o
+//! uniform; geometria só reconstrói quando o fingerprint da cena muda (Wave 1).
 
 use bytemuck::{Pod, Zeroable};
 use glam::Vec3;
@@ -7,6 +8,7 @@ use wgpu::util::DeviceExt;
 
 use petunia_core::Camera;
 use petunia_core::RefAxis;
+use petunia_core::{FingerprintFlags, SceneFingerprint, fingerprint_scene};
 use petunia_project::Project;
 use petunia_render::Shading;
 
@@ -84,6 +86,9 @@ pub struct Renderer {
     ref_gpu: Vec<RefGpu>,
     pub show_overlays: bool,
     pub show_grid: bool,
+    last_fingerprint: Option<SceneFingerprint>,
+    mesh_rebuilds: u64,
+    skipped_frames: u64,
 }
 
 const MESH_WGSL: &str = r#"
@@ -595,7 +600,25 @@ impl Renderer {
             ref_gpu: Vec::new(),
             show_overlays: true,
             show_grid: true,
+            last_fingerprint: None,
+            mesh_rebuilds: 0,
+            skipped_frames: 0,
         }
+    }
+
+    /// Quantas vezes os buffers de geometria foram reconstruídos (telemetria Wave 1).
+    pub fn mesh_rebuilds(&self) -> u64 {
+        self.mesh_rebuilds
+    }
+
+    /// Quantos `update()` pularam reconstrução por fingerprint idêntico.
+    pub fn skipped_frames(&self) -> u64 {
+        self.skipped_frames
+    }
+
+    /// Invalida o cache manualmente (ex. após troca de backend ou teste).
+    pub fn invalidate_cache(&mut self) {
+        self.last_fingerprint = None;
     }
 
     pub fn set_overlays(&mut self, show_overlays: bool, show_grid: bool) {
@@ -628,7 +651,8 @@ impl Renderer {
         self.depth_size = (width, height);
     }
 
-    /// Reconstrói buffers da cena. Barato para low-poly; roda por frame.
+    /// Atualiza uniforms de câmera todo frame; reconstrói buffers de geometria
+    /// somente quando o fingerprint da cena muda (Wave 1 — P0-A).
     #[allow(clippy::too_many_arguments)]
     pub fn update(
         &mut self,
@@ -641,6 +665,7 @@ impl Renderer {
         xray: bool,
         show_triangulation: bool,
     ) {
+        puffin::profile_function!();
         self.xray = xray;
         queue.write_buffer(
             &self.cam_buffer,
@@ -649,6 +674,29 @@ impl Renderer {
                 view_proj: camera.view_proj().to_cols_array_2d(),
             }]),
         );
+
+        let fp = fingerprint_scene(
+            scene,
+            refs,
+            FingerprintFlags {
+                shading,
+                xray,
+                show_triangulation,
+                textured: false,
+                edit_mode_is_edit: false,
+                show_wireframe_overlay: false,
+            },
+        );
+        let mesh_changed = self.last_fingerprint.map(|f| f.mesh) != Some(fp.mesh);
+        let refs_changed = self.last_fingerprint.map(|f| f.refs_layout) != Some(fp.refs_layout);
+        if !mesh_changed && !refs_changed {
+            self.skipped_frames += 1;
+            return;
+        }
+        self.last_fingerprint = Some(fp);
+        // Qualquer mudança em geometria OU layout de refs reconstrói os buffers
+        // de cena; câmera sozinha retorna cedo acima sem triangulação nem alloc.
+        self.mesh_rebuilds += 1;
 
         // malha
         let mut mv: Vec<MeshVertex> = Vec::new();
@@ -940,6 +988,7 @@ impl Renderer {
     }
 
     pub fn render(&self, pass: &mut wgpu::RenderPass<'_>, refs: &[petunia_core::ReferenceImage]) {
+        puffin::profile_function!();
         pass.set_bind_group(0, &self.cam_bind_group, &[]);
 
         // Grid 3D condicional aos overlays

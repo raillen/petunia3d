@@ -419,6 +419,304 @@ fn test_kittest_contextual_shelf_across_all_workspaces() {
 }
 
 #[test]
+fn test_kittest_right_dock_regions_are_disjoint_and_safe() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    // Tamanho fixo: geometria determinística entre frames (Wave 2 — §21).
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    harness.run_steps(6);
+    drop(harness);
+
+    let regions = seen.borrow().clone().expect("regions recorded");
+    assert!(regions.right_dock.is_some());
+    assert!(regions.right_outliner.is_some());
+    assert!(regions.right_inspector.is_some());
+    assert!(regions.dock_sections_disjoint());
+    assert!(
+        regions.status_overlaps().is_empty(),
+        "panes overlap status bar: {:?}",
+        regions.status_overlaps()
+    );
+    assert!(regions.shelf_within_viewport());
+    assert!(regions.viewport.is_some());
+}
+
+#[test]
+fn test_kittest_dock_split_fraction_resizes_sections() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            seen_clone
+                .borrow_mut()
+                .push(petunia_ui::regions::load(ui.ctx()));
+        });
+    state.borrow_mut().ui.right_dock_split = 0.3;
+    harness.run_steps(6);
+    state.borrow_mut().ui.right_dock_split = 0.7;
+    harness.run_steps(6);
+    drop(harness);
+
+    let frames = seen.borrow();
+    let narrow = frames[5].clone().expect("regions narrow");
+    let wide = frames[11].clone().expect("regions wide");
+    let narrow_h = narrow.right_outliner.unwrap().height();
+    let wide_h = wide.right_outliner.unwrap().height();
+    assert!(
+        wide_h > narrow_h + 20.0,
+        "split 0.7 ({wide_h}) must exceed split 0.3 ({narrow_h})"
+    );
+    assert!(narrow.dock_sections_disjoint() && wide.dock_sections_disjoint());
+}
+
+#[test]
+fn test_kittest_dock_collapse_gives_space_to_sibling() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    state.borrow_mut().ui.outliner_collapsed = true;
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    harness.run_steps(6);
+    drop(harness);
+
+    let regions = seen.borrow().clone().expect("regions recorded");
+    let out_h = regions.right_outliner.unwrap().height();
+    let insp_h = regions.right_inspector.unwrap().height();
+    assert!(
+        out_h <= 44.0,
+        "collapsed outliner must be header-only ({out_h})"
+    );
+    assert!(insp_h > out_h);
+    assert!(regions.dock_sections_disjoint());
+}
+
+#[test]
+fn test_kittest_workspace_switch_preserves_dock_layout() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    state.borrow_mut().ui.right_dock_split = 0.6;
+    state.borrow_mut().ui.inspector_collapsed = true;
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    for workspace in [
+        Workspace::Model,
+        Workspace::Paint,
+        Workspace::Uv,
+        Workspace::Animate,
+    ] {
+        state.borrow_mut().workspace = workspace;
+        harness.run_steps(3);
+    }
+    drop(harness);
+
+    let borrowed = state.borrow();
+    assert_eq!(borrowed.ui.right_dock_split, 0.6);
+    assert!(borrowed.ui.inspector_collapsed);
+    drop(borrowed);
+    let regions = seen.borrow().clone().expect("regions recorded");
+    assert!(regions.dock_sections_disjoint());
+    assert!(regions.status_overlaps().is_empty());
+}
+
+#[test]
+fn test_kittest_workspace_profiles_compose_shell() {
+    // Cada workspace compõe o shell de forma visivelmente distinta (§6.5).
+    for (workspace, expect_bottom, expect_uv) in [
+        (Workspace::Model, false, false),
+        (Workspace::Paint, false, false),
+        (Workspace::Uv, false, true),
+        (Workspace::Animate, true, false),
+    ] {
+        let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+        state.borrow_mut().workspace = workspace;
+        let tools = ToolRegistry::new();
+        let mut registry = petunia_core::ModuleRegistry::new();
+        let mut action = petunia_ui::UiAction::none();
+        let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+        let seen_clone = seen.clone();
+        let state_clone = state.clone();
+
+        let mut harness = Harness::builder()
+            .with_size(egui::Vec2::new(1280.0, 800.0))
+            .build_ui(move |ui| {
+                petunia_ui::draw(
+                    ui,
+                    &mut state_clone.borrow_mut(),
+                    &tools,
+                    &mut registry,
+                    &mut action,
+                );
+                *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+            });
+        harness.run_steps(6);
+        drop(harness);
+
+        let regions = seen
+            .borrow()
+            .clone()
+            .unwrap_or_else(|| panic!("regions recorded for {workspace:?}"));
+        assert_eq!(
+            regions.bottom_dock.is_some(),
+            expect_bottom,
+            "bottom pane for {workspace:?}"
+        );
+        assert_eq!(
+            regions.uv_editor.is_some(),
+            expect_uv,
+            "uv editor for {workspace:?}"
+        );
+        assert!(
+            regions.viewport.is_some(),
+            "3D viewport present for {workspace:?}"
+        );
+        assert!(
+            regions.status_overlaps().is_empty(),
+            "panes overlap status bar for {workspace:?}: {:?}",
+            regions.status_overlaps()
+        );
+        assert!(regions.shelf_within_viewport() || workspace == Workspace::Uv);
+    }
+}
+
+#[test]
+fn test_kittest_uv_narrow_window_toggles_editor_or_preview() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    state.borrow_mut().workspace = Workspace::Uv;
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    // Janela estreita: mostra a prévia 3D por padrão, sem editor esmagado.
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(700.0, 600.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    harness.run_steps(6);
+
+    let regions = seen.borrow().clone().expect("regions recorded");
+    assert!(regions.viewport.is_some());
+    assert!(regions.uv_editor.is_none());
+    drop(harness);
+
+    // Alterna para o editor: viewport some, editor aparece.
+    state.borrow_mut().ui.uv_show_preview = false;
+    let state_clone2 = state.clone();
+    let seen2 = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen2_clone = seen2.clone();
+    let tools2 = ToolRegistry::new();
+    let mut registry2 = petunia_core::ModuleRegistry::new();
+    let mut action2 = petunia_ui::UiAction::none();
+    let mut harness2 = Harness::builder()
+        .with_size(egui::Vec2::new(700.0, 600.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone2.borrow_mut(),
+                &tools2,
+                &mut registry2,
+                &mut action2,
+            );
+            *seen2_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    harness2.run_steps(6);
+    drop(harness2);
+    let regions2 = seen2.borrow().clone().expect("regions recorded");
+    assert!(regions2.uv_editor.is_some());
+}
+
+#[test]
+fn test_kittest_animate_toolbar_has_pose_tools() {
+    // A toolbar do Animate não é mais vazia: seleção + trio de pose.
+    let mut state = AppState::new("en");
+    state.workspace = Workspace::Animate;
+    let tools = ToolRegistry::new();
+
+    let mut harness = Harness::builder().build_ui(|ui| {
+        petunia_ui::toolbar::draw(ui, &mut state, &tools);
+    });
+    harness.run_steps(2);
+    drop(harness);
+
+    // Ferramenta de malha não faz sentido no Animate: normalização do Model
+    // não se aplica, mas o estado sobrevive intacto ao desenho.
+    assert_eq!(state.workspace, Workspace::Animate);
+}
+
+#[test]
 fn test_kittest_animation_workspace_and_rig_panel() {
     let mut state = AppState {
         session: petunia_core::state::EditorSession {

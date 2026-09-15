@@ -6,9 +6,27 @@ use petunia_core::AppState;
 
 use crate::tokens;
 
-/// Renderiza o painel inferior de Timeline.
+/// Conteúdo da Timeline (transporte + régua), sem painel próprio.
+///
+/// O workspace Animate hospeda este conteúdo numa faixa fixa dentro da área
+/// central (`animate_workspace_center`): dois `Panel::bottom` empilhados
+/// sofrem um deslocamento de ~11px no segundo painel (sharp edge do empilhamento
+/// do egui), então a Timeline não usa painel próprio no shell canônico.
+pub fn draw_contents(ui: &mut Ui, state: &mut AppState) {
+    ui.add_enabled_ui(!state.is_interacting(), |ui| {
+        // Linha 1: Controles de Transporte e Frames
+        draw_transport_bar(ui, state);
+
+        ui.add_space(2.0);
+
+        // Linha 2: Régua de Scrubbing Temporal
+        draw_timeline_ruler(ui, state);
+    });
+}
+
+/// Renderiza o painel inferior de Timeline (pilot, testes e tiles).
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
-    egui::Panel::bottom("timeline_panel")
+    let panel = egui::Panel::bottom("timeline_panel")
         .exact_size(tokens::TIMELINE_HEIGHT)
         .frame(
             egui::Frame::new()
@@ -17,16 +35,13 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
                 .inner_margin(egui::Margin::symmetric(8, 4)),
         )
         .show(ui, |ui| {
-            ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                // Linha 1: Controles de Transporte e Frames
-                draw_transport_bar(ui, state);
-
-                ui.add_space(2.0);
-
-                // Linha 2: Régua de Scrubbing Temporal
-                draw_timeline_ruler(ui, state);
-            });
+            draw_contents(ui, state);
         });
+    crate::regions::record(
+        ui.ctx(),
+        crate::regions::RegionSlot::BottomDock,
+        panel.response.rect,
+    );
 }
 
 fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {

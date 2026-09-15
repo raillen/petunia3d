@@ -120,11 +120,67 @@ fn fnv1a(bytes: &[u8]) -> u64 {
     h
 }
 
+/// Hash barato de flags de overlay/grade que afetam as linhas (fora do fingerprint de cena).
+fn overlay_hash(state: &petunia_core::AppState) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    let mix = |h: u64, v: u64| {
+        h ^ v
+            .wrapping_add(0x9e3779b97f4a7c15)
+            .wrapping_add(h << 6)
+            .wrapping_add(h >> 2)
+    };
+    h = mix(h, state.shading as u64);
+    h = mix(h, state.show_overlays as u64);
+    h = mix(h, state.show_grid as u64);
+    h = mix(h, state.show_axes as u64);
+    h = mix(h, state.show_wireframe_overlay as u64);
+    h = mix(h, state.show_triangulation as u64);
+    h = mix(h, state.show_xray as u64);
+    h = mix(
+        h,
+        match state.mode {
+            petunia_core::EditMode::Object => 0,
+            petunia_core::EditMode::Edit => 1,
+            petunia_core::EditMode::TexturePaint => 2,
+        },
+    );
+    for b in state.grid_settings.size.to_bits().to_le_bytes() {
+        h = h.wrapping_mul(0x100000001b3) ^ (b as u64);
+    }
+    for b in state.grid_settings.subdivisions.to_bits().to_le_bytes() {
+        h = h.wrapping_mul(0x100000001b3) ^ (b as u64);
+    }
+    for b in state.grid_settings.opacity.to_bits().to_le_bytes() {
+        h = h.wrapping_mul(0x100000001b3) ^ (b as u64);
+    }
+    h
+}
+
 pub struct GlRenderer {
     gl: Arc<glow::Context>,
     /// VAO padrão bound uma vez (core profile exige VAO).
     #[allow(dead_code)]
     vao: NativeVertexArray,
+    /// VBOs persistentes por asset (Wave 1 — P0-B): criados uma vez por `Uuid`,
+    /// atualizados por `buffer_data` somente quando o fingerprint muda.
+    /// Nunca create/delete por draw. Removidos quando o asset some (prune).
+    mesh_vbos: std::collections::HashMap<uuid::Uuid, glow::NativeBuffer>,
+    /// Parâmetros de draw por asset: (vertex_count, stride_floats, textured).
+    mesh_slots: std::collections::HashMap<uuid::Uuid, (i32, usize, bool)>,
+    mesh_fp: u64,
+    mesh_valid: bool,
+    edge_vbo: Option<glow::NativeBuffer>,
+    edge_cache: Vec<f32>,
+    edge_fp: u64,
+    edge_valid: bool,
+    ref_vbo: Option<glow::NativeBuffer>,
+    /// Quads de todos os passes visíveis: (índice da ref, xray, 6 verts).
+    ref_quads_cache: Vec<(usize, bool, [f32; 30])>,
+    ref_fp: u64,
+    ref_valid: bool,
+    /// Telemetria Wave 1: criações de buffer e frames pulados.
+    pub buffer_creations: u64,
+    pub skipped_uploads: u64,
     mesh_prog: NativeProgram,
     mesh_vp: Option<NativeUniformLocation>,
     mesh_opacity: Option<NativeUniformLocation>,
@@ -170,6 +226,20 @@ impl GlRenderer {
                 Ok(Self {
                     gl: Arc::clone(&gl),
                     vao,
+                    mesh_vbos: std::collections::HashMap::new(),
+                    mesh_slots: std::collections::HashMap::new(),
+                    mesh_fp: 0,
+                    mesh_valid: false,
+                    edge_vbo: None,
+                    edge_cache: Vec::new(),
+                    edge_fp: 0,
+                    edge_valid: false,
+                    ref_vbo: None,
+                    ref_quads_cache: Vec::new(),
+                    ref_fp: 0,
+                    ref_valid: false,
+                    buffer_creations: 0,
+                    skipped_uploads: 0,
                     mesh_prog,
                     mesh_vp: locs_first(&mesh_locs, 0),
                     mesh_opacity: locs_first(&mesh_locs, 1),
@@ -196,8 +266,61 @@ impl GlRenderer {
         }
     }
 
+    /// Garante o VBO persistente do asset (cria uma única vez por `Uuid`).
+    unsafe fn mesh_vbo_for(&mut self, id: uuid::Uuid) -> Option<glow::NativeBuffer> {
+        if let Some(&b) = self.mesh_vbos.get(&id) {
+            return Some(b);
+        }
+        match self.gl.create_buffer() {
+            Ok(b) => {
+                self.mesh_vbos.insert(id, b);
+                self.buffer_creations += 1;
+                Some(b)
+            }
+            Err(e) => {
+                eprintln!("petunia3d: OpenGL mesh VBO: {e}");
+                None
+            }
+        }
+    }
+
+    /// Garante o VBO persistente de arestas (cria uma única vez).
+    unsafe fn edge_vbo(&mut self) -> Option<glow::NativeBuffer> {
+        if self.edge_vbo.is_none() {
+            match self.gl.create_buffer() {
+                Ok(b) => {
+                    self.edge_vbo = Some(b);
+                    self.buffer_creations += 1;
+                }
+                Err(e) => {
+                    eprintln!("petunia3d: OpenGL edge VBO: {e}");
+                    return None;
+                }
+            }
+        }
+        self.edge_vbo
+    }
+
+    /// Garante o VBO persistente de referências (cria uma única vez).
+    unsafe fn ref_vbo(&mut self) -> Option<glow::NativeBuffer> {
+        if self.ref_vbo.is_none() {
+            match self.gl.create_buffer() {
+                Ok(b) => {
+                    self.ref_vbo = Some(b);
+                    self.buffer_creations += 1;
+                }
+                Err(e) => {
+                    eprintln!("petunia3d: OpenGL ref VBO: {e}");
+                    return None;
+                }
+            }
+        }
+        self.ref_vbo
+    }
+
     /// Desenha a cena inteira (viewport + clear + refs + malha + arestas).
     pub fn draw(&mut self, state: &petunia_core::AppState, width: u32, height: u32) {
+        puffin::profile_function!();
         let Some(viewport) = petunia_core::viewport::PhysicalViewport::from_logical(
             state.ui.viewport_rect,
             state.ui.viewport_pixels_per_point,
@@ -281,6 +404,7 @@ impl GlRenderer {
     }
 
     unsafe fn draw_mesh(&mut self, state: &petunia_core::AppState, vp: &[f32; 16]) {
+        puffin::profile_function!();
         let gl = Arc::clone(&self.gl);
         if state.shading == Shading::Wireframe {
             return; // wireframe sai só nas arestas
@@ -296,9 +420,127 @@ impl GlRenderer {
             gl.disable(glow::BLEND);
             gl.depth_mask(true);
         }
+        // Fingerprint barato (sem triangulação): câmera nunca invalida.
+        let fp = petunia_core::fingerprint_scene(
+            &state.project.project,
+            &state.project.refs,
+            petunia_core::FingerprintFlags {
+                shading: state.shading,
+                xray: state.show_xray,
+                show_triangulation: state.show_triangulation,
+                textured: state.textured,
+                edit_mode_is_edit: state.mode == petunia_core::EditMode::Edit,
+                show_wireframe_overlay: state.show_wireframe_overlay,
+            },
+        );
+        let cache_hit = self.mesh_valid && self.mesh_fp == fp.mesh;
+        if !cache_hit {
+            // Prune VBOs de assets removidos (evita leak de VRAM sem create/delete por frame).
+            let live: std::collections::HashSet<uuid::Uuid> =
+                state.project.assets.iter().map(|a| a.id).collect();
+            let dead: Vec<uuid::Uuid> = self
+                .mesh_vbos
+                .keys()
+                .filter(|id| !live.contains(id))
+                .copied()
+                .collect();
+            for id in dead {
+                if let Some(vbo) = self.mesh_vbos.remove(&id) {
+                    gl.delete_buffer(vbo);
+                }
+                self.mesh_slots.remove(&id);
+            }
+            self.mesh_fp = fp.mesh;
+            self.mesh_valid = true;
+        }
         for obj in &state.project.assets {
             if !obj.visible {
                 continue;
+            }
+            // Fast path: fingerprint idêntico → sem triangulação, sem upload.
+            if cache_hit && let Some(&(count, stride, cached_tex)) = self.mesh_slots.get(&obj.id) {
+                let tex_canvas = obj.texture.as_ref().or_else(|| {
+                    obj.material(&state.project.project)
+                        .and_then(|m| m.albedo_texture.as_ref())
+                });
+                let use_tex = state.textured && tex_canvas.is_some();
+                if use_tex == cached_tex && count > 0 {
+                    if use_tex {
+                        if let Some(canvas) = tex_canvas {
+                            let slot = match self.asset_tex_slot(
+                                &gl,
+                                obj.id,
+                                canvas.w,
+                                canvas.h,
+                                &canvas.pixels,
+                            ) {
+                                Ok(texture) => texture,
+                                Err(error) => {
+                                    eprintln!("petunia3d: {error}");
+                                    continue;
+                                }
+                            };
+                            gl.use_program(Some(self.tex_prog));
+                            gl.uniform_matrix_4_f32_slice(self.tex_vp.as_ref(), false, vp);
+                            gl.uniform_1_f32(self.tex_opacity.as_ref(), opacity);
+                            gl.uniform_1_i32(self.tex_u.as_ref(), 0);
+                            gl.active_texture(glow::TEXTURE0);
+                            gl.bind_texture(glow::TEXTURE_2D, Some(slot));
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        gl.use_program(Some(self.mesh_prog));
+                        gl.uniform_matrix_4_f32_slice(self.mesh_vp.as_ref(), false, vp);
+                        gl.uniform_1_f32(self.mesh_opacity.as_ref(), opacity);
+                    }
+                    if let Some(&vbo) = self.mesh_vbos.get(&obj.id) {
+                        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+                        gl.enable_vertex_attrib_array(0);
+                        gl.vertex_attrib_pointer_f32(
+                            0,
+                            3,
+                            glow::FLOAT,
+                            false,
+                            (stride * 4) as i32,
+                            0,
+                        );
+                        gl.enable_vertex_attrib_array(1);
+                        gl.vertex_attrib_pointer_f32(
+                            1,
+                            3,
+                            glow::FLOAT,
+                            false,
+                            (stride * 4) as i32,
+                            3 * 4,
+                        );
+                        gl.enable_vertex_attrib_array(2);
+                        gl.vertex_attrib_pointer_f32(
+                            2,
+                            3,
+                            glow::FLOAT,
+                            false,
+                            (stride * 4) as i32,
+                            6 * 4,
+                        );
+                        if use_tex {
+                            gl.enable_vertex_attrib_array(3);
+                            gl.vertex_attrib_pointer_f32(
+                                3,
+                                2,
+                                glow::FLOAT,
+                                false,
+                                (stride * 4) as i32,
+                                9 * 4,
+                            );
+                        } else {
+                            gl.disable_vertex_attrib_array(3);
+                        }
+                        gl.draw_arrays(glow::TRIANGLES, 0, count);
+                        self.skipped_uploads += 1;
+                        continue;
+                    }
+                }
             }
             let (mat_profile, mat_color, has_emission, emission_color) =
                 if let Some(mat) = obj.material(&state.project.project) {
@@ -389,12 +631,9 @@ impl GlRenderer {
                 gl.uniform_matrix_4_f32_slice(self.mesh_vp.as_ref(), false, vp);
                 gl.uniform_1_f32(self.mesh_opacity.as_ref(), opacity);
             }
-            let vbo = match gl.create_buffer() {
-                Ok(buffer) => buffer,
-                Err(error) => {
-                    eprintln!("petunia3d: OpenGL draw buffer: {error}");
-                    continue;
-                }
+            let count = (data.len() / stride) as i32;
+            let Some(vbo) = self.mesh_vbo_for(obj.id) else {
+                continue;
             };
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
             gl.buffer_data_u8_slice(
@@ -402,6 +641,7 @@ impl GlRenderer {
                 bytemuck::cast_slice(&data),
                 glow::DYNAMIC_DRAW,
             );
+            self.mesh_slots.insert(obj.id, (count, stride, use_tex));
             gl.enable_vertex_attrib_array(0);
             gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, (stride * 4) as i32, 0);
             gl.enable_vertex_attrib_array(1);
@@ -414,8 +654,7 @@ impl GlRenderer {
             } else {
                 gl.disable_vertex_attrib_array(3);
             }
-            gl.draw_arrays(glow::TRIANGLES, 0, (data.len() / stride) as i32);
-            gl.delete_buffer(vbo);
+            gl.draw_arrays(glow::TRIANGLES, 0, count);
         }
         gl.disable(glow::BLEND);
         gl.depth_mask(true);
@@ -511,7 +750,38 @@ impl GlRenderer {
     }
 
     unsafe fn draw_edges(&mut self, state: &petunia_core::AppState) {
-        let gl = &self.gl;
+        puffin::profile_function!();
+        let gl = Arc::clone(&self.gl);
+        // Fingerprint combinado: cena + overlays/grade (câmera nunca invalida).
+        let scene_fp = petunia_core::fingerprint_scene(
+            &state.project.project,
+            &state.project.refs,
+            petunia_core::FingerprintFlags {
+                shading: state.shading,
+                xray: state.show_xray,
+                show_triangulation: state.show_triangulation,
+                textured: state.textured,
+                edit_mode_is_edit: state.mode == petunia_core::EditMode::Edit,
+                show_wireframe_overlay: state.show_wireframe_overlay,
+            },
+        );
+        let fp = scene_fp.mesh ^ overlay_hash(state).wrapping_mul(0x9e3779b97f4a7c15);
+        if self.edge_valid && self.edge_fp == fp {
+            if self.edge_cache.is_empty() {
+                return;
+            }
+            gl.use_program(Some(self.line_prog));
+            if let Some(vbo) = self.edge_vbo() {
+                gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+                gl.enable_vertex_attrib_array(0);
+                gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 6 * 4, 0);
+                gl.enable_vertex_attrib_array(1);
+                gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 6 * 4, 3 * 4);
+                gl.draw_arrays(glow::LINES, 0, (self.edge_cache.len() / 6) as i32);
+                self.skipped_uploads += 1;
+            }
+            return;
+        }
         let wire = state.shading == Shading::Wireframe;
         let show_edges =
             wire || state.mode == petunia_core::EditMode::Edit || state.show_wireframe_overlay;
@@ -589,15 +859,14 @@ impl GlRenderer {
         }
 
         if data.is_empty() {
+            self.edge_cache.clear();
+            self.edge_fp = fp;
+            self.edge_valid = true;
             return;
         }
         gl.use_program(Some(self.line_prog));
-        let vbo = match gl.create_buffer() {
-            Ok(buffer) => buffer,
-            Err(error) => {
-                eprintln!("petunia3d: OpenGL edge buffer: {error}");
-                return;
-            }
+        let Some(vbo) = self.edge_vbo() else {
+            return;
         };
         gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
         gl.buffer_data_u8_slice(
@@ -605,12 +874,14 @@ impl GlRenderer {
             bytemuck::cast_slice(&data),
             glow::DYNAMIC_DRAW,
         );
+        self.edge_cache = data;
+        self.edge_fp = fp;
+        self.edge_valid = true;
         gl.enable_vertex_attrib_array(0);
         gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, 6 * 4, 0);
         gl.enable_vertex_attrib_array(1);
         gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, 6 * 4, 3 * 4);
-        gl.draw_arrays(glow::LINES, 0, (data.len() / 6) as i32);
-        gl.delete_buffer(vbo);
+        gl.draw_arrays(glow::LINES, 0, (self.edge_cache.len() / 6) as i32);
     }
 
     /// Seta o `vp` do programa de linhas (chamado dentro de draw()).
@@ -626,43 +897,67 @@ impl GlRenderer {
         vp: &[f32; 16],
         xray_pass: bool,
     ) {
+        puffin::profile_function!();
         if !xray_pass {
             self.sync_ref_textures(&state.project.refs);
         }
         let gl = Arc::clone(&self.gl);
-        // quads via matemática compartilhada (V flipado: origem GL é embaixo)
+        // quads via matemática compartilhada (V flipado: origem GL é embaixo).
+        // Cache de CPU por fingerprint de layout: câmera nunca invalida.
         use petunia_render::scene as S;
-        let mut quads: Vec<(usize, [f32; 30])> = Vec::new();
-        for (i, r) in state.project.refs.iter().enumerate() {
-            if !r.visible || r.xray != xray_pass {
-                continue;
+        let scene_fp = petunia_core::fingerprint_scene(
+            &state.project.project,
+            &state.project.refs,
+            petunia_core::FingerprintFlags {
+                shading: state.shading,
+                xray: state.show_xray,
+                show_triangulation: state.show_triangulation,
+                textured: state.textured,
+                edit_mode_is_edit: state.mode == petunia_core::EditMode::Edit,
+                show_wireframe_overlay: state.show_wireframe_overlay,
+            },
+        );
+        // Cache único para os dois passes (filtrado por `xray_pass` abaixo):
+        // evita reconstrução alternada entre passes no mesmo frame.
+        let fp = scene_fp.refs_layout;
+        if self.ref_valid && self.ref_fp == fp {
+            self.skipped_uploads += 1;
+        } else {
+            let mut built: Vec<(usize, bool, [f32; 30])> = Vec::new();
+            for (i, r) in state.project.refs.iter().enumerate() {
+                if !r.visible {
+                    continue;
+                }
+                let plane = match r.axis {
+                    RefAxis::Front => S::RefPlane::Front,
+                    RefAxis::Back => S::RefPlane::Back,
+                    RefAxis::Left => S::RefPlane::Left,
+                    RefAxis::Right | RefAxis::Side => S::RefPlane::Right,
+                    RefAxis::Top => S::RefPlane::Top,
+                    RefAxis::Bottom => S::RefPlane::Bottom,
+                };
+                let aspect = r.width as f32 / r.height.max(1) as f32;
+                let q = S::ref_quad_with_rot(plane, r.offset, r.size, aspect, r.rotation);
+                let mut v = [0.0f32; 30];
+                for (k, (p, uv)) in q.iter().zip(S::QUAD_UVS_GL).enumerate() {
+                    v[k * 5..k * 5 + 3].copy_from_slice(p);
+                    v[k * 5 + 3..k * 5 + 5].copy_from_slice(&uv);
+                }
+                // 2 tris: 0,1,2  0,2,3
+                let mut t = [0.0f32; 30];
+                t[0..5].copy_from_slice(&v[0..5]);
+                t[5..10].copy_from_slice(&v[5..10]);
+                t[10..15].copy_from_slice(&v[10..15]);
+                t[15..20].copy_from_slice(&v[0..5]);
+                t[20..25].copy_from_slice(&v[10..15]);
+                t[25..30].copy_from_slice(&v[15..20]);
+                built.push((i, r.xray, t));
             }
-            let plane = match r.axis {
-                RefAxis::Front => S::RefPlane::Front,
-                RefAxis::Back => S::RefPlane::Back,
-                RefAxis::Left => S::RefPlane::Left,
-                RefAxis::Right | RefAxis::Side => S::RefPlane::Right,
-                RefAxis::Top => S::RefPlane::Top,
-                RefAxis::Bottom => S::RefPlane::Bottom,
-            };
-            let aspect = r.width as f32 / r.height.max(1) as f32;
-            let q = S::ref_quad_with_rot(plane, r.offset, r.size, aspect, r.rotation);
-            let mut v = [0.0f32; 30];
-            for (k, (p, uv)) in q.iter().zip(S::QUAD_UVS_GL).enumerate() {
-                v[k * 5..k * 5 + 3].copy_from_slice(p);
-                v[k * 5 + 3..k * 5 + 5].copy_from_slice(&uv);
-            }
-            // 2 tris: 0,1,2  0,2,3
-            let mut t = [0.0f32; 30];
-            t[0..5].copy_from_slice(&v[0..5]);
-            t[5..10].copy_from_slice(&v[5..10]);
-            t[10..15].copy_from_slice(&v[10..15]);
-            t[15..20].copy_from_slice(&v[0..5]);
-            t[20..25].copy_from_slice(&v[10..15]);
-            t[25..30].copy_from_slice(&v[15..20]);
-            quads.push((i, t));
+            self.ref_quads_cache = built;
+            self.ref_fp = fp;
+            self.ref_valid = true;
         }
-        if quads.is_empty() {
+        if !self.ref_quads_cache.iter().any(|(_, x, _)| *x == xray_pass) {
             return;
         }
         gl.use_program(Some(self.ref_prog));
@@ -671,7 +966,8 @@ impl GlRenderer {
         gl.enable(glow::BLEND);
         gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
         gl.active_texture(glow::TEXTURE0);
-        for (i, t) in &quads {
+        let quads = self.ref_quads_cache.clone();
+        for (i, _, t) in quads.iter().filter(|(_, x, _)| *x == xray_pass) {
             let (tex, opacity) = match (self.ref_tex.get(*i), state.project.refs.get(*i)) {
                 (Some(s), Some(r)) => (s.tex, r.opacity),
                 _ => continue,
@@ -683,12 +979,9 @@ impl GlRenderer {
             }
             gl.bind_texture(glow::TEXTURE_2D, Some(tex));
             gl.uniform_1_f32(self.ref_opacity_u.as_ref(), opacity);
-            let vbo = match gl.create_buffer() {
-                Ok(buffer) => buffer,
-                Err(error) => {
-                    eprintln!("petunia3d: OpenGL draw buffer: {error}");
-                    continue;
-                }
+            // VBO persistente reutilizado entre quads/frames (sem create/delete).
+            let Some(vbo) = self.ref_vbo() else {
+                continue;
             };
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
             gl.buffer_data_u8_slice(
@@ -701,7 +994,6 @@ impl GlRenderer {
             gl.enable_vertex_attrib_array(1);
             gl.vertex_attrib_pointer_f32(1, 2, glow::FLOAT, false, 5 * 4, 3 * 4);
             gl.draw_arrays(glow::TRIANGLES, 0, 6);
-            gl.delete_buffer(vbo);
         }
         gl.enable(glow::DEPTH_TEST);
         gl.bind_texture(glow::TEXTURE_2D, None);

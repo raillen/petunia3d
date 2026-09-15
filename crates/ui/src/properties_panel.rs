@@ -22,6 +22,7 @@ pub fn draw(
     tools: &ToolRegistry,
     _registry: &mut ModuleRegistry,
 ) {
+    puffin::profile_function!();
     // 1. Barra de abas de propriedades (Tool, Render, Object, Modifiers, etc.)
     draw_property_tabs(ui, state);
 
@@ -59,7 +60,8 @@ pub fn draw(
                         }
                     }
                     Workspace::Uv => {
-                        crate::modules_ui::uv_ui::draw_uv_panel(ui, state);
+                        // Editor interativo no centro (§6.3); aqui só o resumo.
+                        crate::modules_ui::uv_ui::draw_uv_summary(ui, state);
                     }
                     Workspace::Animate => {
                         crate::modules_ui::animation_ui::draw_animation_panel(ui, state);

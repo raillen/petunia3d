@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **223**.
+Total de chaves de localização cadastradas: **228**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -216,7 +216,10 @@ Total de chaves de localização cadastradas: **223**.
 | `ui.active_tool` | Active tool | Ferramenta ativa |
 | `ui.assets` | Asset Library | Assets |
 | `ui.close` | Close | Fechar |
+| `ui.collapse` | Collapse section | Recolher painel |
+| `ui.dock_split_hint` | Drag to resize panels | Arraste para redimensionar os painéis |
 | `ui.duplicate` | Duplicate | Duplicar |
+| `ui.expand` | Expand section | Expandir painel |
 | `ui.help` | Help | Ajuda |
 | `ui.language` | Language | Idioma |
 | `ui.lock` | Lock | Bloquear |
@@ -229,7 +232,9 @@ Total de chaves de localização cadastradas: **223**.
 | `ui.search` | Search | Buscar |
 | `ui.tools` | Tools | Ferramentas |
 | `ui.visible` | Visible | Visível |
+| `uv.faces` | Faces | Faces |
 | `uv.hint` | Click: select face. Drag: move UVs. Wheel: scale. | Clique: seleciona face. Arraste: move UVs. Scroll: escala. |
+| `uv.preview_3d` | 3D preview | Prévia 3D |
 | `uv.reproject` | Planar | Planar |
 | `uv.scale` | Scale | Escala |
 | `uv.selected` | sel faces | faces sel |
