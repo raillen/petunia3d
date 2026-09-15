@@ -17,12 +17,12 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Check config
-        run: cargo check -p petunia-config
+        run: cargo check -p petunia_config
       - name: Check UI
-        run: cargo check -p petunia-ui
+        run: cargo check -p petunia_ui
       - name: Check app
-        run: cargo check -p petunia-app
+        run: cargo check -p petunia_app
       - name: Config tests
-        run: cargo test -p petunia-config
+        run: cargo test -p petunia_config
       - name: UI tests
-        run: cargo test -p petunia-ui --lib
+        run: cargo test -p petunia_ui --lib
