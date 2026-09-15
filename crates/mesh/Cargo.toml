@@ -1,10 +1,23 @@
 [package]
 name = "petunia_mesh"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 glam = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+geo = { workspace = true }
+manifold-rust = { workspace = true }
+xatlas-rs-v2 = { workspace = true }
+bytemuck = "1"
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "mesh_ops"
+harness = false

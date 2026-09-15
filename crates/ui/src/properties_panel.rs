@@ -2,11 +2,12 @@
 //! Contém a barra vertical de abas canônicas (Tool, Render, Output, Object, Modifiers, Data, Material)
 //! e formulários sanfonados com fidelidade estética ao Blender.svg.
 
-use egui::{vec2, Color32, Context, ScrollArea, Ui};
+use egui::{Color32, ScrollArea, Ui, vec2};
 use petunia_core::{
     AppState, DeleteSelectionCmd, DuplicateSelectionCmd, ModuleRegistry, Workspace,
 };
 use petunia_module_model::ToolRegistry;
+use petunia_project::{AlphaMode, Material, ShaderProfile};
 use uuid::Uuid;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
@@ -16,7 +17,6 @@ use crate::widgets::{self, PetuniaPropertyTabButton};
 
 /// Renderiza o painel de propriedades completo com abas e seções sanfonadas.
 pub fn draw(
-    ctx: &Context,
     ui: &mut Ui,
     state: &mut AppState,
     tools: &ToolRegistry,
@@ -47,17 +47,13 @@ pub fn draw(
             }
 
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
+                let ctx = ui.ctx().clone();
                 match state.workspace {
-                    Workspace::Model => draw_active_tab_content(ctx, ui, state, tools, fields),
+                    Workspace::Model => draw_active_tab_content(ui, state, tools, fields),
                     Workspace::Paint => {
                         let mut canvas_tex: Option<egui::TextureHandle> =
                             ctx.data_mut(|d| d.get_temp(egui::Id::new("paint.canvas_tex")));
-                        crate::modules_ui::paint_ui::draw_paint_panel(
-                            ctx,
-                            ui,
-                            state,
-                            &mut canvas_tex,
-                        );
+                        crate::modules_ui::paint_ui::draw_paint_panel(ui, state, &mut canvas_tex);
                         if let Some(tex) = canvas_tex {
                             ctx.data_mut(|d| d.insert_temp(egui::Id::new("paint.canvas_tex"), tex));
                         }
@@ -66,15 +62,7 @@ pub fn draw(
                         crate::modules_ui::uv_ui::draw_uv_panel(ui, state);
                     }
                     Workspace::Animate => {
-                        egui::CollapsingHeader::new("Animation Properties")
-                            .default_open(true)
-                            .show(ui, |ui| {
-                                ui.label(format!("Current Frame: {}", state.ui.timeline_frame));
-                                ui.label(format!(
-                                    "Range: {}..={}",
-                                    state.ui.timeline_start, state.ui.timeline_end
-                                ));
-                            });
+                        crate::modules_ui::animation_ui::draw_animation_panel(ui, state);
                     }
                 }
 
@@ -82,6 +70,9 @@ pub fn draw(
                     egui::CollapsingHeader::new(state.t("ui.help"))
                         .default_open(false)
                         .show(ui, |ui| {
+                            #[cfg(feature = "help-markdown")]
+                            crate::help_markdown::render_help(ui, &state.t("help.body"));
+                            #[cfg(not(feature = "help-markdown"))]
                             ui.label(state.t("help.body"));
                         });
                 }
@@ -181,15 +172,9 @@ fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
         });
 }
 
-fn draw_active_tab_content(
-    ctx: &Context,
-    ui: &mut Ui,
-    state: &mut AppState,
-    tools: &ToolRegistry,
-    fields: bool,
-) {
+fn draw_active_tab_content(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry, fields: bool) {
     match state.ui.properties_tab.as_str() {
-        "tool" => draw_tab_tool(ctx, ui, state, tools, fields),
+        "tool" => draw_tab_tool(ui, state, tools, fields),
         "modifiers" => draw_tab_modifiers(ui, state),
         "data" => draw_tab_data(ui, state),
         "material" => draw_tab_material(ui, state),
@@ -197,13 +182,7 @@ fn draw_active_tab_content(
     }
 }
 
-fn draw_tab_tool(
-    _ctx: &Context,
-    ui: &mut Ui,
-    state: &mut AppState,
-    _tools: &ToolRegistry,
-    fields: bool,
-) {
+fn draw_tab_tool(ui: &mut Ui, state: &mut AppState, _tools: &ToolRegistry, fields: bool) {
     let active_id = state.active_tool.clone();
     egui::CollapsingHeader::new(format!("Active Tool: {active_id}"))
         .default_open(true)
@@ -933,29 +912,253 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
         return;
     }
 
-    let idx = state.project.active.min(state.project.assets.len() - 1);
-    egui::CollapsingHeader::new("Material & Cores")
+    let active_idx = state.project.active.min(state.project.assets.len() - 1);
+    let active_mat_id = state.project.assets[active_idx].material_id;
+
+    egui::CollapsingHeader::new("Material PBR (P3D-050)")
         .default_open(true)
         .show(ui, |ui| {
-            let mut c = state.project.assets[idx].base_color;
+            // 1. Slot de Material e Seletor
             ui.horizontal(|ui| {
-                ui.label("Cor Base:");
-                if ui.color_edit_button_rgb(&mut c).changed() {
-                    state.checkpoint("base color");
-                    if let Some(o) = state.project.assets.get_mut(idx) {
-                        o.base_color = c;
-                        for v in &mut o.mesh.verts {
-                            if !v.selected {
-                                v.color = c;
+                ui.label("Material:");
+                let current_name = state
+                    .project
+                    .project
+                    .materials
+                    .iter()
+                    .find(|m| Some(m.id) == active_mat_id)
+                    .map(|m| m.name.clone())
+                    .unwrap_or_else(|| "Nenhum".to_string());
+
+                egui::ComboBox::from_id_salt("material_picker_dropdown")
+                    .selected_text(current_name)
+                    .show_ui(ui, |ui| {
+                        let mats: Vec<(Uuid, String)> = state
+                            .project
+                            .project
+                            .materials
+                            .iter()
+                            .map(|m| (m.id, m.name.clone()))
+                            .collect();
+                        for (mid, mname) in mats {
+                            let is_sel = active_mat_id == Some(mid);
+                            if ui.selectable_label(is_sel, mname).clicked() {
+                                state.checkpoint("change asset material");
+                                if let Some(a) = state.project.assets.get_mut(active_idx) {
+                                    a.material_id = Some(mid);
+                                }
+                                state.mark_dirty();
                             }
                         }
+                    });
+
+                if ui
+                    .button("+ Novo")
+                    .on_hover_text("Criar novo material no projeto")
+                    .clicked()
+                {
+                    state.checkpoint("create new material");
+                    let count = state.project.project.materials.len() + 1;
+                    let new_mat = Material::new(format!("Material {count}"));
+                    let new_id = state.project.project.add_material(new_mat);
+                    if let Some(a) = state.project.assets.get_mut(active_idx) {
+                        a.material_id = Some(new_id);
                     }
-                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                }
+
+                if ui
+                    .button("⧉")
+                    .on_hover_text("Duplicar material ativo")
+                    .clicked()
+                    && let Some(cur_mat) = state.project.project.active_material().cloned()
+                {
+                    state.checkpoint("duplicate material");
+                    let dup = cur_mat.duplicate();
+                    let dup_id = state.project.project.add_material(dup);
+                    if let Some(a) = state.project.assets.get_mut(active_idx) {
+                        a.material_id = Some(dup_id);
+                    }
                     state.mark_dirty();
                 }
             });
 
-            ui.add_space(4.0);
+            ui.separator();
+
+            // 2. Edição de Propriedades do Material Ativo
+            let mat_id = match active_mat_id {
+                Some(id) => id,
+                None => {
+                    ui.label(egui::RichText::new("Nenhum material atribuído ao asset").italics());
+                    return;
+                }
+            };
+
+            let mut should_emit_change = false;
+
+            if let Some(mat) = state.project.project.get_material_mut(mat_id) {
+                // Nome
+                ui.horizontal(|ui| {
+                    ui.label("Nome:");
+                    ui.text_edit_singleline(&mut mat.name);
+                });
+
+                // Perfil de Shader (P3D-140)
+                ui.horizontal(|ui| {
+                    ui.label("Perfil:");
+                    egui::ComboBox::from_id_salt("material_profile_combo")
+                        .selected_text(mat.profile.label())
+                        .show_ui(ui, |ui| {
+                            for prof in ShaderProfile::ALL {
+                                if ui
+                                    .selectable_value(&mut mat.profile, prof, prof.label())
+                                    .clicked()
+                                {
+                                    should_emit_change = true;
+                                }
+                            }
+                        });
+                });
+
+                // Cor Base (P3D-051)
+                ui.horizontal(|ui| {
+                    ui.label("Cor Base:");
+                    let mut rgb = [mat.base_color[0], mat.base_color[1], mat.base_color[2]];
+                    if ui.color_edit_button_rgb(&mut rgb).changed() {
+                        mat.base_color[0] = rgb[0];
+                        mat.base_color[1] = rgb[1];
+                        mat.base_color[2] = rgb[2];
+                        should_emit_change = true;
+                    }
+                });
+
+                // Rugosidade / Roughness & Glossiness (P3D-053)
+                ui.horizontal(|ui| {
+                    ui.label("Rugosidade:");
+                    if ui
+                        .add(egui::Slider::new(&mut mat.roughness, 0.0..=1.0))
+                        .changed()
+                    {
+                        should_emit_change = true;
+                    }
+                    ui.label(format!("(Brilho: {:.0}%)", mat.glossiness() * 100.0));
+                });
+
+                // Metacidade
+                ui.horizontal(|ui| {
+                    ui.label("Metálico:");
+                    if ui
+                        .add(egui::Slider::new(&mut mat.metallic, 0.0..=1.0))
+                        .changed()
+                    {
+                        should_emit_change = true;
+                    }
+                });
+
+                // Normal Scale (P3D-052)
+                ui.horizontal(|ui| {
+                    ui.label("Escala Normal:");
+                    if ui
+                        .add(egui::Slider::new(&mut mat.normal_scale, 0.0..=5.0))
+                        .changed()
+                    {
+                        should_emit_change = true;
+                    }
+                });
+
+                // Emissão
+                if mat.profile == ShaderProfile::Emissive || mat.profile == ShaderProfile::Pbr {
+                    ui.horizontal(|ui| {
+                        ui.label("Emissão:");
+                        if ui.color_edit_button_rgb(&mut mat.emission_color).changed() {
+                            should_emit_change = true;
+                        }
+                        if ui
+                            .add(egui::Slider::new(&mut mat.emission_strength, 0.0..=10.0))
+                            .changed()
+                        {
+                            should_emit_change = true;
+                        }
+                    });
+                }
+
+                // Modo Alfa
+                ui.horizontal(|ui| {
+                    ui.label("Modo Alfa:");
+                    let mode_lbl = match mat.alpha_mode {
+                        AlphaMode::Opaque => "Opaco",
+                        AlphaMode::Mask => "Máscara (Cutoff)",
+                        AlphaMode::Blend => "Translucidez (Blend)",
+                    };
+                    egui::ComboBox::from_id_salt("material_alpha_mode_combo")
+                        .selected_text(mode_lbl)
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut mat.alpha_mode, AlphaMode::Opaque, "Opaco");
+                            ui.selectable_value(
+                                &mut mat.alpha_mode,
+                                AlphaMode::Mask,
+                                "Máscara (Cutoff)",
+                            );
+                            ui.selectable_value(
+                                &mut mat.alpha_mode,
+                                AlphaMode::Blend,
+                                "Translucidez (Blend)",
+                            );
+                        });
+                });
+                if mat.alpha_mode == AlphaMode::Mask {
+                    ui.horizontal(|ui| {
+                        ui.label("Corte Alfa:");
+                        ui.add(egui::Slider::new(&mut mat.alpha_cutoff, 0.0..=1.0));
+                    });
+                }
+
+                // Texturas anexadas
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label("Textura Albedo:");
+                    if let Some(cv) = &mat.albedo_texture {
+                        ui.label(format!("{}x{} px", cv.w, cv.h));
+                        if ui.small_button("Limpar").clicked() {
+                            mat.albedo_texture = None;
+                            should_emit_change = true;
+                        }
+                    } else {
+                        ui.label("Nenhuma");
+                        if ui.small_button("+ Criar").clicked() {
+                            let c = mat.base_color;
+                            mat.albedo_texture = Some(petunia_project::Canvas::new(
+                                256,
+                                256,
+                                [
+                                    (c[0] * 255.0) as u8,
+                                    (c[1] * 255.0) as u8,
+                                    (c[2] * 255.0) as u8,
+                                    255,
+                                ],
+                            ));
+                            should_emit_change = true;
+                        }
+                    }
+                });
+            }
+
+            if should_emit_change {
+                if let Some(mat) = state.project.project.get_material(mat_id).cloned()
+                    && let Some(o) = state.project.assets.get_mut(active_idx)
+                {
+                    o.base_color = [mat.base_color[0], mat.base_color[1], mat.base_color[2]];
+                    if let Some(tex) = mat.albedo_texture {
+                        o.texture = Some(tex);
+                    }
+                }
+                state.render.canvas_dirty = true;
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+
+            // 3. Paleta do Projeto
+            ui.add_space(6.0);
             ui.label(
                 egui::RichText::new("Paleta do Projeto:")
                     .size(11.0)
@@ -981,18 +1184,17 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                         egui::StrokeKind::Outside,
                     );
                     if resp
-                        .on_hover_text(format!("Aplicar cor {pal_idx}"))
+                        .on_hover_text(format!("Aplicar cor {pal_idx} ao material"))
                         .clicked()
                     {
                         state.checkpoint("apply palette color");
-                        if let Some(o) = state.project.assets.get_mut(idx) {
-                            o.base_color = *pal_col;
-                            for v in &mut o.mesh.verts {
-                                if !v.selected {
-                                    v.color = *pal_col;
-                                }
-                            }
+                        if let Some(mat) = state.project.project.get_material_mut(mat_id) {
+                            mat.base_color = [pal_col[0], pal_col[1], pal_col[2], 1.0];
                         }
+                        if let Some(o) = state.project.assets.get_mut(active_idx) {
+                            o.base_color = *pal_col;
+                        }
+                        state.render.canvas_dirty = true;
                         state.emit_mesh_changed();
                         state.mark_dirty();
                     }
@@ -1007,21 +1209,23 @@ mod tests {
 
     #[test]
     fn test_properties_panel_renders_without_panic() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         let tools = ToolRegistry::default();
         let mut registry = ModuleRegistry::new();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                draw(ctx, ui, &mut state, &tools, &mut registry);
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_properties_panel_renders_annotation_inspector() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         let tools = ToolRegistry::default();
         let mut registry = ModuleRegistry::new();
@@ -1040,11 +1244,13 @@ mod tests {
         state.selected_annotation = Some(ann_id);
         state.ui.properties_tab = "object".to_string();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                draw(ctx, ui, &mut state, &tools, &mut registry);
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         assert_eq!(state.project.annotations.len(), 1);
         assert_eq!(state.project.annotations[0].translation, [1.0, 2.0, 3.0]);
@@ -1052,7 +1258,7 @@ mod tests {
 
     #[test]
     fn test_properties_panel_renders_measurement_inspector() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         let tools = ToolRegistry::default();
         let mut registry = ModuleRegistry::new();
@@ -1064,11 +1270,13 @@ mod tests {
         state.selected_measurement = Some(meas_id);
         state.ui.properties_tab = "object".to_string();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                draw(ctx, ui, &mut state, &tools, &mut registry);
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         assert_eq!(state.project.measurements.len(), 1);
         assert_eq!(state.project.measurements[0].distance, 5.0);

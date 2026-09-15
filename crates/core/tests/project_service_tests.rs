@@ -4,9 +4,10 @@
 //! de arquivos sem qualquer envolvimento ou dependência de UI/diálogos.
 #![allow(clippy::field_reassign_with_default)]
 
-use petunia_core::project_service::{sanitize_filename, ProjectService, ProjectServiceError};
+use petunia_core::project_service::{ProjectService, ProjectServiceError, sanitize_filename};
 use petunia_core::state::AppState;
 use petunia_mesh::Mesh;
+use petunia_project::{ExportOptions, FileFormat, ImportOptions};
 
 #[test]
 fn test_new_project_resets_state() {
@@ -385,4 +386,58 @@ fn test_reference_slot_lifecycle_and_frame_all() {
     // 6. Limpa todas as referências
     ProjectService::clear_references(&mut state);
     assert_eq!(state.project.refs.len(), 0);
+}
+
+#[test]
+fn test_project_service_pipeline_export_and_import() {
+    let mut state = AppState::default();
+    state.project.add("CustomPlane", Mesh::plane(2.0));
+    let temp_dir =
+        std::env::temp_dir().join(format!("petunia_pipeline_svc_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&temp_dir).unwrap();
+
+    // 1. Export asset individual via pipeline
+    let obj_path = temp_dir.join("single_plane.obj");
+    let options = ExportOptions::default();
+    let rep = ProjectService::export_asset_pipeline(&state, 1, &obj_path, &options)
+        .expect("export single asset via pipeline");
+    assert_eq!(rep.asset_name, "CustomPlane");
+    assert!(obj_path.exists());
+
+    // 2. Export múltiplos assets via pipeline
+    let multi_dir = temp_dir.join("multi");
+    let multi_rep = ProjectService::export_multiple_pipeline(
+        &state,
+        &[0, 1],
+        &multi_dir,
+        FileFormat::Glb,
+        &options,
+    )
+    .expect("export multiple via pipeline");
+    assert_eq!(multi_rep.succeeded.len(), 2);
+    assert!(multi_dir.join("Cube.glb").exists());
+    assert!(multi_dir.join("CustomPlane.glb").exists());
+
+    // 3. Batch export de todo o projeto
+    let batch_dir = temp_dir.join("batch");
+    let batch_rep =
+        ProjectService::batch_export_pipeline(&state, &batch_dir, FileFormat::Obj, &options)
+            .expect("batch export via pipeline");
+    assert_eq!(batch_rep.succeeded.len(), 2);
+    assert!(batch_dir.join("Cube.obj").exists());
+    assert!(batch_dir.join("CustomPlane.obj").exists());
+
+    // 4. Import via pipeline em um novo AppState
+    let mut import_state = AppState::default();
+    let initial_count = import_state.project.assets.len();
+    let imported = ProjectService::import_file_pipeline(
+        &mut import_state,
+        &obj_path,
+        &ImportOptions::default(),
+    )
+    .expect("import file via pipeline");
+    assert_eq!(imported.len(), 1);
+    assert_eq!(import_state.project.assets.len(), initial_count + 1);
+
+    let _ = std::fs::remove_dir_all(&temp_dir);
 }

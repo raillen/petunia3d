@@ -134,16 +134,15 @@ pub fn draw(
             ) {
                 pointer.numeric.pop();
             }
-            if let egui::Event::Text(text) = event {
-                if !i.modifiers.command
-                    && !i.modifiers.ctrl
-                    && text
-                        .chars()
-                        .all(|c| c.is_ascii_digit() || matches!(c, '.' | ',' | '-' | '+'))
-                    && pointer.numeric.len() + text.len() <= 64
-                {
-                    pointer.numeric.push_str(&text.replace(',', "."));
-                }
+            if let egui::Event::Text(text) = event
+                && !i.modifiers.command
+                && !i.modifiers.ctrl
+                && text
+                    .chars()
+                    .all(|c| c.is_ascii_digit() || matches!(c, '.' | ',' | '-' | '+'))
+                && pointer.numeric.len() + text.len() <= 64
+            {
+                pointer.numeric.push_str(&text.replace(',', "."));
             }
         }
     });
@@ -211,10 +210,18 @@ pub fn draw(
     if let Some(number) = numeric {
         value = number;
     }
-    let snap = ctx.input(|i| i.modifiers.ctrl);
+    let snap = ctx.input(|i| i.modifiers.ctrl) || state.snap_enabled;
+    let grid_step = state.snap_settings.grid_spacing.max(0.001);
     let translation = if snap && numeric.is_none() {
-        value = snap_value(value, if kind == ModalKind::Rotate { 15.0 } else { 0.1 });
-        (translation / 0.1).round() * 0.1
+        value = snap_value(
+            value,
+            if kind == ModalKind::Rotate {
+                15.0
+            } else {
+                grid_step
+            },
+        );
+        (translation / grid_step).round() * grid_step
     } else {
         translation
     };
@@ -256,22 +263,21 @@ pub fn draw(
     draw_axis_guide_lines(painter, state, rect, pivot, constraint);
 
     let tool_feedback = state.current_tool_feedback();
-    if let Some(ref fb) = tool_feedback {
-        if let Some((origin, current)) = fb.guide_line {
-            if let (Some(p0), Some(p1)) = (
-                screen_point(&state.camera, rect, origin),
-                screen_point(&state.camera, rect, current),
-            ) {
-                let col = if fb.is_snapped {
-                    crate::tokens::ACCENT_AMBER
-                } else {
-                    Color32::from_rgba_premultiplied(100, 200, 255, 180)
-                };
-                painter.line_segment([p0, p1], egui::Stroke::new(1.5_f32, col));
-                if fb.is_snapped {
-                    painter.circle_filled(p1, 4.0, crate::tokens::ACCENT_AMBER);
-                }
-            }
+    if let Some(ref fb) = tool_feedback
+        && let Some((origin, current)) = fb.guide_line
+        && let (Some(p0), Some(p1)) = (
+            screen_point(&state.camera, rect, origin),
+            screen_point(&state.camera, rect, current),
+        )
+    {
+        let col = if fb.is_snapped {
+            crate::tokens::ACCENT_AMBER
+        } else {
+            Color32::from_rgba_premultiplied(100, 200, 255, 180)
+        };
+        painter.line_segment([p0, p1], egui::Stroke::new(1.5_f32, col));
+        if fb.is_snapped {
+            painter.circle_filled(p1, 4.0, crate::tokens::ACCENT_AMBER);
         }
     }
 
@@ -558,8 +564,8 @@ mod tests {
         let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
         let pivot = Vec3::new(0.0, 0.0, 0.0);
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let painter = ui.painter();
                 // Test all axis and plane constraints without panic
                 for constraint in [
@@ -574,7 +580,9 @@ mod tests {
                     draw_axis_guide_lines(painter, &state, rect, pivot, constraint);
                 }
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -583,8 +591,8 @@ mod tests {
         let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
         let pos = Pos2::new(200.0, 200.0);
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let painter = ui.painter();
                 for kind in [
                     ModalKind::Move,
@@ -647,7 +655,9 @@ mod tests {
                     }
                 }
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]

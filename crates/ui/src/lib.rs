@@ -17,10 +17,20 @@ pub mod camera_controls;
 pub mod command_palette;
 pub mod contextual_shelf;
 mod cutting;
+#[cfg(feature = "devtools")]
+pub mod devtools;
 pub mod file_dialog_service;
+pub mod flex_layout;
 pub mod gizmo;
+#[cfg(feature = "help-markdown")]
+pub mod help_markdown;
+pub mod icon_provider;
 pub mod icon_registry;
 pub mod icons;
+pub mod image_kit;
+pub mod inbox_bridge;
+#[cfg(feature = "keymap-capture")]
+pub mod key_capture;
 pub mod main_header;
 pub mod measurement;
 #[cfg(test)]
@@ -29,6 +39,8 @@ mod modal_viewport;
 pub mod modules_ui;
 pub mod nav_gizmo;
 pub mod outliner;
+#[cfg(feature = "palette-autocomplete")]
+pub mod palette_complete;
 pub mod properties_panel;
 pub mod recovery_dialog;
 pub mod reference_manager;
@@ -40,11 +52,12 @@ pub mod tokens;
 mod tool_fields;
 pub mod toolbar;
 pub mod transform_gizmo_integration;
+pub mod twill_bridge;
 pub mod viewport_bar;
 mod viewport_interaction;
 pub mod widgets;
 
-pub use recovery_dialog::{draw as draw_recovery_dialog, RecoveryAction};
+pub use recovery_dialog::{RecoveryAction, draw as draw_recovery_dialog};
 pub use tokens::apply_theme_to_egui;
 
 pub fn rect_to_logical(r: egui::Rect) -> petunia_core::viewport::LogicalRect {
@@ -91,37 +104,63 @@ impl UiAction {
 }
 
 pub fn draw(
-    ctx: &egui::Context,
+    ui: &mut egui::Ui,
     state: &mut AppState,
     tools: &ToolRegistry,
     registry: &mut ModuleRegistry,
     action: &mut UiAction,
 ) {
-    main_header::draw(ctx, state, action);
-    status_bar::draw(ctx, state, tools);
-    asset_browser::draw(ctx, state);
-    toolbar::draw(ctx, state, tools);
-    right_panel(ctx, state, tools, registry);
-    viewport_bar_panel(ctx, state);
-    viewport(ctx, state);
-    asset_library_drawer::draw(ctx, state);
-    settings_modal::draw(ctx, state);
-    command_palette::draw(ctx, state);
-    reference_manager::draw(ctx, state);
+    let theme_id_key = egui::Id::new("petunia_applied_theme_id");
+    let needs_theme_update = ui.ctx().data(|d| {
+        d.get_temp::<String>(theme_id_key)
+            .map(|id| id != state.ui.active_theme_id)
+            .unwrap_or(true)
+    });
+    if needs_theme_update {
+        let theme_reg = petunia_config::ThemeRegistry::global();
+        if let Some(t) = theme_reg.get_theme(&state.ui.active_theme_id) {
+            tokens::apply_theme_to_egui(t, ui.ctx());
+            ui.ctx().data_mut(|d| {
+                d.insert_temp(theme_id_key, state.ui.active_theme_id.clone());
+            });
+        }
+    }
+
+    icon_registry::IconRegistry::ensure_fonts(ui.ctx());
+    ui.ctx().data_mut(|d| {
+        d.insert_temp(
+            egui::Id::new("petunia_active_icon_pack"),
+            state.ui.active_icon_pack_id.clone(),
+        );
+    });
+
+    main_header::draw(ui, state, action);
+    status_bar::draw(ui, state, tools);
+    asset_browser::draw(ui, state);
+    toolbar::draw(ui, state, tools);
+    right_panel(ui, state, tools, registry);
+    viewport_bar_panel(ui, state);
+    viewport(ui, state);
+    let ctx = ui.ctx().clone();
+    asset_library_drawer::draw(&ctx, state);
+    settings_modal::draw(&ctx, state);
+    command_palette::draw(&ctx, state);
+    reference_manager::draw(&ctx, state);
+    file_dialog_service::draw(&ctx, state);
 }
 
-fn viewport_bar_panel(ctx: &egui::Context, state: &mut AppState) {
-    egui::TopBottomPanel::top("viewport_context_bar")
-        .default_height(tokens::VIEWPORT_BAR_HEIGHT)
-        .height_range(tokens::VIEWPORT_BAR_HEIGHT..=tokens::VIEWPORT_BAR_MAX_HEIGHT)
+fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
+    egui::Panel::top("viewport_context_bar")
+        .default_size(tokens::VIEWPORT_BAR_HEIGHT)
+        .size_range(tokens::VIEWPORT_BAR_HEIGHT..=tokens::VIEWPORT_BAR_MAX_HEIGHT)
         .resizable(true)
         .frame(
             egui::Frame::new()
-                .fill(tokens::BG_PANEL_HEADER)
-                .stroke(tokens::stroke_border())
+                .fill(tokens::bg_panel_header(state))
+                .stroke(tokens::stroke_border_dyn(state))
                 .inner_margin(egui::Margin::symmetric(6, 2)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 viewport_bar::draw(ui, state);
             });
@@ -129,27 +168,27 @@ fn viewport_bar_panel(ctx: &egui::Context, state: &mut AppState) {
 }
 
 pub fn right_panel(
-    ctx: &egui::Context,
+    ui: &mut egui::Ui,
     state: &mut AppState,
     tools: &ToolRegistry,
     registry: &mut ModuleRegistry,
 ) {
     let was_detached = state.ui.inspector_detached;
-    let max_width = (ctx.screen_rect().width() * 0.45).clamp(240.0, 420.0);
-    egui::SidePanel::right("props")
-        .default_width(tokens::PROPERTIES_DEFAULT_WIDTH)
-        .width_range(220.0..=max_width)
+    let max_width = (ui.ctx().viewport_rect().width() * 0.45).clamp(240.0, 420.0);
+    egui::Panel::right("props")
+        .default_size(tokens::PROPERTIES_DEFAULT_WIDTH)
+        .size_range(220.0..=max_width)
         .frame(
             egui::Frame::new()
-                .fill(tokens::BG_PANEL)
-                .stroke(tokens::stroke_border())
+                .fill(tokens::bg_panel(state))
+                .stroke(tokens::stroke_border_dyn(state))
                 .inner_margin(egui::Margin::symmetric(6, 4)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             outliner::draw(ui, state);
             if !was_detached {
                 ui.separator();
-                properties_panel::draw(ctx, ui, state, tools, registry);
+                properties_panel::draw(ui, state, tools, registry);
             } else {
                 ui.separator();
                 ui.horizontal(|ui| {
@@ -174,7 +213,8 @@ pub fn right_panel(
 
     if was_detached && state.ui.inspector_detached {
         let mut is_open = true;
-        let screen_rect = ctx.screen_rect();
+        let ctx = ui.ctx().clone();
+        let screen_rect = ctx.viewport_rect();
         let max_w = (screen_rect.width() - 32.0).max(280.0);
         let max_h = (screen_rect.height() - 32.0).max(250.0);
         egui::Window::new("Properties Inspector")
@@ -185,13 +225,13 @@ pub fn right_panel(
             .max_size(egui::vec2(max_w, max_h))
             .frame(
                 egui::Frame::new()
-                    .fill(tokens::BG_PANEL)
-                    .stroke(tokens::stroke_border())
+                    .fill(tokens::bg_panel(state))
+                    .stroke(tokens::stroke_border_dyn(state))
                     .inner_margin(egui::Margin::symmetric(6, 4)),
             )
-            .show(ctx, |ui| {
+            .show(&ctx, |ui| {
                 ui.push_id("detached_inspector", |ui| {
-                    properties_panel::draw(ctx, ui, state, tools, registry);
+                    properties_panel::draw(ui, state, tools, registry);
                 });
             });
         if !is_open {
@@ -205,38 +245,23 @@ pub fn new_project(state: &mut AppState) {
     ProjectService::new_project(state);
 }
 
-pub fn open_project_dialog(state: &mut AppState) {
-    if let Some(path) = file_dialog_service::pick_project_file() {
-        if let Err(e) = ProjectService::load_project(state, &path) {
-            state.set_status(format!("open err: {e}"));
-        }
-    }
+pub fn open_project_dialog(_state: &mut AppState) {
+    file_dialog_service::open_project_in_canvas();
 }
 
 pub fn save_project_dialog(state: &mut AppState, save_as: bool) {
-    let path = if !save_as {
-        state
-            .project
-            .project_path
-            .clone()
-            .map(std::path::PathBuf::from)
-    } else {
-        None
-    };
-    let path = path.or_else(|| file_dialog_service::pick_save_project_file("project.petunia"));
-    if let Some(path) = path {
-        if let Err(e) = ProjectService::save_project(state, &path) {
+    if !save_as && let Some(ref path) = state.project.project_path {
+        let p = std::path::PathBuf::from(path);
+        if let Err(e) = ProjectService::save_project(state, &p) {
             state.set_status(format!("save err: {e}"));
         }
+    } else {
+        file_dialog_service::save_project_as_in_canvas();
     }
 }
 
-pub fn import_obj_dialog(state: &mut AppState) {
-    if let Some(path) = file_dialog_service::pick_obj_file() {
-        if let Err(e) = ProjectService::import_obj(state, &path) {
-            state.set_status(format!("import err: {e}"));
-        }
-    }
+pub fn import_obj_dialog(_state: &mut AppState) {
+    file_dialog_service::import_obj_in_canvas();
 }
 
 pub fn frame_selection(state: &mut AppState) {
@@ -288,19 +313,19 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
     egui::CollapsingHeader::new(l_refs)
         .default_open(false)
         .show(ui, |ui| {
-            if ui.button(l_load).clicked() {
-                if let Some(path) = file_dialog_service::pick_image_file() {
-                    match load_image_rgba(&path) {
-                        Ok((w, h, rgba)) => {
-                            let name = path
-                                .file_name()
-                                .and_then(|s| s.to_str())
-                                .unwrap_or("ref")
-                                .to_string();
-                            ProjectService::add_reference_image(state, name, w, h, rgba);
-                        }
-                        Err(e) => state.set_status(format!("ref err: {e}")),
+            if ui.button(l_load).clicked()
+                && let Some(path) = file_dialog_service::pick_image_file()
+            {
+                match load_image_rgba(&path) {
+                    Ok((w, h, rgba)) => {
+                        let name = path
+                            .file_name()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("ref")
+                            .to_string();
+                        ProjectService::add_reference_image(state, name, w, h, rgba);
                     }
+                    Err(e) => state.set_status(format!("ref err: {e}")),
                 }
             }
             let mut rm: Option<usize> = None;
@@ -497,13 +522,15 @@ fn export_dialog(state: &mut AppState, sel: &[usize]) {
 
 // ------------------------------------------------------------- viewport
 
-fn viewport(ctx: &egui::Context, state: &mut AppState) {
+fn viewport(ui: &mut egui::Ui, state: &mut AppState) {
+    puffin::profile_function!();
     // FUNDO TRANSPARENTE: o 3D é desenhado por baixo (wgpu/GL) e o egui
     // compõe por cima. Um fill opaco aqui ESCONDE a cena inteira.
     egui::CentralPanel::default()
         .frame(egui::Frame::new().fill(egui::Color32::TRANSPARENT))
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             let rect = ui.available_rect_before_wrap();
+            let ctx = ui.ctx().clone();
             state.ui.viewport_rect = Some(rect_to_logical(rect));
             state.ui.viewport_pixels_per_point = ctx.pixels_per_point();
             state.camera.aspect = rect.width() / rect.height().max(1.0);
@@ -529,7 +556,7 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
                 );
             }
             let resp = ui.allocate_rect(rect, egui::Sense::click_and_drag());
-            if viewport_interaction::draw(ctx, state, rect, &p, &resp) {
+            if viewport_interaction::draw(&ctx, state, rect, &p, &resp) {
                 return;
             }
 
@@ -548,54 +575,53 @@ fn viewport(ctx: &egui::Context, state: &mut AppState) {
                 state.ui.box_select_start = None;
                 return;
             }
-            if resp.drag_started_by(egui::PointerButton::Primary) {
-                if let Some(pos) = resp.interact_pointer_pos() {
-                    state.ui.box_select_start = Some([pos.x, pos.y]);
-                }
+            if resp.drag_started_by(egui::PointerButton::Primary)
+                && let Some(pos) = resp.interact_pointer_pos()
+            {
+                state.ui.box_select_start = Some([pos.x, pos.y]);
             }
-            if resp.dragged_by(egui::PointerButton::Primary) {
-                if let (Some(start), Some(curr)) =
+            if resp.dragged_by(egui::PointerButton::Primary)
+                && let (Some(start), Some(curr)) =
                     (state.ui.box_select_start, resp.interact_pointer_pos())
-                {
-                    let r = egui::Rect::from_two_pos(egui::pos2(start[0], start[1]), curr);
-                    p.rect_filled(
-                        r,
-                        0.0,
-                        egui::Color32::from_rgba_unmultiplied(255, 160, 40, 40),
-                    );
-                    p.rect_stroke(
-                        r,
-                        0.0,
-                        egui::Stroke::new(1.0f32, egui::Color32::from_rgb(255, 160, 40)),
-                        egui::StrokeKind::Outside,
-                    );
-                    state.mark_dirty();
-                }
+            {
+                let r = egui::Rect::from_two_pos(egui::pos2(start[0], start[1]), curr);
+                p.rect_filled(
+                    r,
+                    0.0,
+                    egui::Color32::from_rgba_unmultiplied(255, 160, 40, 40),
+                );
+                p.rect_stroke(
+                    r,
+                    0.0,
+                    egui::Stroke::new(1.0f32, egui::Color32::from_rgb(255, 160, 40)),
+                    egui::StrokeKind::Outside,
+                );
+                state.mark_dirty();
             }
-            if resp.drag_stopped_by(egui::PointerButton::Primary) {
-                if let (Some(start), Some(curr)) = (
+            if resp.drag_stopped_by(egui::PointerButton::Primary)
+                && let (Some(start), Some(curr)) = (
                     state.ui.box_select_start.take(),
                     resp.interact_pointer_pos(),
-                ) {
-                    let dx = (curr.x - start[0]).abs();
-                    let dy = (curr.y - start[1]).abs();
-                    if dx > 8.0 || dy > 8.0 {
-                        let to_ndc = |pos: egui::Pos2| -> [f32; 2] {
-                            let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
-                            let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
-                            [nx, ny]
-                        };
-                        let p0 = to_ndc(egui::pos2(start[0], start[1]));
-                        let p1 = to_ndc(curr);
-                        let shift = ui.input(|i| i.modifiers.shift);
-                        let vp = state.session.camera.view_proj().to_cols_array();
-                        let _ = state.dispatch(&petunia_core::BoxSelectCmd {
-                            p0,
-                            p1,
-                            view_proj: vp,
-                            add: shift,
-                        });
-                    }
+                )
+            {
+                let dx = (curr.x - start[0]).abs();
+                let dy = (curr.y - start[1]).abs();
+                if dx > 8.0 || dy > 8.0 {
+                    let to_ndc = |pos: egui::Pos2| -> [f32; 2] {
+                        let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
+                        let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
+                        [nx, ny]
+                    };
+                    let p0 = to_ndc(egui::pos2(start[0], start[1]));
+                    let p1 = to_ndc(curr);
+                    let shift = ui.input(|i| i.modifiers.shift);
+                    let vp = state.session.camera.view_proj().to_cols_array();
+                    let _ = state.dispatch(&petunia_core::BoxSelectCmd {
+                        p0,
+                        p1,
+                        view_proj: vp,
+                        add: shift,
+                    });
                 }
             }
             if resp.clicked() {
@@ -668,22 +694,9 @@ pub fn load_image_rgba(path: &std::path::Path) -> Result<(u32, u32, Vec<u8>), St
     Ok((rgba.width(), rgba.height(), rgba.into_raw()))
 }
 
-/// Diálogo para selecionar e adicionar uma imagem de referência à cena.
-pub fn pick_and_add_reference_image(state: &mut AppState) {
-    if let Some(path) = file_dialog_service::pick_image_file() {
-        match load_image_rgba(&path) {
-            Ok((w, h, rgba)) => {
-                let name = path
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("ref")
-                    .to_string();
-                ProjectService::add_reference_image(state, name.clone(), w, h, rgba);
-                state.set_status(format!("Imagem de referência '{name}' adicionada"));
-            }
-            Err(e) => state.set_status(format!("Erro ao carregar imagem: {e}")),
-        }
-    }
+/// Diálogo para selecionar e adicionar uma imagem de referência à cena via in-canvas picker.
+pub fn pick_and_add_reference_image(_state: &mut AppState) {
+    file_dialog_service::open_reference_image_dialog(None);
 }
 
 #[cfg(test)]

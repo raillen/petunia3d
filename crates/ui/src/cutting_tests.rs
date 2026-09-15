@@ -2,7 +2,7 @@
 use egui::{Event, Key, Modifiers, PointerButton, Pos2, Rect};
 use glam::Vec3;
 use petunia_core::{AppState, EditMode, ViewPreset};
-use petunia_mesh::{loop_cut::LoopRing, Mesh};
+use petunia_mesh::{Mesh, loop_cut::LoopRing};
 
 fn rect() -> Rect {
     Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0))
@@ -25,20 +25,22 @@ fn key(key: Key) -> Event {
     }
 }
 fn frame(ctx: &egui::Context, state: &mut AppState, events: Vec<Event>) {
-    let _ = ctx.run(
+    ctx.run_ui(
         egui::RawInput {
             screen_rect: Some(rect()),
             events,
             ..Default::default()
         },
-        |ctx| {
+        |_ui| {
             let painter = ctx.layer_painter(egui::LayerId::new(
                 egui::Order::Middle,
                 egui::Id::new("cut.test.viewport"),
             ));
             crate::cutting::draw(ctx, state, rect(), &painter);
         },
-    );
+    )
+    .textures_delta
+    .clear();
 }
 fn state(tool: &str) -> AppState {
     let mut state = AppState::new("en");

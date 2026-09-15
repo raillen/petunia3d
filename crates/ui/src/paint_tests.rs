@@ -23,14 +23,14 @@ fn key(key: Key) -> Event {
     }
 }
 fn frame(ctx: &egui::Context, state: &mut AppState, events: Vec<Event>) {
-    let _ = ctx.run(
+    ctx.run_ui(
         egui::RawInput {
             screen_rect: Some(rect()),
             events,
             ..Default::default()
         },
-        |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let response = ui.interact(
                     rect(),
                     egui::Id::new("paint.test.viewport"),
@@ -39,7 +39,9 @@ fn frame(ctx: &egui::Context, state: &mut AppState, events: Vec<Event>) {
                 crate::viewport_interaction::draw(ctx, state, rect(), ui.painter(), &response);
             });
         },
-    );
+    )
+    .textures_delta
+    .clear();
 }
 fn state() -> AppState {
     let mut state = AppState::new("en");

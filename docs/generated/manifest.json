@@ -1,0 +1,28 @@
+{
+  "files": {
+    "COMMANDS.md": {
+      "size_bytes": 7008
+    },
+    "ICON_TOKENS.md": {
+      "size_bytes": 6813
+    },
+    "KEYBINDS.md": {
+      "size_bytes": 16975
+    },
+    "SUPPORTED_FORMATS.md": {
+      "size_bytes": 1663
+    },
+    "TEXT_TOKENS.md": {
+      "size_bytes": 13450
+    },
+    "THEME_TOKENS.md": {
+      "size_bytes": 3667
+    },
+    "index.md": {
+      "size_bytes": 1461
+    }
+  },
+  "generator": "petunia-xtask",
+  "schema_version": "1.0",
+  "specification": "P3D-119"
+}

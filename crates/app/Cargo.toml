@@ -1,8 +1,9 @@
 [package]
 name = "petunia_app"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 petunia_core = { workspace = true }
@@ -23,10 +24,16 @@ glam = { workspace = true }
 pollster = "0.4"
 anyhow = { workspace = true }
 log = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 petunia_module_paint = { workspace = true }
-wgpu = "25"
+wgpu = { workspace = true }
+eframe = { workspace = true }
 petunia_module_assets = { workspace = true }
 petunia_module_uv = { workspace = true }
 env_logger = "0.11"
 image = { version = "0.25", default-features = false, features = ["png"] }
+notify = { workspace = true }
+flume = { workspace = true }
+thiserror = { workspace = true }

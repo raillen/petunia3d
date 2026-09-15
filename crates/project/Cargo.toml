@@ -1,18 +1,26 @@
 [package]
 name = "petunia_project"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 petunia_mesh = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 uuid = { workspace = true }
 postcard = { version = "1", features = ["alloc"] }
 thiserror = { workspace = true }
 bytemuck = "1"
 glam = { workspace = true }
+tempfile = { workspace = true }
+tobj = { workspace = true }
+gltf-json = { workspace = true }
+zip = { workspace = true }
 
 [dev-dependencies]
 gltf = "1"
 serde_json = "1"
+assert_fs = { workspace = true }
+insta = { workspace = true }

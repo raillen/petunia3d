@@ -6,7 +6,7 @@
 //! 4. **Atalhos de Teclado (Keymap)**: Seletor dos 8 perfis canônicos, busca de comandos e detecção automática de conflitos.
 
 use egui::{
-    vec2, Align, Color32, CornerRadius, FontId, Layout, RichText, ScrollArea, Stroke, Ui, Window,
+    Align, Color32, CornerRadius, FontId, Layout, RichText, ScrollArea, Stroke, Ui, Window, vec2,
 };
 use petunia_config::{Keybinds, ThemeRegistry, ThemeToken};
 use petunia_core::AppState;
@@ -22,7 +22,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     }
 
     let mut open = state.ui.show_settings;
-    let screen_rect = ctx.screen_rect();
+    let screen_rect = ctx.viewport_rect();
     let default_width = (screen_rect.width() * 0.70).clamp(520.0, 840.0);
     let default_height = (screen_rect.height() * 0.70).clamp(420.0, 680.0);
     let max_width = (screen_rect.width() - 32.0).max(460.0);
@@ -36,7 +36,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         .resizable(true)
         .collapsible(false)
         .frame(
-            egui::Frame::window(&ctx.style())
+            egui::Frame::window(&ctx.style_of(ctx.theme()))
                 .fill(tokens::BG_PANEL)
                 .stroke(tokens::stroke_border())
                 .inner_margin(egui::Margin::same(12)),
@@ -332,12 +332,13 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                             ] {
                                 let (rect, resp) =
                                     ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::hover());
-                                IconRegistry::paint(
+                                IconRegistry::paint_pack(
                                     ui.ctx(),
                                     ui.painter(),
                                     &icon,
                                     rect,
                                     tokens::TEXT_PRIMARY,
+                                    &pack.id,
                                 );
                                 resp.on_hover_text(label);
                             }
@@ -542,6 +543,12 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                             .strong()
                             .color(tokens::TEXT_SECONDARY),
                     );
+                    #[cfg(feature = "keymap-capture")]
+                    ui.label(
+                        RichText::new("Capturar")
+                            .strong()
+                            .color(tokens::TEXT_SECONDARY),
+                    );
                     ui.end_row();
 
                     for (action, shortcut) in all_bindings {
@@ -583,6 +590,18 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                             );
                         });
 
+                        #[cfg(feature = "keymap-capture")]
+                        {
+                            let capture_id = egui::Id::new("keymap-capture").with(&action);
+                            let prompt = state.t("keymap.capture");
+                            if let Some(combo) =
+                                crate::key_capture::key_capture(ui, capture_id, &prompt)
+                                && !crate::key_capture::apply_captured(state, &action, combo)
+                            {
+                                state.set_status(state.t("keymap.unsupported_key"));
+                            }
+                        }
+
                         ui.end_row();
                     }
                 });
@@ -601,9 +620,11 @@ mod tests {
 
         for tab in ["appearance", "icons", "language", "keymap"] {
             state.ui.settings_tab = tab.into();
-            let _ = ctx.run(egui::RawInput::default(), |ctx| {
-                draw(ctx, &mut state);
-            });
+            ctx.run_ui(egui::RawInput::default(), |_ui| {
+                draw(&ctx, &mut state);
+            })
+            .textures_delta
+            .clear();
         }
     }
 }

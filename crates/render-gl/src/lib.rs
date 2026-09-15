@@ -6,6 +6,8 @@
 //! Uso: `GlWindow::create(...)` uma vez; `GlRenderer::new(gl)` uma vez;
 //! `draw(&mut state, w, h)` por frame.
 
+#![allow(unsafe_op_in_unsafe_fn)]
+
 pub mod bootstrap;
 
 pub use bootstrap::GlWindow;
@@ -18,7 +20,6 @@ use egui_glow::glow::{
 };
 
 use petunia_core::RefAxis;
-use petunia_project::Project;
 use petunia_render::Shading;
 
 const MESH_VS: &str = "#version 330 core
@@ -31,14 +32,15 @@ void main() { gl_Position = vp * vec4(aPos, 1.0); vN = aNrm; vC = aCol; }
 ";
 const MESH_FS_TMPL: &str = "#version 330 core
 in vec3 vN; in vec3 vC; out vec4 o;
+uniform float opacity;
 void main() {
     if (length(vN) < 0.1) {
-        o = vec4(vC, 1.0);
+        o = vec4(vC, opacity);
         return;
     }
     vec3 L = normalize(vec3(LIGHT_X, LIGHT_Y, LIGHT_Z));
     float d = max(dot(normalize(vN), L), 0.0);
-    o = vec4(vC * (LIGHT_AMB + LIGHT_DIF * d), 1.0);
+    o = vec4(vC * (LIGHT_AMB + LIGHT_DIF * d), opacity);
 }
 ";
 const LINE_VS: &str = "#version 330 core
@@ -77,15 +79,16 @@ void main() { gl_Position = vp * vec4(aPos, 1.0); vN = aNrm; vC = aCol; vUv = aU
 const TEX_FS_TMPL: &str = "#version 330 core
 in vec3 vN; in vec3 vC; in vec2 vUv; out vec4 o;
 uniform sampler2D tex;
+uniform float opacity;
 void main() {
     vec3 t = texture(tex, vUv).rgb;
     if (length(vN) < 0.1) {
-        o = vec4(t * vC, 1.0);
+        o = vec4(t * vC, opacity);
         return;
     }
     vec3 L = normalize(vec3(LIGHT_X, LIGHT_Y, LIGHT_Z));
     float d = max(dot(normalize(vN), L), 0.0);
-    o = vec4(t * vC * (LIGHT_AMB + LIGHT_DIF * d) * 2.0, 1.0);
+    o = vec4(t * vC * (LIGHT_AMB + LIGHT_DIF * d) * 2.0, opacity);
 }
 ";
 
@@ -124,6 +127,7 @@ pub struct GlRenderer {
     vao: NativeVertexArray,
     mesh_prog: NativeProgram,
     mesh_vp: Option<NativeUniformLocation>,
+    mesh_opacity: Option<NativeUniformLocation>,
     line_prog: NativeProgram,
     line_vp: Option<NativeUniformLocation>,
     ref_prog: NativeProgram,
@@ -133,7 +137,7 @@ pub struct GlRenderer {
     tex_prog: NativeProgram,
     tex_vp: Option<NativeUniformLocation>,
     tex_u: Option<NativeUniformLocation>,
-    grid: Vec<f32>,
+    tex_opacity: Option<NativeUniformLocation>,
     ref_tex: Vec<RefTex>,
     /// Texturas dos canvas dos assets (UUID -> slot).
     asset_tex: std::collections::HashMap<uuid::Uuid, RefTex>,
@@ -146,14 +150,18 @@ impl GlRenderer {
             let mut programs = Vec::new();
             let initialized = (|| {
                 let (mesh_prog, mesh_locs) =
-                    compile(&gl, MESH_VS, &fill_light(MESH_FS_TMPL), &["vp"])?;
+                    compile(&gl, MESH_VS, &fill_light(MESH_FS_TMPL), &["vp", "opacity"])?;
                 programs.push(mesh_prog);
                 let (line_prog, line_locs) = compile(&gl, LINE_VS, LINE_FS, &["vp"])?;
                 programs.push(line_prog);
                 let (ref_prog, ref_locs) = compile(&gl, REF_VS, REF_FS, &["vp", "tex", "opacity"])?;
                 programs.push(ref_prog);
-                let (tex_prog, tex_locs) =
-                    compile(&gl, TEX_VS, &fill_light(TEX_FS_TMPL), &["vp", "tex"])?;
+                let (tex_prog, tex_locs) = compile(
+                    &gl,
+                    TEX_VS,
+                    &fill_light(TEX_FS_TMPL),
+                    &["vp", "tex", "opacity"],
+                )?;
                 programs.push(tex_prog);
                 let vao = gl
                     .create_vertex_array()
@@ -164,6 +172,7 @@ impl GlRenderer {
                     vao,
                     mesh_prog,
                     mesh_vp: locs_first(&mesh_locs, 0),
+                    mesh_opacity: locs_first(&mesh_locs, 1),
                     line_prog,
                     line_vp: locs_first(&line_locs, 0),
                     ref_prog,
@@ -173,7 +182,7 @@ impl GlRenderer {
                     tex_prog,
                     tex_vp: locs_first(&tex_locs, 0),
                     tex_u: locs_first(&tex_locs, 1),
-                    grid: build_grid(),
+                    tex_opacity: locs_first(&tex_locs, 2),
                     ref_tex: Vec::new(),
                     asset_tex: std::collections::HashMap::new(),
                 })
@@ -210,7 +219,15 @@ impl GlRenderer {
                 viewport.width as i32,
                 viewport.height as i32,
             );
-            gl.clear_color(0.117, 0.117, 0.133, 1.0);
+            let bg = petunia_config::ThemeRegistry::global()
+                .get_theme(&state.ui.active_theme_id)
+                .map(|t| {
+                    t.colors
+                        .get_token_color(petunia_config::ThemeToken::BgCanvas)
+                        .to_rgba_f32()
+                })
+                .unwrap_or([0.117, 0.117, 0.133, 1.0]);
+            gl.clear_color(bg[0], bg[1], bg[2], 1.0);
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
             gl.scissor(
                 viewport.x as i32,
@@ -241,12 +258,12 @@ impl GlRenderer {
             }
 
             // --- malha sólida / wireframe ---
-            self.draw_mesh(&state.project, state.shading, state.textured, &vp);
+            self.draw_mesh(state, &vp);
 
             // --- arestas por cima ---
             gl.depth_mask(false);
             self.set_line_vp(&vp);
-            self.draw_edges(&state.project, state.shading, state.show_triangulation);
+            self.draw_edges(state);
             gl.depth_mask(true);
 
             // --- referências X-ray (overlay por cima da malha) ---
@@ -263,31 +280,75 @@ impl GlRenderer {
         }
     }
 
-    unsafe fn draw_mesh(
-        &mut self,
-        scene: &Project,
-        shading: Shading,
-        textured: bool,
-        vp: &[f32; 16],
-    ) {
+    unsafe fn draw_mesh(&mut self, state: &petunia_core::AppState, vp: &[f32; 16]) {
         let gl = Arc::clone(&self.gl);
-        if shading == Shading::Wireframe {
+        if state.shading == Shading::Wireframe {
             return; // wireframe sai só nas arestas
         }
-        let smooth = shading == Shading::Smooth;
-        let unlit = shading == Shading::Unlit;
-        for obj in &scene.assets {
+        let smooth = state.shading == Shading::Smooth;
+        let unlit = state.shading == Shading::Unlit;
+        let opacity: f32 = if state.show_xray { 0.45 } else { 1.0 };
+        if state.show_xray {
+            gl.enable(glow::BLEND);
+            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
+            gl.depth_mask(false);
+        } else {
+            gl.disable(glow::BLEND);
+            gl.depth_mask(true);
+        }
+        for obj in &state.project.assets {
             if !obj.visible {
                 continue;
             }
-            let use_tex = textured && obj.texture.is_some();
+            let (mat_profile, mat_color, has_emission, emission_color) =
+                if let Some(mat) = obj.material(&state.project.project) {
+                    (
+                        mat.profile,
+                        [mat.base_color[0], mat.base_color[1], mat.base_color[2]],
+                        mat.emission_strength > 0.0,
+                        [
+                            mat.emission_color[0] * mat.emission_strength,
+                            mat.emission_color[1] * mat.emission_strength,
+                            mat.emission_color[2] * mat.emission_strength,
+                        ],
+                    )
+                } else {
+                    (
+                        petunia_project::ShaderProfile::Pbr,
+                        obj.base_color,
+                        false,
+                        [0.0, 0.0, 0.0],
+                    )
+                };
+
+            let tex_canvas = obj.texture.as_ref().or_else(|| {
+                obj.material(&state.project.project)
+                    .and_then(|m| m.albedo_texture.as_ref())
+            });
+            let use_tex = state.textured && tex_canvas.is_some();
             let mut data: Vec<f32> = Vec::new();
-            let triangles = if unlit {
+            let obj_unlit = unlit
+                || mat_profile == petunia_project::ShaderProfile::Unlit
+                || mat_profile == petunia_project::ShaderProfile::Emissive;
+            let triangles = if obj_unlit {
                 obj.mesh.to_triangles_unlit()
             } else {
                 obj.mesh.to_triangles_smooth(smooth)
             };
-            for (pos, n, col, uv) in triangles {
+            for (pos, n, mut col, uv) in triangles {
+                if (col[0] - 0.72).abs() < 0.02
+                    && (col[1] - 0.73).abs() < 0.02
+                    && (col[2] - 0.78).abs() < 0.02
+                {
+                    col = mat_color;
+                }
+                if has_emission {
+                    col = [
+                        (col[0] + emission_color[0]).min(1.0),
+                        (col[1] + emission_color[1]).min(1.0),
+                        (col[2] + emission_color[2]).min(1.0),
+                    ];
+                }
                 data.extend_from_slice(&pos);
                 data.extend_from_slice(&n);
                 data.extend_from_slice(&col);
@@ -300,7 +361,7 @@ impl GlRenderer {
             }
             let stride: usize = if use_tex { 11 } else { 9 };
             if use_tex {
-                if let Some(canvas) = &obj.texture {
+                if let Some(canvas) = tex_canvas {
                     let slot = match self.asset_tex_slot(
                         &gl,
                         obj.id,
@@ -316,6 +377,7 @@ impl GlRenderer {
                     };
                     gl.use_program(Some(self.tex_prog));
                     gl.uniform_matrix_4_f32_slice(self.tex_vp.as_ref(), false, vp);
+                    gl.uniform_1_f32(self.tex_opacity.as_ref(), opacity);
                     gl.uniform_1_i32(self.tex_u.as_ref(), 0);
                     gl.active_texture(glow::TEXTURE0);
                     gl.bind_texture(glow::TEXTURE_2D, Some(slot));
@@ -325,6 +387,7 @@ impl GlRenderer {
             } else {
                 gl.use_program(Some(self.mesh_prog));
                 gl.uniform_matrix_4_f32_slice(self.mesh_vp.as_ref(), false, vp);
+                gl.uniform_1_f32(self.mesh_opacity.as_ref(), opacity);
             }
             let vbo = match gl.create_buffer() {
                 Ok(buffer) => buffer,
@@ -354,6 +417,8 @@ impl GlRenderer {
             gl.draw_arrays(glow::TRIANGLES, 0, (data.len() / stride) as i32);
             gl.delete_buffer(vbo);
         }
+        gl.disable(glow::BLEND);
+        gl.depth_mask(true);
         gl.bind_texture(glow::TEXTURE_2D, None);
     }
 
@@ -445,30 +510,45 @@ impl GlRenderer {
         Ok(slot.tex)
     }
 
-    unsafe fn draw_edges(&mut self, scene: &Project, shading: Shading, show_triangulation: bool) {
+    unsafe fn draw_edges(&mut self, state: &petunia_core::AppState) {
         let gl = &self.gl;
-        let wire = shading == Shading::Wireframe;
+        let wire = state.shading == Shading::Wireframe;
+        let show_edges =
+            wire || state.mode == petunia_core::EditMode::Edit || state.show_wireframe_overlay;
         let mut data: Vec<f32> = Vec::new();
-        for obj in &scene.assets {
+        for obj in &state.project.assets {
             if !obj.visible {
                 continue;
             }
-            for (a, b, sel) in obj.mesh.to_edges() {
-                let c = if sel {
-                    [1.0, 0.35, 0.1]
-                } else if wire {
-                    [1.0, 0.6, 0.2]
-                } else {
-                    [0.05, 0.05, 0.06]
-                };
-                // pequeno lift p/ não z-fightar com a malha (igual ao wgpu)
-                let lift = if wire { 0.0 } else { 0.001 };
-                data.extend_from_slice(&[a[0], a[1] + lift, a[2]]);
-                data.extend_from_slice(&c);
-                data.extend_from_slice(&[b[0], b[1] + lift, b[2]]);
-                data.extend_from_slice(&c);
+            if show_edges {
+                for (a, b, sel) in obj.mesh.to_edges() {
+                    let c = if sel {
+                        [1.0, 0.35, 0.1]
+                    } else if wire {
+                        [1.0, 0.6, 0.2]
+                    } else {
+                        [0.05, 0.05, 0.06]
+                    };
+                    // pequeno lift p/ não z-fightar com a malha (igual ao wgpu)
+                    let lift = if wire { 0.0 } else { 0.001 };
+                    data.extend_from_slice(&[a[0], a[1] + lift, a[2]]);
+                    data.extend_from_slice(&c);
+                    data.extend_from_slice(&[b[0], b[1] + lift, b[2]]);
+                    data.extend_from_slice(&c);
+                }
+            } else {
+                for (a, b, sel) in obj.mesh.to_edges() {
+                    if sel {
+                        let c = [1.0, 0.35, 0.1];
+                        let lift = 0.001;
+                        data.extend_from_slice(&[a[0], a[1] + lift, a[2]]);
+                        data.extend_from_slice(&c);
+                        data.extend_from_slice(&[b[0], b[1] + lift, b[2]]);
+                        data.extend_from_slice(&c);
+                    }
+                }
             }
-            if show_triangulation {
+            if state.show_triangulation {
                 let diag_c = [0.3, 0.65, 0.95];
                 for (a, b) in obj.mesh.triangulation_wireframe() {
                     let lift = if wire { 0.0 } else { 0.0012 };
@@ -479,8 +559,35 @@ impl GlRenderer {
                 }
             }
         }
-        // grid sempre
-        data.extend_from_slice(&self.grid);
+
+        // Grid 3D obedecendo show_overlays && show_grid
+        if state.show_overlays && state.show_grid {
+            let gs = &state.grid_settings;
+            for (a, b, c) in petunia_render::scene::grid_lines_custom(
+                gs.size,
+                gs.subdivisions,
+                gs.opacity,
+                gs.show_isometric_guide,
+                gs.isometric_angle_deg,
+            ) {
+                data.extend_from_slice(&a);
+                data.extend_from_slice(&c);
+                data.extend_from_slice(&b);
+                data.extend_from_slice(&c);
+            }
+        }
+
+        // Eixos Mundiais obedecendo show_overlays && show_axes
+        if state.show_overlays && state.show_axes {
+            let extent = state.grid_settings.size.max(10.0);
+            for (a, b, c) in petunia_render::scene::world_axes_lines(extent) {
+                data.extend_from_slice(&a);
+                data.extend_from_slice(&c);
+                data.extend_from_slice(&b);
+                data.extend_from_slice(&c);
+            }
+        }
+
         if data.is_empty() {
             return;
         }
@@ -759,16 +866,4 @@ unsafe fn compile_shader(
         }
         Ok(shader)
     }
-}
-
-fn build_grid() -> Vec<f32> {
-    // pos(3)+cor(3), mesma fonte do wgpu (render::scene)
-    let mut v = Vec::new();
-    for (a, b, c) in petunia_render::scene::grid_lines() {
-        v.extend_from_slice(&a);
-        v.extend_from_slice(&c);
-        v.extend_from_slice(&b);
-        v.extend_from_slice(&c);
-    }
-    v
 }

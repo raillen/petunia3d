@@ -1,0 +1,35 @@
+---
+source: crates/core/tests/snapshots.rs
+expression: schema
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Intent dispatched by UI, keymap, CLI, Lua plugin or MCP alike.\nMirrors `CommandId` semantics without leaking domain internals.",
+  "properties": {
+    "args": {
+      "default": [],
+      "description": "Numeric arguments in command-defined order.",
+      "items": {
+        "format": "double",
+        "type": "number"
+      },
+      "type": "array"
+    },
+    "asset_id": {
+      "description": "Optional target asset UUID (persisted identity, not a session handle).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "command": {
+      "description": "Stable command id, e.g. `\"model.extrude\"`.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command"
+  ],
+  "title": "CommandIntent",
+  "type": "object"
+}

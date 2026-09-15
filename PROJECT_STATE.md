@@ -2,10 +2,10 @@
 
 - Project: **Petunia3D**
 - Prumo: **0.5.1**
-- Current phase: **Wave 7 — Materials, Texture, UV & Paint (Planejamento Ativo)**
+- Current phase: **Wave 11 — Extensibility, Plugins & Automation (Ativa)**
 - Canonical Specification & SSOT: [`docs/bible/`](docs/bible/index.md) (155 P3D specs, 17 capítulos constitucionais, 15 seções, 3 adendos e 36 capítulos de fundação unificados)
 - Canonical UI Golden Reference: [`docs/image-references/Blender.svg`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/Blender.svg) (component catalog in [`docs/image-references/extracted/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/image-references/extracted/))
-- Current implementation status: **Waves 0 a 6 100% Concluídas e Verificadas** (277+ testes automatizados, zero warnings no Clippy, arch-check e docs-check verdes).
+- Current implementation status: **Waves 0 a 10 100% Concluídas e Verificadas** (480+ testes automatizados, zero warnings no Clippy, arch-check e docs-check verdes, Sistema de Rigging e Animação funcional).
 - Context methodology: **Lean Progressive Context (LPC)**
 - Last updated: `2026-09-14`
 
@@ -102,12 +102,104 @@ The fifteenth implementation round delivers Wave 6 (Scene, Assets, Outliner & In
 - Mecanismo transparente de reancoragem de painéis com botão `⇲ Dock` e banner contextual na barra lateral.
 - Estabilidade dimensional anti-expansão horizontal em 100% das janelas modais.
 - Unificação Canônica da Documentação (Single Source of Truth) sob `docs/bible/`, integrando 155 especificações P3D, 17 capítulos constitucionais, 15 seções temáticas, 3 adendos e 36 capítulos de fundação ao VitePress com links limpos e rastreáveis.
+The sixteenth implementation round delivers the complete Stack Modernization (Waves M1, M2, M3, and M4):
+- Wave M1 (Toolchain): Rust 2024 edition, resolver 2, workspace inheritance, and strict Clippy zero-warnings compliance.
+- Wave M2 (Host & Graphics): egui 0.36, wgpu 30, and dual-backend rendering (WGPU + GL) fully stabilized and tested.
+- Wave M3 (P0 Dependencies): tracing, slotmap, rayon/flume jobs, tempfile atomic IO, manifold-rust 3D booleans, geo profiles, tobj/gltf-json parsers, egui_extras image/svg, and eframe host adapter.
+- Wave M4 (P1 Features & Ecosystem Hardening): versioned package format (.pkg zip container), sandboxed Lua plugins (`petunia_plugins` with mlua), Model Context Protocol server (`petunia_mcp` with rmcp 3.3 over stdio), generic UV unwrapping (`xatlas-rs-v2`), live filesystem watch reloading (`WatchService`), UI enhancements (taffy flex layout, twill styles, devtools loopback with inspection and egui_mcp bridge, criterion benchmarks), CLI and desktop MCP stdio endpoints (`petunia3d --mcp-stdio`, `petunia-cli mcp`), and full cargo-deny supply-chain compliance.
 
-Evidence is preserved in `.prumo/history/premium/`, [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md), [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md) and [`docs/bible/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/bible/index.md).
+The seventeenth implementation round delivers UI/UX Polish, Theming, Icon System & Viewport Ergonomics (Resolution of 13 Critical Defects):
+- Propagação integral de temas e tokens para todos os componentes egui e cor de limpeza do viewport em OpenGL e WebGPU.
+- Tradução (i18n) completa com cobertura total em `pt-BR.toml` e `en.toml` para ferramentas, shelf contextual, menus e viewport.
+- Resolução e preview autêntico dos pacotes de ícones (`Petunia`, `Phosphor`, `Tabler`, `Iconoir`, `Lucide`) com motor vetorial nativo em egui Painter eliminando glifos quebrados/tofu.
+- Redesenho da contextual modeling shelf com cálculo dinâmico irrestrito e botão de referência abrindo o modal do Reference Manager.
+- Gerenciador de Imagens de Referência redesenhado com cartões responsivos, miniatura clicável para picker e sliders de ajuste fino.
+- Dropdown menus e popovers contidos em largura (~148-165px) com visual reativo a temas.
+- Popover de configuração de grade 3D (`⚙`) com sliders para tamanho, subdivisões, opacidade e eixos isométricos.
+- Sincronização de overlays de eixos e bússola/HUD com os renderizadores OpenGL e WGPU.
+- Modo X-Ray com alfa translucidez (0.45) e arestas sem oclusão de profundidade.
+- Snapping magnético na viewport durante translações.
+- Translação livre de objetos e vértices no plano da câmera (`ModalConstraint::Free`).
+- Interceptação antecipada da tecla `Tab` no loop Winit prevenindo consumo pela navegação de foco do egui.
+- Reorientação do gizmo de transformação ao alternar entre eixos Global e Local (`local_axes_for_mesh`).
+
+The eighteenth implementation round delivers Wayland Crash Elimination & In-Canvas File Dialog System:
+- Eliminação do segmentation fault no Wayland / Mesa Intel (`SEGV_MAPERR` em `wl_proxy_destroy` no `smithay-clipboard`) via `SafeDisplayTarget` que contorna a thread instável de seleção primária delegando a manipulação de clipboard com segurança para o `arboard`.
+- Implementação de encerramento seguro (`exiting` e `CloseRequested`) em `WgpuApp` e `GlApp`, garantindo liberação limpa de contextos gráficos e janelas antes da finalização do event loop.
+- Migração integral para o sistema de diálogos in-canvas com `egui-file-dialog` em `file_dialog_service.rs`, eliminando completamente as chamadas a seletores nativos do SO (`rfd` / portal DBus `ashpd`), warnings de `zbus::proxy` e abrindo seletores diretamente na interface da aplicação para imagens de referência, projetos e paletas.
+
+The nineteenth implementation round delivers Wave 7 (Materials, Texture, UV & Paint Engine — P3D-050 a P3D-065, P3D-132 a P3D-134, P3D-140):
+- **Modelo Canônico de Materiais e Canais PBR (`crates/project/src/material.rs`)**:
+  - Modelo unificado Single Source of Truth: `ShaderProfile` (`Pbr`, `Unlit`, `Toon`, `Glass`, `Emissive`), `AlphaMode` (`Opaque`, `Mask`, `Blend`), canais de textura (`Albedo`, `Normal`, `Roughness`, `Metallic`, `Emission`, `Height`), conversão bidirecional Roughness ↔ Glossiness e validação/sanitização contra valores não finitos.
+  - Vínculo direto de slots de material em faces de malha (`Face.material_slot`) e ativos de cena (`Asset.material_id`), com normalização e reparo transparente de projetos legados em `Project::validate()`.
+- **UV Workspace & Algoritmos de Desdobramento (`crates/module-uv`, `crates/mesh/src/uv.rs`)**:
+  - Algoritmos de projeção UV: Mapeamento Planar (`project_planar`), Mapeamento Cúbico / Box nos 6 planos cardeais (`project_cube`) e Auto Unwrap não-destrutivo integrado ao `xatlas-rs-v2` (`unwrap_auto`).
+  - Transformações UV no workspace: translação, escala e rotação incremental de 90° para ilhas e vértices UV com botões dedicados na UI.
+- **Motor de Pintura 2D & Projeção 3D sobre Malha (`crates/module-paint/src/lib.rs`)**:
+  - 5 pincéis canônicos: Pixel Brush rígido, Soft Brush com atenuação quadrática suave, Borracha com atenuação de canal alfa, Flood Fill com tolerância de cor e Conta-gotas (Eyedropper).
+  - Pintura 3D contínua sobre a superfície da malha no viewport interativo via projeção baricêntrica de coordenadas UV.
+  - Isolamento de seleção e máscaras de pintura (`isolate_selection` / P3D-132), restringindo a aplicação de pincéis exclusivamente às faces selecionadas da malha.
+- **Pilha Unificada de Camadas, Decalques e Efeitos (`crates/module-paint/src/lib.rs`)**:
+  - `PaintLayerStack` determinístico com suporte a camadas raster com modos de mesclagem (`Normal`, `Multiply`, `Add`, `Screen`), decalques parametrizados (`DecalLayer` com coordenadas UV, escala, rotação em radianos e opacidade — P3D-133) e pilha de efeitos não-destrutivos (`PaintEffect::Pixelate`, `PaintEffect::Posterize` e `PaintEffect::Invert` — P3D-134).
+- **Hub de Materiais no Painel de Propriedades (`crates/ui/src/properties_panel.rs`)**:
+  - Interface visual completa de edição de materiais: seleção de shader profile, seletor RGBA de cor base sincronizado, sliders de roughness e metálico, escala de normal map, cor e intensidade de emissão, controles de canal alfa com cutoff, textura de albedo e swatches da paleta do projeto.
+- **Integração dos Renderers WGPU & OpenGL aos Materiais (`crates/render-wgpu`, `crates/render-gl`)**:
+  - Sincronização automática das propriedades de materiais, texturas de albedo e perfis de sombreamento nos pipelines gráficos do WebGPU (`render-wgpu`) e OpenGL Desktop 3.3+ (`render-gl`).
+
+The twentieth implementation round delivers Wave 8 (Import, Export & Delivery Pipeline — P3D-068 a P3D-072, P3D-124):
+- **Pipeline de Entrega e Registro de Formatos (`crates/project/src/pipeline.rs`)**:
+  - Matriz desacoplada de capacidades (`FormatCapabilities`), enum canônico `FileFormat` (`Obj`, `Gltf`, `Glb`, `Pkg`), e opções configuráveis de exportação/importação (`ExportOptions`, `ImportOptions`).
+  - Traits modulares de adaptadores `FormatExporter` e `FormatImporter` desacoplados de UI.
+  - Implementação completa de `DeliveryPipeline` registrando adaptadores para Wavefront OBJ, glTF 2.0 (JSON), glTF 2.0 Binary (.glb) e Petunia Package (.pkg zip container).
+  - Suporte completo a exportação individual (`export_single_asset` / P3D-068), exportação múltipla (`export_multiple_assets` / P3D-069), exportação em lote com tolerância a falhas parciais (`batch_export` / P3D-070), e importadores com preservação de topologia (`import_file` / P3D-071).
+  - 14 testes de integração e conformance cobrindo round-trips, integridade de buffers binários, sanitização contra geometria corrompida (NaNs/infinities) e resiliência contra arquivos maliciosos ou corrompidos (`pipeline_tests.rs` / P3D-124).
+- **Delegação Limpa no Core (`crates/core/src/project_service.rs`)**:
+  - `ProjectService` orquestra exportação e importação via `DeliveryPipeline` sem expor detalhes internos de baixo nível e preservando backward compatibility de erros de domínio.
+
+The twenty-first implementation round delivers Wave 9 (Documentation, QA, Release & GA Hardening — P3D-116 a P3D-121, P3D-126 a P3D-130):
+- **Catálogo Automático de Referência & Tokens (`crates/xtask/src/generator.rs` / P3D-119)**:
+  - Gerador determinístico de documentação canônica a partir do código: `COMMANDS.md`, `KEYBINDS.md`, `ICON_TOKENS.md`, `TEXT_TOKENS.md`, `THEME_TOKENS.md` e `SUPPORTED_FORMATS.md`, com manifesto JSON validado e 8 testes unitários de idempotência bit a bit.
+- **Detecção Contínua de Drift e Sincronização do Changelog (`crates/xtask/src/main.rs` / P3D-117, P3D-120)**:
+  - Quality gate permanente `cargo xtask docs-check` com verificação de drift contra referências geradas e garantia de que `docs/changelog/index.md` reflete fielmente `CHANGELOG.md`.
+  - Build oficial do VitePress validado com 36 arquivos essenciais e zero links/tabelas quebradas.
+- **Regressão de UI Headless com `egui_kittest` (`crates/ui/tests/kittest_ui_flows.rs` / P3D-121)**:
+  - 19 testes headless de interação cobrindo alternância de modos de seleção (`Vertex`, `Edge`, `Face`), shelf contextual dinâmica em todos os workspaces (`Model`, `Paint`, `UV`) e colapso responsivo.
+- **Hardening de GA e Estabilidade para Computadores Modestos (P3D-126 a P3D-130)**:
+  - Verificação de ausência de vazamentos de memória e conformidade estrita com o baseline desktop low-poly.
+
+The twenty-second implementation round delivers Wave 10 (Animation & Rigging — P3D-066, P3D-067, P3D-135, P3D-136, P3D-137, P3D-138, P3D-139):
+- **Skeleton & Rig Core (`crates/project/src/rig.rs` / P3D-135)**:
+  - Estrutura completa de ossos e articulações (`Bone`), esqueleto (`Skeleton`) e transformações tridimensionais (`Transform3D`).
+  - Prevenção estrita de ciclos na árvore hierárquica, reatribuição de pais, cálculo determinístico de matrizes de repouso (Bind Pose) e matrizes inversas (`inverse_bind_matrix`).
+  - Pesos de deformação por vértice (`VertexSkinWeight`) com normalização garantida (soma = 1.0) e algoritmo de deformação Linear Blend Skinning (`SkinData::deform_mesh`).
+- **Animação Simples & Trilha de Keyframes (`crates/project/src/animation.rs` / P3D-067)**:
+  - Trilhas de ossos (`BoneTrack`) com keyframes de translação, rotação e escala.
+  - Interpolação linear contínua e interpolação esférica quaternion (`Slerp`).
+  - Amostragem temporal contínua (`sample_pose` e `sample_skinning_matrices`) com suporte a repetição (looping) e framerates configuráveis (24/30/60 FPS).
+- **Presets Canônicos de Rigging (`crates/project/src/animation.rs` / P3D-136)**:
+  - Presets modulares de templates de dados: Humanoide bípede proporcional (15+ ossos), Quadrúpede de 4 patas com cauda, e criatura Multi-Leg parametrizada (aranhas/escorpiões).
+- **Auto-Rig & Auto-Skin Heurístico (`crates/project/src/animation.rs` / P3D-137)**:
+  - Dimensionamento proporcional automático (`auto_fit_humanoid`) adaptando o esqueleto à caixa delimitadora (Bounding Box) do modelo tridimensional ativo.
+  - Cálculo geométrico automático de pesos de deformação (`compute_auto_skin_weights`) com atenuação quadrática suave em relação ao segmento do osso e atribuição dos 4 ossos mais influentes por vértice.
+- **Retargeting de Animações Externas (`crates/project/src/animation.rs` / P3D-138)**:
+  - Perfil de mapeamento semântico `RetargetProfile` (padrão Mixamo para Petunia Humanoid) e retargeting desacoplado de clipes.
+- **Biblioteca de Ativos de Animação (`crates/project/src/animation.rs` / P3D-139)**:
+  - Estrutura `AnimationAsset` integrada ao documento do projeto, com biblioteca nativa contendo os clipes de animação canônicos `Humanoid_Idle` e `Humanoid_Walk`.
+- **Animation Workspace & Painel de UI (`crates/ui/src/modules_ui/animation_ui.rs`, `crates/ui/src/contextual_shelf.rs` / P3D-066)**:
+  - Painel lateral no `Workspace::Animate` contendo gestão de Armatures, Inspetor de Ossos com coordenadas [X, Y, Z] e comprimento, catálogo de clipes e controles de transporte com gravação de keyframes.
+  - Shelf contextual inferior com botões dedicados de presets rápidos, Auto-Rig, scrubbing de frames e transporte de reprodução.
+  - 20 testes headless de fluxo UI (`kittest_ui_flows.rs`) e 47 testes unitários de domínio passando com 100% de conformidade.
+
+Evidence is preserved in `.prumo/history/premium/`, [`docs/GAUNTLET.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET.md), [`docs/GAUNTLET_HANDOFF.md`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/GAUNTLET_HANDOFF.md), [`docs/audits/stack-modernization/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/audits/stack-modernization/) and [`docs/bible/`](file:///home/raillen/Documentos/Projetos/simple3d-modeling/docs/bible/index.md).
 
 ## Next action
 
-Iniciar a **Wave 7 (Materials, Texture, UV & Paint)** cobrindo P3D-050 a P3D-065, P3D-132 a P3D-134 e P3D-140 com base na especificação canônica unificada em `docs/bible/`.
+Executar a **Wave 11 (Extensibility, Plugins & Automation)** cobrindo P3D-110, P3D-111, P3D-112, P3D-141, P3D-142 e P3D-154:
+1. P3D-110 / P3D-111: Public Plugin API & Lua sandbox integration (`petunia_plugins` com `mlua`).
+2. P3D-112: Model Context Protocol (MCP) server endpoints & automações (`petunia_mcp` com rmcp 3.3).
+3. P3D-141: Painel interno de Agente de IA (`Internal AI Agent Panel`) integrado a comandos e diffs não-destrutivos.
+4. P3D-142: Pipeline de Modelagem Assistida por IA (`AI-Assisted Modeling Pipeline`).
+5. P3D-154: Gravador e executor de macros/receitas de comandos (`Command Recipes / Macros`).
 
 ## Recovery order
 
@@ -116,3 +208,4 @@ Iniciar a **Wave 7 (Materials, Texture, UV & Paint)** cobrindo P3D-050 a P3D-065
 3. `docs/PRUMO.md` and the premium interaction plan.
 4. Historical goals in `.ai/goals/` (their DONE state does not close premium work).
 5. Only relevant canonical docs, symbols and tests.
+

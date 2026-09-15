@@ -28,12 +28,12 @@ impl I18n {
         if let Ok(entries) = fs::read_dir(locales_dir()) {
             for e in entries.flatten() {
                 let p = e.path();
-                if p.extension().map(|x| x == "toml").unwrap_or(false) {
-                    if let Some(stem) = p.file_stem().and_then(|s| s.to_str()) {
-                        if stem != "en" && !out.contains(&stem.to_string()) {
-                            out.push(stem.to_string());
-                        }
-                    }
+                if p.extension().map(|x| x == "toml").unwrap_or(false)
+                    && let Some(stem) = p.file_stem().and_then(|s| s.to_str())
+                    && stem != "en"
+                    && !out.contains(&stem.to_string())
+                {
+                    out.push(stem.to_string());
                 }
             }
         }
@@ -47,11 +47,7 @@ impl I18n {
             fallback.clone()
         } else {
             let m = load_file(lang);
-            if m.is_empty() {
-                fallback.clone()
-            } else {
-                m
-            }
+            if m.is_empty() { fallback.clone() } else { m }
         };
         Self {
             lang: lang.to_string(),
@@ -85,13 +81,13 @@ fn locales_dir() -> PathBuf {
             return p;
         }
     }
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            for cand in ["assets/locales", "locales", "../../assets/locales"] {
-                let p = dir.join(cand);
-                if p.exists() {
-                    return p;
-                }
+    if let Ok(exe) = std::env::current_exe()
+        && let Some(dir) = exe.parent()
+    {
+        for cand in ["assets/locales", "locales", "../../assets/locales"] {
+            let p = dir.join(cand);
+            if p.exists() {
+                return p;
             }
         }
     }

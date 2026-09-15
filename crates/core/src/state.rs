@@ -322,6 +322,8 @@ pub struct ToolState {
     pub paint_strength: f32,
     pub paint_stroke: Option<Project>,
     pub canvas_brush: u32,
+    pub paint_brush_kind: usize,
+    pub paint_isolate_selection: bool,
     pub transform_delta: [f32; 3],
     pub transform_rotation: [f32; 3],
     pub transform_scale: f32,
@@ -360,6 +362,8 @@ impl ToolState {
             paint_strength: 1.0,
             paint_stroke: None,
             canvas_brush: 4,
+            paint_brush_kind: 0,
+            paint_isolate_selection: false,
             transform_delta: [0.0; 3],
             transform_rotation: [0.0; 3],
             transform_scale: 1.0,
@@ -450,6 +454,28 @@ impl PivotPoint {
     }
 }
 
+/// Configurações do Grid 3D e guias axiais/isométricos.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GridSettings {
+    pub size: f32,
+    pub subdivisions: f32,
+    pub opacity: f32,
+    pub show_isometric_guide: bool,
+    pub isometric_angle_deg: f32,
+}
+
+impl Default for GridSettings {
+    fn default() -> Self {
+        Self {
+            size: 20.0,
+            subdivisions: 1.0,
+            opacity: 0.4,
+            show_isometric_guide: false,
+            isometric_angle_deg: 30.0,
+        }
+    }
+}
+
 /// 3. SESSÃO DO EDITOR: câmera, seleção, modos e viewport settings.
 pub struct EditorSession {
     pub selection: Selection,
@@ -477,6 +503,7 @@ pub struct EditorSession {
     pub show_triangulation: bool,
     pub show_nav_hud: bool,
     pub show_grid: bool,
+    pub grid_settings: GridSettings,
     pub show_axes: bool,
     pub show_wireframe_overlay: bool,
     pub show_cursor: bool,
@@ -532,6 +559,7 @@ impl EditorSession {
             show_triangulation: false,
             show_nav_hud: true,
             show_grid: true,
+            grid_settings: GridSettings::default(),
             show_axes: true,
             show_wireframe_overlay: false,
             show_cursor: true,
@@ -660,7 +688,7 @@ impl UiState {
             command_palette_query: String::new(),
             command_palette_selected_index: 0,
             active_theme_id: "petunia-dark".to_string(),
-            active_icon_pack_id: "tabler".to_string(),
+            active_icon_pack_id: "petunia".to_string(),
             active_keymap_id: "petunia-default".to_string(),
             asset_thumbnail_size: 64.0,
             inspector_detached: false,

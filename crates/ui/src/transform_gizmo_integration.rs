@@ -7,8 +7,8 @@ use egui::{Rect, Ui};
 use glam::{Mat4, Vec3};
 use petunia_core::{AppState, ModalKind};
 use transform_gizmo::math::Transform;
-use transform_gizmo_egui::prelude::*;
 use transform_gizmo_egui::GizmoExt;
+use transform_gizmo_egui::prelude::*;
 
 /// Ferramenta de transformação desacoplada da interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,6 +125,11 @@ impl PetuniaTransformGizmo {
         config.view_matrix = mat4_to_row_matrix4(view);
         config.projection_matrix = mat4_to_row_matrix4(proj);
         config.viewport = viewport;
+
+        config.orientation = match state.transform_orientation {
+            petunia_core::TransformOrientation::Global => GizmoOrientation::Global,
+            petunia_core::TransformOrientation::Local => GizmoOrientation::Local,
+        };
 
         if let Some(tool) = TransformTool::from_app_state(state) {
             config.modes = tool.to_gizmo_modes();

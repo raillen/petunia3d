@@ -454,13 +454,15 @@ fn test_select_linked_and_box_select_commands() {
         add: false,
     };
     state.dispatch(&box_cmd).expect("box select");
-    assert!(state
-        .project
-        .active_mesh()
-        .unwrap()
-        .verts
-        .iter()
-        .any(|v| v.selected));
+    assert!(
+        state
+            .project
+            .active_mesh()
+            .unwrap()
+            .verts
+            .iter()
+            .any(|v| v.selected)
+    );
 }
 
 #[test]
@@ -571,7 +573,7 @@ fn test_canonical_command_dispatcher_metadata_and_categories() {
         .find(|i| i.id == "edit.undo")
         .expect("undo command found");
     assert!(!undo_cmd.is_available);
-    assert_eq!(undo_cmd.disabled_reason.as_deref(), Some("Nothing to undo"));
+    assert_eq!(undo_cmd.disabled_reason, Some("Nothing to undo"));
 
     // 2. Extrude should require Edit mode
     assert_eq!(state.mode, EditMode::Object);
@@ -582,10 +584,7 @@ fn test_canonical_command_dispatcher_metadata_and_categories() {
         .find(|i| i.id == "model.extrude")
         .unwrap();
     assert!(!extrude_cmd.is_available);
-    assert_eq!(
-        extrude_cmd.disabled_reason.as_deref(),
-        Some("Requires Edit mode")
-    );
+    assert_eq!(extrude_cmd.disabled_reason, Some("Requires Edit mode"));
 
     // 3. Switch to Edit mode - now requires face selection
     state.mode = EditMode::Edit;
@@ -595,10 +594,7 @@ fn test_canonical_command_dispatcher_metadata_and_categories() {
         .find(|i| i.id == "model.extrude")
         .unwrap();
     assert!(!extrude_cmd_edit.is_available);
-    assert_eq!(
-        extrude_cmd_edit.disabled_reason.as_deref(),
-        Some("Select faces first")
-    );
+    assert_eq!(extrude_cmd_edit.disabled_reason, Some("Select faces first"));
 
     // 4. Select a face
     state.project.active_mesh_mut().unwrap().faces[0].selected = true;

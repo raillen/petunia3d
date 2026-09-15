@@ -1,0 +1,448 @@
+//! Capability-limited Lua 5.4 host.
+//!
+//! See crate docs for the trust model. This file implements declaration,
+//! validation, sandbox construction and budgeted execution.
+
+use std::cell::RefCell;
+use std::path::PathBuf;
+use std::rc::Rc;
+
+use mlua::{HookTriggers, Lua, StdLib, VmState};
+use serde::{Deserialize, Serialize};
+
+/// Plugin API version this host implements. Scripts declaring anything else
+/// are rejected before execution.
+pub const PLUGIN_API_VERSION: u32 = 1;
+/// Max script source size (64 KiB).
+pub const MAX_SCRIPT_BYTES: usize = 64 * 1024;
+/// Max VM instructions per execution (instruction budget / timeout strategy).
+pub const MAX_INSTRUCTIONS: u32 = 1_000_000;
+/// Max heap bytes per execution.
+pub const MAX_MEMORY_BYTES: usize = 8 * 1024 * 1024;
+/// Max recorded intents per execution.
+pub const MAX_INTENTS: usize = 256;
+
+/// Stable plugin identity: `1..=64` chars of `[a-zA-Z0-9._-]`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct PluginId(String);
+
+impl PluginId {
+    /// Validates the identity string.
+    pub fn new(id: &str) -> Result<Self, CapabilityError> {
+        if id.is_empty() || id.len() > 64 {
+            return Err(CapabilityError::BadIdentity(id.to_string()));
+        }
+        if !id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+        {
+            return Err(CapabilityError::BadIdentity(id.to_string()));
+        }
+        Ok(Self(id.to_string()))
+    }
+
+    /// The validated identity.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Declared capabilities. Everything defaults to denied; the script gets
+/// exactly what is listed here and nothing else.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginCapabilities {
+    /// Required [`PLUGIN_API_VERSION`].
+    pub api_version: u32,
+    /// Command ids the script may request (validated at call time).
+    #[serde(default)]
+    pub commands: Vec<String>,
+    /// Query names the script may request.
+    #[serde(default)]
+    pub queries: Vec<String>,
+    /// Read-only filesystem roots (reserved: no fs access is granted yet;
+    /// roots are validated and recorded for the future path).
+    #[serde(default)]
+    pub filesystem_roots: Vec<PathBuf>,
+    /// Network policy: always denied (no socket library exists in the sandbox).
+    #[serde(default)]
+    pub allow_network: bool,
+    /// Destructive operations (delete, overwrite) policy.
+    #[serde(default)]
+    pub allow_destructive: bool,
+}
+
+impl PluginCapabilities {
+    /// Validates declarations: API version, id shapes, root sanity.
+    pub fn validate(&self) -> Result<(), CapabilityError> {
+        if self.api_version != PLUGIN_API_VERSION {
+            return Err(CapabilityError::UnsupportedApi(self.api_version));
+        }
+        if self.commands.len() > 64 || self.queries.len() > 64 {
+            return Err(CapabilityError::TooManyDeclarations);
+        }
+        for cmd in &self.commands {
+            if !is_command_shape(cmd) {
+                return Err(CapabilityError::UnknownCommand(cmd.clone()));
+            }
+            if is_destructive(cmd) && !self.allow_destructive {
+                return Err(CapabilityError::DestructiveDenied(cmd.clone()));
+            }
+        }
+        for query in &self.queries {
+            if !is_command_shape(query) {
+                return Err(CapabilityError::UnknownQuery(query.clone()));
+            }
+        }
+        for root in &self.filesystem_roots {
+            if !root.is_absolute() {
+                return Err(CapabilityError::RelativeRoot(root.display().to_string()));
+            }
+        }
+        if self.allow_network {
+            return Err(CapabilityError::NetworkDenied);
+        }
+        Ok(())
+    }
+}
+
+fn is_command_shape(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 64
+        && id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_'))
+}
+
+fn is_destructive(id: &str) -> bool {
+    id.contains("delete") || id.contains("discard") || id.contains("overwrite")
+}
+
+/// Capability declaration failure.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum CapabilityError {
+    /// Bad plugin identity string.
+    #[error("bad plugin identity '{0}'")]
+    BadIdentity(String),
+    /// Unsupported plugin API version.
+    #[error("unsupported plugin API version {0} (host speaks {PLUGIN_API_VERSION})")]
+    UnsupportedApi(u32),
+    /// Malformed command id.
+    #[error("unknown command '{0}'")]
+    UnknownCommand(String),
+    /// Malformed query name.
+    #[error("unknown query '{0}'")]
+    UnknownQuery(String),
+    /// Destructive command without `allow_destructive`.
+    #[error("destructive command '{0}' denied by policy")]
+    DestructiveDenied(String),
+    /// Relative filesystem root.
+    #[error("filesystem root must be absolute: '{0}'")]
+    RelativeRoot(String),
+    /// Network can never be granted.
+    #[error("network access is always denied")]
+    NetworkDenied,
+    /// Declaration lists too long.
+    #[error("too many capability declarations")]
+    TooManyDeclarations,
+}
+
+/// A command request recorded from script execution, validated but not yet
+/// dispatched. Dispatch (permissions, undo, validation) stays with the app.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LuaCommand {
+    /// Command id, member of declared `commands`.
+    pub command: String,
+    /// Numeric args in command-defined order.
+    pub args: Vec<f64>,
+}
+
+/// Validated script output: intents to dispatch + query names to answer.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ValidatedIntent {
+    /// Recorded command requests, in script order.
+    pub commands: Vec<LuaCommand>,
+    /// Requested query names, in script order.
+    pub queries: Vec<String>,
+}
+
+/// Execution failure.
+#[derive(Debug, thiserror::Error)]
+pub enum PluginError {
+    /// Capability declaration invalid.
+    #[error("capability: {0}")]
+    Capability(#[from] CapabilityError),
+    /// Script-level failure (syntax, runtime, budget).
+    #[error("lua: {0}")]
+    Lua(String),
+    /// Instruction budget exhausted (timeout strategy).
+    #[error("instruction budget exhausted")]
+    Budget,
+    /// Too many recorded intents.
+    #[error("intent limit exceeded")]
+    TooManyIntents,
+}
+
+/// Host configuration: budgets shared by every execution.
+#[derive(Clone, Debug)]
+pub struct HostConfig {
+    /// Max VM instructions per execution.
+    pub max_instructions: u32,
+    /// Max heap bytes per execution.
+    pub max_memory_bytes: usize,
+}
+
+impl Default for HostConfig {
+    fn default() -> Self {
+        Self {
+            max_instructions: MAX_INSTRUCTIONS,
+            max_memory_bytes: MAX_MEMORY_BYTES,
+        }
+    }
+}
+
+/// The Lua plugin host. Stateless across executions: build once, execute many.
+#[derive(Clone, Debug, Default)]
+pub struct Host {
+    config: HostConfig,
+}
+
+impl Host {
+    /// Creates a host with default budgets.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a host with explicit budgets.
+    pub fn with_config(config: HostConfig) -> Self {
+        Self { config }
+    }
+
+    /// Validates declarations, runs `source` in a sandbox with budgets, and
+    /// returns the validated intents. Never panics on hostile scripts.
+    pub fn execute(
+        &self,
+        id: &PluginId,
+        capabilities: &PluginCapabilities,
+        source: &str,
+    ) -> Result<ValidatedIntent, PluginError> {
+        capabilities.validate()?;
+        if source.len() > MAX_SCRIPT_BYTES {
+            return Err(PluginError::Lua("script exceeds size limit".to_string()));
+        }
+        let _ = id;
+        let libs = StdLib::COROUTINE | StdLib::TABLE | StdLib::STRING | StdLib::UTF8 | StdLib::MATH;
+        let lua =
+            Lua::new_with(libs, Default::default()).map_err(|e| PluginError::Lua(e.to_string()))?;
+        lua.set_memory_limit(self.config.max_memory_bytes)
+            .map_err(|e| PluginError::Lua(e.to_string()))?;
+
+        let spent = Rc::new(RefCell::new(0u32));
+        let budget = self.config.max_instructions;
+        let spent_hook = Rc::clone(&spent);
+        lua.set_hook(
+            HookTriggers {
+                every_nth_instruction: Some(10_000),
+                ..Default::default()
+            },
+            move |_, _| {
+                let mut used = spent_hook.borrow_mut();
+                *used = used.saturating_add(10_000);
+                if *used > budget {
+                    return Err(mlua::Error::RuntimeError(
+                        "instruction budget exhausted".into(),
+                    ));
+                }
+                Ok(VmState::Continue)
+            },
+        )
+        .map_err(|e| PluginError::Lua(e.to_string()))?;
+        let _ = spent;
+
+        let intents: Rc<RefCell<Vec<LuaCommand>>> = Rc::new(RefCell::new(Vec::new()));
+        let queries: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+        let allowed_commands = capabilities.commands.clone();
+        let allowed_queries = capabilities.queries.clone();
+
+        let petunia = lua
+            .create_table()
+            .map_err(|e| PluginError::Lua(e.to_string()))?;
+        {
+            let intents = Rc::clone(&intents);
+            let record = lua
+                .create_function(move |_, (command, args): (String, Option<Vec<f64>>)| {
+                    if !allowed_commands.iter().any(|c| c == &command) {
+                        return Err(mlua::Error::RuntimeError(format!(
+                            "command '{command}' not granted"
+                        )));
+                    }
+                    let mut guard = intents.borrow_mut();
+                    if guard.len() >= MAX_INTENTS {
+                        return Err(mlua::Error::RuntimeError("intent limit exceeded".into()));
+                    }
+                    guard.push(LuaCommand {
+                        command,
+                        args: args.unwrap_or_default(),
+                    });
+                    Ok(true)
+                })
+                .map_err(|e| PluginError::Lua(e.to_string()))?;
+            petunia
+                .set("command", record)
+                .map_err(|e| PluginError::Lua(e.to_string()))?;
+        }
+        {
+            let queries = Rc::clone(&queries);
+            let ask = lua
+                .create_function(move |_, name: String| {
+                    if !allowed_queries.iter().any(|q| q == &name) {
+                        return Err(mlua::Error::RuntimeError(format!(
+                            "query '{name}' not granted"
+                        )));
+                    }
+                    queries.borrow_mut().push(name);
+                    Ok("{}".to_string())
+                })
+                .map_err(|e| PluginError::Lua(e.to_string()))?;
+            petunia
+                .set("query", ask)
+                .map_err(|e| PluginError::Lua(e.to_string()))?;
+        }
+        lua.globals()
+            .set("petunia", petunia)
+            .map_err(|e| PluginError::Lua(e.to_string()))?;
+
+        lua.load(source)
+            .set_name(format!("@{}", id.as_str()))
+            .exec()
+            .map_err(|e| map_lua_error(&e))?;
+
+        Ok(ValidatedIntent {
+            commands: intents.borrow().clone(),
+            queries: queries.borrow().clone(),
+        })
+    }
+}
+
+fn map_lua_error(error: &mlua::Error) -> PluginError {
+    let text = error.to_string();
+    if text.contains("instruction budget exhausted") {
+        PluginError::Budget
+    } else {
+        PluginError::Lua(text)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn capabilities() -> PluginCapabilities {
+        PluginCapabilities {
+            api_version: PLUGIN_API_VERSION,
+            commands: vec!["model.extrude".to_string(), "global.undo".to_string()],
+            queries: vec!["scene.list".to_string()],
+            filesystem_roots: vec![],
+            allow_network: false,
+            allow_destructive: false,
+        }
+    }
+
+    fn id() -> PluginId {
+        PluginId::new("test.plugin").unwrap()
+    }
+
+    #[test]
+    fn valid_script_records_intents_in_order() {
+        let host = Host::new();
+        let out = host
+            .execute(
+                &id(),
+                &capabilities(),
+                r#"
+                petunia.command("model.extrude", { 0.5 })
+                petunia.command("global.undo")
+                local scene = petunia.query("scene.list")
+                "#,
+            )
+            .unwrap();
+        assert_eq!(
+            out.commands,
+            vec![
+                LuaCommand {
+                    command: "model.extrude".to_string(),
+                    args: vec![0.5],
+                },
+                LuaCommand {
+                    command: "global.undo".to_string(),
+                    args: vec![],
+                },
+            ]
+        );
+        assert_eq!(out.queries, vec!["scene.list".to_string()]);
+    }
+
+    #[test]
+    fn ungranted_command_is_rejected_at_call_time() {
+        let host = Host::new();
+        let err = host
+            .execute(&id(), &capabilities(), r#"petunia.command("model.delete")"#)
+            .unwrap_err();
+        assert!(matches!(err, PluginError::Lua(_)));
+    }
+
+    #[test]
+    fn sandbox_has_no_io_os_or_network() {
+        let host = Host::new();
+        for probe in [
+            r#"assert(io == nil)"#,
+            r#"assert(os == nil)"#,
+            r#"assert(package == nil)"#,
+            r#"assert(require == nil)"#,
+            r#"assert(socket == nil)"#,
+        ] {
+            host.execute(&id(), &capabilities(), probe).unwrap();
+        }
+    }
+
+    #[test]
+    fn infinite_loop_hits_instruction_budget() {
+        let host = Host::with_config(HostConfig {
+            max_instructions: 50_000,
+            max_memory_bytes: MAX_MEMORY_BYTES,
+        });
+        let err = host
+            .execute(&id(), &capabilities(), r#"while true do end"#)
+            .unwrap_err();
+        assert!(matches!(err, PluginError::Budget));
+    }
+
+    #[test]
+    fn declarations_are_validated_before_execution() {
+        let host = Host::new();
+        let mut bad_api = capabilities();
+        bad_api.api_version = 999;
+        assert!(matches!(
+            host.execute(&id(), &bad_api, "").unwrap_err(),
+            PluginError::Capability(CapabilityError::UnsupportedApi(999))
+        ));
+        let mut bad_cmd = capabilities();
+        bad_cmd.commands = vec!["rm -rf".to_string()];
+        assert!(matches!(
+            host.execute(&id(), &bad_cmd, "").unwrap_err(),
+            PluginError::Capability(_)
+        ));
+        let mut destructive = capabilities();
+        destructive.commands = vec!["model.delete".to_string()];
+        assert!(matches!(
+            host.execute(&id(), &destructive, "").unwrap_err(),
+            PluginError::Capability(CapabilityError::DestructiveDenied(_))
+        ));
+        let mut network = capabilities();
+        network.allow_network = true;
+        assert!(matches!(
+            host.execute(&id(), &network, "").unwrap_err(),
+            PluginError::Capability(CapabilityError::NetworkDenied)
+        ));
+        assert!(PluginId::new("evil id!").is_err());
+    }
+}

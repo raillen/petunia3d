@@ -1,9 +1,12 @@
 //! Ferramenta de automação interna (cargo xtask) para o Petunia3D.
 //! Gerencia tarefas de documentação, integridade e drift prevention.
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+mod generator;
+use generator::GeneratedCatalog;
 
 fn main() -> Result<()> {
     let mut args = std::env::args().skip(1);
@@ -11,6 +14,7 @@ fn main() -> Result<()> {
 
     match command.as_str() {
         "docs" => task_docs()?,
+        "docs-generate" => task_docs_generate()?,
         "docs-check" => task_docs_check()?,
         "arch-check" => task_arch_check()?,
         "help" | "--help" | "-h" => print_help(),
@@ -32,8 +36,9 @@ USO:
     cargo xtask <COMANDO>
 
 COMANDOS:
-    docs          Gera e compila o site estático de documentação com VitePress
-    docs-check    Valida a integridade dos arquivos de documentação e build sem erros
+    docs          Gera referências técnicas e compila o site estático com VitePress
+    docs-generate Gera exclusivamente os catálogos e referências em docs/generated/
+    docs-check    Valida integridade, ausência de drift em docs/generated/ e build sem erros
     arch-check    Valida a integridade dos relatórios da auditoria arquitetural
     help          Exibe esta mensagem de ajuda
 "#
@@ -48,7 +53,50 @@ fn root_dir() -> PathBuf {
         .to_path_buf()
 }
 
+fn task_docs_generate() -> Result<()> {
+    println!("⚙️ Gerando referências técnicas a partir do código-fonte (P3D-119)...");
+    let root = root_dir();
+    let gen_dir = root.join("docs").join("generated");
+    std::fs::create_dir_all(&gen_dir)
+        .with_context(|| format!("falha ao criar pasta {}", gen_dir.display()))?;
+
+    let catalog = GeneratedCatalog::generate(&root)?;
+
+    std::fs::write(gen_dir.join("COMMANDS.md"), &catalog.commands_md)?;
+    std::fs::write(gen_dir.join("KEYBINDS.md"), &catalog.keybinds_md)?;
+    std::fs::write(gen_dir.join("ICON_TOKENS.md"), &catalog.icon_tokens_md)?;
+    std::fs::write(gen_dir.join("TEXT_TOKENS.md"), &catalog.text_tokens_md)?;
+    std::fs::write(gen_dir.join("THEME_TOKENS.md"), &catalog.theme_tokens_md)?;
+    std::fs::write(
+        gen_dir.join("SUPPORTED_FORMATS.md"),
+        &catalog.supported_formats_md,
+    )?;
+    std::fs::write(gen_dir.join("index.md"), &catalog.index_md)?;
+    std::fs::write(gen_dir.join("manifest.json"), &catalog.manifest_json)?;
+
+    // Sincroniza CHANGELOG.md com docs/changelog/index.md (P3D-117)
+    let changelog_src = root.join("CHANGELOG.md");
+    if changelog_src.exists() {
+        let content = std::fs::read_to_string(&changelog_src)?;
+        let mut synced = String::from("# Histórico de Versões (Changelog)\n\n");
+        if let Some(pos) = content.find("\n\n") {
+            synced.push_str(&content[pos + 2..]);
+        } else {
+            synced.push_str(&content);
+        }
+        let changelog_dest = root.join("docs/changelog/index.md");
+        std::fs::write(&changelog_dest, &synced)
+            .with_context(|| format!("falha ao escrever {}", changelog_dest.display()))?;
+    }
+
+    println!("✅ 7 arquivos canônicos gerados com sucesso em docs/generated/!");
+    println!("✅ docs/changelog/index.md sincronizado com CHANGELOG.md (P3D-117)!");
+    Ok(())
+}
+
 fn task_docs() -> Result<()> {
+    task_docs_generate()?;
+
     println!("📦 Compilando documentação oficial do Petunia3D (VitePress)...");
     let root = root_dir();
     let docs_dir = root.join("docs");
@@ -72,8 +120,9 @@ fn task_docs_check() -> Result<()> {
     println!("🔍 Validando integridade da documentação...");
     let root = root_dir();
     let docs_dir = root.join("docs");
+    let gen_dir = docs_dir.join("generated");
 
-    // Verificar existência de arquivos canônicos
+    // 1. Verificar existência de arquivos canônicos
     let required_files = [
         "index.md",
         "getting-started/index.md",
@@ -103,6 +152,14 @@ fn task_docs_check() -> Result<()> {
         "shortcuts/index.md",
         "developers/index.md",
         "changelog/index.md",
+        "generated/COMMANDS.md",
+        "generated/KEYBINDS.md",
+        "generated/ICON_TOKENS.md",
+        "generated/TEXT_TOKENS.md",
+        "generated/THEME_TOKENS.md",
+        "generated/SUPPORTED_FORMATS.md",
+        "generated/index.md",
+        "generated/manifest.json",
     ];
 
     for file in &required_files {
@@ -117,8 +174,68 @@ fn task_docs_check() -> Result<()> {
         required_files.len()
     );
 
-    // Executar build de verificação
-    task_docs()?;
+    // 2. Detecção de Drift em docs/generated/ (P3D-120)
+    println!("🔍 Verificando drift em docs/generated/ (P3D-120)...");
+    let expected = GeneratedCatalog::generate(&root)?;
+    let checks = [
+        ("COMMANDS.md", &expected.commands_md),
+        ("KEYBINDS.md", &expected.keybinds_md),
+        ("ICON_TOKENS.md", &expected.icon_tokens_md),
+        ("TEXT_TOKENS.md", &expected.text_tokens_md),
+        ("THEME_TOKENS.md", &expected.theme_tokens_md),
+        ("SUPPORTED_FORMATS.md", &expected.supported_formats_md),
+        ("index.md", &expected.index_md),
+        ("manifest.json", &expected.manifest_json),
+    ];
+    for (filename, expected_content) in checks {
+        let path = gen_dir.join(filename);
+        if !path.exists() {
+            bail!(
+                "Arquivo gerado ausente: docs/generated/{filename}. Execute 'cargo run -p xtask -- docs' para gerar."
+            );
+        }
+        let disk_content = std::fs::read_to_string(&path)
+            .with_context(|| format!("Falha ao ler {}", path.display()))?;
+        if disk_content != *expected_content {
+            bail!(
+                "Drift detectado em docs/generated/{filename}! O arquivo no repositório está desatualizado em relação ao código-fonte. Execute 'cargo run -p xtask -- docs' para sincronizar."
+            );
+        }
+    }
+    println!("✅ Nenhuma divergência (drift) detectada nos arquivos gerados.");
+
+    // 3. Verificação de sincronização do Changelog (P3D-117)
+    let changelog_src = root.join("CHANGELOG.md");
+    let changelog_dest = docs_dir.join("changelog/index.md");
+    if changelog_src.exists() && changelog_dest.exists() {
+        let root_content = std::fs::read_to_string(&changelog_src)?;
+        let docs_content = std::fs::read_to_string(&changelog_dest)?;
+        let mut expected_synced = String::from("# Histórico de Versões (Changelog)\n\n");
+        if let Some(pos) = root_content.find("\n\n") {
+            expected_synced.push_str(&root_content[pos + 2..]);
+        } else {
+            expected_synced.push_str(&root_content);
+        }
+        if docs_content != expected_synced {
+            bail!(
+                "Drift detectado em docs/changelog/index.md em relação ao CHANGELOG.md! Execute 'cargo run -p xtask -- docs' para sincronizar."
+            );
+        }
+        println!("✅ Changelog vivo validado e 100% sincronizado (P3D-117).");
+    }
+
+    // 4. Executar build do VitePress
+    println!("📦 Validando build oficial do VitePress...");
+    let status = Command::new("pnpm")
+        .arg("run")
+        .arg("build")
+        .current_dir(&docs_dir)
+        .status()
+        .context("falha ao executar pnpm na pasta docs/")?;
+
+    if !status.success() {
+        bail!("Build da documentação falhou com status: {status}");
+    }
 
     println!("🎉 Verificação de integridade concluída com sucesso!");
     Ok(())
@@ -263,7 +380,9 @@ fn task_arch_check() -> Result<()> {
         }
     }
 
-    println!("✅ Invariantes de manifesto validados: core, config, mesh, project, commands, render-wgpu e module-paint estão em conformidade.");
+    println!(
+        "✅ Invariantes de manifesto validados: core, config, mesh, project, commands, render-wgpu e module-paint estão em conformidade."
+    );
 
     println!("🛡️ Validando fronteira de I/O de arquivos (Gauntlet G4)...");
     let mut rs_files = Vec::new();
@@ -300,16 +419,24 @@ fn task_arch_check() -> Result<()> {
             .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
 
         if content.contains("rfd::FileDialog") {
-            bail!("Violação de Fronteira de I/O: {rel} instancia rfd::FileDialog fora de file_dialog_service.rs!");
+            bail!(
+                "Violação de Fronteira de I/O: {rel} instancia rfd::FileDialog fora de file_dialog_service.rs!"
+            );
         }
         if content.contains("egui_file_dialog::FileDialog") {
-            bail!("Violação de Fronteira de I/O: {rel} instancia egui_file_dialog fora de file_dialog_service.rs!");
+            bail!(
+                "Violação de Fronteira de I/O: {rel} instancia egui_file_dialog fora de file_dialog_service.rs!"
+            );
         }
     }
 
-    println!("✅ Fronteira de I/O validada: nenhum arquivo fora de crates/ui/src/file_dialog_service.rs instancia rfd ou egui-file-dialog.");
+    println!(
+        "✅ Fronteira de I/O validada: nenhum arquivo fora de crates/ui/src/file_dialog_service.rs instancia rfd ou egui-file-dialog."
+    );
 
-    println!("🛡️ Validando ausência de sessões de ferramentas em memória temporária de UI (Gauntlet G5)...");
+    println!(
+        "🛡️ Validando ausência de sessões de ferramentas em memória temporária de UI (Gauntlet G5)..."
+    );
     for file_path in &rs_files {
         let rel = file_path
             .strip_prefix(&root)
@@ -324,13 +451,19 @@ fn task_arch_check() -> Result<()> {
             .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
 
         if content.contains("\"cut.session\"") {
-            bail!("Violação de Sessão de Ferramenta (G5): {rel} ainda utiliza Id(\"cut.session\") em memória temporária de UI!");
+            bail!(
+                "Violação de Sessão de Ferramenta (G5): {rel} ainda utiliza Id(\"cut.session\") em memória temporária de UI!"
+            );
         }
         if content.contains("\"modal.pointer\"") {
-            bail!("Violação de Sessão de Ferramenta (G5): {rel} ainda utiliza Id(\"modal.pointer\") em memória temporária de UI!");
+            bail!(
+                "Violação de Sessão de Ferramenta (G5): {rel} ainda utiliza Id(\"modal.pointer\") em memória temporária de UI!"
+            );
         }
     }
-    println!("✅ Sessões de ferramentas validadas: CutSession e PointerSession residem exclusivamente no domínio (AppState).");
+    println!(
+        "✅ Sessões de ferramentas validadas: CutSession e PointerSession residem exclusivamente no domínio (AppState)."
+    );
 
     println!("🛡️ Validando decomposição do God Object AppState (Gauntlet G6 / F-002)...");
     let state_rs = root.join("crates/core/src/state.rs");
@@ -346,7 +479,9 @@ fn task_arch_check() -> Result<()> {
     ];
     for sub in required_substates {
         if !state_content.contains(sub) {
-            bail!("Violação de Decomposição (G6): sub-estado {sub} não encontrado em crates/core/src/state.rs!");
+            bail!(
+                "Violação de Decomposição (G6): sub-estado {sub} não encontrado em crates/core/src/state.rs!"
+            );
         }
     }
 
@@ -359,14 +494,20 @@ fn task_arch_check() -> Result<()> {
     ];
     for field in required_app_state_fields {
         if !state_content.contains(field) {
-            bail!("Violação de Composição de AppState (G6): campo {field} não encontrado em AppState!");
+            bail!(
+                "Violação de Composição de AppState (G6): campo {field} não encontrado em AppState!"
+            );
         }
     }
     if !state_content.contains("pub tools: ToolState") {
-        bail!("Violação de Composição (G6): campo pub tools: ToolState não encontrado em EditorSession!");
+        bail!(
+            "Violação de Composição (G6): campo pub tools: ToolState não encontrado em EditorSession!"
+        );
     }
 
-    println!("✅ Sub-estados coesos validados: AppState decomposto em ProjectState, EditorSession, ToolState, UiState e RenderResources.");
+    println!(
+        "✅ Sub-estados coesos validados: AppState decomposto em ProjectState, EditorSession, ToolState, UiState e RenderResources."
+    );
 
     println!("🛡️ Validando purificação dos crates de módulo (Gauntlet G7 / F-008)...");
     for file_path in &rs_files {
@@ -379,11 +520,15 @@ fn task_arch_check() -> Result<()> {
             let content = std::fs::read_to_string(file_path)
                 .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
             if content.contains("egui::") || content.contains("use egui") {
-                bail!("Violação de Purificação de Módulo (G7 / F-008): {rel} contém referência direta a egui!");
+                bail!(
+                    "Violação de Purificação de Módulo (G7 / F-008): {rel} contém referência direta a egui!"
+                );
             }
         }
     }
-    println!("✅ Módulos purificados: module-model, module-paint, module-uv e module-assets são 100% livres de egui.");
+    println!(
+        "✅ Módulos purificados: module-model, module-paint, module-uv e module-assets são 100% livres de egui."
+    );
 
     println!("🛡️ Validando soberania headless do crate CLI (Gauntlet G8 / F-011)...");
     for file_path in &rs_files {
@@ -396,7 +541,9 @@ fn task_arch_check() -> Result<()> {
             let content = std::fs::read_to_string(file_path)
                 .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
             if content.contains("egui::") || content.contains("use egui") {
-                bail!("Violação de Soberania Headless (G8 / F-011): {rel} contém referência direta a egui!");
+                bail!(
+                    "Violação de Soberania Headless (G8 / F-011): {rel} contém referência direta a egui!"
+                );
             }
         }
     }
@@ -456,7 +603,9 @@ fn task_arch_check() -> Result<()> {
                 || content.contains("PhysicalKey")
                 || content.contains("egui::Key")
             {
-                bail!("Violação de Desacoplamento de Entrada (Wave 1): {rel} referencia atalhos físicos!");
+                bail!(
+                    "Violação de Desacoplamento de Entrada (Wave 1): {rel} referencia atalhos físicos!"
+                );
             }
         }
     }
@@ -519,6 +668,234 @@ fn task_arch_check() -> Result<()> {
         }
     }
     println!("✅ Integridade de projeto validada: persistência e autosave 100% livres de UI/egui.");
+
+    println!("🛡️ Validando fronteiras P0 (Wave M3)...");
+    let p0_manifest_checks = [
+        (
+            "crates/ui/Cargo.toml",
+            &["egui_extras", "iconflow"][..],
+            "petunia_ui deve possuir os adapters egui_extras/iconflow",
+        ),
+        (
+            "crates/mesh/Cargo.toml",
+            &["geo =", "manifold-rust"][..],
+            "petunia_mesh deve possuir os providers geo/manifold-rust",
+        ),
+        (
+            "crates/project/Cargo.toml",
+            &["tobj =", "gltf-json", "tempfile"][..],
+            "petunia_project deve possuir tobj/gltf-json/tempfile",
+        ),
+        (
+            "crates/core/Cargo.toml",
+            &["tracing =", "slotmap =", "rayon =", "flume =", "schemars"][..],
+            "petunia_core deve possuir tracing/slotmap/rayon/flume/schemars",
+        ),
+        (
+            "crates/app/Cargo.toml",
+            &["tracing-subscriber", "eframe"][..],
+            "petunia_app deve possuir tracing-subscriber/eframe",
+        ),
+    ];
+    for (rel_path, required, reason) in p0_manifest_checks {
+        let path = root.join(rel_path);
+        let content =
+            std::fs::read_to_string(&path).with_context(|| format!("Falha ao ler {rel_path}"))?;
+        for pattern in required {
+            if !content.contains(pattern) {
+                bail!("Violação P0 (Wave M3): {rel_path} não contém '{pattern}' ({reason})");
+            }
+        }
+    }
+    // Dependências P0 confinadas aos donos: nenhum outro crate pode puxá-las.
+    let p0_confinement = [
+        ("iconflow", "crates/ui"),
+        ("egui_extras", "crates/ui"),
+        ("manifold-rust", "crates/mesh"),
+        ("tobj =", "crates/project"),
+        ("gltf-json", "crates/project"),
+        ("tracing-subscriber", "crates/app"),
+    ];
+    let owner_crates = [
+        "crates/core",
+        "crates/mesh",
+        "crates/commands",
+        "crates/config",
+        "crates/project",
+        "crates/plugins",
+        "crates/mcp",
+        "crates/render",
+        "crates/render-gl",
+        "crates/render-wgpu",
+        "crates/module-model",
+        "crates/module-paint",
+        "crates/module-uv",
+        "crates/module-assets",
+        "crates/ui",
+        "crates/app",
+        "crates/cli",
+        "crates/ffi",
+    ];
+    for (dep, owner) in p0_confinement {
+        for c in owner_crates {
+            if c == owner {
+                continue;
+            }
+            let cargo_p = root.join(c).join("Cargo.toml");
+            if cargo_p.exists() {
+                let content = std::fs::read_to_string(&cargo_p)?;
+                if content.contains(dep) {
+                    bail!(
+                        "Violação P0 (Wave M3): {c}/Cargo.toml depende de '{dep}' fora do dono {owner}!"
+                    );
+                }
+            }
+        }
+    }
+    // Tipos de provider nunca vazam: fontes fora do dono não referenciam os crates.
+    let p0_source_checks = [
+        ("use iconflow", "crates/ui/src/icon_provider.rs"),
+        ("egui_extras::", "crates/ui"),
+        ("geo::", "crates/mesh"),
+        ("manifold_rust::", "crates/mesh"),
+        ("tobj::", "crates/project"),
+        ("gltf_json::", "crates/project"),
+    ];
+    for (marker, owner) in p0_source_checks {
+        for file_path in &rs_files {
+            let rel = file_path
+                .strip_prefix(&root)
+                .unwrap_or(file_path)
+                .to_string_lossy();
+            if rel.starts_with("crates/xtask") || rel.starts_with("fuzz/") {
+                continue;
+            }
+            if rel.starts_with(owner) {
+                continue;
+            }
+            let content = std::fs::read_to_string(file_path)
+                .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+            if content.contains(marker) {
+                bail!("Violação P0 (Wave M3): {rel} referencia '{marker}' fora de {owner}!");
+            }
+        }
+    }
+    println!("✅ Fronteiras P0 validadas: cada dependência vive apenas no dono canônico.");
+
+    println!("🛡️ Validando fronteiras P1 (Wave M4)...");
+    let p1_manifest_checks = [
+        (
+            "crates/project/Cargo.toml",
+            &["zip ="][..],
+            "petunia_project deve possuir o container zip",
+        ),
+        (
+            "crates/plugins/Cargo.toml",
+            &["mlua"][..],
+            "petunia_plugins deve possuir mlua",
+        ),
+        (
+            "crates/mcp/Cargo.toml",
+            &["rmcp", "tokio"][..],
+            "petunia_mcp deve possuir rmcp/tokio",
+        ),
+        (
+            "crates/mesh/Cargo.toml",
+            &["xatlas"][..],
+            "petunia_mesh deve possuir o provider xatlas",
+        ),
+        (
+            "crates/app/Cargo.toml",
+            &["notify ="][..],
+            "petunia_app deve possuir notify",
+        ),
+        (
+            "crates/ui/Cargo.toml",
+            &["egui_inbox", "egui_taffy", "twill"][..],
+            "petunia_ui deve possuir inbox/taffy/twill",
+        ),
+    ];
+    for (rel_path, required, reason) in p1_manifest_checks {
+        let path = root.join(rel_path);
+        let content =
+            std::fs::read_to_string(&path).with_context(|| format!("Falha ao ler {rel_path}"))?;
+        for pattern in required {
+            if !content.contains(pattern) {
+                bail!("Violação P1 (Wave M4): {rel_path} não contém '{pattern}' ({reason})");
+            }
+        }
+    }
+    let p1_confinement = [
+        ("zip =", "crates/project"),
+        ("mlua", "crates/plugins"),
+        ("rmcp", "crates/mcp"),
+        ("tokio", "crates/mcp"),
+        ("xatlas", "crates/mesh"),
+        ("notify =", "crates/app"),
+        ("egui_inbox", "crates/ui"),
+        ("egui_taffy", "crates/ui"),
+        ("egui_commonmark", "crates/ui"),
+        ("egui_autocomplete", "crates/ui"),
+        ("twill", "crates/ui"),
+        ("egui_inspection", "crates/ui"),
+        ("egui_mcp", "crates/ui"),
+        ("egui-probe", "crates/ui"),
+    ];
+    for (dep, owner) in p1_confinement {
+        for c in owner_crates {
+            if c == owner {
+                continue;
+            }
+            let cargo_p = root.join(c).join("Cargo.toml");
+            if cargo_p.exists() {
+                let content = std::fs::read_to_string(&cargo_p)?;
+                if content.contains(dep) {
+                    bail!(
+                        "Violação P1 (Wave M4): {c}/Cargo.toml depende de '{dep}' fora do dono {owner}!"
+                    );
+                }
+            }
+        }
+    }
+    // Checagem extra: novos crates P1 não podem existir fora dos membros conhecidos.
+    for extra in ["crates/plugins", "crates/mcp"] {
+        if !root.join(extra).join("Cargo.toml").exists() {
+            bail!("Violação P1 (Wave M4): {extra}/Cargo.toml ausente!");
+        }
+    }
+    let p1_source_checks = [
+        ("use mlua", "crates/plugins"),
+        ("rmcp::", "crates/mcp"),
+        ("xatlas_rs_v2::", "crates/mesh"),
+        ("notify::", "crates/app"),
+        ("egui_taffy::", "crates/ui"),
+        ("egui_inbox::", "crates/ui"),
+        ("twill::", "crates/ui"),
+        ("egui_commonmark::", "crates/ui"),
+        ("egui_autocomplete::", "crates/ui"),
+        ("egui_inspection::", "crates/ui"),
+        ("egui_probe::", "crates/ui"),
+    ];
+    for (marker, owner) in p1_source_checks {
+        for file_path in &rs_files {
+            let rel = file_path
+                .strip_prefix(&root)
+                .unwrap_or(file_path)
+                .to_string_lossy();
+            if rel.starts_with("crates/xtask") || rel.starts_with("fuzz/") {
+                continue;
+            }
+            if rel.starts_with(owner) {
+                continue;
+            }
+            let content = std::fs::read_to_string(file_path)
+                .with_context(|| format!("Falha ao ler {}", file_path.display()))?;
+            if content.contains(marker) {
+                bail!("Violação P1 (Wave M4): {rel} referencia '{marker}' fora de {owner}!");
+            }
+        }
+    }
+    println!("✅ Fronteiras P1 validadas: cada dependência vive apenas no dono canônico.");
 
     println!(
         "🏛️ Progresso de remediação: GAUNTLETS G0 a G10, WAVE 1 e WAVE 2 100% CONCLUÍDOS COM SUCESSO!"

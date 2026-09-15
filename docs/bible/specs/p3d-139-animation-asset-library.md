@@ -2,7 +2,7 @@
 
 ::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
 - **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `ROADMAP PÓS-GA (Animation & Rigging)`
+- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
 - **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
 :::
 
@@ -10,7 +10,7 @@
 <aside>
 🧩
 
-Novo item · Biblioteca reutilizável de clips · Prioridade: P3.
+Estado: **implementado via `AnimationAsset` e `AnimationLibrary` em `crates/project/src/animation.rs`** · Prioridade: P3.
 
 </aside>
 

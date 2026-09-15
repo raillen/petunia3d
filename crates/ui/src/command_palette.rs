@@ -1,9 +1,11 @@
 //! Command Palette (P3D-081) — Busca e execução rápida de comandos com fuzzy search,
 //! suporte a categorias visuais, atalhos dinâmicos e validação contextual de execução.
 
-use egui::{vec2, Align2, Color32, FontId, Id, Key, Rect, Sense, TextEdit, Ui};
-use petunia_core::command::{CommandCategory, CommandPaletteItem};
+#[cfg(not(feature = "palette-autocomplete"))]
+use egui::TextEdit;
+use egui::{Align2, Color32, FontId, Id, Key, Rect, Sense, Ui, vec2};
 use petunia_core::AppState;
+use petunia_core::command::{CommandCategory, CommandPaletteItem};
 
 use crate::tokens;
 
@@ -24,8 +26,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 
     let search_input_id = Id::new("command_palette_search_input");
 
-    // Modal/overlay centralizado
-    let screen_rect = ctx.screen_rect();
+    let screen_rect = ctx.viewport_rect();
     let palette_width = 560.0_f32.min(screen_rect.width() - 32.0);
     let max_h = (screen_rect.height() - 64.0).max(300.0);
 
@@ -56,6 +57,23 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             let hint = state.t("command_palette.placeholder");
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("🔍").size(14.0));
+                #[cfg(feature = "palette-autocomplete")]
+                let response = {
+                    let ids: Vec<String> = state
+                        .commands
+                        .all_metadata()
+                        .iter()
+                        .map(|meta| meta.id.clone())
+                        .collect();
+                    crate::palette_complete::command_search(
+                        ui,
+                        search_input_id,
+                        &mut state.ui.command_palette_query,
+                        &ids,
+                        &hint,
+                    )
+                };
+                #[cfg(not(feature = "palette-autocomplete"))]
                 let response = ui.add(
                     TextEdit::singleline(&mut state.ui.command_palette_query)
                         .id(search_input_id)
@@ -159,10 +177,10 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             });
         });
 
-    if let Some(cmd_id) = command_to_execute {
-        if let Err(e) = state.dispatch_command(&cmd_id) {
-            state.set_status(format!("Command error: {}", e));
-        }
+    if let Some(cmd_id) = command_to_execute
+        && let Err(e) = state.dispatch_command(&cmd_id)
+    {
+        state.set_status(format!("Command error: {}", e));
     }
 
     if close {
@@ -252,7 +270,7 @@ fn render_palette_item(ui: &mut Ui, item: &CommandPaletteItem, is_selected: bool
         let (cat_bg, cat_fg) = category_color(item.category);
         let cat_str = item.category.as_str();
         let cat_font = FontId::proportional(9.5);
-        let cat_width = ui.fonts(|f| {
+        let cat_width = ui.fonts_mut(|f| {
             f.layout_no_wrap(cat_str.to_string(), cat_font.clone(), cat_fg)
                 .size()
                 .x
@@ -332,9 +350,11 @@ mod tests {
         let mut state = AppState::new("en");
         state.ui.show_command_palette = true;
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state);
-        });
+        ctx.run_ui(egui::RawInput::default(), |_ui| {
+            draw(&ctx, &mut state);
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -344,8 +364,10 @@ mod tests {
         state.ui.show_command_palette = true;
         state.ui.command_palette_query = "extrude".to_string();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state);
-        });
+        ctx.run_ui(egui::RawInput::default(), |_ui| {
+            draw(&ctx, &mut state);
+        })
+        .textures_delta
+        .clear();
     }
 }

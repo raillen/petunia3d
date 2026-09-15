@@ -5,19 +5,45 @@ use petunia_mesh::Mesh;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub mod animation;
 pub mod autosave;
 pub mod export;
 pub mod format;
+pub mod import_gltf;
+pub mod import_obj;
+pub mod io_atomic;
+pub mod material;
 pub mod model_library;
+pub mod package;
 pub mod palette;
+pub mod pipeline;
+pub mod rig;
 
+pub use animation::{
+    AnimationAsset, AnimationClip, AnimationLibrary, BoneTrack, Interpolation, Keyframe,
+    RetargetProfile, RigPreset, auto_fit_humanoid, compute_auto_skin_weights,
+};
 pub use autosave::{AutosaveConfig, AutosaveService, RecoveryInfo, SessionLockInfo};
-pub use export::{export_gltf, export_obj, ExportError};
+pub use export::{ExportError, export_gltf, export_obj};
+pub use import_gltf::{GltfImportError, GltfSummary, parse_gltf_json};
+pub use import_obj::{ObjImportError, import_obj_bytes};
+pub use io_atomic::{AtomicIoError, TempScope, atomic_write};
+pub use material::{AlphaMode, Material, ShaderProfile, TextureChannel};
 pub use model_library::{AssetSummary, ModelLibraryQuery, ModelLibraryService, ModelLibrarySort};
+pub use package::{
+    Attachment, PACKAGE_VERSION, PackageError, PackageManifest, open_package, open_package_bytes,
+    save_package, save_package_bytes,
+};
 pub use palette::{export_gpl, export_hex, import_gpl, import_hex, preset_gameboy, preset_pico8};
+pub use pipeline::{
+    BatchExportReport, DeliveryPipeline, ExportOptions, ExportReport, FileFormat,
+    FormatCapabilities, FormatExporter, FormatImporter, ImportOptions, ImportPayload,
+    PipelineError,
+};
+pub use rig::{Bone, RigError, Skeleton, SkinData, Transform3D, VertexSkinWeight};
 
 /// Canvas de textura simples (albedo) por asset — workspace PAINT.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Canvas {
     pub w: u32,
     pub h: u32,
@@ -86,6 +112,12 @@ pub struct Asset {
     pub base_color: [f32; 3],
     pub texture: Option<Canvas>,
     #[serde(default)]
+    pub material_id: Option<Uuid>,
+    #[serde(default)]
+    pub skeleton_id: Option<Uuid>,
+    #[serde(default)]
+    pub skin_data: Option<SkinData>,
+    #[serde(default)]
     pub favorite: bool,
     #[serde(default)]
     pub tags: Vec<String>,
@@ -102,9 +134,17 @@ impl Asset {
             collection: None,
             base_color: [0.75, 0.75, 0.78],
             texture: None,
+            material_id: None,
+            skeleton_id: None,
+            skin_data: None,
             favorite: false,
             tags: Vec::new(),
         }
+    }
+
+    /// Obtém o material atribuído ao asset a partir do projeto.
+    pub fn material<'a>(&self, project: &'a Project) -> Option<&'a Material> {
+        self.material_id.and_then(|id| project.get_material(id))
     }
 
     /// Duplicata com novo UUID.
@@ -322,6 +362,12 @@ pub struct Project {
     pub annotations_locked: bool,
     #[serde(default = "default_true")]
     pub measurements_visible: bool,
+    #[serde(default)]
+    pub materials: Vec<Material>,
+    #[serde(default)]
+    pub skeletons: Vec<Skeleton>,
+    #[serde(default)]
+    pub animations: Vec<AnimationAsset>,
 }
 
 impl Default for Project {
@@ -339,16 +385,23 @@ impl Default for Project {
             annotations_visible: true,
             annotations_locked: false,
             measurements_visible: true,
+            materials: vec![Material::new("Default Material")],
+            skeletons: Vec::new(),
+            animations: Vec::new(),
         }
     }
 }
 
 impl Project {
     pub fn new() -> Self {
+        let def_mat = Material::new("Default Material");
+        let def_mat_id = def_mat.id;
+        let mut cube = Asset::new("Cube", Mesh::cube(2.0));
+        cube.material_id = Some(def_mat_id);
         Self {
             id: Uuid::new_v4(),
             name: default_project_name(),
-            assets: vec![Asset::new("Cube", Mesh::cube(2.0))],
+            assets: vec![cube],
             active: 0,
             palette: default_palette(),
             collections: Vec::new(),
@@ -358,7 +411,48 @@ impl Project {
             annotations_visible: true,
             annotations_locked: false,
             measurements_visible: true,
+            materials: vec![def_mat],
+            skeletons: Vec::new(),
+            animations: Vec::new(),
         }
+    }
+
+    pub fn get_skeleton(&self, id: Uuid) -> Option<&Skeleton> {
+        self.skeletons.iter().find(|s| s.id == id)
+    }
+
+    pub fn get_skeleton_mut(&mut self, id: Uuid) -> Option<&mut Skeleton> {
+        self.skeletons.iter_mut().find(|s| s.id == id)
+    }
+
+    pub fn add_skeleton(&mut self, skeleton: Skeleton) {
+        self.skeletons.push(skeleton);
+    }
+
+    pub fn remove_skeleton(&mut self, id: Uuid) {
+        self.skeletons.retain(|s| s.id != id);
+        for a in &mut self.assets {
+            if a.skeleton_id == Some(id) {
+                a.skeleton_id = None;
+                a.skin_data = None;
+            }
+        }
+    }
+
+    pub fn get_animation(&self, id: Uuid) -> Option<&AnimationAsset> {
+        self.animations.iter().find(|a| a.id == id)
+    }
+
+    pub fn get_animation_mut(&mut self, id: Uuid) -> Option<&mut AnimationAsset> {
+        self.animations.iter_mut().find(|a| a.id == id)
+    }
+
+    pub fn add_animation(&mut self, animation: AnimationAsset) {
+        self.animations.push(animation);
+    }
+
+    pub fn remove_animation(&mut self, id: Uuid) {
+        self.animations.retain(|a| a.id != id);
     }
 
     pub fn add_annotation(&mut self, item: AnnotationItem) {
@@ -488,9 +582,62 @@ impl Project {
         Some(new_id)
     }
 
+    // ---- Material Management (P3D-050) ----
+
+    pub fn add_material(&mut self, mat: Material) -> Uuid {
+        let id = mat.id;
+        self.materials.push(mat);
+        id
+    }
+
+    pub fn get_material(&self, id: Uuid) -> Option<&Material> {
+        self.materials.iter().find(|m| m.id == id)
+    }
+
+    pub fn get_material_mut(&mut self, id: Uuid) -> Option<&mut Material> {
+        self.materials.iter_mut().find(|m| m.id == id)
+    }
+
+    pub fn remove_material(&mut self, id: Uuid) -> bool {
+        let before = self.materials.len();
+        self.materials.retain(|m| m.id != id);
+        let removed = self.materials.len() < before;
+        if removed {
+            for a in &mut self.assets {
+                if a.material_id == Some(id) {
+                    a.material_id = None;
+                }
+            }
+        }
+        removed
+    }
+
+    pub fn active_material(&self) -> Option<&Material> {
+        let active_asset = self.active()?;
+        active_asset
+            .material(self)
+            .or_else(|| self.materials.first())
+    }
+
+    pub fn active_material_mut(&mut self) -> Option<&mut Material> {
+        let mat_id = self
+            .active()
+            .and_then(|a| a.material_id)
+            .or_else(|| self.materials.first().map(|m| m.id))?;
+        self.get_material_mut(mat_id)
+    }
+
     /// Normaliza projeto vindo de arquivo (M2/M3): malhas válidas,
-    /// no mínimo 1 asset, `active` dentro dos limites.
+    /// no mínimo 1 asset, `active` dentro dos limites e materiais íntegros (P3D-050).
     pub fn validate(&mut self) {
+        for mat in &mut self.materials {
+            mat.validate();
+        }
+        if self.materials.is_empty() {
+            self.materials.push(Material::new("Default Material"));
+        }
+        let fallback_mat_id = self.materials[0].id;
+
         for a in &mut self.assets {
             a.mesh.validate();
             if let Some(cv) = a.texture.as_mut() {
@@ -499,9 +646,16 @@ impl Project {
             if !a.base_color.iter().all(|x| x.is_finite()) {
                 a.base_color = [0.75, 0.75, 0.78];
             }
+            if a.material_id.is_none()
+                || !self.materials.iter().any(|m| Some(m.id) == a.material_id)
+            {
+                a.material_id = Some(fallback_mat_id);
+            }
         }
         if self.assets.is_empty() {
-            self.assets.push(Asset::new("Cube", Mesh::cube(2.0)));
+            let mut cube = Asset::new("Cube", Mesh::cube(2.0));
+            cube.material_id = Some(fallback_mat_id);
+            self.assets.push(cube);
         }
         self.active = self.active.min(self.assets.len() - 1);
     }

@@ -1,22 +1,22 @@
 //! Painel de Timeline de animação e reprodução do Petunia3D (`Timeline`).
 //! Implementa botões de transporte (|<<, <|, Play, |>, >>|), intervalo de frames e régua temporal interativa.
 
-use egui::{vec2, Context, Sense, Stroke, TopBottomPanel, Ui};
+use egui::{Sense, Stroke, Ui, vec2};
 use petunia_core::AppState;
 
 use crate::tokens;
 
 /// Renderiza o painel inferior de Timeline.
-pub fn draw(ctx: &Context, state: &mut AppState) {
-    TopBottomPanel::bottom("timeline_panel")
-        .exact_height(tokens::TIMELINE_HEIGHT)
+pub fn draw(ui: &mut Ui, state: &mut AppState) {
+    egui::Panel::bottom("timeline_panel")
+        .exact_size(tokens::TIMELINE_HEIGHT)
         .frame(
             egui::Frame::new()
                 .fill(tokens::BG_PANEL)
                 .stroke(tokens::stroke_border())
                 .inner_margin(egui::Margin::symmetric(8, 4)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 // Linha 1: Controles de Transporte e Frames
                 draw_transport_bar(ui, state);
@@ -230,14 +230,14 @@ fn draw_timeline_ruler(ui: &mut Ui, state: &mut AppState) {
     }
 
     // Interatividade de Scrubbing com clique e arrasto
-    if response.clicked() || response.dragged() {
-        if let Some(pos) = response.interact_pointer_pos() {
-            let t = ((pos.x - rect.min.x) / rect.width().max(1.0)).clamp(0.0, 1.0);
-            let frame = state.ui.timeline_start as f32
-                + t * (state.ui.timeline_end - state.ui.timeline_start) as f32;
-            state.ui.timeline_frame = frame.round() as i32;
-            state.mark_dirty();
-        }
+    if (response.clicked() || response.dragged())
+        && let Some(pos) = response.interact_pointer_pos()
+    {
+        let t = ((pos.x - rect.min.x) / rect.width().max(1.0)).clamp(0.0, 1.0);
+        let frame = state.ui.timeline_start as f32
+            + t * (state.ui.timeline_end - state.ui.timeline_start) as f32;
+        state.ui.timeline_frame = frame.round() as i32;
+        state.mark_dirty();
     }
 }
 
@@ -247,12 +247,14 @@ mod tests {
 
     #[test]
     fn test_timeline_renders_without_panic() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state);
-        });
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw(ui, &mut state);
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]

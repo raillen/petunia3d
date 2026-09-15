@@ -1,0 +1,384 @@
+//! Tools-only MCP server over stdio.
+
+use std::sync::Arc;
+
+use petunia_commands::UndoStack;
+use petunia_core::SceneItemContract;
+use petunia_mesh::Mesh;
+use petunia_project::Project;
+use rmcp::ErrorData as McpError;
+use rmcp::handler::server::wrapper::{Json, Parameters};
+use rmcp::{ServiceExt, tool, tool_router, transport::stdio};
+use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
+
+/// Command ids exposed through [`PetuniaMcp::validate_intent`].
+/// Mirrors real core action ids; execution itself stays with the app.
+const MCP_COMMAND_ALLOWLIST: &[&str] = &[
+    "global.redo",
+    "global.undo",
+    "model.delete",
+    "model.deselect_all",
+    "model.duplicate",
+    "model.extrude",
+    "model.frame_selection",
+    "model.invert_selection",
+    "model.select_all",
+];
+
+/// Shared mutable domain behind the tool boundary.
+#[derive(Debug)]
+struct McpDomain {
+    project: Project,
+    undo: UndoStack<Project>,
+}
+
+impl McpDomain {
+    fn new() -> Self {
+        Self {
+            project: Project::new(),
+            undo: UndoStack::new(),
+        }
+    }
+
+    fn checkpoint(&mut self, label: &str) {
+        let snapshot = self.project.clone();
+        self.undo.checkpoint(label, &snapshot);
+    }
+}
+
+/// Parameters for [`PetuniaMcp::add_primitive`].
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct AddPrimitiveParams {
+    /// Primitive kind: `"cube"` or `"plane"`.
+    kind: String,
+    /// Edge size in world units (0.01..=100).
+    size: f64,
+}
+
+/// Parameters for [`PetuniaMcp::export_obj`].
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ExportObjParams {
+    /// Asset index in scene order.
+    index: usize,
+}
+
+/// Parameters for [`PetuniaMcp::validate_intent`].
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ValidateIntentParams {
+    /// Command id, e.g. `"model.extrude"`.
+    command: String,
+    /// Optional target asset UUID.
+    #[serde(default)]
+    asset_id: Option<String>,
+    /// Numeric args in command-defined order.
+    #[serde(default)]
+    args: Vec<f64>,
+}
+
+/// Validation report returned by [`PetuniaMcp::validate_intent`].
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct IntentReport {
+    /// Whether the intent is well-formed and allowlisted.
+    valid: bool,
+    /// Stable reason code (`"ok"`, `"bad_shape"`, `"not_allowlisted"`).
+    reason: String,
+}
+
+/// Asset summary DTO returned by scene tools.
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct AssetSummaryDto {
+    /// Display name.
+    name: String,
+    /// Always `"object"` on this boundary.
+    kind: String,
+    /// Visibility flag.
+    visible: bool,
+}
+
+/// Petunia MCP server. Clone shares the same domain.
+#[derive(Clone, Debug)]
+pub struct PetuniaMcp {
+    domain: Arc<Mutex<McpDomain>>,
+}
+
+impl PetuniaMcp {
+    /// Creates a server with a fresh default project.
+    pub fn new() -> Self {
+        Self {
+            domain: Arc::new(Mutex::new(McpDomain::new())),
+        }
+    }
+
+    fn asset_summaries(project: &Project) -> Vec<AssetSummaryDto> {
+        project
+            .assets
+            .iter()
+            .map(|asset| AssetSummaryDto {
+                name: asset.name.clone(),
+                kind: "object".to_string(),
+                visible: asset.visible,
+            })
+            .collect()
+    }
+}
+
+impl Default for PetuniaMcp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[tool_router(server_handler)]
+impl PetuniaMcp {
+    /// Lists scene assets as `{name, kind, visible}` DTOs.
+    #[tool(description = "List scene assets (name, kind, visible).")]
+    async fn list_assets(&self) -> Result<Json<Vec<AssetSummaryDto>>, McpError> {
+        let domain = self.domain.lock().await;
+        Ok(Json(Self::asset_summaries(&domain.project)))
+    }
+
+    /// Adds a primitive (cube/plane) with an undo checkpoint.
+    #[tool(description = "Add a cube or plane primitive to the scene (undoable).")]
+    async fn add_primitive(
+        &self,
+        Parameters(params): Parameters<AddPrimitiveParams>,
+    ) -> Result<Json<AssetSummaryDto>, McpError> {
+        if !params.size.is_finite() || !(0.01..=100.0).contains(&params.size) {
+            return Err(McpError::invalid_params(
+                "size must be finite within 0.01..=100",
+                None,
+            ));
+        }
+        let mesh = match params.kind.as_str() {
+            "cube" => Mesh::cube(params.size as f32),
+            "plane" => Mesh::plane(params.size as f32),
+            other => {
+                return Err(McpError::invalid_params(
+                    format!("unknown primitive '{other}' (want cube|plane)"),
+                    None,
+                ));
+            }
+        };
+        let mut domain = self.domain.lock().await;
+        domain.checkpoint("mcp add_primitive");
+        let name = format!("MCP {}", params.kind);
+        domain.project.add(&name, mesh);
+        let asset = domain.project.assets.last().expect("just added");
+        Ok(Json(AssetSummaryDto {
+            name: asset.name.clone(),
+            kind: "object".to_string(),
+            visible: asset.visible,
+        }))
+    }
+
+    /// Undoes the last checkpointed MCP mutation.
+    #[tool(description = "Undo the last MCP scene mutation.")]
+    async fn undo(&self) -> Result<Json<bool>, McpError> {
+        let mut domain = self.domain.lock().await;
+        if !domain.undo.can_undo() {
+            return Ok(Json(false));
+        }
+        let current = domain.project.clone();
+        if let Some(previous) = domain.undo.undo(current) {
+            domain.project = previous;
+            Ok(Json(true))
+        } else {
+            Ok(Json(false))
+        }
+    }
+
+    /// Exports one asset as OBJ text (bounded by scene content).
+    #[tool(description = "Export one scene asset as OBJ text by index.")]
+    async fn export_obj(
+        &self,
+        Parameters(params): Parameters<ExportObjParams>,
+    ) -> Result<String, McpError> {
+        let domain = self.domain.lock().await;
+        let asset = domain.project.assets.get(params.index).ok_or_else(|| {
+            McpError::invalid_params(format!("asset index {} out of range", params.index), None)
+        })?;
+        Ok(petunia_project::export::export_obj(asset))
+    }
+
+    /// Validates a command intent without executing it.
+    #[tool(description = "Validate a command intent (id, target, args) without executing.")]
+    async fn validate_intent(
+        &self,
+        Parameters(params): Parameters<ValidateIntentParams>,
+    ) -> Result<Json<IntentReport>, McpError> {
+        let asset_ok = params
+            .asset_id
+            .as_deref()
+            .is_none_or(|id| uuid::Uuid::parse_str(id).is_ok());
+        let well_formed = !params.command.is_empty()
+            && params.command.len() <= 64
+            && params
+                .command
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '.' || c == '_')
+            && params.args.iter().all(|a| a.is_finite())
+            && asset_ok;
+        let allowlisted = MCP_COMMAND_ALLOWLIST.contains(&params.command.as_str());
+        let (valid, reason) = if !well_formed {
+            (false, "bad_shape")
+        } else if !allowlisted {
+            (false, "not_allowlisted")
+        } else {
+            (true, "ok")
+        };
+        Ok(Json(IntentReport {
+            valid,
+            reason: reason.to_string(),
+        }))
+    }
+
+    /// Exposes the scene as query DTOs (mirrors Application Queries shape).
+    #[tool(description = "Scene items as query DTOs (name, kind, visible).")]
+    async fn scene_items(&self) -> Result<Json<Vec<SceneItemContract>>, McpError> {
+        let domain = self.domain.lock().await;
+        Ok(Json(
+            domain
+                .project
+                .assets
+                .iter()
+                .map(|asset| SceneItemContract {
+                    name: asset.name.clone(),
+                    kind: "object".to_string(),
+                    visible: asset.visible,
+                })
+                .collect(),
+        ))
+    }
+}
+
+/// Serves the Petunia MCP server over stdio. The Tokio runtime stays inside
+/// this call; cancel by closing the transport (client disconnect).
+pub async fn serve_stdio() -> Result<(), McpError> {
+    let service = PetuniaMcp::new()
+        .serve(stdio())
+        .await
+        .map_err(|e| McpError::internal_error(format!("serve: {e}"), None))?;
+    service
+        .waiting()
+        .await
+        .map_err(|e| McpError::internal_error(format!("waiting: {e}"), None))?;
+    Ok(())
+}
+
+/// Blocking stdio entry for embedding binaries: builds a current-thread
+/// Tokio runtime internally, so hosts never name a Tokio type.
+pub fn serve_stdio_blocking() -> Result<(), McpError> {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| McpError::internal_error(format!("runtime: {e}"), None))?
+        .block_on(serve_stdio())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn list_starts_with_starter_scene() {
+        let server = PetuniaMcp::new();
+        let items = server.list_assets().await.unwrap().0;
+        assert!(!items.is_empty());
+        assert!(items.iter().all(|i| i.kind == "object"));
+    }
+
+    #[tokio::test]
+    async fn add_undo_roundtrip() {
+        let server = PetuniaMcp::new();
+        let before = server.list_assets().await.unwrap().0.len();
+        let added = server
+            .add_primitive(Parameters(AddPrimitiveParams {
+                kind: "cube".to_string(),
+                size: 2.0,
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(added.name, "MCP cube");
+        assert_eq!(server.list_assets().await.unwrap().0.len(), before + 1);
+        assert!(server.undo().await.unwrap().0);
+        assert_eq!(server.list_assets().await.unwrap().0.len(), before);
+        assert!(!server.undo().await.unwrap().0);
+    }
+
+    #[tokio::test]
+    async fn invalid_primitive_params_are_rejected() {
+        let server = PetuniaMcp::new();
+        assert!(
+            server
+                .add_primitive(Parameters(AddPrimitiveParams {
+                    kind: "torus".to_string(),
+                    size: 1.0,
+                }))
+                .await
+                .is_err()
+        );
+        assert!(
+            server
+                .add_primitive(Parameters(AddPrimitiveParams {
+                    kind: "cube".to_string(),
+                    size: f64::NAN,
+                }))
+                .await
+                .is_err()
+        );
+        assert!(
+            server
+                .export_obj(Parameters(ExportObjParams { index: 9999 }))
+                .await
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn export_and_validate_paths() {
+        let server = PetuniaMcp::new();
+        let obj = server
+            .export_obj(Parameters(ExportObjParams { index: 0 }))
+            .await
+            .unwrap();
+        assert!(obj.contains('v'));
+
+        let ok = server
+            .validate_intent(Parameters(ValidateIntentParams {
+                command: "model.extrude".to_string(),
+                asset_id: None,
+                args: vec![0.5],
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert!(ok.valid);
+        assert_eq!(ok.reason, "ok");
+
+        let unknown = server
+            .validate_intent(Parameters(ValidateIntentParams {
+                command: "model.frobnicator".to_string(),
+                asset_id: None,
+                args: vec![],
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert!(!unknown.valid);
+        assert_eq!(unknown.reason, "not_allowlisted");
+
+        let bad = server
+            .validate_intent(Parameters(ValidateIntentParams {
+                command: "rm -rf".to_string(),
+                asset_id: None,
+                args: vec![],
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert!(!bad.valid);
+        assert_eq!(bad.reason, "bad_shape");
+    }
+}

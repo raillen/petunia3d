@@ -4,9 +4,10 @@
 //! do Petunia3D com segurança de memória, sem acoplamento a UI e com contratos estáveis.
 
 #![allow(clippy::missing_safety_doc)]
+#![allow(unsafe_op_in_unsafe_fn)]
 
 use std::cell::RefCell;
-use std::ffi::{c_char, CStr};
+use std::ffi::{CStr, c_char};
 use std::path::Path;
 use std::ptr;
 
@@ -86,7 +87,7 @@ unsafe fn write_to_c_buffer(src: &str, out_buf: *mut c_char, out_len: usize) -> 
 
 /// Cria uma nova instância de contexto do Petunia3D com um novo projeto.
 /// `lang` pode ser nulo (padrão: "en").
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_context_create(lang: *const c_char) -> *mut PetuniaContext {
     let language = if lang.is_null() {
         "en"
@@ -102,7 +103,7 @@ pub unsafe extern "C" fn petunia_context_create(lang: *const c_char) -> *mut Pet
 }
 
 /// Destrói uma instância de contexto do Petunia3D liberando todos os recursos.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_context_destroy(ctx: *mut PetuniaContext) {
     if !ctx.is_null() {
         drop(Box::from_raw(ctx));
@@ -114,7 +115,7 @@ pub unsafe extern "C" fn petunia_context_destroy(ctx: *mut PetuniaContext) {
 // -----------------------------------------------------------------------------
 
 /// Inicializa um novo projeto limpo no contexto.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_new_project(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -126,7 +127,7 @@ pub unsafe extern "C" fn petunia_new_project(ctx: *mut PetuniaContext) -> i32 {
 }
 
 /// Carrega um arquivo `.petunia` no contexto.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_load_project(
     ctx: *mut PetuniaContext,
     path: *const c_char,
@@ -151,7 +152,7 @@ pub unsafe extern "C" fn petunia_load_project(
 }
 
 /// Salva o projeto atual no formato `.petunia`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_save_project(
     ctx: *mut PetuniaContext,
     path: *const c_char,
@@ -176,7 +177,7 @@ pub unsafe extern "C" fn petunia_save_project(
 }
 
 /// Importa uma malha Wavefront OBJ como novo asset no projeto.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_import_obj(ctx: *mut PetuniaContext, path: *const c_char) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -198,7 +199,7 @@ pub unsafe extern "C" fn petunia_import_obj(ctx: *mut PetuniaContext, path: *con
 }
 
 /// Exporta o asset ativo para Wavefront OBJ.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_export_obj(ctx: *mut PetuniaContext, path: *const c_char) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -221,7 +222,7 @@ pub unsafe extern "C" fn petunia_export_obj(ctx: *mut PetuniaContext, path: *con
 }
 
 /// Exporta todos os assets visíveis da cena para o formato binário GLB (glTF 2.0).
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_export_glb(ctx: *mut PetuniaContext, path: *const c_char) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -248,7 +249,7 @@ pub unsafe extern "C" fn petunia_export_glb(ctx: *mut PetuniaContext, path: *con
 // -----------------------------------------------------------------------------
 
 /// Insere uma nova primitiva na cena ("Cube", "Plane", "Sphere", "Cylinder", "Cylinder8", "Capsule", "Cone").
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_add_primitive(
     ctx: *mut PetuniaContext,
     kind: *const c_char,
@@ -268,7 +269,7 @@ pub unsafe extern "C" fn petunia_add_primitive(
 }
 
 /// Desfaz a última ação executada.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_undo(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -284,7 +285,7 @@ pub unsafe extern "C" fn petunia_undo(ctx: *mut PetuniaContext) -> i32 {
 }
 
 /// Refaz a última ação desfeita.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_redo(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -300,7 +301,7 @@ pub unsafe extern "C" fn petunia_redo(ctx: *mut PetuniaContext) -> i32 {
 }
 
 /// Seleciona todos os elementos do ativo atual.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_select_all(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -317,7 +318,7 @@ pub unsafe extern "C" fn petunia_select_all(ctx: *mut PetuniaContext) -> i32 {
 }
 
 /// Limpa toda a seleção atual.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_clear_selection(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -334,7 +335,7 @@ pub unsafe extern "C" fn petunia_clear_selection(ctx: *mut PetuniaContext) -> i3
 }
 
 /// Remove os elementos selecionados.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_delete_selection(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -351,7 +352,7 @@ pub unsafe extern "C" fn petunia_delete_selection(ctx: *mut PetuniaContext) -> i
 }
 
 /// Duplica a seleção ou o objeto atual.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_duplicate_selection(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -368,7 +369,7 @@ pub unsafe extern "C" fn petunia_duplicate_selection(ctx: *mut PetuniaContext) -
 }
 
 /// Extrude os elementos selecionados com a distância especificada.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_extrude_selection(ctx: *mut PetuniaContext, distance: f32) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -381,7 +382,7 @@ pub unsafe extern "C" fn petunia_extrude_selection(ctx: *mut PetuniaContext, dis
 }
 
 /// Subdivide os elementos selecionados.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_subdivide_selection(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -393,7 +394,7 @@ pub unsafe extern "C" fn petunia_subdivide_selection(ctx: *mut PetuniaContext) -
 }
 
 /// Aplica escala uniforme aos elementos selecionados.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_scale_selection(ctx: *mut PetuniaContext, scale: f32) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -410,7 +411,7 @@ pub unsafe extern "C" fn petunia_scale_selection(ctx: *mut PetuniaContext, scale
 // -----------------------------------------------------------------------------
 
 /// Retorna o número total de assets no projeto.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_get_asset_count(ctx: *mut PetuniaContext) -> i32 {
     if ctx.is_null() {
         set_last_error("Contexto nulo");
@@ -421,7 +422,7 @@ pub unsafe extern "C" fn petunia_get_asset_count(ctx: *mut PetuniaContext) -> i3
 }
 
 /// Obtém os totais de vértices e faces da cena completa.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_get_scene_summary(
     ctx: *mut PetuniaContext,
     out_total_verts: *mut u32,
@@ -439,7 +440,7 @@ pub unsafe extern "C" fn petunia_get_scene_summary(
 }
 
 /// Copia o nome do asset ativo para o buffer C fornecido.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_get_active_asset_name(
     ctx: *mut PetuniaContext,
     buffer: *mut c_char,
@@ -459,7 +460,7 @@ pub unsafe extern "C" fn petunia_get_active_asset_name(
 }
 
 /// Obtém as contagens de vértices e faces do asset ativo.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_get_active_asset_stats(
     ctx: *mut PetuniaContext,
     out_verts: *mut u32,
@@ -481,7 +482,7 @@ pub unsafe extern "C" fn petunia_get_active_asset_stats(
 }
 
 /// Ativa um asset da cena através de seu identificador UUID estável (em formato de string).
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_set_active_asset_by_id(
     ctx: *mut PetuniaContext,
     uuid_str: *const c_char,
@@ -512,7 +513,7 @@ pub unsafe extern "C" fn petunia_set_active_asset_by_id(
 }
 
 /// Deleta um asset da cena através de seu identificador UUID estável.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_delete_asset_by_id(
     ctx: *mut PetuniaContext,
     uuid_str: *const c_char,
@@ -543,7 +544,7 @@ pub unsafe extern "C" fn petunia_delete_asset_by_id(
 }
 
 /// Serializa a hierarquia da cena (`SceneHierarchyDto`) em JSON e preenche o buffer C fornecido.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_query_scene_hierarchy_json(
     ctx: *mut PetuniaContext,
     buffer: *mut c_char,
@@ -565,7 +566,7 @@ pub unsafe extern "C" fn petunia_query_scene_hierarchy_json(
 }
 
 /// Serializa os detalhes da seleção (`SelectionDetailsDto`) em JSON e preenche o buffer C fornecido.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_query_selection_details_json(
     ctx: *mut PetuniaContext,
     buffer: *mut c_char,
@@ -587,7 +588,7 @@ pub unsafe extern "C" fn petunia_query_selection_details_json(
 }
 
 /// Serializa o status da ferramenta atual (`ToolStatusDto`) em JSON e preenche o buffer C fornecido.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_query_tool_status_json(
     ctx: *mut PetuniaContext,
     buffer: *mut c_char,
@@ -613,7 +614,7 @@ pub unsafe extern "C" fn petunia_query_tool_status_json(
 // -----------------------------------------------------------------------------
 
 /// Copia a última mensagem de erro registrada para o buffer C fornecido.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn petunia_last_error_message(buffer: *mut c_char, buffer_len: usize) -> i32 {
     LAST_ERROR.with(|err| {
         let msg = err.borrow();

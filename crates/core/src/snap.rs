@@ -229,17 +229,16 @@ pub fn snap_point(query: SnapQuery) -> SnapResult {
             }
         }
         SnapTarget::Vertex => {
-            if let Some(mesh) = query.mesh {
-                if let Some((pt, dist)) =
+            if let Some(mesh) = query.mesh
+                && let Some((pt, dist)) =
                     snap_point_to_vertices(query.point, mesh, query.settings.snap_distance)
-                {
-                    return SnapResult {
-                        point: pt,
-                        snapped: true,
-                        target: SnapTarget::Vertex,
-                        distance: dist,
-                    };
-                }
+            {
+                return SnapResult {
+                    point: pt,
+                    snapped: true,
+                    target: SnapTarget::Vertex,
+                    distance: dist,
+                };
             }
             SnapResult {
                 point: query.point,
@@ -249,17 +248,16 @@ pub fn snap_point(query: SnapQuery) -> SnapResult {
             }
         }
         SnapTarget::Edge => {
-            if let Some(mesh) = query.mesh {
-                if let Some((pt, dist)) =
+            if let Some(mesh) = query.mesh
+                && let Some((pt, dist)) =
                     snap_point_to_edges(query.point, mesh, query.settings.snap_distance)
-                {
-                    return SnapResult {
-                        point: pt,
-                        snapped: true,
-                        target: SnapTarget::Edge,
-                        distance: dist,
-                    };
-                }
+            {
+                return SnapResult {
+                    point: pt,
+                    snapped: true,
+                    target: SnapTarget::Edge,
+                    distance: dist,
+                };
             }
             SnapResult {
                 point: query.point,
@@ -269,17 +267,16 @@ pub fn snap_point(query: SnapQuery) -> SnapResult {
             }
         }
         SnapTarget::Face => {
-            if let Some(mesh) = query.mesh {
-                if let Some((pt, dist)) =
+            if let Some(mesh) = query.mesh
+                && let Some((pt, dist)) =
                     snap_point_to_faces(query.point, mesh, query.settings.snap_distance)
-                {
-                    return SnapResult {
-                        point: pt,
-                        snapped: true,
-                        target: SnapTarget::Face,
-                        distance: dist,
-                    };
-                }
+            {
+                return SnapResult {
+                    point: pt,
+                    snapped: true,
+                    target: SnapTarget::Face,
+                    distance: dist,
+                };
             }
             SnapResult {
                 point: query.point,

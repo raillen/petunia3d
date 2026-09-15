@@ -12,9 +12,32 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
     egui::CollapsingHeader::new(l_uv)
         .default_open(true)
         .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                if ui.button(l_reproj).clicked() {
+            ui.horizontal_wrapped(|ui| {
+                if ui
+                    .button(l_reproj)
+                    .on_hover_text("Projeção planar no eixo dominante")
+                    .clicked()
+                {
                     UvModule::reproject(state);
+                }
+                if ui
+                    .button("Cúbica (Box)")
+                    .on_hover_text("Projeção cúbica nos 6 eixos")
+                    .clicked()
+                {
+                    UvModule::project_cube(state);
+                }
+                if ui
+                    .button("Auto Unwrap")
+                    .on_hover_text("Desdobramento automático de malha via xatlas")
+                    .clicked()
+                {
+                    match UvModule::unwrap_auto(state) {
+                        Ok(charts) => {
+                            state.set_status(format!("Auto Unwrap: {charts} ilhas geradas"))
+                        }
+                        Err(e) => state.set_status(format!("Erro no Unwrap: {e}")),
+                    }
                 }
                 if ui.button(format!("{l_scale} +")).clicked() {
                     state.checkpoint("uv scale");
@@ -23,6 +46,15 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
                 if ui.button(format!("{l_scale} −")).clicked() {
                     state.checkpoint("uv scale");
                     UvModule::scale_selected(state, 1.0 / 1.1);
+                }
+                if ui
+                    .button("⟳ 90°")
+                    .on_hover_text("Gira seleção 90 graus")
+                    .clicked()
+                {
+                    state.checkpoint("uv rotate");
+                    UvModule::rotate_selected(state, std::f32::consts::FRAC_PI_2);
+                    state.emit_mesh_changed();
                 }
             });
             ui.small(format!(
@@ -62,19 +94,19 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
                 }
             }
             // clique seleciona face (hit test); drag move selecionadas
-            if resp.clicked() {
-                if let Some(pos) = resp.interact_pointer_pos() {
-                    let u = (pos.x - rect.min.x) / size;
-                    let v = 1.0 - (pos.y - rect.min.y) / size;
-                    if let Some(fi) = UvModule::uv_hit(state, u, v) {
-                        state.checkpoint("uv select");
-                        if let Some(o) = state.project.active_mut() {
-                            if let Some(f) = o.mesh.faces.get_mut(fi) {
-                                f.selected = !f.selected;
-                            }
-                        }
-                        state.sync_selection();
+            if resp.clicked()
+                && let Some(pos) = resp.interact_pointer_pos()
+            {
+                let u = (pos.x - rect.min.x) / size;
+                let v = 1.0 - (pos.y - rect.min.y) / size;
+                if let Some(fi) = UvModule::uv_hit(state, u, v) {
+                    state.checkpoint("uv select");
+                    if let Some(o) = state.project.active_mut()
+                        && let Some(f) = o.mesh.faces.get_mut(fi)
+                    {
+                        f.selected = !f.selected;
                     }
+                    state.sync_selection();
                 }
             }
             if resp.drag_started() {

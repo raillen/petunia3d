@@ -285,7 +285,13 @@ impl AppState {
             ModalKind::Move => {
                 let delta = match modal.constraint {
                     ModalConstraint::Free => translation,
-                    ModalConstraint::Axis(i) => axis(i) * value,
+                    ModalConstraint::Axis(i) => {
+                        if self.snap_enabled {
+                            axis(i) * translation[i]
+                        } else {
+                            axis(i) * value
+                        }
+                    }
                     ModalConstraint::Plane(i) => translation - axis(i) * translation[i],
                 };
                 components = delta;
@@ -434,22 +440,21 @@ impl AppState {
         let modal = self.modal.as_ref().ok_or(ModalError::NoActiveOperation)?;
         let changed = !same_geometry(&mesh, &modal.source);
         // Preserve selection flags for object transforms and identity previews.
-        if !changed
+        if (!changed
             || (self.mode == EditMode::Object
                 && matches!(
                     modal.kind,
                     ModalKind::Move | ModalKind::Rotate | ModalKind::Scale
-                ))
+                )))
+            && let Some(original) = modal.original.active_mesh()
         {
-            if let Some(original) = modal.original.active_mesh() {
-                for (vertex, source) in mesh.verts.iter_mut().zip(&original.verts) {
-                    vertex.selected = source.selected;
-                }
-                for (face, source) in mesh.faces.iter_mut().zip(&original.faces) {
-                    face.selected = source.selected;
-                }
-                mesh.selected_edges = original.selected_edges.clone();
+            for (vertex, source) in mesh.verts.iter_mut().zip(&original.verts) {
+                vertex.selected = source.selected;
             }
+            for (face, source) in mesh.faces.iter_mut().zip(&original.faces) {
+                face.selected = source.selected;
+            }
+            mesh.selected_edges = original.selected_edges.clone();
         }
         let active = self
             .project

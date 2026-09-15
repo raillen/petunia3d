@@ -173,73 +173,74 @@
 | **P3D-082** | [P3D-082 — Context Menus](./specs/p3d-082-context-menus.md) | ✅ COMPLIANT |
 | **P3D-083** | [P3D-083 — Tool Properties](./specs/p3d-083-tool-properties.md) | ✅ COMPLIANT |
 
-### Wave 7: Materials, Texture, UV & Paint (PRÓXIMA / ATIVA)
+### Wave 7: Materials, Texture, UV & Paint
 
 | ID | Especificação | Status Canônico |
 | :---: | :--- | :---: |
-| **P3D-050** | [P3D-050 — Material System](./specs/p3d-050-material-system.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-051** | [P3D-051 — Albedo / Diffuse](./specs/p3d-051-albedo-diffuse.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-052** | [P3D-052 — Normal / Bump](./specs/p3d-052-normal-bump.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-053** | [P3D-053 — Roughness / Glossiness](./specs/p3d-053-roughness-glossiness.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-054** | [P3D-054 — Displacement / Height](./specs/p3d-054-displacement-height.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-055** | [P3D-055 — Paint Workspace](./specs/p3d-055-paint-workspace.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-056** | [P3D-056 — Pixel Brush](./specs/p3d-056-pixel-brush.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-057** | [P3D-057 — Soft Brush](./specs/p3d-057-soft-brush.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-058** | [P3D-058 — Eraser](./specs/p3d-058-eraser.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-059** | [P3D-059 — Fill](./specs/p3d-059-fill.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-060** | [P3D-060 — Color Picker](./specs/p3d-060-color-picker.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-061** | [P3D-061 — Simple Paint Layers](./specs/p3d-061-simple-paint-layers.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-062** | [P3D-062 — Paint de mapas via UV](./specs/p3d-062-paint-de-mapas-via-uv.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-063** | [P3D-063 — UV Workspace](./specs/p3d-063-uv-workspace.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-064** | [P3D-064 — UV Editing básico](./specs/p3d-064-uv-editing-basico.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-065** | [P3D-065 — Integração Paint ↔ UV](./specs/p3d-065-integracao-paint-uv.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-132** | [P3D-132 — Paint Masks / Face & Selection Isolation](./specs/p3d-132-paint-masks-face-selection-isolation.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-133** | [P3D-133 — Decal & Projection Layers](./specs/p3d-133-decal-projection-layers.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-134** | [P3D-134 — Paint Effect Stack](./specs/p3d-134-paint-effect-stack.md) | 🔄 ATIVA / EM ANDAMENTO |
-| **P3D-140** | [P3D-140 — Material Shader Profiles & Effects](./specs/p3d-140-material-shader-profiles-effects.md) | 🔄 ATIVA / EM ANDAMENTO |
+| **P3D-050** | [P3D-050 — Material System](./specs/p3d-050-material-system.md) | ✅ COMPLIANT |
+| **P3D-051** | [P3D-051 — Albedo / Diffuse](./specs/p3d-051-albedo-diffuse.md) | ✅ COMPLIANT |
+| **P3D-052** | [P3D-052 — Normal / Bump](./specs/p3d-052-normal-bump.md) | ✅ COMPLIANT |
+| **P3D-053** | [P3D-053 — Roughness / Glossiness](./specs/p3d-053-roughness-glossiness.md) | ✅ COMPLIANT |
+| **P3D-054** | [P3D-054 — Displacement / Height](./specs/p3d-054-displacement-height.md) | ✅ COMPLIANT |
+| **P3D-055** | [P3D-055 — Paint Workspace](./specs/p3d-055-paint-workspace.md) | ✅ COMPLIANT |
+| **P3D-056** | [P3D-056 — Pixel Brush](./specs/p3d-056-pixel-brush.md) | ✅ COMPLIANT |
+| **P3D-057** | [P3D-057 — Soft Brush](./specs/p3d-057-soft-brush.md) | ✅ COMPLIANT |
+| **P3D-058** | [P3D-058 — Eraser](./specs/p3d-058-eraser.md) | ✅ COMPLIANT |
+| **P3D-059** | [P3D-059 — Fill](./specs/p3d-059-fill.md) | ✅ COMPLIANT |
+| **P3D-060** | [P3D-060 — Color Picker](./specs/p3d-060-color-picker.md) | ✅ COMPLIANT |
+| **P3D-061** | [P3D-061 — Simple Paint Layers](./specs/p3d-061-simple-paint-layers.md) | ✅ COMPLIANT |
+| **P3D-062** | [P3D-062 — Paint de mapas via UV](./specs/p3d-062-paint-de-mapas-via-uv.md) | ✅ COMPLIANT |
+| **P3D-063** | [P3D-063 — UV Workspace](./specs/p3d-063-uv-workspace.md) | ✅ COMPLIANT |
+| **P3D-064** | [P3D-064 — UV Editing básico](./specs/p3d-064-uv-editing-basico.md) | ✅ COMPLIANT |
+| **P3D-065** | [P3D-065 — Integração Paint ↔ UV](./specs/p3d-065-integracao-paint-uv.md) | ✅ COMPLIANT |
+| **P3D-132** | [P3D-132 — Paint Masks / Face & Selection Isolation](./specs/p3d-132-paint-masks-face-selection-isolation.md) | ✅ COMPLIANT |
+| **P3D-133** | [P3D-133 — Decal & Projection Layers](./specs/p3d-133-decal-projection-layers.md) | ✅ COMPLIANT |
+| **P3D-134** | [P3D-134 — Paint Effect Stack](./specs/p3d-134-paint-effect-stack.md) | ✅ COMPLIANT |
+| **P3D-140** | [P3D-140 — Material Shader Profiles & Effects](./specs/p3d-140-material-shader-profiles-effects.md) | ✅ COMPLIANT |
 
 ### Wave 8: Import, Export & Delivery Pipeline
 
 | ID | Especificação | Status Canônico |
 | :---: | :--- | :---: |
-| **P3D-068** | [P3D-068 — Export individual](./specs/p3d-068-export-individual.md) | ⏳ PLANEJADA |
-| **P3D-069** | [P3D-069 — Export múltiplo](./specs/p3d-069-export-multiplo.md) | ⏳ PLANEJADA |
-| **P3D-070** | [P3D-070 — Batch Export](./specs/p3d-070-batch-export.md) | ⏳ PLANEJADA |
-| **P3D-071** | [P3D-071 — Importadores modulares](./specs/p3d-071-importadores-modulares.md) | ⏳ PLANEJADA |
-| **P3D-072** | [P3D-072 — Exportadores modulares](./specs/p3d-072-exportadores-modulares.md) | ⏳ PLANEJADA |
-| **P3D-124** | [P3D-124 — Testes de import/export](./specs/p3d-124-testes-de-import-export.md) | ⏳ PLANEJADA |
+| **P3D-068** | [P3D-068 — Export individual](./specs/p3d-068-export-individual.md) | ✅ COMPLIANT |
+| **P3D-069** | [P3D-069 — Export múltiplo](./specs/p3d-069-export-multiplo.md) | ✅ COMPLIANT |
+| **P3D-070** | [P3D-070 — Batch Export](./specs/p3d-070-batch-export.md) | ✅ COMPLIANT |
+| **P3D-071** | [P3D-071 — Importadores modulares](./specs/p3d-071-importadores-modulares.md) | ✅ COMPLIANT |
+| **P3D-072** | [P3D-072 — Exportadores modulares](./specs/p3d-072-exportadores-modulares.md) | ✅ COMPLIANT |
+| **P3D-124** | [P3D-124 — Testes de import/export](./specs/p3d-124-testes-de-import-export.md) | ✅ COMPLIANT |
 
 ### Wave 9: Documentation, QA, Release & GA Hardening
 
 | ID | Especificação | Status Canônico |
 | :---: | :--- | :---: |
-| **P3D-116** | [P3D-116 — Website de documentação](./specs/p3d-116-website-de-documentacao.md) | ⏳ PLANEJADA |
-| **P3D-117** | [P3D-117 — Changelog vivo](./specs/p3d-117-changelog-vivo.md) | ⏳ PLANEJADA |
-| **P3D-118** | [P3D-118 — Screenshots atualizados](./specs/p3d-118-screenshots-atualizados.md) | ⏳ PLANEJADA |
-| **P3D-119** | [P3D-119 — Referência automática de tokens](./specs/p3d-119-referencia-automatica-de-tokens.md) | ⏳ PLANEJADA |
-| **P3D-120** | [P3D-120 — Docs Check](./specs/p3d-120-docs-check.md) | ⏳ PLANEJADA |
-| **P3D-121** | [P3D-121 — UI Regression Tests](./specs/p3d-121-ui-regression-tests.md) | ⏳ PLANEJADA |
-| **P3D-126** | [P3D-126 — Performance para PCs modestos](./specs/p3d-126-performance-para-pcs-modestos.md) | ⏳ PLANEJADA |
-| **P3D-127** | [P3D-127 — No Remesh](./specs/p3d-127-no-remesh.md) | ⏳ PLANEJADA |
-| **P3D-128** | [P3D-128 — Sem composição de cenas complexa](./specs/p3d-128-sem-composicao-de-cenas-complexa.md) | ⏳ PLANEJADA |
-| **P3D-129** | [P3D-129 — Sem login obrigatório](./specs/p3d-129-sem-login-obrigatorio.md) | ⏳ PLANEJADA |
-| **P3D-130** | [P3D-130 — Customização sem quebrar Core](./specs/p3d-130-customizacao-sem-quebrar-core.md) | ⏳ PLANEJADA |
+| **P3D-116** | [P3D-116 — Website de documentação](./specs/p3d-116-website-de-documentacao.md) | ✅ COMPLIANT |
+| **P3D-117** | [P3D-117 — Changelog vivo](./specs/p3d-117-changelog-vivo.md) | ✅ COMPLIANT |
+| **P3D-118** | [P3D-118 — Screenshots atualizados](./specs/p3d-118-screenshots-atualizados.md) | ✅ COMPLIANT |
+| **P3D-119** | [P3D-119 — Referência automática de tokens](./specs/p3d-119-referencia-automatica-de-tokens.md) | ✅ COMPLIANT |
+| **P3D-120** | [P3D-120 — Docs Check](./specs/p3d-120-docs-check.md) | ✅ COMPLIANT |
+| **P3D-121** | [P3D-121 — UI Regression Tests](./specs/p3d-121-ui-regression-tests.md) | ✅ COMPLIANT |
+| **P3D-126** | [P3D-126 — Performance para PCs modestos](./specs/p3d-126-performance-para-pcs-modestos.md) | ✅ COMPLIANT |
+| **P3D-127** | [P3D-127 — No Remesh](./specs/p3d-127-no-remesh.md) | ✅ COMPLIANT |
+| **P3D-128** | [P3D-128 — Sem composição de cenas complexa](./specs/p3d-128-sem-composicao-de-cenas-complexa.md) | ✅ COMPLIANT |
+| **P3D-129** | [P3D-129 — Sem login obrigatório](./specs/p3d-129-sem-login-obrigatorio.md) | ✅ COMPLIANT |
+| **P3D-130** | [P3D-130 — Customização sem quebrar Core](./specs/p3d-130-customizacao-sem-quebrar-core.md) | ✅ COMPLIANT |
 
-### Waves 10-13: Roadmap Pós-GA (Animation, Plugins, Engine)
+### Wave 10: Animation & Rigging
 
 | ID | Especificação | Status Canônico |
 | :---: | :--- | :---: |
-| **P3D-066** | [P3D-066 — Animation Workspace](./specs/p3d-066-animation-workspace.md) | 🚀 PÓS-GA |
-| **P3D-067** | [P3D-067 — Animação simples](./specs/p3d-067-animacao-simples.md) | 🚀 PÓS-GA |
-| **P3D-110** | [P3D-110 — Lua Plugin System](./specs/p3d-110-lua-plugin-system.md) | 🚀 PÓS-GA |
-| **P3D-111** | [P3D-111 — Public Plugin API](./specs/p3d-111-public-plugin-api.md) | 🚀 PÓS-GA |
-| **P3D-112** | [P3D-112 — MCP API / Automação](./specs/p3d-112-mcp-api-automacao.md) | 🚀 PÓS-GA |
-| **P3D-113** | [P3D-113 — Texturing Nodes simples](./specs/p3d-113-texturing-nodes-simples.md) | 🚀 PÓS-GA |
-| **P3D-135** | [P3D-135 — Skeleton & Rig Core](./specs/p3d-135-skeleton-rig-core.md) | 🚀 PÓS-GA |
-| **P3D-136** | [P3D-136 — Rig Presets — Humanoid, Quadruped e Multi-Leg](./specs/p3d-136-rig-presets-humanoid-quadruped-e-mult.md) | 🚀 PÓS-GA |
-| **P3D-137** | [P3D-137 — Auto-Rig](./specs/p3d-137-auto-rig.md) | 🚀 PÓS-GA |
-| **P3D-138** | [P3D-138 — Animation Retargeting / External Compatibility](./specs/p3d-138-animation-retargeting-external-compatibi.md) | 🚀 PÓS-GA |
-| **P3D-139** | [P3D-139 — Animation Asset Library](./specs/p3d-139-animation-asset-library.md) | 🚀 PÓS-GA |
+| **P3D-066** | [P3D-066 — Animation Workspace](./specs/p3d-066-animation-workspace.md) | ✅ COMPLIANT |
+| **P3D-067** | [P3D-067 — Animação simples](./specs/p3d-067-animacao-simples.md) | ✅ COMPLIANT |
+| **P3D-135** | [P3D-135 — Skeleton & Rig Core](./specs/p3d-135-skeleton-rig-core.md) | ✅ COMPLIANT |
+| **P3D-136** | [P3D-136 — Rig Presets — Humanoid, Quadruped e Multi-Leg](./specs/p3d-136-rig-presets-humanoid-quadruped-e-mult.md) | ✅ COMPLIANT |
+| **P3D-137** | [P3D-137 — Auto-Rig](./specs/p3d-137-auto-rig.md) | ✅ COMPLIANT |
+| **P3D-138** | [P3D-138 — Animation Retargeting / External Compatibility](./specs/p3d-138-animation-retargeting-external-compatibi.md) | ✅ COMPLIANT |
+| **P3D-139** | [P3D-139 — Animation Asset Library](./specs/p3d-139-animation-asset-library.md) | ✅ COMPLIANT |
+
+### Waves 11-13: Roadmap Pós-GA (Plugins, Toolkits & Engine)
+
+| ID | Especificação | Status Canônico |
+| :---: | :--- | :---: |
 | **P3D-141** | [P3D-141 — Internal AI Agent Panel](./specs/p3d-141-internal-ai-agent-panel.md) | 🚀 PÓS-GA |
 | **P3D-142** | [P3D-142 — AI-Assisted Modeling Pipeline](./specs/p3d-142-ai-assisted-modeling-pipeline.md) | 🚀 PÓS-GA |
 | **P3D-143** | [P3D-143 — Game Engine Integration / Bridge](./specs/p3d-143-game-engine-integration-bridge.md) | 🚀 PÓS-GA |

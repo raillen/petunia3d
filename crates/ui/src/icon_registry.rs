@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use std::sync::{LazyLock, RwLock};
 
 use egui::{
-    pos2, Align2, Color32, ColorImage, Context, FontId, Painter, Rect, TextureHandle,
-    TextureOptions,
+    Align2, Color32, ColorImage, Context, FontId, Painter, Rect, TextureHandle, TextureOptions,
+    pos2,
 };
 
 use crate::icons;
@@ -206,6 +206,49 @@ impl PetuniaIcon {
     /// Retorna o glifo Phosphor correspondente, se aplicável.
     pub fn phosphor_glyph(&self) -> Option<&'static str> {
         match self {
+            PetuniaIcon::SelectBox => Some(egui_phosphor::regular::SELECTION_PLUS),
+            PetuniaIcon::Cursor3D => Some(egui_phosphor::regular::CROSSHAIR),
+            PetuniaIcon::Move => Some(egui_phosphor::regular::ARROWS_OUT_CARDINAL),
+            PetuniaIcon::Rotate => Some(egui_phosphor::regular::ARROWS_CLOCKWISE),
+            PetuniaIcon::Scale => Some(egui_phosphor::regular::ARROWS_OUT),
+            PetuniaIcon::Transform => Some(egui_phosphor::regular::BOUNDING_BOX),
+            PetuniaIcon::Annotate => Some(egui_phosphor::regular::PENCIL_SIMPLE),
+            PetuniaIcon::Measure => Some(egui_phosphor::regular::RULER),
+            PetuniaIcon::AddPrimitive => Some(egui_phosphor::regular::CUBE),
+
+            PetuniaIcon::Extrude => Some(egui_phosphor::regular::ARROW_UP),
+            PetuniaIcon::Inset => Some(egui_phosphor::regular::SQUARES_FOUR),
+            PetuniaIcon::Bevel => Some(egui_phosphor::regular::BEZIER_CURVE),
+            PetuniaIcon::LoopCut => Some(egui_phosphor::regular::SPLIT_HORIZONTAL),
+            PetuniaIcon::Knife => Some(egui_phosphor::regular::SCISSORS),
+            PetuniaIcon::PushPull => Some(egui_phosphor::regular::ARROWS_LEFT_RIGHT),
+            PetuniaIcon::Slice => Some(egui_phosphor::regular::KNIFE),
+            PetuniaIcon::Subdivide => Some(egui_phosphor::regular::GRID_FOUR),
+            PetuniaIcon::DrawProfile => Some(egui_phosphor::regular::PEN_NIB),
+
+            PetuniaIcon::ModeObject => Some(egui_phosphor::regular::CUBE),
+            PetuniaIcon::ModeEdit => Some(egui_phosphor::regular::PENCIL_SIMPLE),
+            PetuniaIcon::SelectVertex => Some(egui_phosphor::regular::DOT),
+            PetuniaIcon::SelectEdge => Some(egui_phosphor::regular::LINE_SEGMENT),
+            PetuniaIcon::SelectFace => Some(egui_phosphor::regular::SQUARE),
+
+            PetuniaIcon::ShadingWireframe => Some(egui_phosphor::regular::CIRCLE),
+            PetuniaIcon::ShadingSolid => Some(egui_phosphor::regular::CIRCLE),
+            PetuniaIcon::ShadingMaterial => Some(egui_phosphor::regular::CIRCLE_HALF),
+            PetuniaIcon::ShadingRendered => Some(egui_phosphor::regular::SUN),
+
+            PetuniaIcon::SnapMagnet => Some(egui_phosphor::regular::MAGNET),
+            PetuniaIcon::ProportionalEditing => Some(egui_phosphor::regular::TARGET),
+            PetuniaIcon::XRay => Some(egui_phosphor::regular::SCAN),
+            PetuniaIcon::Overlays => Some(egui_phosphor::regular::STACK),
+            PetuniaIcon::OrientationGlobal => Some(egui_phosphor::regular::COMPASS),
+            PetuniaIcon::PivotMedian => Some(egui_phosphor::regular::DOTS_NINE),
+            PetuniaIcon::ObjectMesh => Some(egui_phosphor::regular::CUBE),
+            PetuniaIcon::ReferenceImage => Some(egui_phosphor::regular::IMAGE),
+            PetuniaIcon::Collection => Some(egui_phosphor::regular::FOLDER_NOTCH_OPEN),
+            PetuniaIcon::Duplicate => Some(egui_phosphor::regular::COPY),
+            PetuniaIcon::Delete => Some(egui_phosphor::regular::TRASH),
+
             PetuniaIcon::Search => Some(egui_phosphor::regular::MAGNIFYING_GLASS),
             PetuniaIcon::Folder => Some(egui_phosphor::regular::FOLDER),
             PetuniaIcon::File => Some(egui_phosphor::regular::FILE),
@@ -394,12 +437,11 @@ impl IconRegistry {
                     let path = entry.path();
                     if path.is_dir() {
                         let manifest_path = path.join("manifest.toml");
-                        if let Ok(text) = std::fs::read_to_string(&manifest_path) {
-                            if let Ok(m) = toml::from_str::<IconPackFile>(&text) {
-                                if !packs.iter().any(|p| p.id == m.icon_pack.id) {
-                                    packs.push(m.icon_pack);
-                                }
-                            }
+                        if let Ok(text) = std::fs::read_to_string(&manifest_path)
+                            && let Ok(m) = toml::from_str::<IconPackFile>(&text)
+                            && !packs.iter().any(|p| p.id == m.icon_pack.id)
+                        {
+                            packs.push(m.icon_pack);
                         }
                     }
                 }
@@ -410,7 +452,7 @@ impl IconRegistry {
     }
     /// Inicializa os conjuntos de fontes adicionais (Phosphor) no contexto do egui, se ainda não configurados.
     pub fn ensure_fonts(ctx: &Context) {
-        ctx.style(); // Garante inicialização básica
+        let _ = ctx.style_of(ctx.theme()); // Garante inicialização básica
         let font_id = egui::Id::new("petunia_phosphor_fonts_initialized");
         let already_initialized = ctx.data(|d| d.get_temp::<bool>(font_id).unwrap_or(false));
 
@@ -425,10 +467,10 @@ impl IconRegistry {
     /// Obtém ou carrega uma textura em cache (executado uma única vez por ícone rasterizado).
     pub fn get_or_load_texture(ctx: &Context, id: &str) -> Option<TextureHandle> {
         // 1. Tenta leitura rápida sem bloqueio de escrita
-        if let Ok(cache) = TEXTURE_CACHE.read() {
-            if let Some(handle) = cache.get(id) {
-                return Some(handle.clone());
-            }
+        if let Ok(cache) = TEXTURE_CACHE.read()
+            && let Some(handle) = cache.get(id)
+        {
+            return Some(handle.clone());
         }
 
         // 2. Busca bytes do asset embutido
@@ -449,7 +491,7 @@ impl IconRegistry {
         Some(handle)
     }
 
-    /// Renderiza um ícone do Petunia com tingimento dinâmico, proporção exata e fallback resiliente.
+    /// Renderiza um ícone do Petunia usando o pacote ativo no contexto.
     pub fn paint(
         ctx: &Context,
         painter: &Painter,
@@ -457,22 +499,54 @@ impl IconRegistry {
         target_rect: Rect,
         tint: Color32,
     ) {
+        let active_pack = ctx.data(|d| {
+            d.get_temp::<String>(egui::Id::new("petunia_active_icon_pack"))
+                .unwrap_or_else(|| "petunia".to_string())
+        });
+        Self::paint_pack(ctx, painter, icon, target_rect, tint, &active_pack);
+    }
+
+    /// Renderiza um ícone do Petunia com tingimento dinâmico e suporte explícito ao pacote selecionado.
+    pub fn paint_pack(
+        ctx: &Context,
+        painter: &Painter,
+        icon: &PetuniaIcon,
+        target_rect: Rect,
+        tint: Color32,
+        pack: &str,
+    ) {
         let id = icon.id();
 
-        // 1. Ferramentas da Toolbar usam renderização vetorial nítida com paleta colorida estilo Blender
-        if is_toolbar_vector_tool(&id) {
+        // 1. Se o pacote for Phosphor (ou fallback de fonte), prioriza o glifo Phosphor
+        if (pack == "phosphor" || pack == "tabler" || pack == "lucide" || pack == "iconoir")
+            && let Some(glyph) = icon.phosphor_glyph()
+        {
+            Self::ensure_fonts(ctx);
+            let font_size = target_rect.height().min(target_rect.width()) * 0.85;
+            painter.text(
+                target_rect.center(),
+                Align2::CENTER_CENTER,
+                glyph,
+                FontId::proportional(font_size),
+                tint,
+            );
+            return;
+        }
+
+        // 2. Se o pacote for "petunia" e for ferramenta da Toolbar, usa renderização vetorial nítida com paleta colorida estilo Blender
+        if pack == "petunia" && is_toolbar_vector_tool(&id) {
             icons::paint(painter, &id, target_rect, tint);
             return;
         }
 
-        // 2. Tenta carregar asset rasterizado (PNG Figma) se existir
+        // 3. Tenta carregar asset rasterizado (PNG Figma) se existir
         if let Some(texture) = Self::get_or_load_texture(ctx, &id) {
             let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
             painter.image(texture.id(), target_rect, uv, tint);
             return;
         }
 
-        // 3. Tenta glifo vetorial Phosphor se aplicável
+        // 4. Fallback para glifo vetorial Phosphor se aplicável
         if let Some(glyph) = icon.phosphor_glyph() {
             Self::ensure_fonts(ctx);
             let font_size = target_rect.height().min(target_rect.width()) * 0.85;
@@ -486,7 +560,7 @@ impl IconRegistry {
             return;
         }
 
-        // 4. Fallback para desenho vetorial nativo de alta precisão
+        // 5. Fallback para desenho vetorial nativo de alta precisão
         icons::paint(painter, &id, target_rect, tint);
     }
 }
@@ -514,6 +588,9 @@ pub fn is_toolbar_vector_tool(id: &str) -> bool {
             | "pushpull"
             | "slice"
             | "subdivide"
+            | "merge"
+            | "flip_diagonal"
+            | "revolve"
             | "draw_profile"
             | "paint"
             | "mode_object"
@@ -627,34 +704,36 @@ mod tests {
 
     #[test]
     fn test_icon_registry_paint_in_egui_context() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         IconRegistry::ensure_fonts(&ctx);
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let (rect, _) = ui.allocate_exact_size(vec2(32.0, 32.0), egui::Sense::hover());
                 IconRegistry::paint(
-                    ctx,
+                    &ctx,
                     ui.painter(),
                     &PetuniaIcon::Move,
                     rect,
                     tokens::TEXT_ACTIVE,
                 );
                 IconRegistry::paint(
-                    ctx,
+                    &ctx,
                     ui.painter(),
                     &PetuniaIcon::Search,
                     rect,
                     tokens::TEXT_ACTIVE,
                 );
                 IconRegistry::paint(
-                    ctx,
+                    &ctx,
                     ui.painter(),
                     &PetuniaIcon::PropRender,
                     rect,
                     tokens::TEXT_ACTIVE,
                 );
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 }

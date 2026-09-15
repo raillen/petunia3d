@@ -214,19 +214,19 @@ impl Keybinds {
 
         for path in candidate_paths {
             if let Ok(text) = fs::read_to_string(&path) {
-                if let Ok(v) = toml::from_str::<toml::Value>(&text) {
-                    if let Some(t) = v.as_table() {
-                        for (section, inner) in t {
-                            if section == "profile" {
-                                continue;
-                            }
-                            if let Some(m) = inner.as_table() {
-                                for (action, val) in m {
-                                    if let Some(s) = val.as_str() {
-                                        if let Some(b) = parse_binding(s) {
-                                            kb.map.insert(format!("{section}.{action}"), b);
-                                        }
-                                    }
+                if let Ok(v) = toml::from_str::<toml::Value>(&text)
+                    && let Some(t) = v.as_table()
+                {
+                    for (section, inner) in t {
+                        if section == "profile" {
+                            continue;
+                        }
+                        if let Some(m) = inner.as_table() {
+                            for (action, val) in m {
+                                if let Some(s) = val.as_str()
+                                    && let Some(b) = parse_binding(s)
+                                {
+                                    kb.map.insert(format!("{section}.{action}"), b);
                                 }
                             }
                         }

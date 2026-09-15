@@ -1,6 +1,10 @@
 //! Petunia3D app: núcleo `Core` + backends wgpu/OpenGL + render-on-demand.
 //! Módulos concretos vivem aqui; eventos são despachados a eles por frame.
 
+pub mod diagnostics;
+pub mod eframe_host;
+pub mod watch;
+
 use std::sync::Arc;
 
 use petunia_core::{
@@ -29,6 +33,7 @@ pub struct Core {
     pub autosave: petunia_core::AutosaveService,
     pub recent_projects: petunia_core::RecentProjects,
     pub pending_recovery: Option<petunia_core::RecoveryInfo>,
+    pub watch_service: Option<crate::watch::WatchService>,
     pub mmb_down: bool,
     pub shift_down: bool,
     pub ctrl_down: bool,
@@ -61,6 +66,12 @@ impl Core {
             .unwrap_or(0);
         let _ = petunia_core::AutosaveService::create_session_lock(None, "Untitled", now_secs);
 
+        let watch_service = if std::path::Path::new("assets").is_dir() {
+            crate::watch::WatchService::watch(&[std::path::Path::new("assets")]).ok()
+        } else {
+            None
+        };
+
         Self {
             state: AppState::new(&lang),
             tools: ToolRegistry::with_defaults(),
@@ -74,6 +85,7 @@ impl Core {
             autosave: petunia_core::AutosaveService::default(),
             recent_projects: petunia_core::RecentProjects::default(),
             pending_recovery,
+            watch_service,
             mmb_down: false,
             shift_down: false,
             ctrl_down: false,
@@ -115,32 +127,49 @@ impl Core {
         }
     }
 
+    /// Executa o tick do WatchService (P1-12), recarregando configurações, temas e locales alterados no disco.
+    pub fn tick_watcher(&mut self) {
+        let Some(watcher) = &self.watch_service else {
+            return;
+        };
+        let messages = watcher.drain_coalesced();
+        for msg in messages {
+            if let Some(path) = &msg.path {
+                let path_str = path.to_string_lossy();
+                if path_str.contains("locales") {
+                    self.state.ui.i18n = petunia_config::i18n::I18n::load(&self.state.ui.i18n.lang);
+                    self.state
+                        .set_status(format!("reloaded translations: {}", path.display()));
+                    self.state.mark_dirty();
+                } else if path_str.contains("themes") {
+                    self.state
+                        .set_status(format!("reloaded theme: {}", path.display()));
+                    self.state.mark_dirty();
+                } else if path_str.contains("keybinds") {
+                    self.state.ui.keybinds = petunia_config::keybinds::Keybinds::load_profile(
+                        &self.state.ui.active_keymap_id,
+                    );
+                    self.state
+                        .set_status(format!("reloaded keybinds: {}", path.display()));
+                    self.state.mark_dirty();
+                } else {
+                    self.state
+                        .set_status(format!("file changed: {}", path.display()));
+                    self.state.mark_dirty();
+                }
+            }
+        }
+    }
+
     /// Despacha eventos acumulados aos módulos via registry.
     pub fn dispatch_events(&mut self) {
         for ev in self.state.events.drain() {
             match &ev {
                 petunia_core::AppEvent::RequestImportPalette => {
-                    if let Some(path) = petunia_ui::file_dialog_service::pick_palette_import_file()
-                    {
-                        if let Err(e) =
-                            petunia_core::ProjectService::import_palette(&mut self.state, &path)
-                        {
-                            self.state.set_status(format!("import palette err: {e}"));
-                        }
-                    }
+                    petunia_ui::file_dialog_service::import_palette_in_canvas();
                 }
                 petunia_core::AppEvent::RequestExportPalette => {
-                    if let Some(path) =
-                        petunia_ui::file_dialog_service::pick_palette_export_file("palette.gpl")
-                    {
-                        if let Err(e) = petunia_core::ProjectService::export_palette(
-                            &self.state.project.palette,
-                            "Petunia Palette",
-                            &path,
-                        ) {
-                            self.state.set_status(format!("export palette err: {e}"));
-                        }
-                    }
+                    petunia_ui::file_dialog_service::export_palette_in_canvas("palette.gpl");
                 }
                 _ => {}
             }
@@ -185,10 +214,10 @@ impl Core {
                 _ => {}
             }
         }
-        if let Ok(t) = std::env::var("PETUNIA_TOOL") {
-            if self.tools.get(&t).is_some() {
-                self.state.active_tool = t;
-            }
+        if let Ok(t) = std::env::var("PETUNIA_TOOL")
+            && self.tools.get(&t).is_some()
+        {
+            self.state.active_tool = t;
         }
         if std::env::var_os("PETUNIA_PROFILE").is_some() {
             self.state.camera.set_preset(ViewPreset::Front);
@@ -250,15 +279,15 @@ impl Core {
         // canvas com círculo no CUBO (asset 0, central) + preview texturizado
         s.project.active = 0;
         PaintModule::ensure_canvas(s);
-        if let Some(o) = s.project.active_mut() {
-            if let Some(cv) = o.texture.as_mut() {
-                for y in 0..cv.h {
-                    for x in 0..cv.w {
-                        let dx = x as i32 - 128;
-                        let dy = y as i32 - 128;
-                        if dx * dx + dy * dy < 60 * 60 {
-                            cv.set(x, y, [220, 40, 40, 255]);
-                        }
+        if let Some(o) = s.project.active_mut()
+            && let Some(cv) = o.texture.as_mut()
+        {
+            for y in 0..cv.h {
+                for x in 0..cv.w {
+                    let dx = x as i32 - 128;
+                    let dy = y as i32 - 128;
+                    if dx * dx + dy * dy < 60 * 60 {
+                        cv.set(x, y, [220, 40, 40, 255]);
                     }
                 }
             }
@@ -277,15 +306,15 @@ impl Core {
     }
 
     pub fn on_cursor_moved(&mut self, x: f64, y: f64) {
-        if self.mmb_down {
-            if let Some((lx, ly)) = self.last_mouse {
-                let dx = (x - lx) as f32;
-                let dy = (y - ly) as f32;
-                if self.shift_down {
-                    self.state.camera.pan(dx, dy);
-                } else {
-                    self.state.camera.orbit(dx, dy);
-                }
+        if self.mmb_down
+            && let Some((lx, ly)) = self.last_mouse
+        {
+            let dx = (x - lx) as f32;
+            let dy = (y - ly) as f32;
+            if self.shift_down {
+                self.state.camera.pan(dx, dy);
+            } else {
+                self.state.camera.orbit(dx, dy);
             }
         }
         self.last_mouse = Some((x, y));
@@ -368,13 +397,15 @@ impl Core {
         {
             return; // Brush radius and eyedropper are contextual viewport input.
         }
-        // Tab: alterna entre modo Objeto e modo de Edição de malha
+        // Tab: alterna entre modo Objeto e última seleção de componente (P3D-015); Shift+Tab: Snap
         if physical == PhysicalKey::Code(WKey::Tab) && !self.ctrl_down {
-            self.state.mode = match self.state.mode {
-                EditMode::Object => EditMode::Edit,
-                _ => EditMode::Object,
-            };
-            self.state.mark_dirty();
+            if self.shift_down {
+                self.state.snap_enabled = !self.state.snap_enabled;
+                self.state.snap_settings.enabled = self.state.snap_enabled;
+                self.state.mark_dirty();
+            } else {
+                self.state.cycle_selection_domain();
+            }
             return;
         }
         // Tecla 0: Seleção de Objeto
@@ -662,7 +693,7 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
         }
         return;
     }
-    use petunia_core::picking::{pick_mesh, PickComponent};
+    use petunia_core::picking::{PickComponent, pick_mesh};
     let viewport = core
         .state
         .ui
@@ -804,6 +835,21 @@ struct WgpuGfx {
     egui_renderer: egui_wgpu::Renderer,
 }
 
+/// Target de display seguro para o egui-winit.
+/// Retorna `Unavailable` para display_handle, prevenindo a inicialização da thread
+/// worker instável do `smithay-clipboard` no Wayland que causa double-free/segfault em `wl_proxy_destroy`,
+/// enquanto delega o clipboard de forma 100% segura para o `arboard`.
+struct SafeDisplayTarget;
+
+impl winit::raw_window_handle::HasDisplayHandle for SafeDisplayTarget {
+    fn display_handle(
+        &self,
+    ) -> Result<winit::raw_window_handle::DisplayHandle<'_>, winit::raw_window_handle::HandleError>
+    {
+        Err(winit::raw_window_handle::HandleError::Unavailable)
+    }
+}
+
 struct WgpuApp {
     core: Core,
     gfx: Option<WgpuGfx>,
@@ -828,10 +874,9 @@ impl WgpuApp {
                 .map_err(|error| format!("wgpu window: {error}"))?,
         );
         let size = window.inner_size();
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
+        let mut instance_desc = wgpu::InstanceDescriptor::new_without_display_handle();
+        instance_desc.backends = wgpu::Backends::all();
+        let instance = wgpu::Instance::new(instance_desc);
         let surface = instance
             .create_surface(Arc::clone(&window))
             .map_err(|error| format!("wgpu surface: {error}"))?;
@@ -843,7 +888,6 @@ impl WgpuApp {
             info.name, info.device_type, info.backend, info.driver_info
         );
         let (device, queue) = pollster::block_on(pick_device(&adapter))?;
-
         let caps = surface.get_capabilities(&adapter);
         let format = caps
             .formats
@@ -857,7 +901,6 @@ impl WgpuApp {
             .first()
             .copied()
             .ok_or_else(|| "wgpu: surface exposes no alpha mode".to_owned())?;
-
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
@@ -867,6 +910,7 @@ impl WgpuApp {
             alpha_mode,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
+            color_space: wgpu::SurfaceColorSpace::Auto,
         };
         surface.configure(&device, &config);
 
@@ -874,15 +918,18 @@ impl WgpuApp {
 
         let egui_ctx = egui::Context::default();
         petunia_ui::apply_theme_to_egui(&petunia_config::Theme::load(), &egui_ctx);
+        petunia_ui::icon_registry::IconRegistry::ensure_fonts(&egui_ctx);
+        petunia_ui::image_kit::install_image_loaders(&egui_ctx);
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
             egui::ViewportId::ROOT,
-            &*window,
+            &SafeDisplayTarget,
             None,
             None,
             None,
         );
-        let egui_renderer = egui_wgpu::Renderer::new(&device, format, None, 1, true);
+        let egui_renderer =
+            egui_wgpu::Renderer::new(&device, format, egui_wgpu::RendererOptions::default());
 
         self.core.apply_dev_presets();
         self.gfx = Some(WgpuGfx {
@@ -915,30 +962,28 @@ impl WgpuApp {
 
         let raw_input = gfx.egui_state.take_egui_input(&gfx.window);
         let mut quit = false;
-        let full_output = gfx.egui_ctx.run(raw_input, |ctx| {
+        let full_output = gfx.egui_ctx.run_ui(raw_input, |ui| {
             let mut act = petunia_ui::UiAction::none();
             petunia_ui::draw(
-                ctx,
+                ui,
                 &mut self.core.state,
                 &self.core.tools,
                 &mut self.core.registry,
                 &mut act,
             );
-            if let Some(ref info) = self.core.pending_recovery {
-                if let Some(rec_act) =
-                    petunia_ui::draw_recovery_dialog(ctx, &mut self.core.state, info)
-                {
-                    match rec_act {
-                        petunia_ui::RecoveryAction::Recover
-                        | petunia_ui::RecoveryAction::OpenSaved => {
-                            self.core.pending_recovery = None;
-                        }
-                        petunia_ui::RecoveryAction::Discard => {
-                            let _ = petunia_core::AutosaveService::discard_recovery(
-                                info.main_project_path.as_deref(),
-                            );
-                            self.core.pending_recovery = None;
-                        }
+            if let Some(ref info) = self.core.pending_recovery
+                && let Some(rec_act) =
+                    petunia_ui::draw_recovery_dialog(ui.ctx(), &mut self.core.state, info)
+            {
+                match rec_act {
+                    petunia_ui::RecoveryAction::Recover | petunia_ui::RecoveryAction::OpenSaved => {
+                        self.core.pending_recovery = None;
+                    }
+                    petunia_ui::RecoveryAction::Discard => {
+                        let _ = petunia_core::AutosaveService::discard_recovery(
+                            info.main_project_path.as_deref(),
+                        );
+                        self.core.pending_recovery = None;
                     }
                 }
             }
@@ -948,6 +993,7 @@ impl WgpuApp {
             .handle_platform_output(&gfx.window, full_output.platform_output.clone());
         self.core.dispatch_events();
         self.core.tick_autosave();
+        self.core.tick_watcher();
 
         if let Some((nx, ny)) = self.core.state.ui.pending_pick.take() {
             handle_pick(&mut self.core, nx, ny);
@@ -981,13 +1027,15 @@ impl WgpuApp {
         };
 
         let frame = match gfx.surface.get_current_texture() {
-            Ok(f) => f,
-            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+            wgpu::CurrentSurfaceTexture::Success(frame)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
+            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
                 gfx.surface.configure(&gfx.device, &gfx.config);
                 return;
             }
-            Err(wgpu::SurfaceError::OutOfMemory) => std::process::exit(1),
-            Err(_) => return,
+            wgpu::CurrentSurfaceTexture::Timeout
+            | wgpu::CurrentSurfaceTexture::Occluded
+            | wgpu::CurrentSurfaceTexture::Validation => return,
         };
         let view = frame.texture.create_view(&Default::default());
 
@@ -1005,16 +1053,25 @@ impl WgpuApp {
                 eprintln!("petunia3d: render skipped: depth buffer unavailable");
                 return;
             };
+            let bg = petunia_config::ThemeRegistry::global()
+                .get_theme(&self.core.state.ui.active_theme_id)
+                .map(|t| {
+                    t.colors
+                        .get_token_color(petunia_config::ThemeToken::BgCanvas)
+                        .to_rgba_f32()
+                })
+                .unwrap_or([0.117, 0.117, 0.133, 1.0]);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("petunia-3d"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.117,
-                            g: 0.117,
-                            b: 0.133,
+                            r: bg[0] as f64,
+                            g: bg[1] as f64,
+                            b: bg[2] as f64,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -1030,6 +1087,7 @@ impl WgpuApp {
                 }),
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             });
             if let Some(viewport) = petunia_core::viewport::PhysicalViewport::from_logical(
                 self.core.state.ui.viewport_rect,
@@ -1051,9 +1109,11 @@ impl WgpuApp {
             }
         }
 
-        for (id, delta) in &full_output.textures_delta.set {
-            gfx.egui_renderer
-                .update_texture(&gfx.device, &gfx.queue, *id, delta);
+        for (id, deltas) in &full_output.textures_delta.set {
+            for delta in deltas {
+                gfx.egui_renderer
+                    .update_texture(&gfx.device, &gfx.queue, *id, delta);
+            }
         }
         let user_cmds = gfx.egui_renderer.update_buffers(
             &gfx.device,
@@ -1067,6 +1127,7 @@ impl WgpuApp {
                 label: Some("petunia-egui"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
@@ -1076,6 +1137,7 @@ impl WgpuApp {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             });
             gfx.egui_renderer
                 .render(&mut pass.forget_lifetime(), &paint_jobs, &screen_desc);
@@ -1086,7 +1148,7 @@ impl WgpuApp {
 
         gfx.queue
             .submit(user_cmds.into_iter().chain([encoder.finish()]));
-        frame.present();
+        gfx.queue.present(frame);
 
         self.update_stats(t0);
         if quit {
@@ -1158,6 +1220,7 @@ async fn pick_adapter(
             power_preference: power,
             compatible_surface: if with_surface { Some(surface) } else { None },
             force_fallback_adapter: fallback,
+            apply_limit_buckets: false,
         };
         match instance.request_adapter(&req).await {
             Ok(a) => {
@@ -1183,6 +1246,7 @@ async fn pick_device(adapter: &wgpu::Adapter) -> Result<(wgpu::Device, wgpu::Que
         label: Some("petunia3d"),
         required_features: wgpu::Features::empty(),
         required_limits: limits,
+        experimental_features: Default::default(),
         memory_hints: Default::default(),
         trace: Default::default(),
     };
@@ -1217,6 +1281,22 @@ impl ApplicationHandler for WgpuApp {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         let Some(gfx) = self.gfx.as_mut() else { return };
 
+        // Intercepta a tecla Tab antes do egui para garantir alternância instantânea de modo (P3D-015)
+        if let WindowEvent::KeyboardInput {
+            event:
+                winit::event::KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: PhysicalKey::Code(WKey::Tab),
+                    ..
+                },
+            ..
+        } = &event
+        {
+            self.core.on_key(PhysicalKey::Code(WKey::Tab));
+            gfx.window.request_redraw();
+            return;
+        }
+
         let is_shortcut_key = matches!(
             &event,
             WindowEvent::KeyboardInput {
@@ -1249,7 +1329,7 @@ impl ApplicationHandler for WgpuApp {
         if resp.repaint {
             gfx.window.request_redraw();
         }
-        if resp.consumed && (!is_shortcut_key || gfx.egui_ctx.wants_keyboard_input()) {
+        if resp.consumed && (!is_shortcut_key || gfx.egui_ctx.egui_wants_keyboard_input()) {
             if matches!(event, WindowEvent::RedrawRequested) {
                 self.redraw();
             }
@@ -1257,7 +1337,10 @@ impl ApplicationHandler for WgpuApp {
         }
 
         match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                self.gfx = None;
+                event_loop.exit();
+            }
             WindowEvent::Resized(size) => {
                 let PhysicalSize { width, height } = size;
                 if width > 0 && height > 0 {
@@ -1300,6 +1383,10 @@ impl ApplicationHandler for WgpuApp {
         }
     }
 
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        self.gfx = None;
+    }
+
     fn device_event(
         &mut self,
         _event_loop: &ActiveEventLoop,
@@ -1311,10 +1398,10 @@ impl ApplicationHandler for WgpuApp {
     /// Render-on-demand (§33): só redesenha se algo mudou.
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         let spin = std::env::var_os("SIMPLE3D_SPIN").is_some();
-        if spin || self.core.state.consume_dirty() {
-            if let Some(g) = self.gfx.as_ref() {
-                g.window.request_redraw();
-            }
+        if (spin || self.core.state.consume_dirty())
+            && let Some(g) = self.gfx.as_ref()
+        {
+            g.window.request_redraw();
         }
     }
 }
@@ -1378,10 +1465,12 @@ impl GlApp {
 
         let egui_ctx = egui::Context::default();
         petunia_ui::apply_theme_to_egui(&petunia_config::Theme::load(), &egui_ctx);
+        petunia_ui::icon_registry::IconRegistry::ensure_fonts(&egui_ctx);
+        petunia_ui::image_kit::install_image_loaders(&egui_ctx);
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
             egui::ViewportId::ROOT,
-            gl_window.window(),
+            &SafeDisplayTarget,
             None,
             None,
             None,
@@ -1418,30 +1507,28 @@ impl GlApp {
 
         let raw_input = g.egui_state.take_egui_input(g.gl_window.window());
         let mut quit = false;
-        let full_output = g.egui_ctx.run(raw_input, |ctx| {
+        let mut full_output = g.egui_ctx.run_ui(raw_input, |ui| {
             let mut act = petunia_ui::UiAction::none();
             petunia_ui::draw(
-                ctx,
+                ui,
                 &mut self.core.state,
                 &self.core.tools,
                 &mut self.core.registry,
                 &mut act,
             );
-            if let Some(ref info) = self.core.pending_recovery {
-                if let Some(rec_act) =
-                    petunia_ui::draw_recovery_dialog(ctx, &mut self.core.state, info)
-                {
-                    match rec_act {
-                        petunia_ui::RecoveryAction::Recover
-                        | petunia_ui::RecoveryAction::OpenSaved => {
-                            self.core.pending_recovery = None;
-                        }
-                        petunia_ui::RecoveryAction::Discard => {
-                            let _ = petunia_core::AutosaveService::discard_recovery(
-                                info.main_project_path.as_deref(),
-                            );
-                            self.core.pending_recovery = None;
-                        }
+            if let Some(ref info) = self.core.pending_recovery
+                && let Some(rec_act) =
+                    petunia_ui::draw_recovery_dialog(ui.ctx(), &mut self.core.state, info)
+            {
+                match rec_act {
+                    petunia_ui::RecoveryAction::Recover | petunia_ui::RecoveryAction::OpenSaved => {
+                        self.core.pending_recovery = None;
+                    }
+                    petunia_ui::RecoveryAction::Discard => {
+                        let _ = petunia_core::AutosaveService::discard_recovery(
+                            info.main_project_path.as_deref(),
+                        );
+                        self.core.pending_recovery = None;
                     }
                 }
             }
@@ -1451,6 +1538,7 @@ impl GlApp {
             .handle_platform_output(g.gl_window.window(), full_output.platform_output.clone());
         self.core.dispatch_events();
         self.core.tick_autosave();
+        self.core.tick_watcher();
 
         if let Some((nx, ny)) = self.core.state.ui.pending_pick.take() {
             handle_pick(&mut self.core, nx, ny);
@@ -1470,7 +1558,7 @@ impl GlApp {
             [w, h],
             full_output.pixels_per_point,
             &paint_jobs,
-            &full_output.textures_delta,
+            &mut full_output.textures_delta,
         );
         let t_swap = std::time::Instant::now();
         // modo screenshot: captura o framebuffer e sai (verificação headless)
@@ -1561,6 +1649,22 @@ impl ApplicationHandler for GlApp {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         let Some(g) = self.gfx.as_mut() else { return };
 
+        // Intercepta a tecla Tab antes do egui para garantir alternância instantânea de modo (P3D-015)
+        if let WindowEvent::KeyboardInput {
+            event:
+                winit::event::KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: PhysicalKey::Code(WKey::Tab),
+                    ..
+                },
+            ..
+        } = &event
+        {
+            self.core.on_key(PhysicalKey::Code(WKey::Tab));
+            g.gl_window.window().request_redraw();
+            return;
+        }
+
         let is_shortcut_key = matches!(
             &event,
             WindowEvent::KeyboardInput {
@@ -1593,7 +1697,7 @@ impl ApplicationHandler for GlApp {
         if resp.repaint {
             g.gl_window.window().request_redraw();
         }
-        if resp.consumed && (!is_shortcut_key || g.egui_ctx.wants_keyboard_input()) {
+        if resp.consumed && (!is_shortcut_key || g.egui_ctx.egui_wants_keyboard_input()) {
             if matches!(event, WindowEvent::RedrawRequested) {
                 self.redraw();
             }
@@ -1601,7 +1705,10 @@ impl ApplicationHandler for GlApp {
         }
 
         match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                self.gfx = None;
+                event_loop.exit();
+            }
             WindowEvent::Resized(size) => {
                 g.gl_window.resize(size.width, size.height);
                 g.gl_window.window().request_redraw();
@@ -1639,6 +1746,10 @@ impl ApplicationHandler for GlApp {
         }
     }
 
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        self.gfx = None;
+    }
+
     fn device_event(
         &mut self,
         _event_loop: &ActiveEventLoop,
@@ -1649,10 +1760,10 @@ impl ApplicationHandler for GlApp {
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         let spin = std::env::var_os("SIMPLE3D_SPIN").is_some() || self.shot_path.is_some();
-        if spin || self.core.state.consume_dirty() {
-            if let Some(g) = self.gfx.as_ref() {
-                g.gl_window.window().request_redraw();
-            }
+        if (spin || self.core.state.consume_dirty())
+            && let Some(g) = self.gfx.as_ref()
+        {
+            g.gl_window.window().request_redraw();
         }
     }
 }
@@ -1690,7 +1801,7 @@ fn capture_screenshot(g: &GlGfx, path: &str, w: u32, h: u32) {
 /// Smoke test scriptado (headless): exercita domínio + módulos + projeto
 /// sem janela. Falha com `Err` legível. Uso: `petunia3d --smoke-test`.
 pub fn smoke_test() -> anyhow::Result<()> {
-    use anyhow::{ensure, Context as _};
+    use anyhow::{Context as _, ensure};
     use petunia_mesh::Mesh;
 
     let mut core = Core::new();
@@ -1835,34 +1946,56 @@ pub fn smoke_test() -> anyhow::Result<()> {
 }
 
 async fn probe_wgpu() -> bool {
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-        backends: wgpu::Backends::all(),
-        ..Default::default()
-    });
+    let mut instance_desc = wgpu::InstanceDescriptor::new_without_display_handle();
+    instance_desc.backends = wgpu::Backends::all();
+    let instance = wgpu::Instance::new(instance_desc);
     for power in [
         wgpu::PowerPreference::HighPerformance,
         wgpu::PowerPreference::LowPower,
     ] {
-        if instance
+        if let Ok(adapter) = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: power,
                 compatible_surface: None,
                 force_fallback_adapter: false,
+                apply_limit_buckets: false,
             })
             .await
-            .is_ok()
         {
+            let info = adapter.get_info();
+            let name_lower = info.name.to_lowercase();
+            // Intel Gen 7 (Ivy Bridge / Bay Trail) lacks working wgpu surface presentation
+            // in both Mesa Vulkan (no WSI) and GLES EGL (fails context creation).
+            // Skip in probe so Petunia automatically falls back to native OpenGL (glow).
+            if name_lower.contains("ivy bridge")
+                || name_lower.contains("ivb")
+                || name_lower.contains("bay trail")
+            {
+                continue;
+            }
             return true;
         }
     }
-    instance
+    if let Ok(adapter) = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::None,
             compatible_surface: None,
             force_fallback_adapter: true,
+            apply_limit_buckets: false,
         })
         .await
-        .is_ok()
+    {
+        let info = adapter.get_info();
+        let name_lower = info.name.to_lowercase();
+        if name_lower.contains("ivy bridge")
+            || name_lower.contains("ivb")
+            || name_lower.contains("bay trail")
+        {
+            return false;
+        }
+        return true;
+    }
+    false
 }
 
 /// Ponto de entrada chamado pelo binário.
@@ -1874,6 +2007,9 @@ pub fn run() {
 }
 
 fn run_event_loop() -> Result<(), String> {
+    // Structured diagnostics sink (tracing, P0-10). RUST_LOG controls
+    // verbosity without recompiling; production default stays quiet.
+    diagnostics::init_diagnostics();
     // Logs: RUST_LOG=wgpu_hal=debug diagnostica backend que falhou.
     // Sem RUST_LOG, os ERRORs internos da sonda wgpu/EGL (normais em
     // máquina sem Vulkan) são silenciados para não assustar.
@@ -1884,9 +2020,7 @@ fn run_event_loop() -> Result<(), String> {
             b.filter_module("wgpu_core", log::LevelFilter::Off);
             b.filter_module("egui_glow", log::LevelFilter::Off);
         }
-        if let Err(error) = b.try_init() {
-            eprintln!("petunia3d: logger initialization: {error}");
-        }
+        let _ = b.try_init();
     }
     let forced = std::env::var("PETUNIA_BACKEND")
         .or_else(|_| std::env::var("SIMPLE3D_BACKEND"))
@@ -1940,6 +2074,7 @@ mod tests {
 
     /// NDC aproximado do centro da face frontal do cubo default.
     /// (câmera default: yaw 0.7/pitch 0.5 — o centro da tela atinge o cubo)
+
     #[test]
     fn pick_center_selects_face() {
         let mut core = Core::new();
@@ -2110,11 +2245,13 @@ mod camera_shortcut_tests {
         // Clica no centro (0, 0) onde está o primeiro objeto (em [0, 0, 0])
         handle_pick(&mut core, 0.0, 0.0);
         assert_eq!(core.state.project.active, 0);
-        assert!(core.state.project.assets[0]
-            .mesh
-            .verts
-            .iter()
-            .any(|v| v.selected));
+        assert!(
+            core.state.project.assets[0]
+                .mesh
+                .verts
+                .iter()
+                .any(|v| v.selected)
+        );
 
         // Move a câmera para enquadrar o segundo objeto em [5, 0, 0]
         core.state.camera.target = glam::Vec3::new(5.0, 0.0, 0.0);
@@ -2122,29 +2259,37 @@ mod camera_shortcut_tests {
         // Agora o centro da tela (0, 0) aponta para o segundo objeto
         handle_pick(&mut core, 0.0, 0.0);
         assert_eq!(core.state.project.active, 1);
-        assert!(core.state.project.assets[1]
-            .mesh
-            .verts
-            .iter()
-            .any(|v| v.selected));
-        assert!(!core.state.project.assets[0]
-            .mesh
-            .verts
-            .iter()
-            .any(|v| v.selected));
+        assert!(
+            core.state.project.assets[1]
+                .mesh
+                .verts
+                .iter()
+                .any(|v| v.selected)
+        );
+        assert!(
+            !core.state.project.assets[0]
+                .mesh
+                .verts
+                .iter()
+                .any(|v| v.selected)
+        );
 
         // Clica no vazio (-0.99, -0.99)
         handle_pick(&mut core, -0.99, -0.99);
-        assert!(!core.state.project.assets[0]
-            .mesh
-            .verts
-            .iter()
-            .any(|v| v.selected));
-        assert!(!core.state.project.assets[1]
-            .mesh
-            .verts
-            .iter()
-            .any(|v| v.selected));
+        assert!(
+            !core.state.project.assets[0]
+                .mesh
+                .verts
+                .iter()
+                .any(|v| v.selected)
+        );
+        assert!(
+            !core.state.project.assets[1]
+                .mesh
+                .verts
+                .iter()
+                .any(|v| v.selected)
+        );
     }
 
     #[test]
@@ -2173,5 +2318,38 @@ mod camera_shortcut_tests {
             1,
             "Delete deve remover o objeto ativo"
         );
+    }
+
+    #[test]
+    fn test_tick_watcher_reloads_config_changes() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("petunia-core-watch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        let locales_dir = temp_dir.join("locales");
+        std::fs::create_dir_all(&locales_dir).unwrap();
+
+        let mut core = Core::new();
+        core.watch_service = crate::watch::WatchService::watch(&[temp_dir.as_path()]).ok();
+        assert!(core.watch_service.is_some());
+
+        let test_file = locales_dir.join("test.toml");
+        std::fs::write(&test_file, b"test_key = 'test_val'").unwrap();
+
+        let mut saw_status = false;
+        for _ in 0..100 {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            core.tick_watcher();
+            if core.state.ui.status.contains("reloaded translations")
+                || core.state.ui.status.contains("file changed")
+            {
+                saw_status = true;
+                break;
+            }
+        }
+        assert!(
+            saw_status,
+            "tick_watcher should have processed file activity and updated status"
+        );
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

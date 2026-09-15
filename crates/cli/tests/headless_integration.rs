@@ -81,13 +81,15 @@ fn test_headless_command_dispatch_and_history() {
     state
         .dispatch(&InvertSelectionCmd)
         .expect("InvertSelectionCmd");
-    assert!(state
-        .project
-        .active_mesh()
-        .unwrap()
-        .verts
-        .iter()
-        .all(|v| v.selected));
+    assert!(
+        state
+            .project
+            .active_mesh()
+            .unwrap()
+            .verts
+            .iter()
+            .all(|v| v.selected)
+    );
 
     // 5. DuplicateSelectionCmd em Edit Mode (duplica geometria)
     state.mode = petunia_core::EditMode::Edit;

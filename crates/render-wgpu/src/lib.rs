@@ -276,8 +276,8 @@ impl Renderer {
 
         let mesh_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("simple3d-mesh-layout"),
-            bind_group_layouts: &[&cam_layout],
-            push_constant_ranges: &[],
+            bind_group_layouts: &[Some(&cam_layout)],
+            immediate_size: 0,
         });
         let mesh_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("simple3d-mesh-pipe"),
@@ -285,11 +285,11 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &mesh_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<MeshVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3],
-                }],
+                })],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -309,13 +309,13 @@ impl Renderer {
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth24Plus,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
+                depth_write_enabled: Some(true),
+                depth_compare: Some(wgpu::CompareFunction::Less),
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
             multisample: Default::default(),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -325,11 +325,11 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &line_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<LineVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3],
-                }],
+                })],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -348,13 +348,13 @@ impl Renderer {
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth24Plus,
-                depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::LessEqual,
+                depth_write_enabled: Some(false),
+                depth_compare: Some(wgpu::CompareFunction::LessEqual),
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
             multisample: Default::default(),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -364,11 +364,11 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &mesh_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<MeshVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3],
-                }],
+                })],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -388,13 +388,13 @@ impl Renderer {
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth24Plus,
-                depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::LessEqual,
+                depth_write_enabled: Some(false),
+                depth_compare: Some(wgpu::CompareFunction::LessEqual),
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
             multisample: Default::default(),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -404,11 +404,11 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &line_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<LineVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3],
-                }],
+                })],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -427,13 +427,13 @@ impl Renderer {
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth24Plus,
-                depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::Always,
+                depth_write_enabled: Some(false),
+                depth_compare: Some(wgpu::CompareFunction::Always),
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
             multisample: Default::default(),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -471,8 +471,8 @@ impl Renderer {
         });
         let ref_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("simple3d-ref-layout"),
-            bind_group_layouts: &[&cam_layout, &ref_tex_layout],
-            push_constant_ranges: &[],
+            bind_group_layouts: &[Some(&cam_layout), Some(&ref_tex_layout)],
+            immediate_size: 0,
         });
         let ref_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("simple3d-ref-pipe"),
@@ -480,11 +480,11 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &ref_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<RefVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2],
-                }],
+                })],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -504,13 +504,13 @@ impl Renderer {
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth24Plus,
-                depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::LessEqual,
+                depth_write_enabled: Some(false),
+                depth_compare: Some(wgpu::CompareFunction::LessEqual),
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
             multisample: Default::default(),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -520,11 +520,11 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &ref_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<RefVertex>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2],
-                }],
+                })],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -544,13 +544,13 @@ impl Renderer {
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth24Plus,
-                depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::Always,
+                depth_write_enabled: Some(false),
+                depth_compare: Some(wgpu::CompareFunction::Always),
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
             multisample: Default::default(),
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 
@@ -661,12 +661,50 @@ impl Renderer {
                 continue;
             }
             if !is_wire {
-                let tris = if unlit {
+                let (mat_profile, mat_color, has_emission, emission_color) =
+                    if let Some(mat) = obj.material(scene) {
+                        (
+                            mat.profile,
+                            [mat.base_color[0], mat.base_color[1], mat.base_color[2]],
+                            mat.emission_strength > 0.0,
+                            [
+                                mat.emission_color[0] * mat.emission_strength,
+                                mat.emission_color[1] * mat.emission_strength,
+                                mat.emission_color[2] * mat.emission_strength,
+                            ],
+                        )
+                    } else {
+                        (
+                            petunia_project::ShaderProfile::Pbr,
+                            obj.base_color,
+                            false,
+                            [0.0, 0.0, 0.0],
+                        )
+                    };
+
+                let obj_unlit = unlit
+                    || mat_profile == petunia_project::ShaderProfile::Unlit
+                    || mat_profile == petunia_project::ShaderProfile::Emissive;
+
+                let tris = if obj_unlit {
                     obj.mesh.to_triangles_unlit()
                 } else {
                     obj.mesh.to_triangles_smooth(smooth)
                 };
-                for (pos, n, col, _uv) in tris {
+                for (pos, n, mut col, _uv) in tris {
+                    if (col[0] - 0.72).abs() < 0.02
+                        && (col[1] - 0.73).abs() < 0.02
+                        && (col[2] - 0.78).abs() < 0.02
+                    {
+                        col = mat_color;
+                    }
+                    if has_emission {
+                        col = [
+                            (col[0] + emission_color[0]).min(1.0),
+                            (col[1] + emission_color[1]).min(1.0),
+                            (col[2] + emission_color[2]).min(1.0),
+                        ];
+                    }
                     mv.push(MeshVertex {
                         pos,
                         normal: n,
@@ -674,6 +712,7 @@ impl Renderer {
                     });
                 }
             }
+
             if is_wire {
                 for (a, b, sel) in obj.mesh.to_edges() {
                     let c = if sel {
@@ -911,20 +950,20 @@ impl Renderer {
         }
 
         // Referências padrão (não X-Ray): desenhadas ANTES da geometria sólida com depth test
-        if self.show_overlays {
-            if let Some(vb) = &self.ref_vb {
-                pass.set_pipeline(&self.ref_pipeline);
-                pass.set_vertex_buffer(0, vb.slice(..));
-                let mut start = 0u32;
-                for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
-                    if !r.xray {
-                        if let Some(slot) = self.ref_gpu.get(i) {
-                            pass.set_bind_group(1, &slot.bind_group, &[]);
-                            pass.draw(start..start + 6, 0..1);
-                        }
-                    }
-                    start += 6;
+        if self.show_overlays
+            && let Some(vb) = &self.ref_vb
+        {
+            pass.set_pipeline(&self.ref_pipeline);
+            pass.set_vertex_buffer(0, vb.slice(..));
+            let mut start = 0u32;
+            for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
+                if !r.xray
+                    && let Some(slot) = self.ref_gpu.get(i)
+                {
+                    pass.set_bind_group(1, &slot.bind_group, &[]);
+                    pass.draw(start..start + 6, 0..1);
                 }
+                start += 6;
             }
         }
 
@@ -950,20 +989,20 @@ impl Renderer {
         }
 
         // Referências X-Ray: overlay pass desenhado APÓS a geometria com depth test bypass
-        if self.show_overlays {
-            if let Some(vb) = &self.ref_vb {
-                pass.set_pipeline(&self.ref_xray_pipeline);
-                pass.set_vertex_buffer(0, vb.slice(..));
-                let mut start = 0u32;
-                for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
-                    if r.xray {
-                        if let Some(slot) = self.ref_gpu.get(i) {
-                            pass.set_bind_group(1, &slot.bind_group, &[]);
-                            pass.draw(start..start + 6, 0..1);
-                        }
-                    }
-                    start += 6;
+        if self.show_overlays
+            && let Some(vb) = &self.ref_vb
+        {
+            pass.set_pipeline(&self.ref_xray_pipeline);
+            pass.set_vertex_buffer(0, vb.slice(..));
+            let mut start = 0u32;
+            for (i, r) in refs.iter().enumerate().filter(|(_, r)| r.visible) {
+                if r.xray
+                    && let Some(slot) = self.ref_gpu.get(i)
+                {
+                    pass.set_bind_group(1, &slot.bind_group, &[]);
+                    pass.draw(start..start + 6, 0..1);
                 }
+                start += 6;
             }
         }
 

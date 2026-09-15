@@ -4,14 +4,14 @@
 //! 2. Mensagem central de status / feedback do sistema;
 //! 3. Telemetria agregada de cena (Tris, Vértices, Objetos, Frame Time) e botões de histórico (Undo/Redo).
 
-use egui::{vec2, Align, Context, Layout, RichText, TopBottomPanel};
+use egui::{Align, Layout, RichText, Ui, vec2};
 use petunia_core::AppState;
 use petunia_module_model::ToolRegistry;
 
 use crate::tokens;
 
 /// Renderiza a barra de status inferior estruturada em 3 blocos.
-pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
+pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     let proj_name = state
         .project
         .project_path
@@ -54,15 +54,15 @@ pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
     let obj_count = state.project.assets.len();
     let frame_ms = state.render.stats.frame_ms;
 
-    TopBottomPanel::bottom("status_bar")
-        .exact_height(tokens::STATUS_BAR_HEIGHT)
+    egui::Panel::bottom("status_bar")
+        .exact_size(tokens::STATUS_BAR_HEIGHT)
         .frame(
             egui::Frame::new()
-                .fill(tokens::BG_HEADER)
-                .stroke(tokens::stroke_border())
+                .fill(tokens::bg_header(state))
+                .stroke(tokens::stroke_border_dyn(state))
                 .inner_margin(egui::Margin::symmetric(8, 2)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             ui.horizontal_centered(|ui| {
                 ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
 
@@ -162,13 +162,15 @@ mod tests {
 
     #[test]
     fn test_status_bar_renders_without_panic() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         let tools = ToolRegistry::default();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state, &tools);
-        });
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw(ui, &mut state, &tools);
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]

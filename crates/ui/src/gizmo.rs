@@ -15,6 +15,7 @@ pub enum GizmoKind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GizmoHandle {
+    Center,
     Axis(u8),
     /// Normal axis: 0 = YZ, 1 = XZ, 2 = XY.
     Plane(u8),
@@ -27,6 +28,47 @@ const COLORS: [Color32; 3] = [
 ];
 const AXES: [Vec3; 3] = [Vec3::X, Vec3::Y, Vec3::Z];
 
+/// Calcula eixos de coordenadas locais a partir da seleção da malha.
+pub fn local_axes_for_mesh(mesh: &petunia_mesh::Mesh) -> [Vec3; 3] {
+    let mut normal = Vec3::ZERO;
+    let mut count = 0;
+    for (fi, f) in mesh.faces.iter().enumerate() {
+        if f.selected {
+            normal += mesh.face_normal(fi);
+            count += 1;
+        }
+    }
+    // Se nenhuma face estiver explicitamente selecionada (ex: Object Mode ou seleção de arestas):
+    if count == 0 {
+        // 1. Tenta aresta selecionada
+        if let Some(&(a, b)) = mesh.selected_edges.iter().next()
+            && let (Some(va), Some(vb)) = (mesh.verts.get(a as usize), mesh.verts.get(b as usize))
+        {
+            let dir = (vb.vec() - va.vec()).normalize_or_zero();
+            if dir.length_squared() > 1e-4 {
+                let up = if dir.y.abs() < 0.95 { Vec3::Y } else { Vec3::Z };
+                let y = dir.cross(up).normalize();
+                let z = dir.cross(y).normalize();
+                return [dir, y, z];
+            }
+        }
+        // 2. Se for o objeto inteiro (Object Mode) ou sem seleção, orienta pela primeira face da malha
+        if !mesh.faces.is_empty() {
+            normal = mesh.face_normal(0);
+            count = 1;
+        }
+    }
+    if count > 0 && normal.length_squared() > 1e-4 {
+        let z = normal.normalize();
+        let up = if z.y.abs() < 0.95 { Vec3::Y } else { Vec3::Z };
+        let x = up.cross(z).normalize();
+        let y = z.cross(x).normalize();
+        [x, y, z]
+    } else {
+        AXES
+    }
+}
+
 /// Draws foreground handles and returns the handle under the pointer.
 /// Distances use egui points to preserve usability on high-DPI displays.
 pub fn draw_gizmo(
@@ -36,6 +78,19 @@ pub fn draw_gizmo(
     pivot: Vec3,
     kind: GizmoKind,
     pointer: Option<Pos2>,
+) -> Option<GizmoHandle> {
+    draw_gizmo_oriented(painter, camera, viewport, pivot, kind, pointer, AXES)
+}
+
+/// Draws foreground handles with oriented coordinate axes.
+pub fn draw_gizmo_oriented(
+    painter: &Painter,
+    camera: &Camera,
+    viewport: Rect,
+    pivot: Vec3,
+    kind: GizmoKind,
+    pointer: Option<Pos2>,
+    axes: [Vec3; 3],
 ) -> Option<GizmoHandle> {
     if viewport.height() <= 0.0 || !pivot.is_finite() {
         return None;
@@ -61,10 +116,31 @@ pub fn draw_gizmo(
     };
     let center = project(pivot)?;
     let mut best: Option<(f32, GizmoHandle)> = None;
+
+    // Alça Central para Movimento / Transformação Livre (View-Plane Free Translation)
+    let center_radius = 8.5_f32;
+    let center_dist = pointer.map_or(f32::INFINITY, |p| p.distance(center));
+    let center_hovered = center_dist <= center_radius;
+    let center_color = if center_hovered {
+        Color32::WHITE
+    } else {
+        Color32::from_white_alpha(180)
+    };
+    painter.circle(
+        center,
+        center_radius,
+        Color32::from_black_alpha(100),
+        Stroke::new(1.5, center_color),
+    );
+    painter.circle_filled(center, 3.0, center_color);
+    if center_hovered {
+        best = Some((center_dist, GizmoHandle::Center));
+    }
+
     if kind == GizmoKind::Translate {
         for (normal, &base_color) in COLORS.iter().enumerate() {
-            let a = AXES[(normal + 1) % 3] * length;
-            let b = AXES[(normal + 2) % 3] * length;
+            let a = axes[(normal + 1) % 3] * length;
+            let b = axes[(normal + 2) % 3] * length;
             let corners: Option<Vec<_>> = [(0.22, 0.22), (0.44, 0.22), (0.44, 0.44), (0.22, 0.44)]
                 .into_iter()
                 .map(|(u, v)| project(pivot + a * u + b * v))
@@ -86,8 +162,8 @@ pub fn draw_gizmo(
     }
     for (axis, &color) in COLORS.iter().enumerate() {
         if kind == GizmoKind::Rotate {
-            let a = AXES[(axis + 1) % 3] * length * 0.8;
-            let b = AXES[(axis + 2) % 3] * length * 0.8;
+            let a = axes[(axis + 1) % 3] * length * 0.8;
+            let b = axes[(axis + 2) % 3] * length * 0.8;
             let mut previous = None;
             let mut lines = Vec::new();
             let mut distance = f32::INFINITY;
@@ -117,8 +193,8 @@ pub fn draw_gizmo(
             }
         } else {
             let (Some(start), Some(end)) = (
-                project(pivot + AXES[axis] * length * 0.12),
-                project(pivot + AXES[axis] * length),
+                project(pivot + axes[axis] * length * 0.12),
+                project(pivot + axes[axis] * length),
             ) else {
                 continue;
             };
@@ -155,7 +231,6 @@ pub fn draw_gizmo(
             }
         }
     }
-    painter.circle_filled(center, 3.0, Color32::WHITE);
     best.map(|(_, handle)| handle)
 }
 
@@ -201,44 +276,47 @@ mod tests {
         camera.aspect = 1.0;
         camera.ortho_half_h = 2.0;
         let viewport = Rect::from_min_size(Pos2::ZERO, Vec2::splat(800.0));
-        let _ = context.run(egui::RawInput::default(), |context| {
-            let painter = context.layer_painter(egui::LayerId::background());
-            for kind in [GizmoKind::Translate, GizmoKind::Scale] {
+        context
+            .run_ui(egui::RawInput::default(), |_ui| {
+                let painter = context.layer_painter(egui::LayerId::background());
+                for kind in [GizmoKind::Translate, GizmoKind::Scale] {
+                    assert_eq!(
+                        draw_gizmo(
+                            &painter,
+                            &camera,
+                            viewport,
+                            Vec3::ZERO,
+                            kind,
+                            Some(Pos2::new(460.0, 400.0))
+                        ),
+                        Some(GizmoHandle::Axis(0))
+                    );
+                }
                 assert_eq!(
                     draw_gizmo(
                         &painter,
                         &camera,
                         viewport,
                         Vec3::ZERO,
-                        kind,
-                        Some(Pos2::new(460.0, 400.0))
+                        GizmoKind::Translate,
+                        Some(Pos2::new(424.0, 376.0))
                     ),
-                    Some(GizmoHandle::Axis(0))
+                    Some(GizmoHandle::Plane(2))
                 );
-            }
-            assert_eq!(
-                draw_gizmo(
-                    &painter,
-                    &camera,
-                    viewport,
-                    Vec3::ZERO,
-                    GizmoKind::Translate,
-                    Some(Pos2::new(424.0, 376.0))
-                ),
-                Some(GizmoHandle::Plane(2))
-            );
-            assert_eq!(
-                draw_gizmo(
-                    &painter,
-                    &camera,
-                    viewport,
-                    Vec3::ZERO,
-                    GizmoKind::Translate,
-                    Some(Pos2::new(700.0, 700.0))
-                ),
-                None
-            );
-        });
+                assert_eq!(
+                    draw_gizmo(
+                        &painter,
+                        &camera,
+                        viewport,
+                        Vec3::ZERO,
+                        GizmoKind::Translate,
+                        Some(Pos2::new(700.0, 700.0))
+                    ),
+                    None
+                );
+            })
+            .textures_delta
+            .clear();
     }
 
     #[test]

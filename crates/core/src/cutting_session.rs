@@ -4,9 +4,9 @@
 //! Armazena malha base, âncora de tela agnóstica (`[f32; 2]`), pontos de corte e anéis de loop.
 
 use glam::Vec3;
-use petunia_mesh::knife::{cut_face, EdgePoint};
-use petunia_mesh::loop_cut::{LoopCutError, LoopRing};
 use petunia_mesh::Mesh;
+use petunia_mesh::knife::{EdgePoint, cut_face};
+use petunia_mesh::loop_cut::{LoopCutError, LoopRing};
 
 use crate::camera::Camera;
 use crate::viewport::LogicalRect;

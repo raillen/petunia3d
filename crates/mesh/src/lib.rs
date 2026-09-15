@@ -43,6 +43,8 @@ pub struct Face {
     /// UV por vértice-de-face; invariante: `uv.len() == verts.len()`.
     pub uv: Vec<[f32; 2]>,
     pub selected: bool,
+    #[serde(default)]
+    pub material_slot: Option<usize>,
 }
 
 impl Face {
@@ -52,6 +54,7 @@ impl Face {
             verts,
             uv: vec![[0.0, 0.0]; n],
             selected: false,
+            material_slot: None,
         }
     }
     pub fn with_uv(verts: Vec<u32>, uv: Vec<[f32; 2]>) -> Self {
@@ -60,6 +63,7 @@ impl Face {
             verts,
             uv,
             selected: false,
+            material_slot: None,
         }
     }
     fn fix_uv(&mut self) {
@@ -203,10 +207,10 @@ impl Mesh {
                     self.verts[a as usize].vec(),
                     self.verts[b as usize].vec(),
                     self.verts[c as usize].vec(),
-                ) {
-                    if t > 1e-6 && best.map(|(_, bt)| t < bt).unwrap_or(true) {
-                        best = Some((fi, t));
-                    }
+                ) && t > 1e-6
+                    && best.map(|(_, bt)| t < bt).unwrap_or(true)
+                {
+                    best = Some((fi, t));
                 }
             }
         }
@@ -219,14 +223,17 @@ impl Mesh {
 }
 
 mod bevel;
+pub mod boolean;
 pub mod half_edge;
 pub mod knife;
 pub mod loop_cut;
 pub mod obj;
 pub mod ops;
 pub mod primitives;
+pub mod profile_geo;
 pub mod triangulate;
 pub mod uv;
+pub mod uv_xatlas;
 
 pub use half_edge::{
     EdgeId, FaceId, HalfEdge, HalfEdgeId, HalfEdgeMesh, TopologyDefect, TopologyReport, VertexId,
@@ -361,7 +368,7 @@ impl Mesh {
 
 #[cfg(test)]
 mod tests {
-    use crate::{triangulate::ear_clip, Face, Mesh};
+    use crate::{Face, Mesh, triangulate::ear_clip};
 
     #[test]
     fn cube_has_8_verts_6_faces() {
@@ -516,18 +523,21 @@ mod tests {
             verts: vec![0, 1, 99],
             uv: vec![[0.0, 0.0]],
             selected: false,
+            material_slot: None,
         });
         m.selected_edges.insert((0, 500));
         m.validate();
         assert!(m.faces.iter().all(|f| f.uv.len() == f.verts.len()));
-        assert!(m
-            .faces
-            .iter()
-            .all(|f| f.verts.iter().all(|&i| (i as usize) < m.verts.len())));
-        assert!(m
-            .selected_edges
-            .iter()
-            .all(|&(a, b)| (a as usize) < m.verts.len() && (b as usize) < m.verts.len()));
+        assert!(
+            m.faces
+                .iter()
+                .all(|f| f.verts.iter().all(|&i| (i as usize) < m.verts.len()))
+        );
+        assert!(
+            m.selected_edges
+                .iter()
+                .all(|&(a, b)| (a as usize) < m.verts.len() && (b as usize) < m.verts.len())
+        );
     }
 
     #[test]

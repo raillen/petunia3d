@@ -8,7 +8,7 @@
 //! 6. Diagnóstico de Cena (Overlays e X-Ray com ícones vetoriais dedicados);
 //! 7. 4 Esferas de Sombreamento no estilo canônico do Blender (Wireframe, Solid, Material, Rendered).
 
-use egui::{pos2, vec2, Color32, CornerRadius, Rect, Ui};
+use egui::{Color32, CornerRadius, Rect, Ui, pos2, vec2};
 use petunia_core::{
     AddPrimitiveCmd, AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode,
     InvertSelectionCmd, MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff,
@@ -18,7 +18,7 @@ use petunia_render::Shading;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
-use crate::widgets::{petunia_menu_separator, PetuniaMenuItem};
+use crate::widgets::{PetuniaMenuItem, petunia_menu_separator};
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
@@ -69,10 +69,6 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
 
 /// Trata atalhos de teclado (Tab, 1, 2, 3, 0) diretamente no egui para máxima responsividade.
 fn handle_keyboard_shortcuts(ui: &mut Ui, state: &mut AppState) {
-    if ui.ctx().wants_keyboard_input() {
-        return;
-    }
-
     // Shift+Tab: Alterna Snapping Magnético (P3D-040, P3D-079)
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, egui::Key::Tab)) {
         state.snap_enabled = !state.snap_enabled;
@@ -84,6 +80,11 @@ fn handle_keyboard_shortcuts(ui: &mut Ui, state: &mut AppState) {
     // Tab: Alterna entre Object Domain e o último domínio de componente (P3D-015)
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Tab)) {
         state.cycle_selection_domain();
+        return;
+    }
+
+    if ui.ctx().egui_wants_keyboard_input() {
+        return;
     }
 
     // 0: Modo/Domínio Objeto
@@ -189,7 +190,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     visuals.widgets.active.weak_bg_fill = tokens::ACCENT_BLUE;
 
     // Menu View
-    ui.menu_button("View ▾", |ui| {
+    ui.menu_button(format!("{} ▾", state.t("menu.view")), |ui| {
         let sc_frame = state
             .ui
             .keybinds
@@ -209,7 +210,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .keybinds
             .shortcut_for("view.frame_all")
             .unwrap_or_else(|| "Home".into());
-        if PetuniaMenuItem::new("Frame All")
+        if PetuniaMenuItem::new(&state.t("view.frame_all"))
             .shortcut(Some(&sc_frame_all))
             .show(ui)
             .clicked()
@@ -223,7 +224,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .keybinds
             .shortcut_for("view.reset_camera")
             .unwrap_or_else(|| "Shift+Home".into());
-        if PetuniaMenuItem::new("Reset Camera")
+        if PetuniaMenuItem::new(&state.t("camera.reset"))
             .shortcut(Some(&sc_reset))
             .show(ui)
             .clicked()
@@ -262,7 +263,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
             ui.close();
         }
-        if PetuniaMenuItem::new("Back")
+        if PetuniaMenuItem::new(&state.t("camera.back"))
             .shortcut(Some("Ctrl+Numpad 1"))
             .show(ui)
             .clicked()
@@ -280,7 +281,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
             ui.close();
         }
-        if PetuniaMenuItem::new("Left")
+        if PetuniaMenuItem::new(&state.t("camera.left"))
             .shortcut(Some("Ctrl+Numpad 3"))
             .show(ui)
             .clicked()
@@ -298,7 +299,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
             ui.close();
         }
-        if PetuniaMenuItem::new("Bottom")
+        if PetuniaMenuItem::new(&state.t("camera.bottom"))
             .shortcut(Some("Ctrl+Numpad 7"))
             .show(ui)
             .clicked()
@@ -310,29 +311,41 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
         petunia_menu_separator(ui);
 
-        ui.menu_button("Isometric ▾", |ui| {
-            if PetuniaMenuItem::new("Isometric NE").show(ui).clicked() {
+        ui.menu_button(format!("{} ▾", state.t("camera.isometric")), |ui| {
+            if PetuniaMenuItem::new(&state.t("camera.iso_ne"))
+                .show(ui)
+                .clicked()
+            {
                 state
                     .camera
                     .set_preset(petunia_core::ViewPreset::IsometricNE);
                 state.mark_dirty();
                 ui.close();
             }
-            if PetuniaMenuItem::new("Isometric NW").show(ui).clicked() {
+            if PetuniaMenuItem::new(&state.t("camera.iso_nw"))
+                .show(ui)
+                .clicked()
+            {
                 state
                     .camera
                     .set_preset(petunia_core::ViewPreset::IsometricNW);
                 state.mark_dirty();
                 ui.close();
             }
-            if PetuniaMenuItem::new("Isometric SE").show(ui).clicked() {
+            if PetuniaMenuItem::new(&state.t("camera.iso_se"))
+                .show(ui)
+                .clicked()
+            {
                 state
                     .camera
                     .set_preset(petunia_core::ViewPreset::IsometricSE);
                 state.mark_dirty();
                 ui.close();
             }
-            if PetuniaMenuItem::new("Isometric SW").show(ui).clicked() {
+            if PetuniaMenuItem::new(&state.t("camera.iso_sw"))
+                .show(ui)
+                .clicked()
+            {
                 state
                     .camera
                     .set_preset(petunia_core::ViewPreset::IsometricSW);
@@ -348,7 +361,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             .keybinds
             .shortcut_for("window.reference_manager")
             .unwrap_or_else(|| "Shift+R".into());
-        if PetuniaMenuItem::new("Gerenciador de Referências...")
+        if PetuniaMenuItem::new(&state.t("refs.manage"))
             .icon(PetuniaIcon::ReferenceImage)
             .shortcut(Some(&sc_ref))
             .show(ui)
@@ -361,7 +374,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     });
 
     // Menu Select
-    ui.menu_button("Select ▾", |ui| {
+    ui.menu_button(format!("{} ▾", state.t("tools.select")), |ui| {
         if PetuniaMenuItem::new(&state.t("actions.select_all"))
             .shortcut(Some("A"))
             .show(ui)
@@ -390,7 +403,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
     // Menu Add
     let mut spawn_kind: Option<PrimitiveKind> = None;
-    ui.menu_button("Add ▾", |ui| {
+    ui.menu_button(format!("{} ▾", state.t("tools.primitives")), |ui| {
         if PetuniaMenuItem::new(&state.t("prims.cube"))
             .icon(PetuniaIcon::AddPrimitive)
             .show(ui)
@@ -454,7 +467,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
     // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
     if state.mode == EditMode::Object {
-        ui.menu_button("Object ▾", |ui| {
+        ui.menu_button(format!("{} ▾", state.t("modes.object")), |ui| {
             let sc_dup = state
                 .ui
                 .keybinds
@@ -485,7 +498,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.close();
             }
             petunia_menu_separator(ui);
-            if PetuniaMenuItem::new("Cursor to World Origin")
+            if PetuniaMenuItem::new(&state.t("actions.cursor_to_origin"))
                 .icon(PetuniaIcon::Cursor3D)
                 .show(ui)
                 .clicked()
@@ -496,7 +509,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             }
         });
     } else {
-        ui.menu_button("Mesh ▾", |ui| {
+        ui.menu_button(format!("{} ▾", state.t("ui.mesh")), |ui| {
             let sc_ext = state
                 .ui
                 .keybinds
@@ -518,7 +531,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 .keybinds
                 .shortcut_for("model.extrude_individual")
                 .unwrap_or_else(|| "Alt+E".into());
-            if PetuniaMenuItem::new("Extrude Individual")
+            if PetuniaMenuItem::new(&state.t("tools.extrude_individual"))
                 .icon(PetuniaIcon::Extrude)
                 .shortcut(Some(&sc_ext_ind))
                 .show(ui)
@@ -565,7 +578,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.close();
             }
 
-            if PetuniaMenuItem::new("Loop Cut")
+            if PetuniaMenuItem::new(&state.t("tools.loop_cut"))
                 .icon(PetuniaIcon::LoopCut)
                 .shortcut(Some("Ctrl+R"))
                 .show(ui)
@@ -576,7 +589,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.close();
             }
 
-            if PetuniaMenuItem::new("Knife")
+            if PetuniaMenuItem::new(&state.t("tools.knife"))
                 .icon(PetuniaIcon::Knife)
                 .shortcut(Some("K"))
                 .show(ui)
@@ -607,7 +620,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.close();
             }
 
-            if PetuniaMenuItem::new("Flip Diagonal")
+            if PetuniaMenuItem::new(&state.t("tools.flip_diagonal"))
                 .icon(PetuniaIcon::Custom("flip_diagonal"))
                 .show(ui)
                 .clicked()
@@ -616,7 +629,7 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
                 ui.close();
             }
 
-            if PetuniaMenuItem::new("Revolve Selection")
+            if PetuniaMenuItem::new(&state.t("tools.revolve"))
                 .icon(PetuniaIcon::Custom("revolve"))
                 .show(ui)
                 .clicked()
@@ -834,7 +847,7 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
         }
 
         ui.menu_button("▾", |ui| {
-            ui.set_min_width(200.0);
+            ui.set_min_width(160.0);
             ui.label(
                 egui::RichText::new("Opções de Snapping")
                     .strong()
@@ -928,7 +941,7 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
         }
 
         ui.menu_button("▾", |ui| {
-            ui.set_min_width(200.0);
+            ui.set_min_width(160.0);
             ui.label(
                 egui::RichText::new("Edição Proporcional")
                     .strong()
@@ -1019,21 +1032,108 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
         }
 
         ui.menu_button("▾", |ui| {
-            ui.set_min_width(210.0);
+            ui.set_min_width(180.0);
             ui.label(
                 egui::RichText::new("Opções de Overlay")
                     .strong()
                     .size(12.0)
-                    .color(tokens::TEXT_PRIMARY),
+                    .color(tokens::text_primary(state)),
             );
             ui.separator();
 
             let mut dirty = false;
-            if ui
-                .checkbox(&mut state.show_grid, "Grade 3D (Grid)")
-                .changed()
-            {
-                dirty = true;
+            let grid_cfg_id = ui.make_persistent_id("show_grid_settings_popover");
+            let mut show_cfg = ui
+                .ctx()
+                .data(|d| d.get_temp::<bool>(grid_cfg_id).unwrap_or(false));
+
+            ui.horizontal(|ui| {
+                if ui
+                    .checkbox(&mut state.show_grid, "Grade 3D (Grid)")
+                    .changed()
+                {
+                    dirty = true;
+                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui
+                        .selectable_label(show_cfg, "⚙")
+                        .on_hover_text("Configurações da Grade 3D e Guias Isométricas")
+                        .clicked()
+                    {
+                        show_cfg = !show_cfg;
+                        ui.ctx().data_mut(|d| d.insert_temp(grid_cfg_id, show_cfg));
+                    }
+                });
+            });
+
+            if show_cfg {
+                egui::Frame::group(ui.style())
+                    .fill(tokens::bg_surface(state))
+                    .stroke(tokens::stroke_border_dyn(state))
+                    .corner_radius(tokens::RADIUS_CONTROL)
+                    .inner_margin(egui::Margin::symmetric(6, 4))
+                    .show(ui, |ui| {
+                        ui.label(
+                            egui::RichText::new("Configuração da Grade:")
+                                .size(10.5)
+                                .color(tokens::text_secondary(state)),
+                        );
+                        if ui
+                            .add(
+                                egui::Slider::new(&mut state.grid_settings.size, 2.0..=50.0)
+                                    .text("Tamanho")
+                                    .step_by(1.0),
+                            )
+                            .changed()
+                        {
+                            dirty = true;
+                        }
+                        if ui
+                            .add(
+                                egui::Slider::new(
+                                    &mut state.grid_settings.subdivisions,
+                                    1.0..=50.0,
+                                )
+                                .text("Subdivisões"),
+                            )
+                            .changed()
+                        {
+                            dirty = true;
+                        }
+                        if ui
+                            .add(
+                                egui::Slider::new(&mut state.grid_settings.opacity, 0.05..=1.0)
+                                    .text("Opacidade")
+                                    .step_by(0.05),
+                            )
+                            .changed()
+                        {
+                            dirty = true;
+                        }
+                        if ui
+                            .checkbox(
+                                &mut state.grid_settings.show_isometric_guide,
+                                "Guias Isométricas",
+                            )
+                            .changed()
+                        {
+                            dirty = true;
+                        }
+                        if state.grid_settings.show_isometric_guide
+                            && ui
+                                .add(
+                                    egui::Slider::new(
+                                        &mut state.grid_settings.isometric_angle_deg,
+                                        15.0..=60.0,
+                                    )
+                                    .suffix("°")
+                                    .text("Ângulo"),
+                                )
+                                .changed()
+                        {
+                            dirty = true;
+                        }
+                    });
             }
             if ui
                 .checkbox(&mut state.show_axes, "Eixos Mundiais (Axes)")
@@ -1216,11 +1316,13 @@ mod tests {
         let ctx = egui::Context::default();
         let mut state = AppState::new("en");
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -1270,20 +1372,24 @@ mod tests {
         let ctx = egui::Context::default();
         let mut state = AppState::new("en");
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw_snap_and_prop_cluster(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         state.snap_enabled = true;
         state.proportional_editing = true;
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw_snap_and_prop_cluster(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -1292,11 +1398,13 @@ mod tests {
         let mut state = AppState::new("en");
 
         // 1. Renderizar com todos eixos livres
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw_axis_lock_controls(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         // 2. Travar eixo X e verificar renderização do badge
         state.toggle_axis_lock(0);
@@ -1306,11 +1414,13 @@ mod tests {
             Some(("Eixo X", [235, 75, 75]))
         );
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw_axis_lock_controls(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         // 3. Travar eixo Z formando plano XZ e verificar badge
         state.toggle_axis_lock(2);
@@ -1319,10 +1429,12 @@ mod tests {
             Some(("Plano XZ", [142, 68, 173]))
         );
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw_axis_lock_controls(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 }

@@ -3,7 +3,7 @@
 //! suporte a coleções/pastas de geometria, bloqueio de transformação, isolamento de visualização,
 //! imagens de referência e estatísticas.
 
-use egui::{vec2, Color32, Id, Rect, Response, ScrollArea, Ui};
+use egui::{Color32, Id, Rect, Response, ScrollArea, Ui, vec2};
 use egui_ltreeview::{Action, NodeBuilder, TreeView, TreeViewSettings};
 use petunia_core::{
     AddPrimitiveCmd, AnnotationItem, AppState, DeleteAssetCmd, DuplicateAssetCmd, PrimitiveKind,
@@ -33,6 +33,7 @@ pub enum OutlinerNodeId {
 
 /// Renderiza o painel Outliner.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
+    puffin::profile_function!();
     egui::CollapsingHeader::new("Outliner")
         .default_open(true)
         .show(ui, |ui| {
@@ -218,13 +219,12 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         .allow_multi_selection(false);
 
     if let Some(mut tree_state) = egui_ltreeview::TreeViewState::<OutlinerNodeId>::load(ui, tree_id)
+        && let Some(active_asset) = state.project.assets.get(active_idx)
     {
-        if let Some(active_asset) = state.project.assets.get(active_idx) {
-            let target = OutlinerNodeId::Asset(active_asset.id);
-            if !tree_state.selected().contains(&target) {
-                tree_state.set_one_selected(target);
-                tree_state.store(ui, tree_id);
-            }
+        let target = OutlinerNodeId::Asset(active_asset.id);
+        if !tree_state.selected().contains(&target) {
+            tree_state.set_one_selected(target);
+            tree_state.store(ui, tree_id);
         }
     }
 
@@ -265,7 +265,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     let mut clear_all_meas = false;
 
     // Atalhos de teclado no Outliner quando nenhum campo de texto está ativo
-    if !ui.ctx().wants_keyboard_input() {
+    if !ui.ctx().egui_wants_keyboard_input() {
         if ui.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)) {
             if let Some(ann_id) = state.selected_annotation {
                 delete_ann = Some(ann_id);
@@ -1347,27 +1347,25 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     // =========================================================================
 
     // Ações de anotações
-    if let Some(ann_id) = toggle_ann_vis {
-        if let Some(ann) = state
+    if let Some(ann_id) = toggle_ann_vis
+        && let Some(ann) = state
             .project
             .annotations
             .iter_mut()
             .find(|a| a.id == ann_id)
-        {
-            ann.visible = !ann.visible;
-            state.mark_dirty();
-        }
+    {
+        ann.visible = !ann.visible;
+        state.mark_dirty();
     }
-    if let Some(ann_id) = toggle_ann_lock {
-        if let Some(ann) = state
+    if let Some(ann_id) = toggle_ann_lock
+        && let Some(ann) = state
             .project
             .annotations
             .iter_mut()
             .find(|a| a.id == ann_id)
-        {
-            ann.locked = !ann.locked;
-            state.mark_dirty();
-        }
+    {
+        ann.locked = !ann.locked;
+        state.mark_dirty();
     }
     if let Some(ann_id) = delete_ann {
         state.checkpoint("delete annotation");
@@ -1394,16 +1392,15 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
         }
     }
-    if let Some((ann_id, grp)) = ann_move_to_group {
-        if let Some(ann) = state
+    if let Some((ann_id, grp)) = ann_move_to_group
+        && let Some(ann) = state
             .project
             .annotations
             .iter_mut()
             .find(|a| a.id == ann_id)
-        {
-            ann.group = grp;
-            state.mark_dirty();
-        }
+    {
+        ann.group = grp;
+        state.mark_dirty();
     }
     if toggle_all_ann_vis {
         state.project.annotations_visible = !state.project.annotations_visible;
@@ -1429,16 +1426,15 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     }
 
     // Ações de medidas
-    if let Some(meas_id) = toggle_meas_vis {
-        if let Some(m) = state
+    if let Some(meas_id) = toggle_meas_vis
+        && let Some(m) = state
             .project
             .measurements
             .iter_mut()
             .find(|m| m.id == meas_id)
-        {
-            m.visible = !m.visible;
-            state.mark_dirty();
-        }
+    {
+        m.visible = !m.visible;
+        state.mark_dirty();
     }
     if let Some(meas_id) = delete_meas {
         state.checkpoint("delete measurement");
@@ -1470,11 +1466,11 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             asset_index: Some(idx),
         });
     }
-    if let Some(idx) = isolate_idx {
-        if idx < state.project.assets.len() {
-            state.project.active = idx;
-            state.toggle_isolate();
-        }
+    if let Some(idx) = isolate_idx
+        && idx < state.project.assets.len()
+    {
+        state.project.active = idx;
+        state.toggle_isolate();
     }
     if let Some((idx, col)) = move_to_col {
         let _ = state.dispatch(&petunia_core::SetAssetCollectionCmd {
@@ -1492,40 +1488,41 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         state.project.remove_collection(&col);
         state.mark_dirty();
     }
-    if let Some((old_name, new_name)) = rename_col {
-        if !new_name.trim().is_empty() && !state.project.collections.contains(&new_name) {
-            for c in &mut state.project.collections {
-                if *c == old_name {
-                    *c = new_name.clone();
-                }
+    if let Some((old_name, new_name)) = rename_col
+        && !new_name.trim().is_empty()
+        && !state.project.collections.contains(&new_name)
+    {
+        for c in &mut state.project.collections {
+            if *c == old_name {
+                *c = new_name.clone();
             }
-            for a in &mut state.project.assets {
-                if a.collection.as_deref() == Some(&old_name) {
-                    a.collection = Some(new_name.clone());
-                }
-            }
-            state.mark_dirty();
         }
+        for a in &mut state.project.assets {
+            if a.collection.as_deref() == Some(&old_name) {
+                a.collection = Some(new_name.clone());
+            }
+        }
+        state.mark_dirty();
     }
 
     // Ações de referências
-    if let Some(idx) = ref_toggle_vis {
-        if let Some(r) = state.project.refs.get_mut(idx) {
-            r.visible = !r.visible;
-            state.mark_dirty();
-        }
+    if let Some(idx) = ref_toggle_vis
+        && let Some(r) = state.project.refs.get_mut(idx)
+    {
+        r.visible = !r.visible;
+        state.mark_dirty();
     }
-    if let Some(idx) = ref_toggle_xray {
-        if let Some(r) = state.project.refs.get_mut(idx) {
-            r.xray = !r.xray;
-            state.mark_dirty();
-        }
+    if let Some(idx) = ref_toggle_xray
+        && let Some(r) = state.project.refs.get_mut(idx)
+    {
+        r.xray = !r.xray;
+        state.mark_dirty();
     }
-    if let Some(idx) = ref_delete {
-        if idx < state.project.refs.len() {
-            state.project.refs.remove(idx);
-            state.mark_dirty();
-        }
+    if let Some(idx) = ref_delete
+        && idx < state.project.refs.len()
+    {
+        state.project.refs.remove(idx);
+        state.mark_dirty();
     }
     if let Some(idx) = delete_idx {
         let _ = state.dispatch(&DeleteAssetCmd {
@@ -1617,11 +1614,13 @@ mod tests {
         let ctx = egui::Context::default();
         let mut state = AppState::new("en");
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -1633,11 +1632,13 @@ mod tests {
         state.project.assets.last_mut().unwrap().collection = Some("Props".to_string());
         state.project.assets.last_mut().unwrap().locked = true;
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         assert_eq!(state.project.collections.len(), 1);
         assert!(state.project.assets.last().unwrap().locked);
@@ -1657,11 +1658,13 @@ mod tests {
             1.73,
         ));
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 draw(ui, &mut state);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         assert_eq!(state.project.annotations.len(), 1);
         assert_eq!(state.project.measurements.len(), 1);

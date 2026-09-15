@@ -1,8 +1,9 @@
 [package]
 name = "petunia_core"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 petunia_mesh = { workspace = true }
@@ -15,3 +16,17 @@ serde_json = { workspace = true }
 uuid = { workspace = true }
 thiserror = { workspace = true }
 petunia_render = { workspace = true }
+tracing = { workspace = true }
+slotmap = { workspace = true }
+rayon = { workspace = true }
+flume = { workspace = true }
+schemars = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }
+insta = { workspace = true }
+
+[[bench]]
+name = "core_jobs"
+harness = false

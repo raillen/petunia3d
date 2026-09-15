@@ -2,7 +2,7 @@
 use egui::{Key, PointerButton, Pos2, Rect};
 use glam::{Vec2, Vec3};
 use petunia_core::cutting_session::CutSession;
-use petunia_core::picking::{pick_mesh, PickComponent};
+use petunia_core::picking::{PickComponent, pick_mesh};
 use petunia_core::viewport::LogicalRect;
 use petunia_core::{AppState, SelectMode};
 use petunia_mesh::{knife::EdgePoint, loop_cut::LoopRing};
@@ -52,12 +52,14 @@ pub fn draw(
         finish(state, false);
         return true;
     }
-    if cancel && tool == "loop_cut" && session.sliding {
-        if let Ok(mesh) = session.apply_loop_cut(0.0) {
-            state.preview_mesh(mesh);
-            finish(state, false);
-            return true;
-        }
+    if cancel
+        && tool == "loop_cut"
+        && session.sliding
+        && let Ok(mesh) = session.apply_loop_cut(0.0)
+    {
+        state.preview_mesh(mesh);
+        finish(state, false);
+        return true;
     }
     let Some(pos) = ctx.pointer_hover_pos().filter(|p| rect.contains(*p)) else {
         state.cut_session = Some(session);
@@ -89,27 +91,26 @@ pub fn draw(
                 egui::Stroke::new(2.0_f32, egui::Color32::YELLOW),
             );
         }
-        if pressed {
-            if let Some(hit) = hit {
-                if let PickComponent::Edge(a, b) = hit.component {
-                    let point = EdgePoint {
-                        edge: (a, b),
-                        position: hit.position,
-                    };
-                    if let Some(start) = session.edge_start {
-                        if let Some(mesh) = state.project.active_mesh() {
-                            match session.cut_knife_segment(start, point, mesh) {
-                                Ok(mesh) => {
-                                    state.preview_mesh(mesh);
-                                    session.edge_start = None;
-                                }
-                                Err(error) => state.set_status(error),
-                            }
+        if pressed
+            && let Some(hit) = hit
+            && let PickComponent::Edge(a, b) = hit.component
+        {
+            let point = EdgePoint {
+                edge: (a, b),
+                position: hit.position,
+            };
+            if let Some(start) = session.edge_start {
+                if let Some(mesh) = state.project.active_mesh() {
+                    match session.cut_knife_segment(start, point, mesh) {
+                        Ok(mesh) => {
+                            state.preview_mesh(mesh);
+                            session.edge_start = None;
                         }
-                    } else {
-                        session.edge_start = Some(point);
+                        Err(error) => state.set_status(error),
                     }
                 }
+            } else {
+                session.edge_start = Some(point);
             }
         }
     } else if tool == "slice" {
@@ -127,19 +128,19 @@ pub fn draw(
                 [anchor_pos, pos],
                 egui::Stroke::new(2.0_f32, egui::Color32::YELLOW),
             );
-            if moved && ctx.input(|i| i.pointer.button_down(PointerButton::Primary)) {
-                if let Some(mesh) =
+            if moved
+                && ctx.input(|i| i.pointer.button_down(PointerButton::Primary))
+                && let Some(mesh) =
                     session.compute_slice(&state.camera, anchor, [pos.x, pos.y], logical_rect)
-                {
-                    state.preview_mesh(mesh);
-                }
+            {
+                state.preview_mesh(mesh);
             }
             if ctx.input(|i| i.pointer.button_released(PointerButton::Primary)) {
                 session.sliding = true;
             }
         }
     } else {
-        let scroll = ctx.input(|i| i.raw_scroll_delta.y);
+        let scroll = ctx.input(|i| i.smooth_scroll_delta.y);
         if scroll != 0.0 {
             session.adjust_cuts(if scroll > 0.0 { 1 } else { -1 });
         }
@@ -152,14 +153,13 @@ pub fn draw(
                 ndc,
                 SelectMode::Edge,
                 false,
-            ) {
-                if let PickComponent::Edge(a, b) = hit.component {
-                    match LoopRing::discover(&session.source, (a, b)) {
-                        Ok(ring) => session.ring = Some(ring),
-                        Err(error) => {
-                            session.ring = None;
-                            state.set_status(error.to_string());
-                        }
+            ) && let PickComponent::Edge(a, b) = hit.component
+            {
+                match LoopRing::discover(&session.source, (a, b)) {
+                    Ok(ring) => session.ring = Some(ring),
+                    Err(error) => {
+                        session.ring = None;
+                        state.set_status(error.to_string());
                     }
                 }
             }

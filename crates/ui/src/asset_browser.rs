@@ -2,14 +2,14 @@
 //! Fornece visualização dedicada, busca, filtragem por categoria, instanciação
 //! na coordenada do 3D Cursor e gerenciamento de modelos salvos no projeto.
 
-use egui::{vec2, Align, Color32, Layout, Rect, RichText, ScrollArea, SidePanel, Ui};
+use egui::{Align, Color32, Layout, Rect, RichText, ScrollArea, Ui, vec2};
 use petunia_core::{AppState, DeleteAssetCmd, DuplicateAssetCmd};
 
 use crate::tokens;
 use crate::widgets;
 
 /// Renderiza o painel lateral retrátil do Asset Browser.
-pub fn draw(ctx: &egui::Context, state: &mut AppState) {
+pub fn draw(ui: &mut Ui, state: &mut AppState) {
     if !state.ui.show_asset_browser {
         return;
     }
@@ -17,17 +17,17 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let min_w = 220.0;
     let max_w = 340.0;
 
-    SidePanel::left("asset_browser_panel")
-        .default_width(260.0)
-        .width_range(min_w..=max_w)
+    egui::Panel::left("asset_browser_panel")
+        .default_size(260.0)
+        .size_range(min_w..=max_w)
         .resizable(true)
         .frame(
             egui::Frame::new()
-                .fill(tokens::BG_PANEL)
-                .stroke(tokens::stroke_border())
+                .fill(tokens::bg_panel(state))
+                .stroke(tokens::stroke_border_dyn(state))
                 .inner_margin(egui::Margin::symmetric(8, 6)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             draw_header(ui, state);
             ui.separator();
             draw_categories(ui, state);
@@ -434,13 +434,12 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
             if let Some(idx) = to_instantiate {
                 state.instantiate_asset_at_cursor(idx);
             }
-            if let Some(idx) = to_activate {
-                if idx < state.project.assets.len() {
+            if let Some(idx) = to_activate
+                && idx < state.project.assets.len() {
                     state.project.active = idx;
                     state.sync_selection();
                     state.mark_dirty();
                 }
-            }
             if let Some(idx) = to_duplicate {
                 let _ = state.dispatch(&DuplicateAssetCmd {
                     asset_index: Some(idx),

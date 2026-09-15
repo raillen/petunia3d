@@ -5,7 +5,7 @@
 //! - **Salvar Asset**: Salva/registra o modelo ativo dentro da biblioteca do projeto;
 //! - **Salvar Projeto**: Salva o arquivo completo `.petunia` (cena, todos os assets, materiais, câmera).
 
-use egui::{vec2, Align, Color32, CornerRadius, Layout, RichText, ScrollArea, Stroke, Ui, Window};
+use egui::{Align, Color32, CornerRadius, Layout, RichText, ScrollArea, Stroke, Ui, Window, vec2};
 use petunia_core::{AppState, DeleteAssetCmd, DuplicateAssetCmd};
 
 use crate::icon_registry::PetuniaIcon;
@@ -19,7 +19,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     }
 
     let mut open = state.ui.show_asset_library;
-    let screen_rect = ctx.screen_rect();
+    let screen_rect = ctx.viewport_rect();
     let default_width = (screen_rect.width() * 0.65).clamp(420.0, 780.0);
     let default_height = (screen_rect.height() * 0.60).clamp(340.0, 600.0);
     let max_width = (screen_rect.width() - 32.0).max(420.0);
@@ -33,7 +33,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         .resizable(true)
         .collapsible(false)
         .frame(
-            egui::Frame::window(&ctx.style())
+            egui::Frame::window(&ctx.style_of(ctx.theme()))
                 .fill(tokens::BG_PANEL)
                 .stroke(tokens::stroke_border())
                 .inner_margin(egui::Margin::same(12)),
@@ -308,9 +308,11 @@ mod tests {
         let mut state = AppState::new("en");
         state.ui.show_asset_library = true;
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state);
-        });
+        ctx.run_ui(egui::RawInput::default(), |_ui| {
+            draw(&ctx, &mut state);
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]

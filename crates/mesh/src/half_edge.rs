@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
-use crate::{edge_key, Face, Mesh, Vertex};
+use crate::{Face, Mesh, Vertex, edge_key};
 
 /// Identificadores fortemente tipados.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -30,13 +30,17 @@ pub struct EdgeId(pub usize);
 /// Erros de topologia detectados durante a construção ou validação.
 #[derive(Error, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TopologyDefect {
-    #[error("Aresta não-manifold compartilhada por mais de duas faces: ({u}, {v}) encontrada {count} vezes")]
+    #[error(
+        "Aresta não-manifold compartilhada por mais de duas faces: ({u}, {v}) encontrada {count} vezes"
+    )]
     NonManifoldEdge { u: usize, v: usize, count: usize },
 
     #[error("Vértice não-manifold com leques de faces desconectados no índice {vertex}: {reason}")]
     NonManifoldVertex { vertex: usize, reason: String },
 
-    #[error("Inconsistência de gêmeo (twin): half-edge {he} aponta para twin {twin}, mas twin aponta para {twin_of_twin:?}")]
+    #[error(
+        "Inconsistência de gêmeo (twin): half-edge {he} aponta para twin {twin}, mas twin aponta para {twin_of_twin:?}"
+    )]
     TwinMismatch {
         he: usize,
         twin: usize,
@@ -242,10 +246,10 @@ impl HalfEdgeMesh {
         // 3. Conecta twins
         for (he_idx, he) in hem.half_edges.iter_mut().enumerate() {
             let rev_key = (he.target.0 as u32, he.origin.0 as u32);
-            if let Some(&twin_id) = directed_edges.get(&rev_key) {
-                if twin_id.0 != he_idx {
-                    he.twin = Some(twin_id);
-                }
+            if let Some(&twin_id) = directed_edges.get(&rev_key)
+                && twin_id.0 != he_idx
+            {
+                he.twin = Some(twin_id);
             }
         }
 
@@ -519,14 +523,12 @@ impl HalfEdgeMesh {
                 break;
             }
             let he = &self.half_edges[curr.0];
-            if let Some(twin_id) = he.twin {
-                if twin_id.0 < self.half_edges.len() {
-                    if let Some(other_face) = self.half_edges[twin_id.0].face {
-                        if other_face != face {
-                            neighbors.push(other_face);
-                        }
-                    }
-                }
+            if let Some(twin_id) = he.twin
+                && twin_id.0 < self.half_edges.len()
+                && let Some(other_face) = self.half_edges[twin_id.0].face
+                && other_face != face
+            {
+                neighbors.push(other_face);
             }
             curr = he.next;
             count += 1;
@@ -553,10 +555,10 @@ impl HalfEdgeMesh {
     pub fn vertex_star_faces(&self, v: VertexId) -> Vec<FaceId> {
         let mut faces = Vec::new();
         for he_id in self.vertex_star_half_edges(v) {
-            if let Some(f) = self.half_edges[he_id.0].face {
-                if !faces.contains(&f) {
-                    faces.push(f);
-                }
+            if let Some(f) = self.half_edges[he_id.0].face
+                && !faces.contains(&f)
+            {
+                faces.push(f);
             }
         }
         faces

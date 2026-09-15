@@ -359,18 +359,22 @@ mod tests {
             let result = ring.apply(&mesh, 2, slide).unwrap();
             assert_eq!(preview.len(), 8);
             for point in preview.iter().flatten() {
-                assert!(result
-                    .verts
-                    .iter()
-                    .skip(8)
-                    .any(|v| v.vec().distance(*point) < 1e-6));
+                assert!(
+                    result
+                        .verts
+                        .iter()
+                        .skip(8)
+                        .any(|v| v.vec().distance(*point) < 1e-6)
+                );
             }
             assert_closed(&result);
-            assert!(result
-                .faces
-                .iter()
-                .enumerate()
-                .all(|(i, _)| result.face_normal(i).length_squared() > 0.9));
+            assert!(
+                result
+                    .faces
+                    .iter()
+                    .enumerate()
+                    .all(|(i, _)| result.face_normal(i).length_squared() > 0.9)
+            );
         }
     }
 

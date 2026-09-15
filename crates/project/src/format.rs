@@ -81,8 +81,14 @@ pub fn save_atomic(project: &Project, path: &std::path::Path) -> Result<(), Proj
 
 pub fn load(path: &std::path::Path) -> Result<Project, ProjectError> {
     let bytes = std::fs::read(path).map_err(|e| ProjectError::Io(e.to_string()))?;
+    load_bytes(&bytes)
+}
+
+/// Parses a project from raw bytes (fuzz boundary P0-13: never panics on
+/// hostile input, only returns typed errors).
+pub fn load_bytes(bytes: &[u8]) -> Result<Project, ProjectError> {
     let file: PetuniaFile =
-        postcard::from_bytes(&bytes).map_err(|e| ProjectError::Format(e.to_string()))?;
+        postcard::from_bytes(bytes).map_err(|e| ProjectError::Format(e.to_string()))?;
     if file.magic != *MAGIC {
         return Err(ProjectError::Format("magic inválido".into()));
     }
@@ -135,6 +141,7 @@ mod tests {
                 verts: vec![0, 1, 77],
                 uv: vec![[0.0, 0.0]],
                 selected: false,
+                material_slot: None,
             }],
             selected_edges: Default::default(),
         };
@@ -154,6 +161,9 @@ mod tests {
                     h: 999999,
                     pixels: vec![],
                 }),
+                material_id: None,
+                skeleton_id: None,
+                skin_data: None,
                 favorite: false,
                 tags: vec![],
             }],

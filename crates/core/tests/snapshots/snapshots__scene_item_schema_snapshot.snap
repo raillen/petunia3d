@@ -1,0 +1,29 @@
+---
+source: crates/core/tests/snapshots.rs
+expression: schema
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Result of a scene query for palette/command-palette display.",
+  "properties": {
+    "kind": {
+      "description": "Stable kind tag: `\"object\"`, `\"annotation\"` or `\"measurement\"`.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Display name.",
+      "type": "string"
+    },
+    "visible": {
+      "description": "Whether the item is currently visible.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "name",
+    "kind",
+    "visible"
+  ],
+  "title": "SceneItemContract",
+  "type": "object"
+}

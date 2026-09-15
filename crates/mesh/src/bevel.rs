@@ -297,10 +297,11 @@ mod tests {
             for (fi, face) in mesh.faces.iter().enumerate() {
                 let normal = mesh.face_normal(fi);
                 let origin = mesh.verts[face.verts[0] as usize].vec();
-                assert!(face
-                    .verts
-                    .iter()
-                    .all(|&vi| normal.dot(mesh.verts[vi as usize].vec() - origin).abs() < 1e-5));
+                assert!(
+                    face.verts
+                        .iter()
+                        .all(|&vi| normal.dot(mesh.verts[vi as usize].vec() - origin).abs() < 1e-5)
+                );
                 assert!(normal.dot(mesh.face_centroid(fi)) > 0.0);
                 assert_eq!(face.verts.len(), face.uv.len());
             }

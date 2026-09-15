@@ -45,13 +45,15 @@ fn frame(ctx: &egui::Context, state: &mut AppState, events: Vec<Event>) {
         events,
         ..Default::default()
     };
-    let _ = ctx.run(input, |ctx| {
+    ctx.run_ui(input, |_ui| {
         let painter = ctx.layer_painter(egui::LayerId::new(
             egui::Order::Middle,
             egui::Id::new("test.viewport"),
         ));
         modal_viewport::draw(ctx, state, rect(), &painter);
-    });
+    })
+    .textures_delta
+    .clear();
 }
 
 fn mesh_snapshot(state: &AppState) -> String {
@@ -262,16 +264,18 @@ fn sidebar_duplicate_button_is_disabled_during_modal_preview() {
     let tools = ToolRegistry::with_defaults();
     let mut registry = ModuleRegistry::new();
     let mut panel_frame = |state: &mut AppState, events: Vec<Event>| {
-        ctx.run(
+        let mut out = ctx.run_ui(
             egui::RawInput {
                 screen_rect: Some(rect()),
                 events,
                 ..Default::default()
             },
-            |ctx| {
-                crate::right_panel(ctx, state, &tools, &mut registry);
+            |ui| {
+                crate::right_panel(ui, state, &tools, &mut registry);
             },
-        )
+        );
+        out.textures_delta.clear();
+        out
     };
     panel_frame(&mut state, vec![]);
     let output = panel_frame(&mut state, vec![]);

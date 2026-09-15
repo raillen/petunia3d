@@ -8,8 +8,8 @@ use petunia_core::cutting_session::CutSession;
 use petunia_core::modal::PointerSession;
 use petunia_core::state::AppState;
 use petunia_core::viewport::LogicalRect;
-use petunia_mesh::loop_cut::LoopRing;
 use petunia_mesh::Mesh;
+use petunia_mesh::loop_cut::LoopRing;
 
 #[test]
 fn test_cut_session_lifecycle_and_cuts_adjustment() {

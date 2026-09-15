@@ -79,24 +79,16 @@ impl<'a> Behavior<PetuniaPane> for PetuniaTilesBehavior<'a> {
                 outliner::draw(ui, self.state);
             }
             PetuniaPane::Properties => {
-                let ctx = ui.ctx().clone();
                 if let (Some(tools), Some(registry)) = (self.tools, self.registry.as_deref_mut()) {
-                    properties_panel::draw(&ctx, ui, self.state, tools, registry);
+                    properties_panel::draw(ui, self.state, tools, registry);
                 } else {
                     let default_tools = ToolRegistry::new();
                     let mut default_registry = ModuleRegistry::new();
-                    properties_panel::draw(
-                        &ctx,
-                        ui,
-                        self.state,
-                        &default_tools,
-                        &mut default_registry,
-                    );
+                    properties_panel::draw(ui, self.state, &default_tools, &mut default_registry);
                 }
             }
             PetuniaPane::Timeline => {
-                let ctx = ui.ctx().clone();
-                timeline::draw(&ctx, self.state);
+                timeline::draw(ui, self.state);
             }
             PetuniaPane::AssetBrowser => {
                 ui.heading("Asset Browser");
@@ -217,11 +209,13 @@ mod tests {
         let mut state = AppState::new("en");
         let mut tree = create_canonical_tree();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let mut behavior = PetuniaTilesBehavior::new(&mut state);
                 tree.ui(&mut behavior, ui);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 }

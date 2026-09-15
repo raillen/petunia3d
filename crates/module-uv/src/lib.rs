@@ -73,6 +73,69 @@ impl UvModule {
             state.mark_dirty();
         }
     }
+
+    /// Rotaciona UVs selecionadas em torno do centroide em radianos (P3D-064).
+    pub fn rotate_selected(state: &mut AppState, angle_rad: f32) {
+        let sel_empty = state.session.uv_selected.is_empty();
+        let uv_selected = &state.session.uv_selected;
+        let (sin_a, cos_a) = angle_rad.sin_cos();
+
+        if let Some(m) = state.project.active_mesh_mut() {
+            let mut c = [0.0f32; 2];
+            let mut n = 0;
+            for (fi, f) in m.faces.iter().enumerate() {
+                if sel_empty || uv_selected.contains(&fi) {
+                    for uv in &f.uv {
+                        c[0] += uv[0];
+                        c[1] += uv[1];
+                        n += 1;
+                    }
+                }
+            }
+            if n == 0 {
+                return;
+            }
+            c[0] /= n as f32;
+            c[1] /= n as f32;
+
+            for (fi, f) in m.faces.iter_mut().enumerate() {
+                if sel_empty || uv_selected.contains(&fi) {
+                    for uv in &mut f.uv {
+                        let du = uv[0] - c[0];
+                        let dv = uv[1] - c[1];
+                        uv[0] = c[0] + du * cos_a - dv * sin_a;
+                        uv[1] = c[1] + du * sin_a + dv * cos_a;
+                    }
+                }
+            }
+            state.mark_dirty();
+        }
+    }
+
+    /// Executa projeção cúbica (Box Mapping) sobre o asset ativo (P3D-064).
+    pub fn project_cube(state: &mut AppState) {
+        state.checkpoint("uv cube projection");
+        if let Some(m) = state.project.active_mesh_mut() {
+            m.project_cube();
+        }
+        state.uv_selected.clear();
+        state.emit_mesh_changed();
+    }
+
+    /// Executa unwrap automático genérico usando o provider xatlas (P1-06 / P3D-064).
+    pub fn unwrap_auto(state: &mut AppState) -> Result<usize, String> {
+        state.checkpoint("uv auto unwrap");
+        let res = if let Some(m) = state.project.active_mesh_mut() {
+            m.unwrap_auto().map_err(|e| e.to_string())
+        } else {
+            Err("Nenhum asset ativo".into())
+        };
+        if res.is_ok() {
+            state.uv_selected.clear();
+            state.emit_mesh_changed();
+        }
+        res
+    }
 }
 
 impl Module for UvModule {
@@ -147,4 +210,67 @@ fn point_in_tri_uv(p: [f32; 2], a: [f32; 2], b: [f32; 2], c: [f32; 2]) -> bool {
     let v = (d11 * d20 - d01 * d21) / den;
     let w = (d00 * d21 - d01 * d20) / den;
     v >= -1e-6 && w >= -1e-6 && v + w <= 1.0 + 1e-6
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_uv_planar_and_cube_projections() {
+        let mut state = AppState::new("en");
+        UvModule::reproject(&mut state);
+        let mesh = state.project.active_mesh().unwrap();
+        assert!(mesh.faces.iter().all(|f| f.uv.len() == f.verts.len()));
+
+        UvModule::project_cube(&mut state);
+        let mesh = state.project.active_mesh().unwrap();
+        assert!(
+            mesh.faces
+                .iter()
+                .all(|f| f.uv.iter().all(|uv| uv[0].is_finite() && uv[1].is_finite()))
+        );
+    }
+
+    #[test]
+    fn test_uv_transforms() {
+        let mut state = AppState::new("en");
+        UvModule::reproject(&mut state);
+
+        let original_uv0 = state.project.active_mesh().unwrap().faces[0].uv[0];
+
+        // Move
+        UvModule::move_selected(&mut state, 0.2, 0.1);
+        let moved_uv0 = state.project.active_mesh().unwrap().faces[0].uv[0];
+        assert!((moved_uv0[0] - (original_uv0[0] + 0.2)).abs() < 1e-4);
+        assert!((moved_uv0[1] - (original_uv0[1] + 0.1)).abs() < 1e-4);
+
+        // Scale
+        UvModule::scale_selected(&mut state, 2.0);
+
+        // Rotate
+        UvModule::rotate_selected(&mut state, std::f32::consts::FRAC_PI_2);
+        let rotated_mesh = state.project.active_mesh().unwrap();
+        assert!(
+            rotated_mesh
+                .faces
+                .iter()
+                .all(|f| f.uv.iter().all(|uv| uv[0].is_finite() && uv[1].is_finite()))
+        );
+    }
+
+    #[test]
+    fn test_uv_auto_unwrap_xatlas() {
+        let mut state = AppState::new("en");
+        let res = UvModule::unwrap_auto(&mut state);
+        assert!(res.is_ok());
+        let charts = res.unwrap();
+        assert!(charts >= 1);
+        let mesh = state.project.active_mesh().unwrap();
+        assert!(
+            mesh.faces
+                .iter()
+                .all(|f| f.uv.iter().all(|uv| uv[0].is_finite() && uv[1].is_finite()))
+        );
+    }
 }

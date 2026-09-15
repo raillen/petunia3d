@@ -1,12 +1,11 @@
 //! Painel de Pintura 2D e Vertex Paint (`paint_ui`).
 //! Renderiza controles de cores, paleta, sliders de pincel e canvas interativo de textura.
 
-use egui::{Color32, Context, Ui};
+use egui::{Color32, Ui};
 use petunia_core::AppState;
 use petunia_module_paint::PaintModule;
 
 pub fn draw_paint_panel(
-    ctx: &Context,
     ui: &mut Ui,
     state: &mut AppState,
     canvas_tex: &mut Option<egui::TextureHandle>,
@@ -108,8 +107,6 @@ pub fn draw_paint_panel(
 
     // canvas 2D (albedo)
     let l_canvas = state.t("paint.canvas");
-    let l_brush = state.t("paint.brush");
-    let l_eraser = state.t("paint.eraser");
     let l_cfill = state.t("paint.fill");
     let l_clear = state.t("paint.clear");
     let l_new = state.t("paint.new_canvas");
@@ -121,25 +118,41 @@ pub fn draw_paint_panel(
                 PaintModule::ensure_canvas(state);
             }
             if state.render.canvas_dirty {
-                if let Some(o) = state.project.assets.get(state.project.active) {
-                    if let Some(cv) = &o.texture {
-                        let img = egui::ColorImage::from_rgba_unmultiplied(
-                            [cv.w as usize, cv.h as usize],
-                            &cv.pixels,
-                        );
-                        *canvas_tex =
-                            Some(ctx.load_texture("canvas", img, egui::TextureOptions::NEAREST));
-                    }
+                if let Some(o) = state.project.assets.get(state.project.active)
+                    && let Some(cv) = &o.texture
+                {
+                    let img = egui::ColorImage::from_rgba_unmultiplied(
+                        [cv.w as usize, cv.h as usize],
+                        &cv.pixels,
+                    );
+                    *canvas_tex = Some(ui.ctx().load_texture(
+                        "canvas",
+                        img,
+                        egui::TextureOptions::NEAREST,
+                    ));
                 }
                 state.render.canvas_dirty = false;
             }
+            ui.horizontal_wrapped(|ui| {
+                let brushes = [
+                    (0, "🖌 Pixel"),
+                    (1, "☁ Soft"),
+                    (2, "⌫ Borracha"),
+                    (3, "🪣 Preencher"),
+                    (4, "🔍 Conta-gotas"),
+                ];
+                for (kind, label) in brushes {
+                    let sel = state.paint_brush_kind == kind;
+                    if ui.selectable_label(sel, label).clicked() {
+                        state.paint_brush_kind = kind;
+                    }
+                }
+            });
+
+            ui.checkbox(&mut state.paint_isolate_selection, "🔒 Isolar Faces (Mask)")
+                .on_hover_text("Confinar traço 3D exclusivamente às faces selecionadas");
+
             ui.horizontal(|ui| {
-                if ui.button(l_brush).clicked() {
-                    state.canvas_brush = state.canvas_brush.max(1);
-                }
-                if ui.button(l_eraser).clicked() {
-                    state.set_status(state.t("paint.eraser_hint"));
-                }
                 if ui.button(l_cfill).clicked() {
                     state.checkpoint("canvas fill");
                     PaintModule::canvas_fill(state);
@@ -147,10 +160,10 @@ pub fn draw_paint_panel(
                 }
                 if ui.button(l_clear).clicked() {
                     state.checkpoint("canvas clear");
-                    if let Some(o) = state.project.active_mut() {
-                        if let Some(cv) = o.texture.as_mut() {
-                            cv.fill([0, 0, 0, 0]);
-                        }
+                    if let Some(o) = state.project.active_mut()
+                        && let Some(cv) = o.texture.as_mut()
+                    {
+                        cv.fill([0, 0, 0, 0]);
                     }
                     state.render.canvas_dirty = true;
                     state.mark_dirty();
@@ -213,16 +226,34 @@ pub fn draw_paint_panel(
                     }
                 }
                 let erase = ui.input(|i| i.modifiers.ctrl);
-                if resp.dragged() || resp.clicked() {
-                    if let Some(pos) = resp.interact_pointer_pos() {
-                        let px = (((pos.x - rect.min.x) / scale) as u32).min(cw as u32 - 1);
-                        let py = (((pos.y - rect.min.y) / scale) as u32).min(ch as u32 - 1);
-                        if resp.drag_started() {
-                            state.checkpoint("canvas paint");
-                        }
-                        PaintModule::canvas_brush(state, px, py, erase);
-                        state.render.canvas_dirty = true;
+                if (resp.dragged() || resp.clicked())
+                    && let Some(pos) = resp.interact_pointer_pos()
+                {
+                    let px = (((pos.x - rect.min.x) / scale) as u32).min(cw as u32 - 1);
+                    let py = (((pos.y - rect.min.y) / scale) as u32).min(ch as u32 - 1);
+                    if resp.drag_started() {
+                        state.checkpoint("canvas paint");
                     }
+                    let brush_type = if erase {
+                        petunia_module_paint::BrushType::Eraser
+                    } else {
+                        match state.paint_brush_kind {
+                            1 => petunia_module_paint::BrushType::Soft,
+                            2 => petunia_module_paint::BrushType::Eraser,
+                            3 => petunia_module_paint::BrushType::Fill,
+                            4 => petunia_module_paint::BrushType::Eyedropper,
+                            _ => petunia_module_paint::BrushType::Pixel,
+                        }
+                    };
+                    PaintModule::canvas_brush_advanced(
+                        state,
+                        px,
+                        py,
+                        brush_type,
+                        state.canvas_brush,
+                        state.paint_strength,
+                    );
+                    state.render.canvas_dirty = true;
                 }
                 if resp.drag_stopped() {
                     state.emit_mesh_changed();

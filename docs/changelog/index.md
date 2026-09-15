@@ -1,6 +1,330 @@
 # Histórico de Versões (Changelog)
 
-Todas as alterações notáveis do **Petunia3D** são documentadas nesta página em conformidade com o formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e [Semantic Versioning](https://semver.org/lang/pt-BR/).
+Todas as alterações notáveis deste projeto são documentadas neste arquivo.
+O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
+
+## [0.32.0] - 2026-09-14 — Wave 10: Animation & Rigging (P3D-066, P3D-067, P3D-135 a P3D-139)
+
+### Implementado & Aprimorado
+- **Skeleton & Rig Core Desacoplado (`crates/project/src/rig.rs`, P3D-135)**:
+  - Sistema fundamental de esqueletos e ossos (`Bone`, `Skeleton`) 100% puro e independente da UI.
+  - Transformações tridimensionais canônicas (`Transform3D`) com translação, rotação em quaternions e escala, com suporte a lerp e slerp.
+  - Prevenção estrita de ciclos na árvore de ossos (`HierarchyCycleDetected`), reatribuição dinâmica de pais e validação de nomes únicos.
+  - Cálculo determinístico de matrizes de repouso (Bind Pose) e matrizes inversas de bind (`inverse_bind_matrix`).
+  - Pesos de deformação por vértice (`VertexSkinWeight`) com normalização garantida (soma = 1.0) e algoritmo de deformação Linear Blend Skinning (`SkinData::deform_mesh`).
+- **Animação Simples & Trilha de Keyframes (`crates/project/src/animation.rs`, P3D-067)**:
+  - Trilhas de ossos (`BoneTrack`) com suporte a keyframes de translação, rotação e escala no tempo contínuo.
+  - Interpolação linear contínua e interpolação esférica quaternion (`Slerp`).
+  - Clipes de animação (`AnimationClip`) com controle de framerate configurável (24/30/60 FPS), suporte a repetição contínua (looping) e amostragem de poses e matrizes de skinning.
+- **Presets Canônicos de Rigging (`crates/project/src/animation.rs`, P3D-136)**:
+  - Templates de dados pré-configurados prontos para uso: Humanoide bípede proporcional (15+ ossos), Quadrúpede de 4 patas com cauda, e criatura Multi-Leg parametrizada (aranhas/escorpiões).
+- **Auto-Rig & Auto-Skinning Heurístico (`crates/project/src/animation.rs`, P3D-137)**:
+  - Dimensionamento proporcional automático (`auto_fit_humanoid`) adaptando o esqueleto à caixa delimitadora (Bounding Box) do modelo ativo.
+  - Cálculo geométrico automático de pesos de deformação (`compute_auto_skin_weights`) com atenuação quadrática suave e atribuição dos 4 ossos mais influentes por vértice.
+- **Retargeting de Animações Externas (`crates/project/src/animation.rs`, P3D-138)**:
+  - Perfil de mapeamento semântico `RetargetProfile` (padrão Mixamo para Petunia Humanoid) e retargeting desacoplado de clipes.
+- **Biblioteca de Ativos de Animação (`crates/project/src/animation.rs`, P3D-139)**:
+  - Estrutura `AnimationAsset` integrada ao documento do projeto, com biblioteca nativa contendo os clipes canônicos `Humanoid_Idle` e `Humanoid_Walk`.
+- **Animation Workspace & Painel de UI (`crates/ui/src/modules_ui/animation_ui.rs`, `crates/ui/src/contextual_shelf.rs`, P3D-066)**:
+  - Painel lateral no `Workspace::Animate` contendo gestão de Armatures, Inspetor de Ossos com coordenadas [X, Y, Z] e comprimento, catálogo de clipes e controles de transporte com gravação de keyframes.
+  - Shelf contextual inferior com botões dedicados de presets rápidos, Auto-Rig, scrubbing de frames e transporte de reprodução.
+  - 20 testes headless de fluxo UI (`kittest_ui_flows.rs`) e 47 testes unitários de domínio passando com 100% de conformidade.
+
+## [0.31.0] - 2026-09-14 — Wave 9: Documentation, QA, Release & GA Hardening (P3D-116 a P3D-121, P3D-126 a P3D-130)
+
+### Implementado & Aprimorado
+- **Gerador Determinístico de Referências Técnicas do Código (`crates/xtask/src/generator.rs`, P3D-119)**:
+  - Implementação de gerador automático e determinístico de catálogos canônicos em `docs/generated/`:
+    - `COMMANDS.md`: Catálogo completo de comandos do `CommandDispatcher`, categorias (`File`, `Edit`, `Model`, `Select`, `View`, `Tools`, `Window`, `Help`), flag destrutivo, tópicos de documentação e descrições.
+    - `KEYBINDS.md`: Referência dos 8 perfis canônicos (`petunia-default`, `blender`, `maya`, `3ds-max`, `cinema-4d`, etc.) e mapeamento completo de atalhos.
+    - `ICON_TOKENS.md`: Mapeamento de tokens semânticos `PetuniaIcon` e identificadores textuais `IconId` organizados por grupos de interface.
+    - `TEXT_TOKENS.md`: Catálogo de internacionalização extraído de `en.toml` e `pt-BR.toml` com chaves semânticas `TextId`.
+    - `THEME_TOKENS.md`: Matriz de design tokens `ThemeToken` comparando valores hexadecimais entre os 4 temas canônicos (`petunia-dark`, `petunia-light`, `petunia-capuccino`, `petunia-tokyo-nights`).
+    - `SUPPORTED_FORMATS.md`: Matriz de capacidades do `DeliveryPipeline` para OBJ, glTF, GLB e PKG.
+    - `index.md`: Portal de navegação para referências geradas.
+    - `manifest.json`: Manifesto de integridade e metadados com verificação de tamanho de bytes.
+  - Subcomando dedicado `cargo xtask docs-generate` para regeneração rápida sem compilar o VitePress.
+- **Detecção de Divergência e Quality Gate Contínuo (`crates/xtask/src/main.rs`, P3D-120)**:
+  - Extensão do `cargo xtask docs-check` com verificação de drift: compara em memória o conteúdo gerado com os arquivos rastreados no repositório, falhando com instruções claras de correção se houver desatualização.
+  - Validação estrita de 36 arquivos essenciais de documentação e build completo do VitePress sem erros.
+- **Ampliação da Suíte de Testes de Regressão de UI Headless (`crates/ui/tests/kittest_ui_flows.rs`, P3D-121)**:
+  - 19 testes automatizados com `egui_kittest` cobrindo fluxos essenciais sem depender de temporizações frágeis:
+    - Alternância e estabilidade de modos de seleção (`SelectMode::Vertex`, `Edge`, `Face`) e `EditMode` (`Object` vs `Edit`).
+    - Renderização da barra contextual horizontal (`Contextual Modeling Shelf`) nos diferentes workspaces (`Model`, `Paint`, `Uv`, `Animate`) e retração graciosa em viewports estreitos.
+    - Testes de estabilidade multi-frame (10 frames) em modais e gavetas para prevenir regressões de expansão horizontal.
+- **Garantia de Qualidade & Invariantes de Release (P3D-126 a P3D-130)**:
+  - Suíte de 8 testes de unidade dedicados em `crates/xtask/src/generator.rs` validando determinismo, presença de identificadores e conformidade de schemas.
+  - Zero warnings no Clippy (`-D warnings`) em todos os alvos do workspace.
+  - Formatação uniforme com `cargo fmt --check`.
+  - Conformidade estrita das fronteiras arquiteturais e GA boundaries (No Remesh, Sem login obrigatório, Domínio puro).
+
+## [0.30.0] - 2026-09-14 — Wave 8: Import, Export & Delivery Pipeline (P3D-068 a P3D-072, P3D-124)
+
+### Implementado & Aprimorado
+- **Pipeline Unificado de Entrega e Conversão de Formatos (`crates/project/src/pipeline.rs`, P3D-068 a P3D-072)**:
+  - Arquitetura desacoplada e modular `DeliveryPipeline` com registro de exportadores e importadores para formatos 3D: Wavefront OBJ, glTF 2.0 (JSON), glTF 2.0 Binário (.glb) e Petunia Package (.pkg).
+  - Matriz de capacidades declaradas (`FormatCapabilities` / P3D-071, P3D-072) indicando de forma explícita suporte a materiais PBR, texturas embutidas, vertex colors, múltiplas malhas e binário.
+  - Opções padronizadas de exportação (`ExportOptions`) e importação (`ImportOptions`), controlando triangulação de malhas, inclusão de materiais, fator de escala uniforme e política de sobrescrita segura.
+- **Export Individual com Validação & Relatório Detalhado (P3D-068)**:
+  - Método `export_single_asset` retornando `ExportReport` estruturado com nome do ativo, caminho absoluto, formato, contagem de bytes escritos e avisos não-fatais.
+  - Verificação prévia de sobrescrita com erro tipado `PipelineError::AlreadyExists`.
+- **Export Múltiplo & Batch Export Determinístico com Tolerância a Falhas (P3D-069, P3D-070)**:
+  - Métodos `export_multiple_assets` e `batch_export` com sanitização consistente de nomes de arquivo (`sanitize_name`).
+  - Geração de `BatchExportReport` agregando sucessos e falhas parciais, assegurando que falha em um ativo com geometria corrupta não interrompe ou cancela o processamento dos ativos válidos subsequentes.
+- **Importadores Modulares com Validação e Normalização (P3D-071, P3D-124)**:
+  - Extração de `save_package_bytes` e `open_package_bytes` em `crates/project/src/package.rs`, permitindo serialização e desserialização in-memory de pacotes versionados sem overhead de arquivos temporários.
+  - Conversão transparente de formatos externos para `ImportPayload` com malhas limpas e materiais preservados.
+  - Blindagem contra entradas hostis: rejeição segura de OBJs com índices corrompidos, pacotes ZIP truncados e arquivos glTF malformados, retornando erros tipados sem causar pânico.
+- **Integração do Exportador GLB aos Canais de Materiais PBR (P3D-050, P3D-072)**:
+  - Atualização de `export_gltf` em `crates/project/src/export.rs` para extrair as propriedades reais do `Material` associado ao ativo: cor base linear, rugosidade (`roughnessFactor`), metacidade (`metallicFactor`) e emissão escalada por intensidade (`emissiveFactor`).
+- **Integração Headless no ProjectService (`crates/core/src/project_service.rs`)**:
+  - Exposição de `export_asset_pipeline`, `export_multiple_pipeline`, `batch_export_pipeline` e `import_file_pipeline` com conversão bidirecional de erros (`From<PipelineError> for ProjectServiceError`).
+  - Atualização dos métodos tradicionais `export_obj`, `export_all_obj_to_dir` e `export_glb` para delegar diretamente ao pipeline unificado.
+- **Garantia de Qualidade & Conformidade**:
+  - Suíte de 14 testes de integração dedicados em `crates/project/tests/pipeline_tests.rs` cobrindo round-trips, matriz de capacidades, escala e testes de estresse contra arquivos corrompidos (P3D-124).
+  - Testes de integração adicionais no `ProjectService` (`crates/core/tests/project_service_tests.rs`).
+  - 100% de aprovação em todos os testes, zero avisos no Clippy (`-D warnings`), formatação uniforme (`cargo fmt --check`), e validações `xtask arch-check` e `xtask docs-check` aprovadas.
+
+## [0.29.0] - 2026-09-14 — Wave 7: Materials, Texture, UV & Paint Engine (P3D-050 a P3D-065, P3D-132 a P3D-134, P3D-140)
+
+### Implementado & Aprimorado
+- **Modelo Canônico de Materiais e Canais PBR (P3D-050 a P3D-054, P3D-140)**:
+  - Criação de `crates/project/src/material.rs` com modelo unificado: `ShaderProfile` (`Pbr`, `Unlit`, `Toon`, `Glass`, `Emissive`), `AlphaMode` (`Opaque`, `Mask`, `Blend`), canais de textura (`Albedo`, `Normal`, `Roughness`, `Metallic`, `Emission`, `Height`) e conversão bidirecional Roughness ↔ Glossiness.
+  - Vínculo direto de slots de material em faces de malha (`material_slot`) e ativos de cena (`material_id`), com garantia de Single Source of Truth no `Project`.
+  - Normalização automática de arquivos de projeto legados em `Project::validate()` para compatibilidade sem corrupção de schema.
+- **UV Workspace & Algoritmos de Desdobramento (P3D-063, P3D-064, P3D-065)**:
+  - Algoritmos de projeção UV: Mapeamento Planar (`project_planar`), Mapeamento Cúbico 6 planos (`project_cube`) e Auto Unwrap não-destrutivo integrado ao `xatlas-rs-v2` (`unwrap_auto`).
+  - Transformações UV no workspace: translação, escala e rotação incremental de 90° para ilhas UV.
+- **Motor de Pintura 2D & Projeção 3D sobre Malha (P3D-055 a P3D-062, P3D-132)**:
+  - 5 modos canônicos de pincel: Pixel Brush rígido, Soft Brush com atenuação quadrática suave, Borracha com atenuação do canal alfa, Flood Fill com tolerância de cor e Conta-gotas (Eyedropper).
+  - Pintura contínua sobre a malha 3D via projeção baricêntrica de coordenadas UV no viewport interativo.
+  - Máscaras de pintura e isolamento de seleção (`isolate_selection` / P3D-132), restringindo a área de pintura exclusivamente às faces selecionadas.
+- **Pilha Unificada de Camadas, Decalques & Efeitos (P3D-061, P3D-133, P3D-134)**:
+  - `PaintLayerStack` determinístico com suporte a camadas raster, decalques parametrizados (`DecalLayer` com projeção UV, escala, rotação e opacidade) e pilha de efeitos não-destrutivos (`PaintEffect::Pixelate`, `PaintEffect::Posterize` e `PaintEffect::Invert`).
+- **Hub de Materiais no Painel de Propriedades (P3D-048, P3D-050)**:
+  - Interface completa de edição de materiais: seleção de shader profile, seletor RGBA de cor base sincronizado, sliders de roughness e metálico, escala de normal map, cor e intensidade de emissão, controles de canal alfa e integração com a paleta do projeto.
+- **Integração dos Renderers WGPU & OpenGL aos Materiais (P3D-051, P3D-140)**:
+  - Sincronização automática das propriedades de materiais, texturas de albedo e perfis de sombreamento nos pipelines gráficos do WebGPU (`render-wgpu`) e OpenGL Desktop 3.3+ (`render-gl`).
+- **Qualidade & Confiabilidade**:
+  - 100% de aprovação na suíte de testes com zero avisos no Clippy (`-D warnings`) em todo o workspace.
+  - Verificação de arquitetura (`xtask arch-check`) e documentação oficial (`xtask docs-check` com VitePress) 100% compliant.
+
+## [0.28.1] - 2026-09-14 — Wayland Crash Elimination & In-Canvas File Dialog System
+
+
+### Corrigido & Aprimorado
+- **Eliminação de Falha de Segmentação no Wayland (`crates/app/src/lib.rs`)**:
+  - Resolução definitiva do segmentation fault (`SEGV_MAPERR` em `wl_proxy_destroy` no `smithay-clipboard`) em ambientes Wayland / Mesa Intel (Ivy Bridge / Gen 7).
+  - Implementado `SafeDisplayTarget` no `egui-winit::State::new`, desativando a inicialização da thread instável do `smithay-clipboard` e delegando as operações de clipboard de forma segura para o `arboard`.
+  - Implementado tratamento atômico de encerramento (`exiting` e `CloseRequested`) no `WgpuApp` e `GlApp`, desalocando instâncias gráficas e janelas antes da finalização do loop de eventos.
+- **Sistema Integral de Diálogos de Arquivos In-Canvas (`crates/ui/src/file_dialog_service.rs`, `crates/ui/src/reference_manager.rs`, `crates/ui/src/lib.rs`)**:
+  - Eliminação completa de chamadas ao seletor nativo do sistema operacional (`rfd::FileDialog` / DBus portal `ashpd`), que gerava erros de `zbus::proxy` e não conformidade visual.
+  - O Gerenciador de Imagens de Referência, o menu principal e os eventos de importação/exportação de paleta agora utilizam exclusivamente o explorador de arquivos integrado (`egui-file-dialog`), operando diretamente dentro da janela da aplicação com tema, filtros por extensão e responsividade idêntica.
+
+## [0.28.0] - 2026-09-14 — UI/UX Polish, Theming, Icon System & Viewport Ergonomics (13 Critical Defects Resolved)
+
+### Corrigido & Aprimorado
+- **1. Sistema de Temas e Tokenização Reativa**:
+  - Propagação integral dos temas e tokens para todos os componentes egui e sincronização com as cores de limpeza de viewport no OpenGL e WebGPU.
+- **2. Internacionalização Completa (i18n)**:
+  - Adição de chaves ausentes em `pt-BR.toml` e `en.toml` para ferramentas, botões de ação, prateleira contextual, menus e barras de viewport.
+- **3. Sistema de Ícones e Pacotes Dinâmicos (Icon Packs)**:
+  - Resolução dos pacotes de ícones (`Petunia`, `Phosphor`, `Tabler`, `Iconoir`, `Lucide`) com substituição de glifos ausentes por motor vetorial nativo em egui Painter, eliminando completamente os glifos corrompidos ("quadrados/tofu").
+  - Mapeamento completo de glifos Phosphor para todas as ferramentas e comutadores.
+  - Pré-visualização autêntica de cada pacote de ícones nas opções do modal de configurações (`paint_pack`).
+- **4. Prateleira Contextual Flutuante (Modeling Shelf)**:
+  - Correção de cálculo de largura da cápsula de fundo (`measured_w` em retângulo irrestrito), eliminando o corte de bordas e desalinhamento visual.
+  - O botão de imagem de referência agora abre o Gerenciador de Imagens de Referência (`Reference Manager`) em vez do seletor direto de arquivos.
+- **5. Gerenciador de Imagens de Referência (Reference Manager)**:
+  - Redesenho responsivo em formato de cartões (`horizontal_wrapped`) com caixa de miniatura clicável que abre o seletor de arquivos e sliders intuitivos de ajuste de escala, rotação, opacidade e offset.
+- **6. Menus Dropdown e Popovers**:
+  - Redimensionamento e contenção da largura dos popovers e dropdowns para 148–165px com estilização reativa ao tema ativo.
+- **7. Grade 3D e Ajustes do Viewport**:
+  - Adicionado botão de engrenagem (`⚙`) ao lado do checkbox da grade, exibindo menu suspenso com sliders para tamanho, subdivisões, opacidade e guias isométricas.
+- **8. Sincronização de Overlays**:
+  - Toggles de eixos mundiais e bússola/HUD de navegação integrados e sincronizados com os backends de renderização.
+- **9. Translucidez no Modo X-Ray**:
+  - Pipeline de visualização X-Ray com alfa translucidez (`0.45`) e arestas sem oclusão nos renderizadores OpenGL e WGPU.
+- **10. Snapping Magnético na Viewport**:
+  - Implementação de magnetismo automático ao mover vértices e objetos na viewport com controle visual.
+- **11. Movimentação Livre da Câmera (Free Movement)**:
+  - Suporte à translação irrestrita no plano da câmera (`ModalConstraint::Free`) com cálculo em tempo real.
+- **12. Interceptação da Tecla Tab**:
+  - Interceptação preventiva da tecla `Tab` no loop do Winit antes da navegação de foco nativa do egui, garantindo alternância consistente entre Modo Objeto e Modo Edição.
+- **13. Orientação Global vs Local do Gizmo**:
+  - Orientação do gizmo de transformação reativa ao toggle Global/Local através de detecção dos eixos da malha (`local_axes_for_mesh`).
+
+## [0.27.1] - 2026-09-14 — Master Implementation Gauntlet: Viewport Picking, Outliner Polish & Documentation Unification
+
+### Adicionado
+- **Unificação Integral da Documentação (Single Source of Truth) (`docs/bible/`)**:
+  - Consolidação e migração de todos os 191 documentos da **Implementation Bible** (`implement-bible/`) e 38 capítulos de fundação narrativa (`docs/petunia3d-livro-vivo/`) para a estrutura canônica e rastreável dentro de `docs/bible/`.
+  - Higienização completa de todos os nomes de arquivos em slugs kebab-case previsíveis (eliminação dos hashes hexadecimais Notion).
+  - Resolução automática e determinística de 195 links internos relativos entre especificações, capítulos constitucionais (00 a 16), seções temáticas (A a O) e adendos.
+  - Atualização dos status canônicos de cada especificação P3D (P3D-001 a P3D-049 marcadas como `COMPLIANT` conforme as entregas provadas das Waves 0 a 6).
+  - Integração da Bíblia diretamente à barra de navegação e sidebar do VitePress com índice mestre estruturado em `docs/bible/index.md`.
+- **Botão de Exclusão Direta e Atalhos no Outliner (`crates/ui/src/outliner.rs`, `crates/config/src/keybinds.rs`, `crates/app/src/lib.rs`)**:
+  - Adicionado botão de ícone de lixeira (`PetuniaIcon::Delete`) com tooltip descritivo em cada linha de asset no Outliner.
+  - Habilitados atalhos de teclado `Delete`, `Backspace` e `Shift+D` diretamente no Outliner e no loop de eventos do Winit.
+- **Botão de Reancoragem de Painéis Flutuantes (`crates/ui/src/properties_panel.rs`, `crates/ui/src/lib.rs`)**:
+  - Adicionado botão `⇲ Dock` de alta visibilidade no cabeçalho do Properties Inspector quando em modo flutuante.
+  - Adicionado banner contextual com botão `[Reancorar]` na barra lateral direita quando o inspetor estiver destacado.
+
+### Corrigido
+- **Seleção de Múltiplos Objetos no Viewport 3D (`crates/app/src/lib.rs`)**:
+  - Corrigido o picking em modo Objeto (`handle_pick`), que agora itera por todos os assets visíveis e desbloqueados da cena, selecionando o objeto mais próximo da câmera com suporte a alternância cumulativa via tecla `Shift`.
+- **Responsividade e Estabilidade do Outliner (`crates/ui/src/outliner.rs`)**:
+  - Desativado o drag-and-drop de nós de árvore (`allow_drag_and_drop(false)`), eliminando o atraso de cliques e a criação de fantasmas visuais de arrasto.
+  - Substituição de labels simulados por `ui.selectable_label(...)` nativo com reação imediata a cliques.
+
+## [0.27.0] - 2026-09-14 — Master Implementation Gauntlet: Wave 6 (Scene, Assets, Outliner & Inspector)
+
+### Adicionado
+- **P3D-042 / P3D-043 / P3D-044 / P3D-045 — Asset Browser, Filtragem & Drag-and-Drop Workflow (`crates/ui/src/asset_browser.rs`, `crates/ui/src/viewport_interaction.rs`, `crates/core/src/command.rs`)**:
+  - Novo comando semântico de domínio `model.instantiate_asset` (`InstantiateAssetCmd`) e método auxiliar `AppState::instantiate_asset_by_id`, permitindo criar instâncias independentes de modelos catalogados na biblioteca em coordenadas arbitrárias ou no 3D Cursor.
+  - Suporte de primeira classe para Drag-and-Drop (`egui::DragAndDrop`) arrastando miniaturas do Asset Browser diretamente para o Viewport 3D.
+  - Interseção por raycast contra o plano de chão $Y=0$ (`modal_viewport::plane_point`), exibição de indicador de alvo e anel no viewport e instanciação exata no ponto de soltura com limpeza de payload.
+  - Controle configurável de tamanho de miniaturas (`state.ui.asset_thumbnail_size`, 32px a 128px) com slider de zoom dinâmico e layouts responsivos para visualização em lista ou cartões expandidos.
+  - Filtragem multi-critério: busca textual abrangendo nome, tags e coleção, além de abas de categoria (Props, Chars, Env).
+- **P3D-046 / P3D-047 / P3D-082 — Outliner & Context Menus Padronizados (`crates/ui/src/outliner.rs`, `crates/ui/src/widgets.rs`)**:
+  - Modernização completa dos menus de contexto da árvore do Outliner e dos nós de objetos e coleções com o widget `PetuniaMenuItem`, ícones semânticos vetoriais e badges de atalho.
+  - Bloqueio rigoroso de assets bloqueados (`locked`), impedindo interação de gizmo, transformações e seleções acidentais no viewport.
+- **P3D-048 / P3D-078 — Inspector Destacável em Janela Flutuante (`crates/ui/src/lib.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Novo estado de UI `inspector_detached: bool` com botão de alternância estilizado no cabeçalho das abas de propriedades (`PetuniaIcon::Maximize` / `Minimize`).
+  - Quando ancorado: divide o painel lateral direito com o Outliner.
+  - Quando destacado: expande o Outliner para a altura total da barra lateral e abre o Properties Inspector em janela flutuante, redimensionável e móvel (`egui::Window`).
+- **P3D-049 — Live Transform Inspector (`crates/ui/src/properties_panel.rs`)**:
+  - Inspeção contínua e edição interativa de Location X, Y, Z e Scale diretamente sincronizados com o centróide real da geometria ativa (`mesh.selection_center()`).
+  - Atualização em tempo real da malha com checkpoint atômico único de histórico no evento `drag_stopped()`.
+  - Ação "Reset to Origin" centralizando o objeto e seus vértices de volta à origem do mundo `[0.0, 0.0, 0.0]`.
+- **P3D-082 / P3D-083 — Menus de Contexto do Viewport & Segregação de Propriedades de Ferramentas (`crates/ui/src/nav_gizmo.rs`, `crates/ui/src/viewport_interaction.rs`, `crates/ui/src/properties_panel.rs`)**:
+  - Menu de contexto RMB do Viewport totalmente adaptativo ao domínio de seleção ativo (`Object`, `Vertex`, `Edge`, `Face`), utilizando `PetuniaMenuItem`.
+  - Aba "tool" dedicada para parâmetros de ferramentas ativas de modelagem e transformação isolada das propriedades de objetos.
+- **Qualidade & Testes**:
+  - Adicionados testes de comandos unitários para instanciação de assets e undo.
+  - Adicionados novos fluxos de teste de UI com `egui_kittest` (totalizando 14 fluxos de integração).
+  - 88/88 testes de UI e 14/14 fluxos kittest aprovados.
+  - `cargo fmt`, `cargo clippy -D warnings`, `xtask arch-check` e `xtask docs-check` aprovados com 100% de conformidade.
+
+### Corrigido
+- **Resolução de Conflito de LayerId ao Destacar/Ancorar o Inspector (`crates/ui/src/lib.rs`, `crates/ui/src/tool_fields.rs`)**:
+  - Corrigido o pânico `Widget changed layer_id during the frame from Background to Middle` que ocorria ao clicar para destacar o painel de propriedades para uma janela flutuante.
+  - Implementado snapshot de frame (`was_detached`) no `right_panel`, garantindo que o inspector nunca seja desenhado simultaneamente no painel lateral (`Background`) e na janela flutuante (`Middle`) no mesmo frame de transição.
+  - Isolamento de IDs de widgets filhos da janela flutuante através de `ui.push_id("detached_inspector", ...)`.
+  - Escopo de IDs de widgets numéricos de ferramentas (`tool_fields`) associados dinamicamente ao container pai (`ui.id().with(...)`), eliminando colisões de identificadores estáticos globais entre camadas.
+  - Adicionados testes de regressão de transição e isolamento de camadas em `crates/ui/tests/kittest_ui_flows.rs`.
+- **Resolução de Expansão Horizontal Infinita em Janelas Modais / Flutuantes (`crates/ui`)**:
+  - Eliminado o ciclo de feedback de redimensionamento horizontal infinito em todas as janelas modais (`Settings`, `Asset Library Drawer`, `Reference Set Manager`, `Properties Inspector Detached`, `Command Palette`, `Recovery Dialog`).
+  - Aplicada restrição estrita de teto dimensional `.max_size(...)` amarrada à resolução de tela (`ctx.screen_rect()`) em todas as instâncias de `egui::Window`.
+  - Configurado `auto_shrink([true, false])` em áreas de rolagem verticais (`ScrollArea::vertical()`), prevenindo que o layout solicite expansão horizontal descontrolada.
+  - Corrigido o widget `petunia_search_box`: alocação explícita de bounding box para o ícone de busca e largura desejada protegida contra estiramento abusivo de contêineres pais.
+  - Corrigida a alocação de células de grid em `reference_manager.rs`, substituindo `ui.available_width() * 0.48` por largura de coluna fixa determinística (`min_col_width(240.0)`).
+  - Adicionados 4 novos testes de estabilidade multi-frame com `egui_kittest` cobrindo 10 quadros consecutivos sem mutação cumulativa de largura.
+
+---
+
+## [0.26.0] - 2026-09-14 — Master Implementation Gauntlet: Wave 5 (Selection, Transform & Modeling Core)
+
+### Adicionado
+- **P3D-015 / P3D-016 — Domínio Unificado de Seleção e Mapeamento de Modos (`crates/core/src/selection.rs`, `crates/core/src/state.rs`, `crates/ui/src/viewport_bar.rs`)**:
+  - Introdução do enum `SelectionDomain { Object, Vertex, Edge, Face }` unificando a interação e eliminando a segregação estrita entre modos.
+  - Alternância rápida via tecla `Tab` entre Object e o último domínio de componente (`Vertex`/`Edge`/`Face`), com atalhos numéricos diretos `0` (Object), `1` (Vertex), `2` (Edge), `3` (Face).
+  - Controle segmentado de 4 pílulas com ícones vetoriais dedicados (`PetuniaIcon::ModeObject`, `SelectVertex`, `SelectEdge`, `SelectFace`) na barra superior do Viewport.
+  - Rastreamento robusto de seleção de arestas `edges: Vec<(u32, u32)>` na estrutura canônica `Selection`.
+  - Novos comandos semânticos registrados no dispatcher: `select.domain_object`, `select.domain_vertex`, `select.domain_edge`, `select.domain_face`, `select.cycle_domain`.
+- **P3D-026 / P3D-027 — Orientações de Transformação e Pontos de Pivô Fortemente Tipados (`crates/core/src/state.rs`, `crates/ui/src/viewport_bar.rs`)**:
+  - `TransformOrientation { Global, Local }` com suporte de primeira classe no domínio e seleção via dropdown no Viewport Bar.
+  - `PivotPoint { MedianPoint, BoundingBoxCenter, Cursor3D, IndividualOrigins }` com cálculo matemático puro via `AppState::calculate_pivot(&self, pivot: PivotPoint) -> Vec3`.
+  - Integração no cálculo de pivô em operações modais de transformação (`ModalKind::Move`, `Rotate`, `Scale`).
+- **P3D-037 — Separação de Seleção (`crates/core/src/command.rs`)**:
+  - Comando semântico `model.separate_selection` (`SeparateSelectionCmd`) extraindo elementos de malha selecionados para um novo asset independente na cena com preservação do histórico de Undo.
+- **P3D-039 — Motor de Edição Proporcional (`crates/core/src/proportional.rs`, `crates/ui/src/viewport_bar.rs`, `crates/core/src/modal.rs`)**:
+  - `ProportionalFalloff { Smooth, Linear, Sphere, Sharp, Constant }` com funções matemáticas puras de atenuação (curva Hermite cúbica, decaimento linear, perfil esférico, etc.).
+  - `ProportionalSettings { enabled, radius, falloff }` mantido na sessão do editor.
+  - Botão segmentado com ícone de círculos concêntricos e popover dropdown com seleção de curva de decaimento e slider de raio de influência no Viewport Bar.
+  - Deformação suave em tempo real de vértices não selecionados durante operações modais (`Move`).
+- **P3D-040 — Motor de Snapping Magnético Geométrico e de Grade (`crates/core/src/snap.rs`, `crates/ui/src/viewport_bar.rs`, `crates/core/src/modal.rs`)**:
+  - `SnapTarget { Grid, Increment, Vertex, Edge, Face }` e `SnapSettings { enabled, target, element, grid_spacing, snap_distance }`.
+  - Algoritmos matemáticos headless puros para atração a coordenadas de grade, vértices, arestas e faces por projeção vetorial e proximidade.
+  - Botão mestre com ícone de ímã, atalho canônico `Shift+Tab` e popover de configuração de alvo, espaçamento de grade e distância de snap no Viewport Bar.
+  - Aplicação automática de snapping durante transações modais.
+- **P3D-131 — Sistema de Feedback de Ferramentas Modais (`crates/core/src/modal_feedback.rs`, `crates/ui/src/modal_viewport.rs`, `crates/ui/src/status_bar.rs`)**:
+  - Descritor desacoplado `ToolFeedback` informando origem, ponto atual, linha-guia 3D, texto de delta numérico, restrições e indicador magnético `[SNAP]`.
+  - Overlay 3D desenhando a linha-guia no viewport com destaque em âmbar quando atraído magneticamente.
+  - Exibição dinâmica da magnitude e atalhos contextuais da ferramenta ativa na Status Bar inferior.
+- **Qualidade & Testes**:
+  - Testes unitários para cálculo de pivôs, falloff proporcional, snapping a grid/elementos e feedback modal.
+  - Bateria completa de testes de UI (88/88) e integração Kittest (7/7) 100% aprovados.
+  - Zero warnings no Clippy (`cargo clippy --workspace -- -D warnings`), conformidade total com `xtask arch-check` e `xtask docs-check`.
+
+---
+
+## [0.25.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 4 (Viewport, Navigation & Reference Workflow)
+
+### Adicionado
+- **P3D-004 / P3D-006 — Projeção e Vistas Canônicas & Isométricas (`crates/core/src/camera.rs`, `crates/core/src/command.rs`)**:
+  - Implementação dos presets isométricos canônicos para workflows de jogos e visualização técnica: `IsometricNE`, `IsometricNW`, `IsometricSE`, `IsometricSW` com ângulo de inclinação matematicamente exato ($\arcsin(\tan(30^\circ)) \approx 35.264^\circ$).
+  - Detecção e classificação em tempo real da orientação da câmera via `Camera::nominal_view(&self) -> (&'static str, f32, f32)` com normalização angular e tolerância a drift.
+  - Registro canônico de comandos semânticos de navegação no `CommandDispatcher`: `view.front`, `view.back`, `view.left`, `view.right`, `view.top`, `view.bottom`, `view.isometric_ne`, `view.isometric_nw`, `view.isometric_se`, `view.isometric_sw`.
+- **P3D-005 / P3D-075 — Navigation HUD no Viewport (`crates/ui/src/nav_gizmo.rs`, `crates/ui/src/viewport_interaction.rs`)**:
+  - Badge translúcido moderno de visualização nominal exibido no canto superior esquerdo do Viewport 3D com leitura clara do nome da vista e ângulos (ex: `Front Ortho · Pitch +0° Yaw +0°` ou `Isometric NE`).
+  - Flag de configuração `show_nav_hud: bool` no `EditorSession` e comando `view.toggle_nav_hud` para ativar/desativar exibição.
+- **P3D-008 — Frame Selected & Frame All (`crates/core/src/state.rs`, `crates/core/src/command.rs`)**:
+  - Implementação pura de `AppState::frame_all(&mut self)` que computa a caixa delimitadora (AABB) agregada de todos os assets e referências visíveis na cena.
+  - Comando semântico `view.frame_all` (`FrameAllCmd`) registrado no dispatcher e mapeado para a tecla `Home` nos keybinds padrão.
+  - Invariante rigorosamente garantido: enquadramentos de câmera (`frame_selection` e `frame_all`) animam o viewport sem modificar o dirty state do projeto.
+- **P3D-013 / P3D-014 — Gerenciador de Conjuntos de Referências (Reference Sets) (`crates/ui/src/reference_manager.rs`, `crates/core/src/project_service.rs`)**:
+  - Nova janela utilitária modal `Reference Set Manager` (`window.reference_manager`, atalho `Shift+R`).
+  - 6 slots ortográficos canônicos independentes: `Front`, `Back`, `Left`, `Right`, `Top` e `Bottom`.
+  - Pré-visualização em miniaturas geradas por textura cacheada na GPU, nome e dimensões em pixels.
+  - Controles de calibração fina independentes por referência: opacidade (0.0..1.0), escala/tamanho (0.1..20.0), offset (-20.0..20.0), rotação (-180°..180°), bloqueio de edição (`locked`) e modo X-Ray.
+  - Botão de alinhamento rápido da câmera 3D com o ângulo de referência do slot selecionado.
+  - Ações de substituição individual de imagem sem recriação do conjunto e remoção atômica por slot.
+  - Métodos puros no `ProjectService`: `set_reference_slot`, `remove_reference` e `clear_references`.
+- **P3D-009 / P3D-010 — Popover de Overlays no Viewport Context Bar (`crates/ui/src/viewport_bar.rs`, `crates/render-wgpu/src/lib.rs`)**:
+  - Botão segmentado de alternância geral de overlays integrado a um popover dropdown compacto (`▾`).
+  - Opções centralizadas no popover: Grade 3D (Grid), Eixos Mundiais (Axes), Cursor 3D, Aramado (Wireframe Overlay), Triangulação (Diagonais) e Navigation HUD.
+  - Acesso direto ao Gerenciador de Referências no popover.
+  - Renderizador WebGPU e controle de cena adaptados para respeitar `show_overlays` e `show_grid` sem consumo de draw calls desnecessárias.
+- **Qualidade & Testes**:
+  - Testes unitários para projeções isométricas, detecção de vistas nominais, `frame_all` e ciclo de vida de slots de referência.
+  - Testes de fluxo UI com `egui_kittest` cobrindo o Gerenciador de Referências e o Navigation HUD.
+  - 100% de conformidade com todos os Quality Gates do workspace.
+
+---
+
+## [0.24.0] - 2026-09-13 — Master Implementation Gauntlet: Wave 3 (UI Infrastructure, Customization & Input)
+
+### Adicionado
+- **P3D-081 — Command Palette (`crates/ui/src/command_palette.rs`, `crates/core/src/command.rs`)**:
+  - Overlay centralizado elegante de busca e execução rápida (`Ctrl+P` / `Ctrl+Shift+P`).
+  - Busca fuzzy e por tokens sobre o catálogo canônico de comandos.
+  - Navegação fluida por teclado (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`) e auto-focus no campo de busca.
+  - Exibição de categoria funcional por pílulas visuais (`File`, `Edit`, `Model`, `View`, `Tools`, `Window`, `Help`, `Select`).
+  - Validação contextual estrita (`can_execute`): comandos desabilitados exibem a razão legível (ex: `Requires Edit mode`, `Nothing to undo`) sem execução indevida e com zero lógica de domínio na camada de apresentação.
+- **P3D-077 — Menus Padronizados & Submenus Profissionais (`crates/ui/src/widgets.rs`, `crates/ui/src/main_header.rs`)**:
+  - Componente `PetuniaMenuItem` aprimorado com renderização de atalhos dinâmicos alinhados e setas de submenu (`›`).
+  - Novos widgets canônicos `PetuniaMenuCheckboxItem` (com indicador visual `✓`) e `PetuniaMenuRadioItem` (com indicador de ponto preenchido).
+  - Submenu de Projetos Recentes no menu Arquivo (`File`), consumindo o histórico persistente de `state.project.recent_projects`.
+  - Migração de todos os menus superiores para widgets e design tokens canônicos, eliminando controles genéricos.
+- **P3D-084 / P3D-085 — Design Tokens, Temas & Customização**:
+  - Submenu de temas integrado no menu Janela com seleção imediata dos temas canônicos: Petunia Dark, Petunia Light, Capuccino e Tokyo Nights.
+- **P3D-089 — i18n & Sincronização de Locales (`assets/locales/en.toml`, `pt-BR.toml`)**:
+  - Eliminação de condicionais ad-hoc (`if lang == "en" ...`) no cabeçalho em favor de chaves padronizadas (`menu.window`, `menu.command_palette`, `menu.preferences`, `menu.recent_projects`, `command_palette.*`).
+  - Sincronização estrita de todas as chaves entre inglês e português do Brasil.
+- **P3D-090..099 — Keymaps, Detecção de Conflitos e Rebinding (`crates/config/src/keybinds.rs`, `crates/ui/src/settings_modal.rs`)**:
+  - Sistema de detecção de conflitos context-aware: diferencia colisões exatas (`Exact`), sobreposições com contexto global (`ContextOverlap`), preservando contextos disjuntos (`model` vs `paint`) sem falsos positivos.
+  - Proteção de teclas reservadas (`Reserved` para `Escape`).
+  - Métodos utilitários de remapeamento (`set_binding`, `remove_binding`, `export_to_toml`).
+  - Inclusão canônica de `global.command_palette` (`Ctrl+P`).
+- **P3D-114 / P3D-115 — Documentação Contextual e Help Topics (`crates/core/src/docs.rs`)**:
+  - Enum `DocsTopic` centralizando 15 tópicos e mapeamento para URLs canônicas (`https://petunia3d.org/docs/...`).
+  - Menu de Ajuda (`Help`) com links diretos para documentação online e abertura no navegador padrão do sistema.
+  - Associação de tópicos de documentação nos metadados de comandos (`CommandMetadata`).
+- **Qualidade & Testes**:
+  - Testes unitários para catálogo de comandos, busca, atalhos e validação contextual.
+  - Testes de UI sem pânico para Command Palette e menus padronizados.
+  - 100% de conformidade com todos os Quality Gates do workspace.
 
 ---
 

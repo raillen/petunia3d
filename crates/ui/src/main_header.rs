@@ -1,29 +1,29 @@
 //! Cabeçalho superior principal do Petunia3D (`Main Header`).
 //! Menus do sistema (File, Edit, Render, Window, Help) e abas de Workspaces em pílulas arredondadas.
 
-use egui::{vec2, Color32, Context, Ui};
+use egui::{Color32, Ui, vec2};
 use petunia_core::{AppState, DocsTopic, Workspace};
 
+use crate::UiAction;
 use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
 use crate::widgets::{
-    self, petunia_menu_separator, PetuniaMenuCheckboxItem, PetuniaMenuItem, PetuniaMenuRadioItem,
+    self, PetuniaMenuCheckboxItem, PetuniaMenuItem, PetuniaMenuRadioItem, petunia_menu_separator,
 };
-use crate::UiAction;
 
 /// Renderiza o cabeçalho superior completo da aplicação.
-pub fn draw(ctx: &Context, state: &mut AppState, action: &mut UiAction) {
-    egui::TopBottomPanel::top("main_header")
-        .default_height(tokens::TOP_HEADER_HEIGHT)
-        .height_range(tokens::TOP_HEADER_HEIGHT..=tokens::TOP_HEADER_MAX_HEIGHT)
+pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
+    egui::Panel::top("main_header")
+        .default_size(tokens::TOP_HEADER_HEIGHT)
+        .size_range(tokens::TOP_HEADER_HEIGHT..=tokens::TOP_HEADER_MAX_HEIGHT)
         .resizable(true)
         .frame(
             egui::Frame::new()
-                .fill(tokens::BG_HEADER)
-                .stroke(tokens::stroke_border())
+                .fill(tokens::bg_header(state))
+                .stroke(tokens::stroke_border_dyn(state))
                 .inner_margin(egui::Margin::symmetric(8, 2)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
@@ -152,10 +152,10 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
                         ui.close();
                     }
                 }
-                if let Some(path) = path_to_open {
-                    if let Err(e) = state.open_project(&path) {
-                        state.set_status(format!("Failed to open project: {}", e));
-                    }
+                if let Some(path) = path_to_open
+                    && let Err(e) = state.open_project(&path)
+                {
+                    state.set_status(format!("Failed to open project: {}", e));
                 }
             }
         });
@@ -418,13 +418,15 @@ mod tests {
 
     #[test]
     fn test_main_header_renders_without_panic() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         let mut action = UiAction::none();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state, &mut action);
-        });
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw(ui, &mut state, &mut action);
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -434,7 +436,7 @@ mod tests {
 
         // Testa renderização com tela expandida e múltiplas dimensões
         for width in [800.0, 1280.0, 1920.0] {
-            let ctx = Context::default();
+            let ctx = egui::Context::default();
             let raw_input = egui::RawInput {
                 screen_rect: Some(egui::Rect::from_min_size(
                     egui::Pos2::ZERO,
@@ -443,9 +445,11 @@ mod tests {
                 ..Default::default()
             };
 
-            let _ = ctx.run(raw_input, |ctx| {
-                draw(ctx, &mut state, &mut action);
-            });
+            ctx.run_ui(raw_input, |ui| {
+                draw(ui, &mut state, &mut action);
+            })
+            .textures_delta
+            .clear();
         }
     }
 }

@@ -6,7 +6,7 @@
 use std::path::Path;
 use std::time::Instant;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use petunia_core::{
     AddPrimitiveCmd, AppState, ClearSelectionCmd, InvertSelectionCmd, PrimitiveKind,
     ProjectService, SelectAllCmd,
@@ -58,6 +58,9 @@ fn main() -> Result<()> {
         "bench" => {
             cmd_bench()?;
         }
+        "mcp" | "--mcp-stdio" => {
+            petunia_mcp::serve_stdio_blocking().context("Falha ao servir MCP sobre stdio")?;
+        }
         "help" | "--help" | "-h" => {
             print_help();
         }
@@ -93,6 +96,9 @@ COMANDOS:
 
     bench
         Executa bateria de desempenho headless e mede tempo de resposta.
+
+    mcp, --mcp-stdio
+        Inicia o servidor Model Context Protocol (MCP) sobre stdio.
 
     help
         Exibe esta mensagem de ajuda.

@@ -2,7 +2,7 @@
 
 ::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
 - **Wave do Gauntlet**: Wave 9
-- **Status Canônico**: `PLANEJADA (QA, Docs, Release & GA Candidate)`
+- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
 - **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
 :::
 
@@ -10,7 +10,7 @@
 <aside>
 🧩
 
-Quality gate permanente · Prioridade: P1.
+Estado: **implementado via quality gate permanente `cargo xtask docs-check`** · Prioridade: P1.
 
 </aside>
 

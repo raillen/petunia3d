@@ -1,6 +1,6 @@
 //! Petunia3D mesh — operações de modelagem.
 
-use super::{edge_key, triangulate, Face, Mesh, Vertex};
+use super::{Face, Mesh, Vertex, edge_key, triangulate};
 use glam::Vec3;
 use std::collections::HashMap;
 
@@ -628,24 +628,24 @@ impl Mesh {
                 if f0.verts.len() == 3 && f1.verts.len() == 3 {
                     let w0 = f0.verts.iter().copied().find(|&x| x != u && x != v);
                     let w1 = f1.verts.iter().copied().find(|&x| x != u && x != v);
-                    if let (Some(w0), Some(w1)) = (w0, w1) {
-                        if w0 != w1 {
-                            let p_u = f0.verts.iter().position(|&x| x == u).unwrap();
-                            let next_u = f0.verts[(p_u + 1) % 3];
-                            let (new_f0, new_f1) = if next_u == v {
-                                (vec![w0, u, w1], vec![w1, v, w0])
-                            } else {
-                                (vec![w0, w1, u], vec![w1, w0, v])
-                            };
+                    if let (Some(w0), Some(w1)) = (w0, w1)
+                        && w0 != w1
+                    {
+                        let p_u = f0.verts.iter().position(|&x| x == u).unwrap();
+                        let next_u = f0.verts[(p_u + 1) % 3];
+                        let (new_f0, new_f1) = if next_u == v {
+                            (vec![w0, u, w1], vec![w1, v, w0])
+                        } else {
+                            (vec![w0, w1, u], vec![w1, w0, v])
+                        };
 
-                            self.faces[adj[0]] = Face::new(new_f0);
-                            self.faces[adj[1]] = Face::new(new_f1);
-                            self.faces[adj[0]].selected = true;
-                            self.faces[adj[1]].selected = true;
-                            self.selected_edges.clear();
-                            self.selected_edges.insert(crate::edge_key(w0, w1));
-                            return true;
-                        }
+                        self.faces[adj[0]] = Face::new(new_f0);
+                        self.faces[adj[1]] = Face::new(new_f1);
+                        self.faces[adj[0]].selected = true;
+                        self.faces[adj[1]].selected = true;
+                        self.selected_edges.clear();
+                        self.selected_edges.insert(crate::edge_key(w0, w1));
+                        return true;
                     }
                 }
             }
@@ -1675,10 +1675,12 @@ mod region_tests {
         assert_closed(&mesh);
         assert_eq!((mesh.verts.len(), mesh.faces.len()), (12, 10));
         assert_eq!(mesh.faces.iter().filter(|f| f.selected).count(), 1);
-        assert!(mesh.faces[0]
-            .verts
-            .iter()
-            .all(|&i| mesh.verts[i as usize].pos[2] == -1.5));
+        assert!(
+            mesh.faces[0]
+                .verts
+                .iter()
+                .all(|&i| mesh.verts[i as usize].pos[2] == -1.5)
+        );
     }
 
     #[test]
@@ -1715,10 +1717,12 @@ mod region_tests {
         mesh.faces[0].selected = true;
         mesh.extrude_selected(-0.25);
         assert_closed(&mesh);
-        assert!(mesh.faces[0]
-            .verts
-            .iter()
-            .all(|&i| mesh.verts[i as usize].pos[2] == -0.75));
+        assert!(
+            mesh.faces[0]
+                .verts
+                .iter()
+                .all(|&i| mesh.verts[i as usize].pos[2] == -0.75)
+        );
     }
 
     #[test]
@@ -1783,10 +1787,11 @@ mod region_tests {
             };
             mesh.slice_plane(point, normal, true);
             assert_closed(&mesh);
-            assert!(mesh
-                .verts
-                .iter()
-                .all(|v| (v.vec() - point).dot(normal) >= -1e-5));
+            assert!(
+                mesh.verts
+                    .iter()
+                    .all(|v| (v.vec() - point).dot(normal) >= -1e-5)
+            );
         }
     }
 

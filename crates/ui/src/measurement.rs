@@ -3,8 +3,8 @@
 //! exibindo linhas de medição com marcas de régua e indicador flutuante com distância e deltas (ΔX, ΔY, ΔZ),
 //! com suporte transacional a Undo/Redo (Ctrl+Z) e coleção dedicada no Outliner.
 
-use egui::{vec2, Color32, FontId, PointerButton, Pos2, Rect, Response, Stroke};
-use petunia_core::viewport::{unproject_cursor_or_vertex_snap, LogicalRect};
+use egui::{Color32, FontId, PointerButton, Pos2, Rect, Response, Stroke, vec2};
+use petunia_core::viewport::{LogicalRect, unproject_cursor_or_vertex_snap};
 use petunia_core::{AppState, MeasurementItem};
 
 /// Projeta uma coordenada 3D de mundo para a coordenada 2D de tela dentro do retângulo do viewport.
@@ -59,45 +59,40 @@ pub fn draw(
 
     // 2. Manipulação de arrasto de medição quando a ferramenta estiver ativa
     let mut handled = false;
-    if is_measure_tool {
-        if let Some(pointer) = ctx.pointer_hover_pos().filter(|p| rect.contains(*p)) {
-            if response.drag_started_by(PointerButton::Primary) {
-                let start_3d = unproject_cursor_or_snap(pointer, state, rect);
-                state.active_measurement =
-                    Some(MeasurementItem::new("Active", start_3d, start_3d, 0.0));
+    if is_measure_tool && let Some(pointer) = ctx.pointer_hover_pos().filter(|p| rect.contains(*p))
+    {
+        if response.drag_started_by(PointerButton::Primary) {
+            let start_3d = unproject_cursor_or_snap(pointer, state, rect);
+            state.active_measurement =
+                Some(MeasurementItem::new("Active", start_3d, start_3d, 0.0));
+            state.mark_dirty();
+            handled = true;
+        } else if response.dragged_by(PointerButton::Primary) {
+            let curr_3d = unproject_cursor_or_snap(pointer, state, rect);
+            if let Some(ref mut m) = state.active_measurement {
+                let dx = curr_3d[0] - m.start[0];
+                let dy = curr_3d[1] - m.start[1];
+                let dz = curr_3d[2] - m.start[2];
+                m.end = curr_3d;
+                m.distance = (dx * dx + dy * dy + dz * dz).sqrt();
                 state.mark_dirty();
                 handled = true;
-            } else if response.dragged_by(PointerButton::Primary) {
-                let curr_3d = unproject_cursor_or_snap(pointer, state, rect);
-                if let Some(ref mut m) = state.active_measurement {
-                    let dx = curr_3d[0] - m.start[0];
-                    let dy = curr_3d[1] - m.start[1];
-                    let dz = curr_3d[2] - m.start[2];
-                    m.end = curr_3d;
-                    m.distance = (dx * dx + dy * dy + dz * dz).sqrt();
-                    state.mark_dirty();
-                    handled = true;
-                }
-            } else if response.drag_stopped_by(PointerButton::Primary) {
-                if let Some(m) = state.active_measurement.take() {
-                    if m.distance > 0.001 {
-                        // Checkpoint transacional para que a medida possa ser desfeita com Ctrl+Z!
-                        state.checkpoint("add measurement");
-                        let count = state.project.measurements.len() + 1;
-                        let item = MeasurementItem::new(
-                            format!("Medida {count}"),
-                            m.start,
-                            m.end,
-                            m.distance,
-                        );
-                        let item_id = item.id;
-                        state.project.add_measurement(item);
-                        state.selected_measurement = Some(item_id);
-                    }
-                    state.mark_dirty();
-                    handled = true;
-                }
             }
+        } else if response.drag_stopped_by(PointerButton::Primary)
+            && let Some(m) = state.active_measurement.take()
+        {
+            if m.distance > 0.001 {
+                // Checkpoint transacional para que a medida possa ser desfeita com Ctrl+Z!
+                state.checkpoint("add measurement");
+                let count = state.project.measurements.len() + 1;
+                let item =
+                    MeasurementItem::new(format!("Medida {count}"), m.start, m.end, m.distance);
+                let item_id = item.id;
+                state.project.add_measurement(item);
+                state.selected_measurement = Some(item_id);
+            }
+            state.mark_dirty();
+            handled = true;
         }
     }
 
@@ -229,14 +224,16 @@ mod tests {
             2.23,
         ));
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let rect = ui.available_rect_before_wrap();
                 let painter = ui.painter_at(rect);
                 let response = ui.allocate_rect(rect, egui::Sense::click_and_drag());
-                let _ = draw(ctx, &mut state, rect, &painter, &response);
+                let _ = draw(&ctx, &mut state, rect, &painter, &response);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         assert_eq!(state.project.measurements.len(), 1);
     }

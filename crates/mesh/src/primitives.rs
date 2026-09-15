@@ -1,6 +1,6 @@
 //! Petunia3D mesh — primitivas procedurais.
 
-use super::{triangulate, Face, Mesh, Vertex};
+use super::{Face, Mesh, Vertex, triangulate};
 use std::collections::HashSet;
 
 impl Mesh {

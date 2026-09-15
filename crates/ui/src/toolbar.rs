@@ -2,7 +2,7 @@
 //! Renderiza as ferramentas com os ícones extraídos da Golden Reference (`assets/ui/icons/toolbar/`)
 //! com 40px de largura e suporte a destaque ativo e atalhos de teclado.
 
-use egui::{vec2, Context, ScrollArea, SidePanel};
+use egui::{ScrollArea, Ui, vec2};
 use petunia_core::{AppState, ModalKind, Workspace};
 use petunia_module_model::ToolRegistry;
 
@@ -11,21 +11,21 @@ use crate::tokens;
 use crate::widgets::PetuniaToolbarButton;
 
 /// Renderiza a barra lateral vertical de ferramentas.
-pub fn draw(ctx: &Context, state: &mut AppState, tools: &ToolRegistry) {
+pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     let min_width = tokens::TOOLBAR_MIN_WIDTH;
     let max_width = tokens::TOOLBAR_MAX_WIDTH;
 
-    SidePanel::left("main_toolbar")
-        .default_width(min_width)
-        .width_range(min_width..=max_width)
+    egui::Panel::left("main_toolbar")
+        .default_size(min_width)
+        .size_range(min_width..=max_width)
         .resizable(true)
         .frame(
             egui::Frame::new()
-                .fill(tokens::BG_PANEL)
-                .stroke(tokens::stroke_border())
+                .fill(tokens::bg_panel(state))
+                .stroke(tokens::stroke_border_dyn(state))
                 .inner_margin(egui::Margin::symmetric(4, 4)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             let compact = ui.available_width() < 90.0;
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 ScrollArea::vertical()
@@ -115,39 +115,15 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
 
     // 1. Ferramentas Primárias de Interação e Transformação
     let primary_tools = [
-        (
-            PetuniaIcon::SelectBox,
-            "select_box",
-            "Select Box",
-            "B",
-            "Seleção em Caixa · B",
-        ),
-        (
-            PetuniaIcon::Cursor3D,
-            "cursor_3d",
-            "3D Cursor",
-            "Shift+RMB",
-            "3D Cursor · Shift+RMB",
-        ),
-        (PetuniaIcon::Move, "move", "Move", "G", "Transladar · G"),
-        (
-            PetuniaIcon::Rotate,
-            "rotate",
-            "Rotate",
-            "R",
-            "Rotacionar · R",
-        ),
-        (PetuniaIcon::Scale, "scale", "Scale", "S", "Escalar · S"),
-        (
-            PetuniaIcon::Transform,
-            "transform",
-            "Transform",
-            "T",
-            "Gizmo de Transformação Combinado · T",
-        ),
+        (PetuniaIcon::SelectBox, "select_box", "B"),
+        (PetuniaIcon::Cursor3D, "cursor_3d", "Shift+RMB"),
+        (PetuniaIcon::Move, "move", "G"),
+        (PetuniaIcon::Rotate, "rotate", "R"),
+        (PetuniaIcon::Scale, "scale", "S"),
+        (PetuniaIcon::Transform, "transform", "T"),
     ];
 
-    for (icon, id, label, _key, hint) in primary_tools {
+    for (icon, id, key) in primary_tools {
         let is_active = match id {
             "move" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Move,
             "rotate" => state.active_tool == "transform" && state.gizmo_mode == ModalKind::Rotate,
@@ -155,11 +131,13 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
             "select_box" => state.active_tool == "select" || state.active_tool == "select_box",
             _ => state.active_tool == id,
         };
+        let label = state.t(&format!("tools.{id}"));
+        let hint = format!("{label} · [{key}]");
 
-        if PetuniaToolbarButton::new(icon, label)
+        if PetuniaToolbarButton::new(icon, &label)
             .selected(is_active)
             .compact(compact)
-            .tooltip(hint)
+            .tooltip(&hint)
             .show(ui)
             .clicked()
         {
@@ -194,28 +172,18 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
 
     // 2. Ferramentas de Inspeção e Anotação Tridimensional
     let inspection_tools = [
-        (
-            PetuniaIcon::Measure,
-            "measure",
-            "Measure",
-            "M",
-            "Régua e Medição 3D · M",
-        ),
-        (
-            PetuniaIcon::Annotate,
-            "annotate",
-            "Annotate",
-            "D",
-            "Anotação e Rascunho 3D · D",
-        ),
+        (PetuniaIcon::Measure, "measure", "M"),
+        (PetuniaIcon::Annotate, "annotate", "D"),
     ];
 
-    for (icon, id, label, _key, hint) in inspection_tools {
+    for (icon, id, key) in inspection_tools {
         let is_active = state.active_tool == id;
-        if PetuniaToolbarButton::new(icon, label)
+        let label = state.t(&format!("tools.{id}"));
+        let hint = format!("{label} · [{key}]");
+        if PetuniaToolbarButton::new(icon, &label)
             .selected(is_active)
             .compact(compact)
-            .tooltip(hint)
+            .tooltip(&hint)
             .show(ui)
             .clicked()
         {
@@ -231,16 +199,32 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
         ui.separator();
         ui.add_space(3.0);
 
-        for (icon, id, label, hint) in MESH_TOOLS {
-            let is_active = state.active_tool == *id;
-            if PetuniaToolbarButton::new(*icon, label)
+        for (icon, id, key) in [
+            (PetuniaIcon::Extrude, "extrude", "E"),
+            (PetuniaIcon::Inset, "inset", "I"),
+            (PetuniaIcon::Bevel, "bevel", "Ctrl+B"),
+            (PetuniaIcon::LoopCut, "loop_cut", "Ctrl+R"),
+            (PetuniaIcon::Knife, "knife", "K"),
+            (PetuniaIcon::PushPull, "pushpull", ""),
+            (PetuniaIcon::Slice, "slice", ""),
+            (PetuniaIcon::Subdivide, "subdivide", ""),
+            (PetuniaIcon::DrawProfile, "draw_profile", ""),
+        ] {
+            let is_active = state.active_tool == id;
+            let label = state.t(&format!("tools.{id}"));
+            let hint = if key.is_empty() {
+                label.clone()
+            } else {
+                format!("{label} · [{key}]")
+            };
+            if PetuniaToolbarButton::new(icon, &label)
                 .selected(is_active)
                 .compact(compact)
-                .tooltip(hint)
+                .tooltip(&hint)
                 .show(ui)
                 .clicked()
             {
-                state.active_tool = (*id).into();
+                state.active_tool = id.into();
                 state.pending_modal = None;
                 state.mark_dirty();
             }
@@ -250,10 +234,11 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
 
 fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
     let is_active = state.active_tool == "paint";
-    if PetuniaToolbarButton::new(PetuniaIcon::Custom("paint"), "Brush")
+    let label = state.t("tools.paint");
+    if PetuniaToolbarButton::new(PetuniaIcon::Custom("paint"), &label)
         .selected(is_active)
         .compact(compact)
-        .tooltip("Pincel de Textura e Vértices")
+        .tooltip(&label)
         .show(ui)
         .clicked()
     {
@@ -264,10 +249,11 @@ fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
 
 fn draw_uv_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
     let is_active = state.active_tool == "select";
-    if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, "Select")
+    let label = state.t("tools.select");
+    if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
         .selected(is_active)
         .compact(compact)
-        .tooltip("Seleção de UVs")
+        .tooltip(&label)
         .show(ui)
         .clicked()
     {
@@ -283,30 +269,34 @@ mod tests {
 
     #[test]
     fn test_toolbar_renders_without_panic_in_all_modes() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let tools = ToolRegistry::default();
 
         for mode in [EditMode::Object, EditMode::Edit, EditMode::TexturePaint] {
             let mut state = AppState::new("en");
             state.mode = mode;
 
-            let _ = ctx.run(egui::RawInput::default(), |ctx| {
-                draw(ctx, &mut state, &tools);
-            });
+            ctx.run_ui(egui::RawInput::default(), |ui| {
+                draw(ui, &mut state, &tools);
+            })
+            .textures_delta
+            .clear();
         }
     }
 
     #[test]
     fn test_mesh_tools_hidden_in_object_mode_and_normalizes_tool() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let tools = ToolRegistry::default();
         let mut state = AppState::new("en");
         state.mode = EditMode::Object;
         state.active_tool = "extrude".into();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state, &tools);
-        });
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw(ui, &mut state, &tools);
+        })
+        .textures_delta
+        .clear();
 
         // Deveria normalizar para a ferramenta padrão de seleção em Object Mode
         assert_eq!(state.active_tool, "select");
@@ -314,15 +304,17 @@ mod tests {
 
     #[test]
     fn test_mesh_tools_allowed_in_edit_mode() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let tools = ToolRegistry::default();
         let mut state = AppState::new("en");
         state.mode = EditMode::Edit;
         state.active_tool = "extrude".into();
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state, &tools);
-        });
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw(ui, &mut state, &tools);
+        })
+        .textures_delta
+        .clear();
 
         // No Edit Mode, a ferramenta de malha permanece ativa
         assert_eq!(state.active_tool, "extrude");
@@ -333,15 +325,17 @@ mod tests {
         let tools = ToolRegistry::default();
 
         // 1. Largura compacta padrão
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         state.mode = EditMode::Edit;
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            draw(ctx, &mut state, &tools);
-        });
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw(ui, &mut state, &tools);
+        })
+        .textures_delta
+        .clear();
 
         // 2. Toolbar com dimensões expandidas para exibir ícones + rótulos de texto
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let raw_input = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(
                 egui::Pos2::ZERO,
@@ -349,8 +343,10 @@ mod tests {
             )),
             ..Default::default()
         };
-        let _ = ctx.run(raw_input, |ctx| {
-            draw(ctx, &mut state, &tools);
-        });
+        ctx.run_ui(raw_input, |ui| {
+            draw(ui, &mut state, &tools);
+        })
+        .textures_delta
+        .clear();
     }
 }

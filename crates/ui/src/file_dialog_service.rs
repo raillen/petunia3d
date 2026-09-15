@@ -4,11 +4,12 @@
 //! e diálogos in-canvas (`egui-file-dialog`), delegando todas as operações de persistência
 //! e conversão de formatos ao `ProjectService` puro do `petunia_core`.
 
+use std::cell::RefCell;
 use std::path::PathBuf;
 
 use egui::Context;
 use egui_file_dialog::FileDialog;
-use petunia_core::{AppState, ProjectService};
+use petunia_core::{AppState, ProjectService, RefAxis};
 
 /// Ação pendente solicitada através do diálogo de arquivos in-canvas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,6 +22,7 @@ pub enum FileDialogAction {
     ExportGlb,
     ImportPalette,
     ExportPalette,
+    AddReferenceImage(Option<RefAxis>),
 }
 
 /// Serviço gerenciador de diálogo de arquivos integrado à UI (in-canvas modal).
@@ -35,6 +37,60 @@ impl Default for PetuniaFileDialogService {
     }
 }
 
+thread_local! {
+    static SERVICE: RefCell<PetuniaFileDialogService> = RefCell::new(PetuniaFileDialogService::new());
+}
+
+/// Abre diálogo in-canvas para carregar imagem de referência para um slot ortográfico opcional.
+pub fn open_reference_image_dialog(axis: Option<RefAxis>) {
+    SERVICE.with(|s| s.borrow_mut().pick_reference_image(axis));
+}
+
+/// Abre diálogo in-canvas para carregar um projeto (.petunia).
+pub fn open_project_in_canvas() {
+    SERVICE.with(|s| s.borrow_mut().open_project());
+}
+
+/// Abre diálogo in-canvas para salvar o projeto (.petunia).
+pub fn save_project_in_canvas(current_path: Option<&str>, state: &mut AppState) {
+    SERVICE.with(|s| s.borrow_mut().save_project(current_path, state));
+}
+
+/// Abre diálogo in-canvas para salvar como novo arquivo (.petunia).
+pub fn save_project_as_in_canvas() {
+    SERVICE.with(|s| s.borrow_mut().save_project_as());
+}
+
+/// Abre diálogo in-canvas para importar malha Wavefront OBJ.
+pub fn import_obj_in_canvas() {
+    SERVICE.with(|s| s.borrow_mut().import_obj());
+}
+
+/// Abre diálogo in-canvas para exportar malha Wavefront OBJ.
+pub fn export_obj_in_canvas(default_name: &str) {
+    SERVICE.with(|s| s.borrow_mut().export_obj(default_name));
+}
+
+/// Abre diálogo in-canvas para exportar malha glTF Binário (.glb).
+pub fn export_glb_in_canvas(default_name: &str) {
+    SERVICE.with(|s| s.borrow_mut().export_glb(default_name));
+}
+
+/// Abre diálogo in-canvas para importar paleta de cores.
+pub fn import_palette_in_canvas() {
+    SERVICE.with(|s| s.borrow_mut().import_palette());
+}
+
+/// Abre diálogo in-canvas para exportar paleta de cores.
+pub fn export_palette_in_canvas(default_name: &str) {
+    SERVICE.with(|s| s.borrow_mut().export_palette(default_name));
+}
+
+/// Desenha e processa o diálogo in-canvas no frame atual do egui.
+pub fn draw(ctx: &Context, state: &mut AppState) {
+    SERVICE.with(|s| s.borrow_mut().update(ctx, state));
+}
+
 impl PetuniaFileDialogService {
     pub fn new() -> Self {
         Self {
@@ -43,6 +99,20 @@ impl PetuniaFileDialogService {
                 .title("Petunia3D File Explorer"),
             pending_action: None,
         }
+    }
+
+    /// Abre o diálogo para selecionar uma imagem de referência in-canvas.
+    pub fn pick_reference_image(&mut self, axis: Option<RefAxis>) {
+        self.pending_action = Some(FileDialogAction::AddReferenceImage(axis));
+        let mut dialog = FileDialog::new()
+            .as_modal(true)
+            .title("Selecionar Imagem de Referência")
+            .add_file_filter_extensions(
+                "Imagens (*.png, *.jpg, *.jpeg, *.webp)",
+                vec!["png", "jpg", "jpeg", "webp"],
+            );
+        dialog.pick_file();
+        self.dialog = dialog;
     }
 
     /// Abre o diálogo para carregar um projeto (.petunia).
@@ -143,10 +213,10 @@ impl PetuniaFileDialogService {
     pub fn update(&mut self, ctx: &Context, state: &mut AppState) {
         self.dialog.update(ctx);
 
-        if let Some(path) = self.dialog.take_picked() {
-            if let Some(action) = self.pending_action.take() {
-                self.execute_action(action, path, state);
-            }
+        if let Some(path) = self.dialog.take_picked()
+            && let Some(action) = self.pending_action.take()
+        {
+            self.execute_action(action, path, state);
         }
     }
 
@@ -196,6 +266,22 @@ impl PetuniaFileDialogService {
                     Err(e) => state.set_status(format!("export palette err: {e}")),
                 }
             }
+            FileDialogAction::AddReferenceImage(opt_axis) => match crate::load_image_rgba(&path) {
+                Ok((w, h, rgba)) => {
+                    let name = path
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("ref")
+                        .to_string();
+                    if let Some(axis) = opt_axis {
+                        ProjectService::set_reference_slot(state, axis, name, w, h, rgba);
+                    } else {
+                        ProjectService::add_reference_image(state, name.clone(), w, h, rgba);
+                        state.set_status(format!("Imagem de referência '{name}' adicionada"));
+                    }
+                }
+                Err(e) => state.set_status(format!("Erro ao carregar imagem: {e}")),
+            },
         }
     }
 }

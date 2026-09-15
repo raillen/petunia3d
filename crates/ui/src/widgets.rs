@@ -5,8 +5,8 @@
 //! (Default, Hover, Pressed, Selected, Focused, Disabled).
 
 use egui::{
-    vec2, Align2, Color32, FontId, Rect, Response, Sense, StrokeKind, TextEdit, Ui, WidgetInfo,
-    WidgetType,
+    Align2, Color32, FontId, Rect, Response, Sense, StrokeKind, TextEdit, Ui, WidgetInfo,
+    WidgetType, vec2,
 };
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
@@ -79,7 +79,7 @@ impl<'a> PetuniaToolbarButton<'a> {
             let painter = ui.painter().with_clip_rect(rect);
 
             if bg_fill != Color32::TRANSPARENT {
-                painter.rect_filled(rect, tokens::RADIUS_CONTAINER, bg_fill);
+                painter.rect_filled(rect, crate::twill_bridge::toolbar_button_radius(), bg_fill);
             }
 
             // Indicador de foco acessível
@@ -345,8 +345,8 @@ impl<'a> PetuniaMenuItem<'a> {
     }
 
     pub fn show(self, ui: &mut Ui) -> Response {
-        let width = ui.available_width().max(180.0);
-        let desired_size = vec2(width, 24.0);
+        let width = ui.available_width().max(148.0);
+        let desired_size = vec2(width, 22.0);
         let (rect, response) = ui.allocate_exact_size(
             desired_size,
             if self.enabled {
@@ -358,19 +358,33 @@ impl<'a> PetuniaMenuItem<'a> {
 
         if ui.is_rect_visible(rect) {
             let painter = ui.painter().with_clip_rect(rect);
+            let visuals = ui.visuals();
 
             // Fundo ao passar o mouse
             if self.enabled && response.hovered() {
-                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+                painter.rect_filled(
+                    rect,
+                    tokens::RADIUS_CONTROL,
+                    visuals.widgets.hovered.bg_fill,
+                );
             }
 
-            // Cores
+            // Cores dinâmicas orientadas pelo tema ativo
             let (fg_color, shortcut_color) = if !self.enabled {
-                (tokens::TEXT_MUTED, tokens::TEXT_MUTED.gamma_multiply(0.6))
+                (
+                    visuals.widgets.noninteractive.fg_stroke.color,
+                    visuals.text_color().gamma_multiply(0.4),
+                )
             } else if response.hovered() {
-                (tokens::TEXT_ACTIVE, tokens::TEXT_SECONDARY)
+                (
+                    visuals.widgets.hovered.fg_stroke.color,
+                    visuals.text_color().gamma_multiply(0.75),
+                )
             } else {
-                (tokens::TEXT_PRIMARY, tokens::TEXT_MUTED)
+                (
+                    visuals.text_color(),
+                    visuals.text_color().gamma_multiply(0.55),
+                )
             };
 
             // 1. Ícone à esquerda
@@ -455,8 +469,8 @@ impl<'a> PetuniaMenuCheckboxItem<'a> {
     }
 
     pub fn show(self, ui: &mut Ui) -> Response {
-        let width = ui.available_width().max(180.0);
-        let desired_size = vec2(width, 24.0);
+        let width = ui.available_width().max(148.0);
+        let desired_size = vec2(width, 22.0);
         let (rect, response) = ui.allocate_exact_size(
             desired_size,
             if self.enabled {
@@ -468,17 +482,31 @@ impl<'a> PetuniaMenuCheckboxItem<'a> {
 
         if ui.is_rect_visible(rect) {
             let painter = ui.painter().with_clip_rect(rect);
+            let visuals = ui.visuals();
 
             if self.enabled && response.hovered() {
-                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+                painter.rect_filled(
+                    rect,
+                    tokens::RADIUS_CONTROL,
+                    visuals.widgets.hovered.bg_fill,
+                );
             }
 
             let (fg_color, shortcut_color) = if !self.enabled {
-                (tokens::TEXT_MUTED, tokens::TEXT_MUTED.gamma_multiply(0.6))
+                (
+                    visuals.widgets.noninteractive.fg_stroke.color,
+                    visuals.text_color().gamma_multiply(0.4),
+                )
             } else if response.hovered() {
-                (tokens::TEXT_ACTIVE, tokens::TEXT_SECONDARY)
+                (
+                    visuals.widgets.hovered.fg_stroke.color,
+                    visuals.text_color().gamma_multiply(0.75),
+                )
             } else {
-                (tokens::TEXT_PRIMARY, tokens::TEXT_MUTED)
+                (
+                    visuals.text_color(),
+                    visuals.text_color().gamma_multiply(0.55),
+                )
             };
 
             // Indicador de Checkmark à esquerda (6.0px margin)
@@ -493,9 +521,9 @@ impl<'a> PetuniaMenuCheckboxItem<'a> {
                     "✓",
                     FontId::proportional(12.0),
                     if self.enabled {
-                        tokens::ACCENT_BLUE
+                        visuals.selection.stroke.color
                     } else {
-                        tokens::TEXT_MUTED
+                        visuals.widgets.noninteractive.fg_stroke.color
                     },
                 );
             }
@@ -650,7 +678,7 @@ pub fn petunia_action_button(
     let icon_size = 14.0;
     let font_size = 11.5;
 
-    let text_w = ui.fonts(|f| {
+    let text_w = ui.fonts_mut(|f| {
         f.layout_no_wrap(
             label.to_string(),
             FontId::proportional(font_size),
@@ -743,13 +771,12 @@ pub fn petunia_action_button(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use egui::Context;
 
     #[test]
     fn test_toolbar_button_widget_rendering() {
-        let ctx = Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let btn = PetuniaToolbarButton::new(PetuniaIcon::Move, "Move")
                     .selected(true)
                     .compact(true)
@@ -761,54 +788,64 @@ mod tests {
                     .compact(false);
                 let _resp_wide = btn_wide.show(ui);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_property_tab_button_widget_rendering() {
-        let ctx = Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let tab = PetuniaPropertyTabButton::new(PetuniaIcon::PropRender, true)
                     .tooltip("Propriedades de Render");
                 let _resp = tab.show(ui);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_workspace_pill_widget_rendering() {
-        let ctx = Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let pill = PetuniaWorkspacePill::new("MODEL", true);
                 let _resp = pill.show(ui);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_search_box_widget_rendering() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut query = String::from("Cube");
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let _resp = petunia_search_box(ui, &mut query, "Search Scene...");
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_menu_item_widget_rendering() {
-        let ctx = Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let item = PetuniaMenuItem::new("Extrude")
                     .icon(PetuniaIcon::Extrude)
                     .shortcut(Some("E"));
                 let _resp = item.show(ui);
                 petunia_menu_separator(ui);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 }

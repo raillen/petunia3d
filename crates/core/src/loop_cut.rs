@@ -4,8 +4,8 @@
 
 use glam::Vec3;
 use petunia_mesh::{
-    loop_cut::{LoopCutError, LoopRing},
     Mesh,
+    loop_cut::{LoopCutError, LoopRing},
 };
 
 #[derive(Clone)]

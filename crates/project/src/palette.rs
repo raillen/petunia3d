@@ -22,14 +22,14 @@ pub fn import_hex(content: &str) -> Vec<[f32; 3]> {
     for line in content.lines() {
         let trimmed = line.trim();
         let hex = trimmed.strip_prefix('#').unwrap_or(trimmed);
-        if hex.len() == 6 {
-            if let (Ok(r), Ok(g), Ok(b)) = (
+        if hex.len() == 6
+            && let (Ok(r), Ok(g), Ok(b)) = (
                 u8::from_str_radix(&hex[0..2], 16),
                 u8::from_str_radix(&hex[2..4], 16),
                 u8::from_str_radix(&hex[4..6], 16),
-            ) {
-                out.push([r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0]);
-            }
+            )
+        {
+            out.push([r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0]);
         }
     }
     out
@@ -61,14 +61,14 @@ pub fn import_gpl(content: &str) -> Vec<[f32; 3]> {
             continue;
         }
         let parts: Vec<&str> = trimmed.split_whitespace().collect();
-        if parts.len() >= 3 {
-            if let (Ok(r), Ok(g), Ok(b)) = (
+        if parts.len() >= 3
+            && let (Ok(r), Ok(g), Ok(b)) = (
                 parts[0].parse::<u8>(),
                 parts[1].parse::<u8>(),
                 parts[2].parse::<u8>(),
-            ) {
-                out.push([r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0]);
-            }
+            )
+        {
+            out.push([r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0]);
         }
     }
     out

@@ -2,7 +2,7 @@
 
 ::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
 - **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `ROADMAP PÓS-GA (Animation & Rigging)`
+- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
 - **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
 :::
 
@@ -10,7 +10,7 @@
 <aside>
 🧩
 
-Novo item · Prioridade: P3.
+Estado: **implementado via `RigPreset::humanoid`, `RigPreset::quadruped` e `RigPreset::multi_leg` em `crates/project/src/animation.rs`** · Prioridade: P3.
 
 </aside>
 

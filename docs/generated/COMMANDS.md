@@ -1,0 +1,80 @@
+---
+title: Catálogo de Comandos & Ferramentas
+description: Catálogo canônico de comandos gerados a partir do CommandDispatcher (P3D-119)
+---
+
+<!--
+  ARQUIVO GERADO AUTOMATICAMENTE — NÃO EDITE MANUALMENTE!
+  Gerado deterministicamente por `cargo xtask docs` (P3D-119).
+  Para atualizar execute: cargo run -p xtask -- docs
+-->
+
+# Catálogo Canônico de Comandos e Ações (`CommandId`)
+
+> **Single Source of Truth (P3D-100, P3D-119)**
+> Todos os comandos do Petunia3D são registrados centralmente no `CommandDispatcher`, permitindo despacho transacional com histórico (Undo/Redo), Command Palette e telemetria.
+
+Total de comandos registrados no motor: **57**.
+
+## Tabela Geral de Comandos
+
+| ID (`CommandId`) | Rótulo | Categoria | Destrutivo | Tópico Docs | Descrição |
+| :--- | :--- | :---: | :---: | :--- | :--- |
+| `edit.delete` | **Delete** | `Edit` | Sim | — | Delete selected elements or active object |
+| `edit.duplicate` | **Duplicate** | `Edit` | Sim | — | Duplicate selected elements or active object |
+| `edit.redo` | **Redo** | `Edit` | Não | — | Redo last undone modification |
+| `edit.undo` | **Undo** | `Edit` | Não | — | Undo previous modification |
+| `file.export_glb` | **Export GLB** | `File` | Não | ImportExport | Export scene to binary glTF format |
+| `file.export_obj` | **Export OBJ** | `File` | Não | ImportExport | Export active mesh to Wavefront OBJ format |
+| `file.import_obj` | **Import OBJ** | `File` | Não | ImportExport | Import 3D mesh from Wavefront OBJ file |
+| `file.new` | **New Project** | `File` | Sim | GettingStarted | Create a blank 3D project |
+| `file.save` | **Save Project** | `File` | Sim | GettingStarted | Save active project to disk |
+| `file.save_as` | **Save Project As** | `File` | Sim | — | Save active project to a new file |
+| `file.save_asset` | **Save Active Model as Asset** | `File` | Sim | Assets | Save active mesh to project asset library |
+| `help.documentation` | **Documentation** | `Help` | Não | GettingStarted | Open official documentation online |
+| `model.add_capsule` | **Add Capsule** | `Model` | Sim | Modeling | Add a capsule primitive |
+| `model.add_cone` | **Add Cone** | `Model` | Sim | Modeling | Add a cone primitive |
+| `model.add_cube` | **Add Cube** | `Model` | Sim | Modeling | Add a 3D box primitive |
+| `model.add_cylinder` | **Add Cylinder** | `Model` | Sim | Modeling | Add a cylinder primitive |
+| `model.add_plane` | **Add Plane** | `Model` | Sim | Modeling | Add a flat plane primitive |
+| `model.add_sphere` | **Add Sphere** | `Model` | Sim | Modeling | Add a low-poly sphere primitive |
+| `model.bevel` | **Bevel Edges** | `Model` | Sim | Bevel | Bevel selected mesh edges |
+| `model.extrude` | **Extrude** | `Model` | Sim | Extrude | Extrude selected faces along surface normal |
+| `model.extrude_individual` | **Extrude Individual** | `Model` | Sim | Extrude | Extrude selected faces individually |
+| `model.flip_diagonal` | **Flip Diagonal** | `Model` | Sim | Modeling | Flip quad internal diagonal or triangle edge |
+| `model.flip_normals` | **Flip Normals** | `Model` | Sim | Modeling | Reverse orientation of face normals |
+| `model.inset` | **Inset Faces** | `Model` | Sim | Modeling | Inset selected faces towards interior |
+| `model.instantiate_asset` | **Instantiate Asset** | `Model` | Sim | Assets | Instantiate a library asset into the active 3D scene |
+| `model.merge` | **Merge Center** | `Model` | Sim | Modeling | Merge selected vertices into center point |
+| `model.separate_selection` | **Separate Selection** | `Model` | Sim | Modeling | Separate selected geometry into a new object |
+| `model.subdivide` | **Subdivide** | `Model` | Sim | LoopCut | Subdivide selected geometry |
+| `select.all` | **Select All** | `Select` | Não | — | Select all geometry elements in active mesh |
+| `select.cycle_domain` | **Cycle Selection Domain** | `Select` | Não | — | Toggle between Object and last component domain |
+| `select.domain_edge` | **Select Domain: Edge** | `Select` | Não | — | Switch interaction to Edge domain |
+| `select.domain_face` | **Select Domain: Face** | `Select` | Não | — | Switch interaction to Face domain |
+| `select.domain_object` | **Select Domain: Object** | `Select` | Não | — | Switch interaction to Object domain |
+| `select.domain_vertex` | **Select Domain: Vertex** | `Select` | Não | — | Switch interaction to Vertex domain |
+| `select.invert` | **Invert Selection** | `Select` | Não | — | Invert geometry selection in active mesh |
+| `select.linked` | **Select Linked** | `Select` | Não | — | Select connected geometry elements |
+| `select.none` | **Deselect All** | `Select` | Não | — | Clear current geometry selection |
+| `view.back` | **View Back** | `View` | Não | Navigation | Align camera to Back orthographic view |
+| `view.bottom` | **View Bottom** | `View` | Não | Navigation | Align camera to Bottom orthographic view |
+| `view.frame_all` | **Frame All** | `View` | Não | Navigation | Center 3D camera on all visible scene geometry |
+| `view.frame_selection` | **Frame Selection** | `View` | Não | Navigation | Center 3D camera on selected geometry |
+| `view.front` | **View Front** | `View` | Não | Navigation | Align camera to Front orthographic view |
+| `view.isometric_ne` | **Isometric NE** | `View` | Não | Navigation | Align camera to North-East isometric view |
+| `view.isometric_nw` | **Isometric NW** | `View` | Não | Navigation | Align camera to North-West isometric view |
+| `view.isometric_se` | **Isometric SE** | `View` | Não | Navigation | Align camera to South-East isometric view |
+| `view.isometric_sw` | **Isometric SW** | `View` | Não | Navigation | Align camera to South-West isometric view |
+| `view.left` | **View Left** | `View` | Não | Navigation | Align camera to Left orthographic view |
+| `view.reset_camera` | **Reset Camera** | `View` | Não | Navigation | Reset 3D camera to default isometric view |
+| `view.right` | **View Right** | `View` | Não | Navigation | Align camera to Right orthographic view |
+| `view.toggle_nav_hud` | **Toggle Navigation HUD** | `View` | Não | Navigation | Toggle display of viewport orientation angle badge |
+| `view.toggle_projection` | **Toggle Projection** | `View` | Não | Navigation | Toggle perspective or orthographic view |
+| `view.toggle_wireframe` | **Toggle Wireframe** | `View` | Não | Navigation | Toggle wireframe display on active mesh |
+| `view.toggle_xray` | **Toggle X-Ray** | `View` | Não | Navigation | Toggle semi-transparent see-through mesh display |
+| `view.top` | **View Top** | `View` | Não | Navigation | Align camera to Top orthographic view |
+| `window.command_palette` | **Command Palette** | `Window` | Não | Interface | Open rapid search and execute palette |
+| `window.reference_manager` | **Reference Set Manager** | `Window` | Não | Interface | Open reference images manager window |
+| `window.settings` | **Preferences** | `Window` | Não | Themes | Open application preferences modal |
+

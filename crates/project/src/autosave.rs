@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::format::{self, ProjectError};
 use crate::Project;
+use crate::format::{self, ProjectError};
 
 /// Configurações do sistema de Autosave e Recuperação (P3D-002 §Configurações).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -215,12 +215,12 @@ impl AutosaveService {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.is_file() {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name.starts_with("autosave-") && name.ends_with(".petunia") {
-                        entries.push(path);
-                    }
-                }
+            if path.is_file()
+                && let Some(name) = path.file_name().and_then(|n| n.to_str())
+                && name.starts_with("autosave-")
+                && name.ends_with(".petunia")
+            {
+                entries.push(path);
             }
         }
 
@@ -269,12 +269,12 @@ impl AutosaveService {
         if let Ok(rd) = fs::read_dir(&dir) {
             for entry in rd.flatten() {
                 let path = entry.path();
-                if path.is_file() {
-                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                        if name.starts_with("autosave-") && name.ends_with(".petunia") {
-                            snapshots.push(path);
-                        }
-                    }
+                if path.is_file()
+                    && let Some(name) = path.file_name().and_then(|n| n.to_str())
+                    && name.starts_with("autosave-")
+                    && name.ends_with(".petunia")
+                {
+                    snapshots.push(path);
                 }
             }
         }
@@ -292,16 +292,12 @@ impl AutosaveService {
 
         if let Some(p) = project_path {
             main_path_buf = Some(p.to_path_buf());
-            if p.exists() {
-                if let (Ok(snap_meta), Ok(main_meta)) =
+            if p.exists()
+                && let (Ok(snap_meta), Ok(main_meta)) =
                     (fs::metadata(&newest_snapshot), fs::metadata(p))
-                {
-                    if let (Ok(snap_time), Ok(main_time)) =
-                        (snap_meta.modified(), main_meta.modified())
-                    {
-                        is_newer = snap_time > main_time;
-                    }
-                }
+                && let (Ok(snap_time), Ok(main_time)) = (snap_meta.modified(), main_meta.modified())
+            {
+                is_newer = snap_time > main_time;
             }
         }
 

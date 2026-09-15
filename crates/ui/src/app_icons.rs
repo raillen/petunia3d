@@ -3,8 +3,8 @@
 //! e oferece renderização com tingimento dinâmico e fallback vetorial seamlessly integrado.
 
 use egui::{
-    vec2, Color32, ColorImage, Context, Rect, Response, Sense, TextureHandle, TextureOptions, Ui,
-    WidgetInfo, WidgetType,
+    Color32, ColorImage, Context, Rect, Response, Sense, TextureHandle, TextureOptions, Ui,
+    WidgetInfo, WidgetType, vec2,
 };
 
 use crate::icons;
@@ -42,16 +42,15 @@ pub fn get_icon_texture(ctx: &Context, name: &str) -> Option<TextureHandle> {
         _ => None,
     };
 
-    if let Some(bytes) = raw_bytes {
-        if let Ok(img) = image::load_from_memory(bytes) {
-            let rgba = img.to_rgba8();
-            let size = [rgba.width() as usize, rgba.height() as usize];
-            let color_img = ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
-            let handle =
-                ctx.load_texture(format!("tb_icon_{name}"), color_img, TextureOptions::LINEAR);
-            ctx.data_mut(|d| d.insert_temp(id, handle.clone()));
-            return Some(handle);
-        }
+    if let Some(bytes) = raw_bytes
+        && let Ok(img) = image::load_from_memory(bytes)
+    {
+        let rgba = img.to_rgba8();
+        let size = [rgba.width() as usize, rgba.height() as usize];
+        let color_img = ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
+        let handle = ctx.load_texture(format!("tb_icon_{name}"), color_img, TextureOptions::LINEAR);
+        ctx.data_mut(|d| d.insert_temp(id, handle.clone()));
+        return Some(handle);
     }
 
     None
@@ -159,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_embedded_raster_icons_load_validly() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let raster_tools = [
             "select_box",
             "cursor_3d",
@@ -184,27 +183,31 @@ mod tests {
 
     #[test]
     fn test_paint_icon_with_both_raster_and_vector() {
-        let ctx = Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let rect = Rect::from_min_size(egui::Pos2::ZERO, vec2(24.0, 24.0));
                 // Raster tool
-                paint_icon(ctx, ui.painter(), "select_box", rect, Color32::WHITE);
+                paint_icon(&ctx, ui.painter(), "select_box", rect, Color32::WHITE);
                 // Vector tool fallback
-                paint_icon(ctx, ui.painter(), "extrude", rect, Color32::WHITE);
+                paint_icon(&ctx, ui.painter(), "extrude", rect, Color32::WHITE);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_toolbar_button_interaction() {
-        let ctx = Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let resp = toolbar_button(ui, "select_box", "Select", true, true);
                 assert_eq!(resp.rect.width(), tokens::TOOLBAR_WIDTH);
                 assert_eq!(resp.rect.height(), tokens::TOOLBAR_WIDTH);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 }

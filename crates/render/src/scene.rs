@@ -14,21 +14,78 @@ pub const SELECT_EDGE_COLOR: [f32; 3] = [1.0, 0.35, 0.1];
 /// Segmento de linha com cor: (a, b, cor).
 pub type ColoredLine = ([f32; 3], [f32; 3], [f32; 3]);
 
+/// Linhas dos eixos mundiais cartesianos (X=vermelho, Y=verde, Z=azul).
+pub fn world_axes_lines(extent: f32) -> Vec<ColoredLine> {
+    let axis_x = [0.88, 0.24, 0.26];
+    let axis_y = [0.38, 0.79, 0.20];
+    let axis_z = [0.19, 0.51, 0.96];
+    vec![
+        ([-extent, 0.0, 0.0], [extent, 0.0, 0.0], axis_x),
+        ([0.0, -extent, 0.0], [0.0, extent, 0.0], axis_y),
+        ([0.0, 0.0, -extent], [0.0, 0.0, extent], axis_z),
+    ]
+}
+
+/// Grid estilo Blender no plano XZ com suporte a tamanho, subdivisões, opacidade e guia isométrico.
+pub fn grid_lines_custom(
+    size: f32,
+    spacing: f32,
+    opacity: f32,
+    show_iso: bool,
+    iso_angle_deg: f32,
+) -> Vec<ColoredLine> {
+    let mut v = Vec::new();
+    let extent = size.max(1.0);
+    let step = spacing.clamp(0.1, extent);
+    let op = opacity.clamp(0.05, 1.0);
+    let minor = [0.22 * op * 2.5, 0.22 * op * 2.5, 0.24 * op * 2.5];
+
+    let steps = (extent / step).ceil() as i32;
+    for i in -steps..=steps {
+        let f = i as f32 * step;
+        if f.abs() > extent + 1e-4 {
+            continue;
+        }
+        v.push(([f, 0.0, -extent], [f, 0.0, extent], minor));
+        v.push(([-extent, 0.0, f], [extent, 0.0, f], minor));
+    }
+
+    if show_iso {
+        let iso_color = [0.18 * op * 2.5, 0.42 * op * 2.5, 0.52 * op * 2.5];
+        let angle_rad = iso_angle_deg.to_radians();
+        let tan_a = angle_rad.tan().abs().max(0.1);
+        let iso_step = step * 2.0;
+        let iso_steps = (extent * 2.0 / iso_step).ceil() as i32;
+        for i in -iso_steps..=iso_steps {
+            let offset = i as f32 * iso_step;
+            let z0 = -extent * tan_a + offset;
+            let z1 = extent * tan_a + offset;
+            if (z0 >= -extent && z0 <= extent) || (z1 >= -extent && z1 <= extent) {
+                let cz0 = z0.clamp(-extent, extent);
+                let cx0 = (cz0 - offset) / tan_a;
+                let cz1 = z1.clamp(-extent, extent);
+                let cx1 = (cz1 - offset) / tan_a;
+                v.push(([cx0, 0.0, cz0], [cx1, 0.0, cz1], iso_color));
+            }
+
+            let z0_neg = extent * tan_a + offset;
+            let z1_neg = -extent * tan_a + offset;
+            if (z0_neg >= -extent && z0_neg <= extent) || (z1_neg >= -extent && z1_neg <= extent) {
+                let cz0 = z0_neg.clamp(-extent, extent);
+                let cx0 = -(cz0 - offset) / tan_a;
+                let cz1 = z1_neg.clamp(-extent, extent);
+                let cx1 = -(cz1 - offset) / tan_a;
+                v.push(([cx0, 0.0, cz0], [cx1, 0.0, cz1], iso_color));
+            }
+        }
+    }
+
+    v
+}
+
 /// Grid estilo Blender no plano XZ (semi-eixo 20).
 pub fn grid_lines() -> Vec<ColoredLine> {
-    let mut v = Vec::new();
-    let n = 20i32;
-    let minor = [0.22, 0.22, 0.24];
-    let axis_x = [0.75, 0.25, 0.30];
-    let axis_z = [0.25, 0.45, 0.75];
-    for i in -n..=n {
-        let f = i as f32;
-        let cx = if i == 0 { axis_x } else { minor };
-        let cz = if i == 0 { axis_z } else { minor };
-        v.push(([f, 0.0, -(n as f32)], [f, 0.0, n as f32], cx));
-        v.push(([-(n as f32), 0.0, f], [n as f32, 0.0, f], cz));
-    }
-    v
+    grid_lines_custom(20.0, 1.0, 0.4, false, 30.0)
 }
 
 /// Eixo do plano de referência.

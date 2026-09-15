@@ -97,10 +97,10 @@ impl ModelLibraryService {
                 }
 
                 // 3. Filtro de Tag
-                if let Some(ref t) = tag_filter {
-                    if !asset.tags.iter().any(|at| at.to_lowercase() == *t) {
-                        return None;
-                    }
+                if let Some(ref t) = tag_filter
+                    && !asset.tags.iter().any(|at| at.to_lowercase() == *t)
+                {
+                    return None;
                 }
 
                 // 4. Busca textual (no nome e nas tags)

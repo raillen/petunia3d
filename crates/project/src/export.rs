@@ -30,7 +30,10 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
     // achata: por asset, tris (pos, nrm, uv) + índices u32
     struct Part {
         name: String,
-        color: [f32; 3],
+        color: [f32; 4],
+        roughness: f32,
+        metallic: f32,
+        emissive: [f32; 3],
         pos: Vec<f32>,
         nrm: Vec<f32>,
         uv: Vec<f32>,
@@ -64,10 +67,35 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
                 )));
             }
         }
+
+        let (roughness, metallic, emissive, base_color_rgba) =
+            if let Some(mat) = a.material(project) {
+                (
+                    mat.roughness.clamp(0.0, 1.0),
+                    mat.metallic.clamp(0.0, 1.0),
+                    [
+                        mat.emission_color[0] * mat.emission_strength,
+                        mat.emission_color[1] * mat.emission_strength,
+                        mat.emission_color[2] * mat.emission_strength,
+                    ],
+                    mat.base_color,
+                )
+            } else {
+                (
+                    0.9,
+                    0.0,
+                    [0.0, 0.0, 0.0],
+                    [a.base_color[0], a.base_color[1], a.base_color[2], 1.0],
+                )
+            };
+
         let normals = m.compute_normals();
         let mut p = Part {
             name: a.name.clone(),
-            color: a.base_color,
+            color: base_color_rgba,
+            roughness,
+            metallic,
+            emissive,
             pos: Vec::new(),
             nrm: Vec::new(),
             uv: Vec::new(),
@@ -196,8 +224,11 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
             j.push(',');
         }
         j.push_str(&format!(
-            "{{\"name\":{},\"doubleSided\":true,\"pbrMetallicRoughness\":{{\"baseColorFactor\":[{:.4},{:.4},{:.4},1.0],\"metallicFactor\":0.0,\"roughnessFactor\":0.9}}}}",
-            json_str(&format!("{}_mat", p.name)), p.color[0], p.color[1], p.color[2]
+            "{{\"name\":{},\"doubleSided\":true,\"pbrMetallicRoughness\":{{\"baseColorFactor\":[{:.4},{:.4},{:.4},{:.4}],\"metallicFactor\":{:.4},\"roughnessFactor\":{:.4}}},\"emissiveFactor\":[{:.4},{:.4},{:.4}]}}",
+            json_str(&format!("{}_mat", p.name)),
+            p.color[0], p.color[1], p.color[2], p.color[3],
+            p.metallic, p.roughness,
+            p.emissive[0], p.emissive[1], p.emissive[2]
         ));
     }
     j.push_str("],\"accessors\":[");

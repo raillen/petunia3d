@@ -116,6 +116,62 @@ pub fn color(state: &petunia_core::AppState, token: ThemeToken) -> Color32 {
     }
 }
 
+pub fn bg_canvas(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgCanvas)
+}
+
+pub fn bg_header(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgHeader)
+}
+
+pub fn bg_panel(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgPanel)
+}
+
+pub fn bg_panel_header(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgPanelHeader)
+}
+
+pub fn bg_surface(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgSurface)
+}
+
+pub fn bg_surface_hover(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgSurfaceHover)
+}
+
+pub fn bg_surface_active(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BgSurfaceActive)
+}
+
+pub fn text_primary(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::TextPrimary)
+}
+
+pub fn text_secondary(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::TextSecondary)
+}
+
+pub fn text_muted(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::TextMuted)
+}
+
+pub fn text_active(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::TextActive)
+}
+
+pub fn border_subtle(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BorderSubtle)
+}
+
+pub fn border_strong(state: &petunia_core::AppState) -> Color32 {
+    color(state, ThemeToken::BorderStrong)
+}
+
+pub fn stroke_border_dyn(state: &petunia_core::AppState) -> Stroke {
+    Stroke::new(1.0, border_subtle(state))
+}
+
 /// Aplica as configurações do tema do Petunia3D ao contexto egui.
 pub fn apply_theme_to_egui(theme: &petunia_config::Theme, ctx: &egui::Context) {
     let is_light = theme
@@ -190,7 +246,7 @@ pub fn apply_theme_to_egui(theme: &petunia_config::Theme, ctx: &egui::Context) {
         egui::FontFamily::Proportional
     };
 
-    ctx.style_mut(|style| {
+    let apply_style = |style: &mut egui::Style| {
         for (name, points) in [
             (egui::TextStyle::Body, size),
             (egui::TextStyle::Button, size),
@@ -208,5 +264,7 @@ pub fn apply_theme_to_egui(theme: &petunia_config::Theme, ctx: &egui::Context) {
         style.spacing.item_spacing = egui::vec2(8.0, 6.0);
         style.spacing.button_padding = egui::vec2(8.0, 5.0);
         style.spacing.interact_size.y = 28.0;
-    });
+    };
+    ctx.style_mut_of(egui::Theme::Dark, apply_style);
+    ctx.style_mut_of(egui::Theme::Light, apply_style);
 }

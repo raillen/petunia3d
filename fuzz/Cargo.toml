@@ -1,0 +1,24 @@
+[package]
+name = "petunia-fuzz"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+petunia_project = { path = "../crates/project" }
+petunia_mesh = { path = "../crates/mesh" }
+
+[[bin]]
+name = "obj_parse"
+path = "fuzz_targets/obj_parse.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "project_parse"
+path = "fuzz_targets/project_parse.rs"
+test = false
+doc = false

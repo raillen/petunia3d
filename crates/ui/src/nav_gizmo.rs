@@ -6,8 +6,8 @@
 use egui::{Color32, PointerButton, Pos2, Rect, Stroke, StrokeKind, Vec2};
 use glam::Vec3;
 use petunia_core::{
-    picking::pick_mesh, AppState, DuplicateSelectionCmd, EditMode, FlipNormalsCmd, ModalKind,
-    Projection, SelectMode, SubdivideSelectionCmd, ViewPreset,
+    AppState, DuplicateSelectionCmd, EditMode, FlipNormalsCmd, ModalKind, Projection, SelectMode,
+    SubdivideSelectionCmd, ViewPreset, picking::pick_mesh,
 };
 
 use crate::icon_registry::PetuniaIcon;
@@ -102,6 +102,9 @@ pub fn draw_nav_gizmo(
     viewport_rect: Rect,
     painter: &egui::Painter,
 ) -> bool {
+    if !state.show_nav_hud || !state.show_overlays {
+        return false;
+    }
     if viewport_rect.width() < 120.0 || viewport_rect.height() < 120.0 {
         return false;
     }
@@ -883,21 +886,29 @@ mod tests {
             screen_rect: Some(rect),
             ..Default::default()
         };
+        let shift_mods = egui::Modifiers {
+            shift: true,
+            ..Default::default()
+        };
         raw_input
             .events
             .push(egui::Event::PointerMoved(Pos2::new(400.0, 300.0)));
-        raw_input.modifiers.shift = true;
+        raw_input
+            .events
+            .push(egui::Event::ModifiersChanged(shift_mods));
         raw_input.events.push(egui::Event::PointerButton {
             pos: Pos2::new(400.0, 300.0),
             button: PointerButton::Secondary,
             pressed: true,
-            modifiers: raw_input.modifiers,
+            modifiers: shift_mods,
         });
 
-        let _ = ctx.run(raw_input, |ctx| {
-            let handled = handle_3d_cursor_placement(ctx, &mut state, rect);
+        ctx.run_ui(raw_input, |_ui| {
+            let handled = handle_3d_cursor_placement(&ctx, &mut state, rect);
             assert!(handled);
-        });
+        })
+        .textures_delta
+        .clear();
 
         // The cursor should have been placed
         assert!(state.cursor_3d[0].is_finite());
@@ -921,9 +932,11 @@ mod tests {
             modifiers: egui::Modifiers::default(),
         });
 
-        let _ = ctx.run(raw_input, |ctx| {
-            draw_context_menu(ctx, &mut state);
-        });
+        ctx.run_ui(raw_input, |_ui| {
+            draw_context_menu(&ctx, &mut state);
+        })
+        .textures_delta
+        .clear();
 
         // Menu should be closed by Escape
         assert_eq!(state.ui.context_menu_pos, None);

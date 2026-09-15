@@ -1,7 +1,7 @@
 //! Vetores de ícones e botões de ferramentas para a UI do Petunia3D (egui).
 //! Grade lógica de 24 pontos sem dependências externas ou caracteres Unicode.
 
-use egui::{vec2, Color32, Pos2, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType};
+use egui::{Color32, Pos2, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType, vec2};
 
 /// Renderiza um ícone vetorial numa grade lógica de 24 pontos dentro do retângulo especificado.
 pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color32) {
@@ -560,6 +560,44 @@ pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color3
             painter.line_segment([p(4.0, 18.0), p(10.0, 14.0)], arrow_stroke);
             painter.line_segment([p(20.0, 18.0), p(14.0, 14.0)], arrow_stroke);
         }
+        "flip_diagonal" => {
+            let quad = Rect::from_min_max(p(5.0, 5.0), p(19.0, 19.0));
+            painter.rect_stroke(
+                quad,
+                1.0,
+                Stroke::new(1.8_f32, c_neutral),
+                egui::StrokeKind::Inside,
+            );
+            painter.line_segment([p(6.0, 18.0), p(18.0, 6.0)], Stroke::new(2.2_f32, c_cyan));
+            painter.line_segment([p(6.0, 6.0), p(9.0, 9.0)], Stroke::new(1.4_f32, c_yellow));
+            painter.line_segment(
+                [p(18.0, 18.0), p(15.0, 15.0)],
+                Stroke::new(1.4_f32, c_yellow),
+            );
+        }
+        "revolve" => {
+            let axis_stroke = Stroke::new(2.2_f32, c_orange);
+            painter.line_segment([p(12.0, 3.0), p(12.0, 21.0)], axis_stroke);
+            painter.circle_filled(p(12.0, 3.0), 1.8, c_orange);
+            painter.circle_filled(p(12.0, 21.0), 1.8, c_orange);
+
+            let arc_stroke = Stroke::new(2.0_f32, c_cyan);
+            let arc_pts = [
+                p(5.0, 12.0),
+                p(7.0, 16.0),
+                p(12.0, 17.5),
+                p(17.0, 16.0),
+                p(19.0, 12.0),
+            ];
+            for w in arc_pts.windows(2) {
+                painter.line_segment([w[0], w[1]], arc_stroke);
+            }
+            painter.add(egui::Shape::convex_polygon(
+                vec![p(17.0, 13.5), p(20.5, 11.5), p(19.0, 15.5)],
+                c_cyan,
+                Stroke::NONE,
+            ));
+        }
         "paint" => {
             // Pincel de textura com cabo e cerdas em ciano vibrante
             painter.line_segment(
@@ -995,7 +1033,7 @@ pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color3
                 egui::StrokeKind::Inside,
             );
         }
-        "delete" => {
+        "delete" | "trash" => {
             // Lixeira técnica
             let lid_stroke = Stroke::new(1.6_f32, c_red);
             painter.line_segment([p(5.0, 6.0), p(19.0, 6.0)], lid_stroke);
@@ -1009,6 +1047,267 @@ pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color3
             ));
             painter.line_segment([p(10.0, 10.0), p(9.5, 17.0)], Stroke::new(1.2_f32, c_red));
             painter.line_segment([p(14.0, 10.0), p(14.5, 17.0)], Stroke::new(1.2_f32, c_red));
+        }
+        "settings" => {
+            // Engrenagem técnica
+            let center = p(12.0, 12.0);
+            let r_outer = side * 0.35;
+            let r_inner = side * 0.16;
+            painter.circle_stroke(center, r_outer, Stroke::new(2.0_f32, c_neutral));
+            painter.circle_filled(center, r_inner, c_neutral);
+            for i in 0..6 {
+                let angle = (i as f32) * std::f32::consts::PI / 3.0;
+                let dir = egui::vec2(angle.cos(), angle.sin());
+                let p1 = center + dir * (r_outer - 1.5);
+                let p2 = center + dir * (r_outer + 3.0);
+                painter.line_segment([p1, p2], Stroke::new(2.4_f32, c_neutral));
+            }
+        }
+        "search" => {
+            // Lupa
+            let center = p(10.0, 10.0);
+            let r = side * 0.24;
+            painter.circle_stroke(center, r, Stroke::new(2.0_f32, c_neutral));
+            let handle_start = p(14.0, 14.0);
+            let handle_end = p(20.0, 20.0);
+            painter.line_segment([handle_start, handle_end], Stroke::new(2.4_f32, c_neutral));
+        }
+        "folder" => {
+            // Pasta técnica com aba
+            let tab = vec![p(4.0, 6.0), p(10.0, 6.0), p(12.0, 8.0), p(4.0, 8.0)];
+            painter.add(egui::Shape::convex_polygon(
+                tab,
+                c_yellow.linear_multiply(0.3),
+                Stroke::new(1.5_f32, c_yellow),
+            ));
+            let body = Rect::from_min_max(p(4.0, 8.0), p(20.0, 19.0));
+            painter.rect_filled(body, 2.0, c_yellow.linear_multiply(0.15));
+            painter.rect_stroke(
+                body,
+                2.0,
+                Stroke::new(1.6_f32, c_yellow),
+                egui::StrokeKind::Inside,
+            );
+        }
+        "file" => {
+            // Documento com canto dobrado
+            let doc = vec![
+                p(5.0, 4.0),
+                p(14.0, 4.0),
+                p(19.0, 9.0),
+                p(19.0, 20.0),
+                p(5.0, 20.0),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                doc,
+                c_neutral.linear_multiply(0.1),
+                Stroke::new(1.5_f32, c_neutral),
+            ));
+            // Dobra do canto
+            painter.line_segment(
+                [p(14.0, 4.0), p(14.0, 9.0)],
+                Stroke::new(1.4_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(14.0, 9.0), p(19.0, 9.0)],
+                Stroke::new(1.4_f32, c_neutral),
+            );
+        }
+        "eye" => {
+            // Olho canônico
+            let center = p(12.0, 12.0);
+            painter.circle_filled(center, 2.5, c_neutral);
+            let mut top_pts = Vec::new();
+            let mut bot_pts = Vec::new();
+            for i in 0..=8 {
+                let t = i as f32 / 8.0;
+                let x = 4.0 + t * 16.0;
+                let y_top = 12.0 - 5.5 * (std::f32::consts::PI * t).sin();
+                let y_bot = 12.0 + 5.5 * (std::f32::consts::PI * t).sin();
+                top_pts.push(p(x, y_top));
+                bot_pts.push(p(x, y_bot));
+            }
+            for w in top_pts.windows(2) {
+                painter.line_segment([w[0], w[1]], Stroke::new(1.6_f32, c_neutral));
+            }
+            for w in bot_pts.windows(2) {
+                painter.line_segment([w[0], w[1]], Stroke::new(1.6_f32, c_neutral));
+            }
+        }
+        "eye_hidden" => {
+            // Olho oculto com barra diagonal
+            let center = p(12.0, 12.0);
+            painter.circle_filled(center, 2.0, c_neutral.linear_multiply(0.5));
+            for t_val in 0..=8 {
+                let t = t_val as f32 / 8.0;
+                let x = 4.0 + t * 16.0;
+                let y_top = 12.0 - 5.0 * (std::f32::consts::PI * t).sin();
+                let y_bot = 12.0 + 5.0 * (std::f32::consts::PI * t).sin();
+                if t_val > 0 {
+                    let prev_t = (t_val - 1) as f32 / 8.0;
+                    let prev_x = 4.0 + prev_t * 16.0;
+                    painter.line_segment(
+                        [
+                            p(prev_x, 12.0 - 5.0 * (std::f32::consts::PI * prev_t).sin()),
+                            p(x, y_top),
+                        ],
+                        Stroke::new(1.4_f32, c_neutral.linear_multiply(0.5)),
+                    );
+                    painter.line_segment(
+                        [
+                            p(prev_x, 12.0 + 5.0 * (std::f32::consts::PI * prev_t).sin()),
+                            p(x, y_bot),
+                        ],
+                        Stroke::new(1.4_f32, c_neutral.linear_multiply(0.5)),
+                    );
+                }
+            }
+            painter.line_segment([p(5.0, 19.0), p(19.0, 5.0)], Stroke::new(1.8_f32, c_red));
+        }
+        "lock" => {
+            // Cadeado fechado
+            let body = Rect::from_min_max(p(6.0, 10.0), p(18.0, 20.0));
+            painter.rect_filled(body, 2.0, c_neutral.linear_multiply(0.2));
+            painter.rect_stroke(
+                body,
+                2.0,
+                Stroke::new(1.6_f32, c_neutral),
+                egui::StrokeKind::Inside,
+            );
+            // Arco superior
+            let top_arc = [p(8.5, 10.0), p(8.5, 6.0), p(15.5, 6.0), p(15.5, 10.0)];
+            painter.line_segment([top_arc[0], top_arc[1]], Stroke::new(1.6_f32, c_neutral));
+            painter.line_segment([top_arc[1], top_arc[2]], Stroke::new(1.6_f32, c_neutral));
+            painter.line_segment([top_arc[2], top_arc[3]], Stroke::new(1.6_f32, c_neutral));
+        }
+        "unlock" => {
+            // Cadeado aberto
+            let body = Rect::from_min_max(p(6.0, 10.0), p(18.0, 20.0));
+            painter.rect_filled(body, 2.0, c_neutral.linear_multiply(0.2));
+            painter.rect_stroke(
+                body,
+                2.0,
+                Stroke::new(1.6_f32, c_neutral),
+                egui::StrokeKind::Inside,
+            );
+            // Arco levantado
+            let top_arc = [p(8.5, 10.0), p(8.5, 4.0), p(15.5, 4.0), p(15.5, 7.0)];
+            painter.line_segment([top_arc[0], top_arc[1]], Stroke::new(1.6_f32, c_neutral));
+            painter.line_segment([top_arc[1], top_arc[2]], Stroke::new(1.6_f32, c_neutral));
+            painter.line_segment([top_arc[2], top_arc[3]], Stroke::new(1.6_f32, c_neutral));
+        }
+        "close" => {
+            // Cruz / X
+            painter.line_segment(
+                [p(6.0, 6.0), p(18.0, 18.0)],
+                Stroke::new(1.8_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(18.0, 6.0), p(6.0, 18.0)],
+                Stroke::new(1.8_f32, c_neutral),
+            );
+        }
+        "plus" => {
+            // Sinal de mais
+            painter.line_segment(
+                [p(12.0, 5.0), p(12.0, 19.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(5.0, 12.0), p(19.0, 12.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+        }
+        "minimize" => {
+            // Sinal de menos
+            painter.line_segment(
+                [p(6.0, 12.0), p(18.0, 12.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+        }
+        "maximize" => {
+            // Quadrado de maximizar
+            let r = Rect::from_min_max(p(6.0, 6.0), p(18.0, 18.0));
+            painter.rect_stroke(
+                r,
+                1.5,
+                Stroke::new(1.6_f32, c_neutral),
+                egui::StrokeKind::Inside,
+            );
+        }
+        "chevron_left" => {
+            painter.line_segment(
+                [p(15.0, 6.0), p(9.0, 12.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(9.0, 12.0), p(15.0, 18.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+        }
+        "chevron_right" => {
+            painter.line_segment(
+                [p(9.0, 6.0), p(15.0, 12.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(15.0, 12.0), p(9.0, 18.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+        }
+        "chevron_down" => {
+            painter.line_segment(
+                [p(6.0, 9.0), p(12.0, 15.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(12.0, 15.0), p(18.0, 9.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+        }
+        "chevron_up" => {
+            painter.line_segment(
+                [p(6.0, 15.0), p(12.0, 9.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(12.0, 9.0), p(18.0, 15.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+        }
+        "more_vert" => {
+            painter.circle_filled(p(12.0, 6.0), 1.8, c_neutral);
+            painter.circle_filled(p(12.0, 12.0), 1.8, c_neutral);
+            painter.circle_filled(p(12.0, 18.0), 1.8, c_neutral);
+        }
+        "filter" => {
+            let funnel = vec![
+                p(5.0, 6.0),
+                p(19.0, 6.0),
+                p(14.0, 13.0),
+                p(14.0, 19.0),
+                p(10.0, 17.0),
+                p(10.0, 13.0),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                funnel,
+                c_neutral.linear_multiply(0.15),
+                Stroke::new(1.6_f32, c_neutral),
+            ));
+        }
+        "play" => {
+            let triangle = vec![p(8.0, 5.0), p(18.0, 12.0), p(8.0, 19.0)];
+            painter.add(egui::Shape::convex_polygon(
+                triangle,
+                c_green,
+                Stroke::new(1.2_f32, c_dark),
+            ));
+        }
+        "pause" => {
+            let bar1 = Rect::from_min_max(p(7.0, 5.0), p(10.5, 19.0));
+            let bar2 = Rect::from_min_max(p(13.5, 5.0), p(17.0, 19.0));
+            painter.rect_filled(bar1, 1.0, c_neutral);
+            painter.rect_filled(bar2, 1.0, c_neutral);
         }
         _ => {
             // Fallback genérico: losango geométrico
@@ -1171,21 +1470,23 @@ mod tests {
         ];
 
         let ctx = egui::Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let r = Rect::from_min_size(Pos2::ZERO, vec2(24.0, 24.0));
                 for id in tools {
                     paint(ui.painter(), id, r, Color32::WHITE);
                 }
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
     fn test_tool_button_compact_and_wide_rendering() {
         let ctx = egui::Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let resp_compact = tool_button(ui, "select", "Selecionar", true, true);
                 assert_eq!(resp_compact.rect.width(), 40.0);
                 assert_eq!(resp_compact.rect.height(), 40.0);
@@ -1194,6 +1495,8 @@ mod tests {
                 assert!(resp_wide.rect.width() >= 136.0);
                 assert_eq!(resp_wide.rect.height(), 34.0);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 }

@@ -7,7 +7,10 @@
 use std::path::Path;
 
 use petunia_mesh::Mesh;
-use petunia_project::{export, format, palette};
+use petunia_project::{
+    BatchExportReport, DeliveryPipeline, ExportOptions, ExportReport, FileFormat, ImportOptions,
+    PipelineError, export, format, palette,
+};
 
 use crate::state::AppState;
 use crate::{AppEvent, RefAxis, ReferenceImage};
@@ -27,8 +30,21 @@ pub enum ProjectServiceError {
     #[error("Export error: {0}")]
     Export(String),
 
+    #[error("Pipeline error: {0}")]
+    Pipeline(PipelineError),
+
     #[error("No valid colors found in palette file")]
     InvalidPalette,
+}
+
+impl From<PipelineError> for ProjectServiceError {
+    fn from(err: PipelineError) -> Self {
+        match err {
+            PipelineError::AssetNotFound(idx) => ProjectServiceError::AssetNotFound(idx),
+            PipelineError::Io(e) => ProjectServiceError::Io(e),
+            other => ProjectServiceError::Pipeline(other),
+        }
+    }
 }
 
 /// Serviço puro de aplicação para carregamento, salvamento, importação e exportação de projetos e assets.
@@ -145,39 +161,44 @@ impl ProjectService {
         Ok(name)
     }
 
-    /// Exporta um asset do projeto para um arquivo Wavefront OBJ.
+    /// Exporta um asset do projeto para um arquivo Wavefront OBJ via pipeline unificado.
     pub fn export_obj(
         state: &AppState,
         asset_idx: usize,
         path: &Path,
     ) -> Result<(), ProjectServiceError> {
-        let asset = state
-            .project
-            .assets
-            .get(asset_idx)
-            .ok_or(ProjectServiceError::AssetNotFound(asset_idx))?;
-        let obj_text = export::export_obj(asset);
-        std::fs::write(path, obj_text)?;
+        let pipeline = DeliveryPipeline::new();
+        let options = ExportOptions {
+            triangulate: false,
+            export_materials: false,
+            scale: 1.0,
+            overwrite: true,
+        };
+        pipeline.export_single_asset(&state.project, asset_idx, path, &options)?;
         Ok(())
     }
 
-    /// Exporta múltiplos assets para arquivos OBJ individuais dentro de um diretório.
+    /// Exporta múltiplos assets para arquivos OBJ individuais dentro de um diretório via pipeline.
     pub fn export_all_obj_to_dir(
         state: &AppState,
         asset_indices: &[usize],
         dir: &Path,
     ) -> Result<usize, ProjectServiceError> {
-        let mut count = 0;
-        for &i in asset_indices {
-            if let Some(asset) = state.project.assets.get(i) {
-                let sanitized_name = sanitize_filename(&asset.name);
-                let target_path = dir.join(format!("{sanitized_name}.obj"));
-                if std::fs::write(&target_path, export::export_obj(asset)).is_ok() {
-                    count += 1;
-                }
-            }
-        }
-        Ok(count)
+        let pipeline = DeliveryPipeline::new();
+        let options = ExportOptions {
+            triangulate: false,
+            export_materials: false,
+            scale: 1.0,
+            overwrite: true,
+        };
+        let report = pipeline.export_multiple_assets(
+            &state.project,
+            asset_indices,
+            dir,
+            FileFormat::Obj,
+            &options,
+        )?;
+        Ok(report.succeeded.len())
     }
 
     /// Exporta os assets indicados para um arquivo glTF Binário (.glb).
@@ -188,8 +209,80 @@ impl ProjectService {
     ) -> Result<(), ProjectServiceError> {
         let bytes = export::export_gltf(&state.project, asset_indices)
             .map_err(|e| ProjectServiceError::Export(e.to_string()))?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         std::fs::write(path, bytes)?;
         Ok(())
+    }
+
+    /// Exporta um asset individual usando o pipeline unificado com validação e opções parametrizadas (P3D-068).
+    pub fn export_asset_pipeline(
+        state: &AppState,
+        asset_idx: usize,
+        path: &Path,
+        options: &ExportOptions,
+    ) -> Result<ExportReport, ProjectServiceError> {
+        let pipeline = DeliveryPipeline::new();
+        let report = pipeline.export_single_asset(&state.project, asset_idx, path, options)?;
+        Ok(report)
+    }
+
+    /// Exporta múltiplos assets selecionados para um diretório comum (P3D-069).
+    pub fn export_multiple_pipeline(
+        state: &AppState,
+        indices: &[usize],
+        dir: &Path,
+        format: FileFormat,
+        options: &ExportOptions,
+    ) -> Result<BatchExportReport, ProjectServiceError> {
+        let pipeline = DeliveryPipeline::new();
+        let report =
+            pipeline.export_multiple_assets(&state.project, indices, dir, format, options)?;
+        Ok(report)
+    }
+
+    /// Batch export determinístico de todos os assets do projeto para um diretório (P3D-070).
+    pub fn batch_export_pipeline(
+        state: &AppState,
+        dir: &Path,
+        format: FileFormat,
+        options: &ExportOptions,
+    ) -> Result<BatchExportReport, ProjectServiceError> {
+        let pipeline = DeliveryPipeline::new();
+        let report = pipeline.batch_export(&state.project, dir, format, options)?;
+        Ok(report)
+    }
+
+    /// Importa malhas e materiais de um arquivo suportado (OBJ, glTF, PKG) via pipeline modular (P3D-071).
+    pub fn import_file_pipeline(
+        state: &mut AppState,
+        path: &Path,
+        options: &ImportOptions,
+    ) -> Result<Vec<String>, ProjectServiceError> {
+        let pipeline = DeliveryPipeline::new();
+        let payload = pipeline.import_file(path, options)?;
+
+        let mut imported_names = Vec::new();
+        if !payload.meshes.is_empty() {
+            state.checkpoint("import via pipeline");
+            for (name, mesh) in payload.meshes {
+                state.project.add(&name, mesh);
+                imported_names.push(name);
+            }
+            for mat in payload.materials {
+                state.project.add_material(mat);
+            }
+            state.sync_selection();
+            state.emit_mesh_changed();
+            state.set_status(format!(
+                "imported {} assets from {}",
+                imported_names.len(),
+                path.display()
+            ));
+            state.mark_dirty();
+        }
+        Ok(imported_names)
     }
 
     /// Importa paleta de cores a partir de um arquivo .hex ou .gpl.

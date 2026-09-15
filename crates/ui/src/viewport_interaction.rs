@@ -1,12 +1,12 @@
 //! Overlays e arbitragem: modal > gizmo > navegação > seleção.
 use crate::{
-    gizmo::{draw_gizmo, GizmoHandle, GizmoKind},
+    gizmo::{GizmoHandle, GizmoKind, draw_gizmo},
     icon_registry::PetuniaIcon,
     modal_viewport, tokens, widgets,
 };
 use egui::{Color32, PointerButton, Pos2, Rect};
 use glam::{Vec2, Vec3};
-use petunia_core::picking::{pick_mesh, PickComponent};
+use petunia_core::picking::{PickComponent, pick_mesh};
 use petunia_core::{AppState, EditMode, ModalConstraint, ModalKind, SelectMode, Workspace};
 use uuid::Uuid;
 
@@ -58,7 +58,7 @@ pub fn draw(
         return true;
     }
     if pointer.is_some() {
-        let scroll = ctx.input(|i| i.raw_scroll_delta.y);
+        let scroll = ctx.input(|i| i.smooth_scroll_delta.y);
         if scroll != 0.0 {
             state.camera_frame = None;
             state.camera.zoom(scroll);
@@ -67,47 +67,42 @@ pub fn draw(
     }
 
     // Drag and Drop de Assets da Biblioteca para o Viewport 3D (P3D-044)
-    if egui::DragAndDrop::has_payload_of_type::<Uuid>(ctx) {
-        if let Some(hover_pos) = pointer {
-            painter.rect_stroke(
-                rect.shrink(3.0),
-                tokens::RADIUS_CONTAINER,
-                egui::Stroke::new(2.0_f32, tokens::ACCENT_BLUE),
-                egui::StrokeKind::Inside,
+    if egui::DragAndDrop::has_payload_of_type::<Uuid>(ctx)
+        && let Some(hover_pos) = pointer
+    {
+        painter.rect_stroke(
+            rect.shrink(3.0),
+            tokens::RADIUS_CONTAINER,
+            egui::Stroke::new(2.0_f32, tokens::ACCENT_BLUE),
+            egui::StrokeKind::Inside,
+        );
+
+        let ground_pt = modal_viewport::plane_point(state, rect, hover_pos, Vec3::ZERO, Vec3::Y);
+        if let Some(pt) = ground_pt
+            && let Some(sc) = modal_viewport::screen_point(&state.camera, rect, pt)
+        {
+            painter.circle_stroke(sc, 14.0, egui::Stroke::new(2.0_f32, tokens::ACCENT_BLUE));
+            painter.circle_filled(sc, 3.0, tokens::ACCENT_BLUE);
+            painter.text(
+                sc + egui::vec2(0.0, 18.0),
+                egui::Align2::CENTER_TOP,
+                "Soltar para Instanciar",
+                egui::FontId::proportional(11.0),
+                tokens::TEXT_PRIMARY,
             );
+        }
 
-            let ground_pt =
-                modal_viewport::plane_point(state, rect, hover_pos, Vec3::ZERO, Vec3::Y);
-            if let Some(pt) = ground_pt {
-                if let Some(sc) = modal_viewport::screen_point(&state.camera, rect, pt) {
-                    painter.circle_stroke(
-                        sc,
-                        14.0,
-                        egui::Stroke::new(2.0_f32, tokens::ACCENT_BLUE),
-                    );
-                    painter.circle_filled(sc, 3.0, tokens::ACCENT_BLUE);
-                    painter.text(
-                        sc + egui::vec2(0.0, 18.0),
-                        egui::Align2::CENTER_TOP,
-                        "Soltar para Instanciar",
-                        egui::FontId::proportional(11.0),
-                        tokens::TEXT_PRIMARY,
-                    );
-                }
-            }
-
-            if ctx.input(|i| i.pointer.any_released()) {
-                if let Some(payload) = egui::DragAndDrop::payload::<Uuid>(ctx) {
-                    let asset_id = *payload;
-                    let target_pos = ground_pt.map(|p| [p.x, p.y, p.z]);
-                    let _ = state.dispatch(&petunia_core::InstantiateAssetCmd {
-                        asset_id,
-                        position: target_pos,
-                    });
-                    egui::DragAndDrop::clear_payload(ctx);
-                    return true;
-                }
-            }
+        if ctx.input(|i| i.pointer.any_released())
+            && let Some(payload) = egui::DragAndDrop::payload::<Uuid>(ctx)
+        {
+            let asset_id = *payload;
+            let target_pos = ground_pt.map(|p| [p.x, p.y, p.z]);
+            let _ = state.dispatch(&petunia_core::InstantiateAssetCmd {
+                asset_id,
+                position: target_pos,
+            });
+            egui::DragAndDrop::clear_payload(ctx);
+            return true;
         }
     }
 
@@ -123,11 +118,10 @@ pub fn draw(
     crate::nav_gizmo::draw_context_menu(ctx, state);
     if pointer.is_some()
         && ctx.input(|i| !i.modifiers.shift && i.pointer.button_clicked(PointerButton::Secondary))
+        && let Some(pos) = pointer
     {
-        if let Some(pos) = pointer {
-            state.ui.context_menu_pos = Some([pos.x, pos.y]);
-            return true;
-        }
+        state.ui.context_menu_pos = Some([pos.x, pos.y]);
+        return true;
     }
 
     let paint = state.workspace == Workspace::Paint
@@ -145,22 +139,23 @@ pub fn draw(
         state.select_mode
     };
     // No Modo de Edição com seleção de vértices, demarca visualmente todos os vértices disponíveis
-    if state.mode == EditMode::Edit && state.select_mode == SelectMode::Vertex {
-        if let Some(mesh) = state.project.active_mesh() {
-            for v in &mesh.verts {
-                let sp = screen(state, rect, v.vec());
-                if rect.contains(sp) {
-                    if v.selected {
-                        painter.circle_filled(sp, 3.5, Color32::from_rgb(255, 140, 20));
-                        painter.circle_stroke(sp, 3.5, egui::Stroke::new(1.0_f32, Color32::WHITE));
-                    } else {
-                        painter.circle_filled(sp, 2.5, Color32::from_rgb(25, 25, 30));
-                        painter.circle_stroke(
-                            sp,
-                            2.5,
-                            egui::Stroke::new(1.0_f32, Color32::from_rgb(200, 200, 210)),
-                        );
-                    }
+    if state.mode == EditMode::Edit
+        && state.select_mode == SelectMode::Vertex
+        && let Some(mesh) = state.project.active_mesh()
+    {
+        for v in &mesh.verts {
+            let sp = screen(state, rect, v.vec());
+            if rect.contains(sp) {
+                if v.selected {
+                    painter.circle_filled(sp, 3.5, Color32::from_rgb(255, 140, 20));
+                    painter.circle_stroke(sp, 3.5, egui::Stroke::new(1.0_f32, Color32::WHITE));
+                } else {
+                    painter.circle_filled(sp, 2.5, Color32::from_rgb(25, 25, 30));
+                    painter.circle_stroke(
+                        sp,
+                        2.5,
+                        egui::Stroke::new(1.0_f32, Color32::from_rgb(200, 200, 210)),
+                    );
                 }
             }
         }
@@ -230,27 +225,43 @@ pub fn draw(
     if handle_annotation_gizmo(ctx, state, rect, painter, pointer) {
         return true;
     }
-    if !state.is_active_locked() {
-        if let Some(mesh) = state.project.active_mesh().filter(|m| m.has_selection()) {
-            let pivot = Vec3::from_array(mesh.selection_center());
-            let kind = match state.gizmo_mode {
-                ModalKind::Rotate => GizmoKind::Rotate,
-                ModalKind::Scale => GizmoKind::Scale,
-                _ => GizmoKind::Translate,
-            };
-            if let Some(handle) = draw_gizmo(painter, &state.camera, rect, pivot, kind, pointer) {
-                ctx.set_cursor_icon(egui::CursorIcon::Grab);
-                if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary)) {
-                    if let Some(pos) = pointer {
-                        let constraint = match handle {
-                            GizmoHandle::Axis(a) => ModalConstraint::Axis(a as usize),
-                            GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
-                        };
-                        modal_viewport::start_handle(ctx, state, state.gizmo_mode, constraint, pos);
-                        state.ui.box_select_start = None;
-                        return true;
-                    }
-                }
+    if !state.is_active_locked()
+        && let Some(mesh) = state.project.active_mesh().filter(|m| {
+            m.has_selection() || state.selection_domain() == petunia_core::SelectionDomain::Object
+        })
+    {
+        let pivot = state.calculate_pivot(state.session.pivot_point);
+        let kind = match state.gizmo_mode {
+            ModalKind::Rotate => GizmoKind::Rotate,
+            ModalKind::Scale => GizmoKind::Scale,
+            _ => GizmoKind::Translate,
+        };
+        let axes = if state.transform_orientation == petunia_core::TransformOrientation::Local {
+            crate::gizmo::local_axes_for_mesh(mesh)
+        } else {
+            [Vec3::X, Vec3::Y, Vec3::Z]
+        };
+        if let Some(handle) = crate::gizmo::draw_gizmo_oriented(
+            painter,
+            &state.camera,
+            rect,
+            pivot,
+            kind,
+            pointer,
+            axes,
+        ) {
+            ctx.set_cursor_icon(egui::CursorIcon::Grab);
+            if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
+                && let Some(pos) = pointer
+            {
+                let constraint = match handle {
+                    GizmoHandle::Center => ModalConstraint::Free,
+                    GizmoHandle::Axis(a) => ModalConstraint::Axis(a as usize),
+                    GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
+                };
+                modal_viewport::start_handle(ctx, state, state.gizmo_mode, constraint, pos);
+                state.ui.box_select_start = None;
+                return true;
             }
         }
     }
@@ -420,72 +431,86 @@ fn paint_preview(
             false,
         )
     });
-    if let Some(hit) = hit {
-        if let PickComponent::Face(face) = hit.component {
-            let normal = state
-                .project
-                .active_mesh()
-                .map(|m| m.face_normal(face))
-                .unwrap_or(Vec3::Y);
-            let tangent = normal
-                .cross(if normal.y.abs() < 0.9 {
-                    Vec3::Y
-                } else {
-                    Vec3::X
-                })
-                .normalize_or_zero();
-            let bitangent = normal.cross(tangent);
-            for step in 0..48 {
-                let a = step as f32 / 48.0 * std::f32::consts::TAU;
-                let b = (step + 1) as f32 / 48.0 * std::f32::consts::TAU;
-                painter.line_segment(
-                    [
-                        screen(
-                            state,
-                            rect,
-                            hit.position
-                                + (tangent * a.cos() + bitangent * a.sin()) * state.paint_radius,
-                        ),
-                        screen(
-                            state,
-                            rect,
-                            hit.position
-                                + (tangent * b.cos() + bitangent * b.sin()) * state.paint_radius,
-                        ),
-                    ],
-                    egui::Stroke::new(1.5_f32, egui::Color32::WHITE),
-                );
-            }
-            let sample = ctx.input(|i| i.modifiers.alt || i.key_pressed(egui::Key::G));
-            if sample {
-                if ctx.input(|i| {
-                    i.pointer.button_pressed(PointerButton::Primary) || i.key_pressed(egui::Key::G)
-                }) {
-                    if let Some(mesh) = state.project.active_mesh() {
-                        if let Some(vertex) = mesh
-                            .faces
-                            .get(face)
-                            .into_iter()
-                            .flat_map(|f| &f.verts)
-                            .filter_map(|&v| mesh.verts.get(v as usize))
-                            .min_by(|a, b| {
-                                (a.vec() - hit.position)
-                                    .length_squared()
-                                    .total_cmp(&(b.vec() - hit.position).length_squared())
-                            })
-                        {
-                            state.paint_color = vertex.color;
-                            state.mark_dirty();
-                        }
-                    }
-                }
-            } else if (response.dragged_by(PointerButton::Primary)
-                && ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO))
-                || ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
+    if let Some(hit) = hit
+        && let PickComponent::Face(face) = hit.component
+    {
+        let normal = state
+            .project
+            .active_mesh()
+            .map(|m| m.face_normal(face))
+            .unwrap_or(Vec3::Y);
+        let tangent = normal
+            .cross(if normal.y.abs() < 0.9 {
+                Vec3::Y
+            } else {
+                Vec3::X
+            })
+            .normalize_or_zero();
+        let bitangent = normal.cross(tangent);
+        for step in 0..48 {
+            let a = step as f32 / 48.0 * std::f32::consts::TAU;
+            let b = (step + 1) as f32 / 48.0 * std::f32::consts::TAU;
+            painter.line_segment(
+                [
+                    screen(
+                        state,
+                        rect,
+                        hit.position
+                            + (tangent * a.cos() + bitangent * a.sin()) * state.paint_radius,
+                    ),
+                    screen(
+                        state,
+                        rect,
+                        hit.position
+                            + (tangent * b.cos() + bitangent * b.sin()) * state.paint_radius,
+                    ),
+                ],
+                egui::Stroke::new(1.5_f32, egui::Color32::WHITE),
+            );
+        }
+        let sample = ctx.input(|i| i.modifiers.alt || i.key_pressed(egui::Key::G));
+        if sample {
+            if ctx.input(|i| {
+                i.pointer.button_pressed(PointerButton::Primary) || i.key_pressed(egui::Key::G)
+            }) && let Some(mesh) = state.project.active_mesh()
+                && let Some(vertex) = mesh
+                    .faces
+                    .get(face)
+                    .into_iter()
+                    .flat_map(|f| &f.verts)
+                    .filter_map(|&v| mesh.verts.get(v as usize))
+                    .min_by(|a, b| {
+                        (a.vec() - hit.position)
+                            .length_squared()
+                            .total_cmp(&(b.vec() - hit.position).length_squared())
+                    })
             {
-                state.begin_paint_stroke();
-                state.paint_at(hit.position);
+                state.paint_color = vertex.color;
+                state.mark_dirty();
             }
+        } else if (response.dragged_by(PointerButton::Primary)
+            && ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO))
+            || ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
+        {
+            state.begin_paint_stroke();
+            state.paint_at(hit.position);
+
+            let brush_type = match state.paint_brush_kind {
+                1 => petunia_module_paint::BrushType::Soft,
+                2 => petunia_module_paint::BrushType::Eraser,
+                3 => petunia_module_paint::BrushType::Fill,
+                4 => petunia_module_paint::BrushType::Eyedropper,
+                _ => petunia_module_paint::BrushType::Pixel,
+            };
+            petunia_module_paint::PaintModule::paint_mesh_3d(
+                state,
+                face,
+                hit.position,
+                brush_type,
+                state.canvas_brush.max(1),
+                state.paint_strength,
+                state.paint_isolate_selection,
+            );
         }
     }
     true
@@ -583,6 +608,7 @@ fn handle_annotation_gizmo(
                     GizmoKind::Translate => {
                         let world_vec = (cam_right * delta.x - cam_up * delta.y) * world_per_pt;
                         let delta_vec = match drag.handle {
+                            GizmoHandle::Center => world_vec,
                             GizmoHandle::Axis(a) => {
                                 let ax = [Vec3::X, Vec3::Y, Vec3::Z][a as usize];
                                 ax * world_vec.dot(ax)
@@ -633,6 +659,7 @@ fn handle_annotation_gizmo(
                 }
                 state.mark_dirty();
                 let constraint = match drag.handle {
+                    GizmoHandle::Center => ModalConstraint::Free,
                     GizmoHandle::Axis(a) => ModalConstraint::Axis(a as usize),
                     GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
                 };
@@ -656,40 +683,39 @@ fn handle_annotation_gizmo(
         return false;
     }
 
-    if let Some(ann_id) = state.selected_annotation {
-        if let Some(ann) = state
+    if let Some(ann_id) = state.selected_annotation
+        && let Some(ann) = state
             .project
             .annotations
             .iter()
             .find(|a| a.id == ann_id && !a.locked)
-        {
-            let pivot = Vec3::from_array(ann.center());
-            let kind = match state.gizmo_mode {
-                ModalKind::Rotate => GizmoKind::Rotate,
-                ModalKind::Scale => GizmoKind::Scale,
-                _ => GizmoKind::Translate,
-            };
-            if let Some(handle) = draw_gizmo(painter, &state.camera, rect, pivot, kind, pointer) {
-                ctx.set_cursor_icon(egui::CursorIcon::Grab);
-                if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary)) {
-                    if let Some(pos) = pointer {
-                        ctx.data_mut(|d| {
-                            d.insert_temp(
-                                drag_id,
-                                AnnGizmoDrag {
-                                    ann_id: ann.id,
-                                    start_pointer: pos,
-                                    start_trans: ann.translation,
-                                    start_rot: ann.rotation,
-                                    start_scale: ann.scale,
-                                    handle,
-                                    kind,
-                                },
-                            )
-                        });
-                        return true;
-                    }
-                }
+    {
+        let pivot = Vec3::from_array(ann.center());
+        let kind = match state.gizmo_mode {
+            ModalKind::Rotate => GizmoKind::Rotate,
+            ModalKind::Scale => GizmoKind::Scale,
+            _ => GizmoKind::Translate,
+        };
+        if let Some(handle) = draw_gizmo(painter, &state.camera, rect, pivot, kind, pointer) {
+            ctx.set_cursor_icon(egui::CursorIcon::Grab);
+            if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
+                && let Some(pos) = pointer
+            {
+                ctx.data_mut(|d| {
+                    d.insert_temp(
+                        drag_id,
+                        AnnGizmoDrag {
+                            ann_id: ann.id,
+                            start_pointer: pos,
+                            start_trans: ann.translation,
+                            start_rot: ann.rotation,
+                            start_scale: ann.scale,
+                            handle,
+                            kind,
+                        },
+                    )
+                });
+                return true;
             }
         }
     }
@@ -717,15 +743,17 @@ mod tests {
         state.project.add_annotation(ann);
         state.selected_annotation = Some(ann_id);
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
                 let painter = ui.painter_at(rect);
                 let response = ui.allocate_rect(rect, egui::Sense::drag());
-                let handled = draw(ctx, &mut state, rect, &painter, &response);
+                let handled = draw(&ctx, &mut state, rect, &painter, &response);
                 assert!(!handled);
             });
-        });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]
@@ -773,15 +801,17 @@ mod tests {
             modifiers: egui::Modifiers::default(),
         });
 
-        let _ = ctx.run(raw, |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        ctx.run_ui(raw, |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
                 let painter = ui.painter_at(rect);
                 let response = ui.allocate_rect(rect, egui::Sense::drag());
-                let handled = draw(ctx, &mut state, rect, &painter, &response);
+                let handled = draw(&ctx, &mut state, rect, &painter, &response);
                 assert!(handled);
             });
-        });
+        })
+        .textures_delta
+        .clear();
 
         // Reverted to start_trans
         assert_eq!(state.project.annotations[0].translation, [5.0, 0.0, 0.0]);

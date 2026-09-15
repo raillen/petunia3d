@@ -1,8 +1,9 @@
 [package]
 name = "petunia_cli"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 description = "Petunia3D CLI — Utilitário headless para automação, pipelines e conversão 3D"
 
 [[bin]]
@@ -15,5 +16,6 @@ petunia_mesh = { workspace = true }
 petunia_project = { workspace = true }
 petunia_commands = { workspace = true }
 petunia_module_model = { workspace = true }
+petunia_mcp = { workspace = true }
 anyhow = { workspace = true }
 glam = { workspace = true }

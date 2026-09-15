@@ -1,5 +1,5 @@
 //! Corte por corda entre duas arestas de uma face, soldado às faces vizinhas.
-use crate::{edge_key, Face, Mesh, Vertex};
+use crate::{Face, Mesh, Vertex, edge_key};
 use glam::Vec3;
 
 #[derive(Clone, Copy, Debug)]

@@ -5,7 +5,7 @@
 //! - Open Saved Version (abre o último save oficial do disco);
 //! - Discard Recovery (descarta os snapshots de autosave).
 
-use egui::{vec2, Align, Context, Layout, RichText, Stroke, Window};
+use egui::{Align, Context, Layout, RichText, Stroke, Window, vec2};
 use petunia_core::{AppState, ProjectService, RecoveryInfo};
 
 use crate::tokens;
@@ -19,7 +19,7 @@ pub enum RecoveryAction {
 /// Renderiza o diálogo modal de recuperação caso haja uma recuperação pendente.
 pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<RecoveryAction> {
     let mut action = None;
-    let screen_rect = ctx.screen_rect();
+    let screen_rect = ctx.viewport_rect();
     let width = (screen_rect.width() * 0.5).clamp(420.0, 560.0);
     let max_w = (screen_rect.width() - 32.0).max(420.0);
     let max_h = (screen_rect.height() - 32.0).max(240.0);
@@ -35,7 +35,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<
     .resizable(false)
     .collapsible(false)
     .frame(
-        egui::Frame::window(&ctx.style())
+        egui::Frame::window(&ctx.style_of(ctx.theme()))
             .fill(tokens::BG_PANEL)
             .stroke(Stroke::new(1.5_f32, tokens::ACCENT_AMBER))
             .inner_margin(egui::Margin::same(16)),
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_recovery_dialog_renders_without_panic() {
-        let ctx = Context::default();
+        let ctx = egui::Context::default();
         let mut state = AppState::new("en");
         let info = RecoveryInfo {
             snapshot_path: PathBuf::from("/tmp/autosave-001.petunia"),
@@ -192,8 +192,10 @@ mod tests {
             is_newer_than_main: true,
         };
 
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            let _ = draw(ctx, &mut state, &info);
-        });
+        ctx.run_ui(egui::RawInput::default(), |_ui| {
+            let _ = draw(&ctx, &mut state, &info);
+        })
+        .textures_delta
+        .clear();
     }
 }

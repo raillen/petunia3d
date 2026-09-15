@@ -5,7 +5,7 @@
 
 use crate::{Camera, SelectMode};
 use glam::{Mat4, Vec2, Vec3};
-use petunia_mesh::{triangulate, Mesh};
+use petunia_mesh::{Mesh, triangulate};
 
 pub const VERTEX_RADIUS_PIXELS: f32 = 8.0;
 pub const EDGE_RADIUS_PIXELS: f32 = 5.0;
@@ -298,13 +298,15 @@ mod tests {
         let hit = pick(&mesh, cursor, SelectMode::Edge, false).unwrap();
         assert_eq!(hit.component, PickComponent::Edge(0, 1));
         assert!((hit.position.x - 0.146).abs() < 1e-5);
-        assert!(pick(
-            &mesh,
-            Vec2::new(0.073, 5.1 / 400.0),
-            SelectMode::Edge,
-            false
-        )
-        .is_none());
+        assert!(
+            pick(
+                &mesh,
+                Vec2::new(0.073, 5.1 / 400.0),
+                SelectMode::Edge,
+                false
+            )
+            .is_none()
+        );
     }
 
     #[test]

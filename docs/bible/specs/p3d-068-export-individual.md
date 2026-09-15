@@ -1,8 +1,8 @@
 # P3D-068 — Export individual
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
+::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
 - **Wave do Gauntlet**: Wave 8
-- **Status Canônico**: `PLANEJADA (Import, Export & Delivery Pipeline)`
+- **Status Canônico**: `COMPLIANT (Import, Export & Delivery Pipeline)`
 - **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
 :::
 

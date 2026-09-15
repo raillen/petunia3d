@@ -56,10 +56,10 @@ impl Mesh {
                 let mut uvs = Vec::new();
                 for tok in rest.split_whitespace() {
                     let v: Vec<&str> = tok.split('/').collect();
-                    if let Ok(i) = v[0].parse::<u32>() {
-                        if i > 0 {
-                            idx.push(i - 1);
-                        }
+                    if let Ok(i) = v[0].parse::<u32>()
+                        && i > 0
+                    {
+                        idx.push(i - 1);
                     }
                     let uv = if v.len() > 1 {
                         v[1].parse::<usize>()
