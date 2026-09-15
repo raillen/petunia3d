@@ -32,9 +32,7 @@ impl SubdivideTool {
         state.checkpoint("subdivide");
         let cuts = state.subdivide_cuts.clamp(1, 6);
         if let Some(m) = state.project.active_mesh_mut() {
-            for _ in 0..cuts {
-                m.subdivide_selected();
-            }
+            m.subdivide_selected_cuts(cuts);
         }
         state.sync_selection();
         state.emit_mesh_changed();
