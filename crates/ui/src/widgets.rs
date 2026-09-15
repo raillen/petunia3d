@@ -304,6 +304,45 @@ fn petunia_search_box_impl(
     .inner
 }
 
+/// Política de dimensionamento de menus (Wave 4 — §8.1): o popup acompanha o
+/// conteúdo dentro de limites sãos, em vez de esticar cada linha à largura
+/// disponível.
+pub const MENU_MIN_W: f32 = 120.0;
+pub const MENU_MAX_W: f32 = 320.0;
+
+/// Largura de linha de menu a partir de galleys reais: padding + ícone/check +
+/// rótulo + atalho + indicador de submenu + padding. `leading` = largura do
+/// adorno à esquerda após o padding (ícone 22, check/radio 16, nenhum 0).
+pub fn menu_row_width(
+    ui: &mut Ui,
+    leading: f32,
+    label: &str,
+    shortcut: Option<&str>,
+    has_submenu: bool,
+) -> f32 {
+    let label_w = ui.fonts_mut(|f| {
+        f.layout_no_wrap(label.to_owned(), FontId::proportional(12.0), Color32::WHITE)
+            .size()
+            .x
+    });
+    let mut width = 8.0 + leading + label_w + 12.0;
+    if let Some(sc) = shortcut {
+        let sc_w = ui.fonts_mut(|f| {
+            f.layout_no_wrap(sc.to_owned(), FontId::monospace(10.5), Color32::WHITE)
+                .size()
+                .x
+        });
+        width += sc_w + 8.0;
+    }
+    if has_submenu {
+        width += 10.0;
+    }
+    width += 8.0;
+    let measured = width.clamp(MENU_MIN_W, MENU_MAX_W);
+    // Em popup estreito, encolhe até a largura disponível (texto trunca com clip).
+    measured.min(ui.available_width().max(MENU_MIN_W))
+}
+
 /// Item padronizado de menu suspenso ou popup do Petunia3D (`[Icon] Label ... [Shortcut] ›`).
 pub struct PetuniaMenuItem<'a> {
     pub icon: Option<PetuniaIcon>,
@@ -345,7 +384,13 @@ impl<'a> PetuniaMenuItem<'a> {
     }
 
     pub fn show(self, ui: &mut Ui) -> Response {
-        let width = ui.available_width().max(148.0);
+        let width = menu_row_width(
+            ui,
+            if self.icon.is_some() { 22.0 } else { 0.0 },
+            self.label,
+            self.shortcut,
+            self.has_submenu,
+        );
         let desired_size = vec2(width, 22.0);
         let (rect, response) = ui.allocate_exact_size(
             desired_size,
@@ -469,7 +514,7 @@ impl<'a> PetuniaMenuCheckboxItem<'a> {
     }
 
     pub fn show(self, ui: &mut Ui) -> Response {
-        let width = ui.available_width().max(148.0);
+        let width = menu_row_width(ui, 16.0, self.label, self.shortcut, false);
         let desired_size = vec2(width, 22.0);
         let (rect, response) = ui.allocate_exact_size(
             desired_size,
@@ -585,7 +630,7 @@ impl<'a> PetuniaMenuRadioItem<'a> {
     }
 
     pub fn show(self, ui: &mut Ui) -> Response {
-        let width = ui.available_width().max(180.0);
+        let width = menu_row_width(ui, 16.0, self.label, self.shortcut, false);
         let desired_size = vec2(width, 24.0);
         let (rect, response) = ui.allocate_exact_size(
             desired_size,

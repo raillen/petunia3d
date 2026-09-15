@@ -22,17 +22,20 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     }
 
     let mut open = state.ui.show_settings;
+    // Wave 5 (§9.4): mínimo e máximo nunca excedem a viewport útil.
     let screen_rect = ctx.viewport_rect();
-    let default_width = (screen_rect.width() * 0.70).clamp(520.0, 840.0);
-    let default_height = (screen_rect.height() * 0.70).clamp(420.0, 680.0);
-    let max_width = (screen_rect.width() - 32.0).max(460.0);
-    let max_height = (screen_rect.height() - 32.0).max(360.0);
+    let (default_size, min_size, max_size) = crate::regions::modal_sizes(
+        screen_rect,
+        vec2(screen_rect.width() * 0.70, screen_rect.height() * 0.70),
+        vec2(460.0, 360.0),
+        vec2(840.0, 700.0),
+    );
 
     Window::new(RichText::new(state.t("settings.title")).strong().size(14.0))
         .open(&mut open)
-        .default_size(vec2(default_width, default_height))
-        .min_size(vec2(460.0, 360.0))
-        .max_size(vec2(max_width, max_height))
+        .default_size(default_size)
+        .min_size(min_size)
+        .max_size(max_size)
         .resizable(true)
         .collapsible(false)
         .frame(
@@ -49,10 +52,13 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 }
 
 fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
-    // 1. Barra de Abas de Configuração
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+    // 1. Barra de Abas de Configuração (quebra em janela estreita).
+    // Abas novas usam rótulo traduzido sem emoji (Wave 6/7 convergem as antigas).
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing = vec2(6.0, 6.0);
 
+        let interface_label = state.t("settings.interface");
+        let import_export_label = state.t("settings.import_export");
         let tabs = [
             (
                 "appearance",
@@ -74,6 +80,8 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
                 "⌨ Atalhos",
                 "Perfis de keymap e detecção de conflitos",
             ),
+            ("interface", interface_label.as_str(), ""),
+            ("import_export", import_export_label.as_str(), ""),
         ];
 
         for (tab_id, label, hint) in tabs {
@@ -88,7 +96,13 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
                 .fill(bg)
                 .corner_radius(tokens::RADIUS_CONTROL);
 
-            if ui.add(btn).on_hover_text(hint).clicked() {
+            let resp = ui.add(btn);
+            let resp = if hint.is_empty() {
+                resp
+            } else {
+                resp.on_hover_text(hint)
+            };
+            if resp.clicked() {
                 state.ui.settings_tab = tab_id.to_string();
                 state.mark_dirty();
             }
@@ -105,7 +119,84 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
         "icons" => draw_icons_tab(ui, state),
         "language" => draw_language_tab(ui, state),
         "keymap" => draw_keymap_tab(ui, state),
+        "interface" => draw_interface_tab(ui, state),
+        "import_export" => draw_import_export_tab(ui, state),
         _ => draw_appearance_tab(ctx, ui, state),
+    }
+}
+
+/// Restaura o layout do workspace atual aos padrões (Wave 5 — §15.7).
+fn reset_workspace_layout(state: &mut AppState) {
+    state.ui.right_dock_split = 0.42;
+    state.ui.outliner_collapsed = false;
+    state.ui.inspector_collapsed = false;
+    state.ui.workspace_memory[petunia_core::workspace_index(state.workspace)] =
+        petunia_core::WorkspaceUiMemory::default();
+    state.mark_dirty();
+}
+
+/// Restaura todos os layouts de UI aos padrões (Wave 5 — §15.7).
+fn reset_all_layouts(state: &mut AppState) {
+    reset_workspace_layout(state);
+    state.ui.workspace_memory = Default::default();
+    state.ui.right_dock_split = 0.42;
+    state.ui.properties_tab = "object".to_string();
+    state.ui.uv_show_preview = true;
+    state.ui.show_shelf = true;
+    state.mark_dirty();
+}
+
+// ------------------------------------------------- Aba: Interface
+fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
+    ui.label(
+        RichText::new(state.t("settings.interface"))
+            .strong()
+            .size(13.0)
+            .color(tokens::TEXT_PRIMARY),
+    );
+    ui.add_space(8.0);
+
+    let mut shelf = state.ui.show_shelf;
+    if ui
+        .checkbox(&mut shelf, state.t("settings.show_shelf"))
+        .changed()
+    {
+        state.ui.show_shelf = shelf;
+        state.mark_dirty();
+    }
+
+    ui.add_space(8.0);
+    ui.separator();
+    ui.add_space(8.0);
+
+    ui.horizontal_wrapped(|ui| {
+        if ui.button(state.t("settings.reset_workspace")).clicked() {
+            reset_workspace_layout(state);
+        }
+        if ui.button(state.t("settings.reset_all_layouts")).clicked() {
+            reset_all_layouts(state);
+        }
+    });
+}
+
+// ------------------------------------------- Aba: Importar / Exportar
+fn draw_import_export_tab(ui: &mut Ui, state: &mut AppState) {
+    ui.label(
+        RichText::new(state.t("settings.import_export"))
+            .strong()
+            .size(13.0)
+            .color(tokens::TEXT_PRIMARY),
+    );
+    ui.add_space(8.0);
+
+    let mut glb = state.project.export_gltf;
+    if ui
+        .checkbox(&mut glb, state.t("settings.export_glb"))
+        .on_hover_text(state.t("settings.export_glb_hint"))
+        .changed()
+    {
+        state.project.export_gltf = glb;
+        state.mark_dirty();
     }
 }
 
@@ -618,7 +709,14 @@ mod tests {
         let mut state = AppState::new("en");
         state.ui.show_settings = true;
 
-        for tab in ["appearance", "icons", "language", "keymap"] {
+        for tab in [
+            "appearance",
+            "icons",
+            "language",
+            "keymap",
+            "interface",
+            "import_export",
+        ] {
             state.ui.settings_tab = tab.into();
             ctx.run_ui(egui::RawInput::default(), |_ui| {
                 draw(&ctx, &mut state);
@@ -626,5 +724,32 @@ mod tests {
             .textures_delta
             .clear();
         }
+    }
+
+    #[test]
+    fn test_reset_layout_actions_restore_defaults() {
+        let mut state = AppState::new("en");
+        state.ui.right_dock_split = 0.7;
+        state.ui.outliner_collapsed = true;
+        state.ui.properties_tab = "material".to_string();
+        state.ui.show_shelf = false;
+
+        reset_workspace_layout(&mut state);
+        assert_eq!(state.ui.right_dock_split, 0.42);
+        assert!(!state.ui.outliner_collapsed);
+        // Aba do inspector não é layout do dock: preservada no reset parcial.
+        assert_eq!(state.ui.properties_tab, "material");
+
+        state.ui.right_dock_split = 0.7;
+        reset_all_layouts(&mut state);
+        assert_eq!(state.ui.right_dock_split, 0.42);
+        assert_eq!(state.ui.properties_tab, "object");
+        assert!(state.ui.show_shelf);
+        assert!(state.ui.uv_show_preview);
+    }
+
+    #[test]
+    fn test_shelf_visible_by_default() {
+        assert!(AppState::new("en").ui.show_shelf);
     }
 }

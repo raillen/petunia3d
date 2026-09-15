@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **228**.
+Total de chaves de localização cadastradas: **261**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -45,6 +45,13 @@ Total de chaves de localização cadastradas: **228**.
 | `actions.subdivide` | Subdivide | Subdividir |
 | `actions.triangulate` | Triangulate | Triangular |
 | `actions.weld_eps` | Weld | Solda |
+| `animate.auto_rig` | Auto-Rig | Auto-Rig |
+| `animate.first_frame` | First frame | Primeiro frame |
+| `animate.frame` | Frame | Frame |
+| `animate.humanoid` | Humanoid | Humanoide |
+| `animate.last_frame` | Last frame | Último frame |
+| `animate.pause` | Pause | Pausar |
+| `animate.play` | Play | Reproduzir |
 | `app.title` | Petunia3D | Petunia3D |
 | `camera.back` | Back | Traseira |
 | `camera.bottom` | Bottom | Inferior |
@@ -120,6 +127,7 @@ Total de chaves de localização cadastradas: **228**.
 | `paint.canvas` | Albedo canvas | Canvas albedo |
 | `paint.canvas_hint` | Drag to paint. Ctrl+drag erases. Wheel over UV scales it. | Arraste p/ pintar. Ctrl+arraste apaga. Scroll no UV escala. |
 | `paint.clear` | Clear | Limpar |
+| `paint.color` | Color | Cor |
 | `paint.eraser` | Eraser (hold Ctrl) | Borracha (segure Ctrl) |
 | `paint.eraser_hint` | Hold Ctrl while painting to erase | Segure Ctrl pintando p/ apagar |
 | `paint.fill` | Fill | Preencher |
@@ -157,28 +165,45 @@ Total de chaves de localização cadastradas: **228**.
 | `props.verts` | verts | verts |
 | `refs.add_custom` | Add Unassigned… | Adicionar Avulsa… |
 | `refs.add_custom_tooltip` | Load a reference image without pinning to a canonical slot | Carregar uma imagem de referência sem fixá-la a um slot canônico |
+| `refs.align_view` | Align 3D camera to this reference angle | Alinhar câmera 3D com este ângulo de referência |
 | `refs.back` | Back | Trás |
 | `refs.bottom` | Bottom | Fundo |
 | `refs.clear_all` | Clear All | Limpar Todas |
 | `refs.clear_all_tooltip` | Remove all reference images from scene | Remover todas as imagens de referência da cena |
+| `refs.click_to_load` | Click to load | Clique para carregar |
+| `refs.fine_tune` | Fine tuning | Ajuste fino |
 | `refs.front` | Front | Frente |
 | `refs.left` | Left | Esquerda |
 | `refs.load` | Load image… | Carregar imagem… |
+| `refs.loaded` | reference(s) loaded | referência(s) carregada(s) |
+| `refs.lock` | Lock | Bloquear |
 | `refs.manage` | Reference Manager… | Gerenciador de Referências… |
 | `refs.manager_desc` | Configure independent reference images for the 6 canonical orthographic slots. | Configure imagens de referência independentes para os 6 slots ortográficos canônicos. |
 | `refs.manager_title` | Reference Set Manager | Gerenciador de Conjunto de Referências |
+| `refs.no_image` | No image bound to this view | Nenhuma imagem vinculada a esta vista |
 | `refs.offset` | Offset | Offset |
 | `refs.opacity` | Opacity | Opacidade |
+| `refs.remove` | Remove reference image | Remover imagem de referência |
+| `refs.replace` | Click to replace | Clique para substituir |
+| `refs.reset_default` | Reset to default | Redefinir padrão |
 | `refs.right` | Right | Direita |
 | `refs.rotation` | Rotation | Rotação |
 | `refs.side` | Side | Lado |
 | `refs.size` | Size | Tamanho |
 | `refs.top` | Top | Topo |
+| `refs.visible` | Visible | Visível |
 | `refs.xray` | X-Ray / Overlay | Raio-X / Sobrepor |
 | `settings.appearance` | Appearance | Aparência |
+| `settings.export_glb` | GLB export format (off exports OBJ) | Exportar em GLB (desligado exporta OBJ) |
+| `settings.export_glb_hint` | Default format for the export dialog | Formato padrão do diálogo de exportação |
 | `settings.icons` | Icons | Ícones |
+| `settings.import_export` | Import / Export | Importar / Exportar |
+| `settings.interface` | Interface | Interface |
 | `settings.keymap` | Keymap | Atalhos |
 | `settings.language` | Language | Idioma |
+| `settings.reset_all_layouts` | Reset All UI Layouts | Redefinir Todos os Layouts |
+| `settings.reset_workspace` | Reset Current Workspace Layout | Redefinir Layout do Workspace Atual |
+| `settings.show_shelf` | Contextual shelf over the viewport | Barra contextual sobre a viewport |
 | `settings.title` | Settings | Configurações |
 | `shading.smooth` | Smooth | Suave |
 | `shading.solid` | Flat | Plano |
@@ -192,6 +217,7 @@ Total de chaves de localização cadastradas: **228**.
 | `tools.cursor_3d` | 3D Cursor | Cursor 3D |
 | `tools.dissolve` | Dissolve | Dissolver |
 | `tools.draw_profile` | Profile | Perfil |
+| `tools.eraser` | Eraser | Borracha |
 | `tools.extrude` | Extrude | Extrudar |
 | `tools.extrude_individual` | Extrude Individual | Extrusão individual |
 | `tools.flip_diagonal` | Flip Diagonal | Inverter diagonal |
@@ -203,6 +229,7 @@ Total de chaves de localização cadastradas: **228**.
 | `tools.mirror` | Mirror | Espelho |
 | `tools.move` | Move | Mover |
 | `tools.paint` | Paint | Pintar |
+| `tools.picker` | Picker | Conta-gotas |
 | `tools.primitives` | Add | Adicionar |
 | `tools.pushpull` | Push/Pull | Push/Pull |
 | `tools.revolve` | Revolve 360° | Revolução 360° |
@@ -213,6 +240,10 @@ Total de chaves de localização cadastradas: **228**.
 | `tools.slice` | Slice | Fatiar |
 | `tools.subdivide` | Cut | Cortar |
 | `tools.transform` | Transform | Transformar |
+| `tools.uv_project` | Project | Projetar |
+| `tools.uv_seam` | Seam | Costura |
+| `tools.uv_select` | UV Select | Seleção UV |
+| `tools.uv_unwrap` | Unwrap | Desdobrar |
 | `ui.active_tool` | Active tool | Ferramenta ativa |
 | `ui.assets` | Asset Library | Assets |
 | `ui.close` | Close | Fechar |
@@ -224,6 +255,7 @@ Total de chaves de localização cadastradas: **228**.
 | `ui.language` | Language | Idioma |
 | `ui.lock` | Lock | Bloquear |
 | `ui.mesh` | Mesh | Malha |
+| `ui.more` | More… | Mais… |
 | `ui.no_tool` | Tool disabled in tools.toml | Ferramenta desligada no tools.toml |
 | `ui.outliner` | Outliner | Outliner |
 | `ui.properties` | Properties | Propriedades |
@@ -231,6 +263,7 @@ Total de chaves de localização cadastradas: **228**.
 | `ui.rename` | Rename | Renomear |
 | `ui.search` | Search | Buscar |
 | `ui.tools` | Tools | Ferramentas |
+| `ui.tools_menu` | Tools… | Ferramentas… |
 | `ui.visible` | Visible | Visível |
 | `uv.faces` | Faces | Faces |
 | `uv.hint` | Click: select face. Drag: move UVs. Wheel: scale. | Clique: seleciona face. Arraste: move UVs. Scroll: escala. |

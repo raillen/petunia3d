@@ -1,8 +1,12 @@
 //! Barra Contextual Horizontal do Viewport (`Contextual Modeling Shelf`).
 //! Posicionada na base inferior do Viewport 3D, reagindo dinamicamente
 //! ao Workspace e ao Modo de Edição ativo (Object, Edit, Paint, UV, Animate).
+//!
+//! Arquitetura Wave 4: conteúdo como dados ([`ShelfCommand`] com prioridade),
+//! larguras medidas por galley (nunca `len() * k`), cápsula de fundo com tamanho
+//! exato do conteúdo e modos responsivos (Full → Compact → Overflow → Pill).
 
-use egui::{Rect, Response, RichText, Ui, pos2, vec2};
+use egui::{FontId, Rect, Response, RichText, Ui, pos2, vec2};
 use petunia_core::{
     AppState, DuplicateSelectionCmd, EditMode, MergeCenterCmd, ModalKind, SubdivideSelectionCmd,
     Workspace,
@@ -11,50 +15,200 @@ use petunia_core::{
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::outliner::add_primitive_to_scene;
 use crate::tokens;
+use crate::widgets::PetuniaMenuItem;
+
+/// Prioridade do comando para colapso responsivo (Wave 4 — §7.1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShelfPriority {
+    /// Fica visível até o modo Overflow (como ícone).
+    Primary,
+    /// Vira ícone no modo Compact; vai para o popover no Overflow.
+    Secondary,
+}
+
+/// Ação semântica de um comando da shelf (executada sem coordenadas de UI).
+#[derive(Debug, Clone, Copy)]
+pub enum ShelfAction {
+    SetActiveTool(&'static str),
+    SetGizmo(ModalKind),
+    DomainOp(DomainOp),
+    AddPrimitive { kind: u8, name: &'static str },
+    OpenReferenceManager,
+    AddHumanoidArmature,
+    AutoRigActiveMesh,
+    TimelineFirst,
+    TimelinePlayPause,
+    TimelineLast,
+}
+
+/// Operação de domínio despachável pela shelf.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DomainOp {
+    Subdivide,
+    MergeCenter,
+    Duplicate,
+}
+
+/// Comando da shelf: ícone semântico + rótulo localizado + prioridade + ação.
+pub struct ShelfCommand {
+    pub icon: Option<PetuniaIcon>,
+    pub label: String,
+    pub tooltip: String,
+    pub priority: ShelfPriority,
+    pub action: ShelfAction,
+}
+
+/// Item não-botão da shelf (controles finos, sempre visíveis quando há espaço).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShelfWidget {
+    PaintRadius,
+    PaintColor,
+    TimelineFrame,
+}
+
+impl ShelfWidget {
+    /// Largura fixa de layout (controles com tamanho forçado — exato).
+    fn fixed_width(self) -> f32 {
+        match self {
+            // DragValue com largura forçada + folga.
+            ShelfWidget::PaintRadius | ShelfWidget::TimelineFrame => 72.0,
+            // Botão de cor com tamanho forçado.
+            ShelfWidget::PaintColor => 28.0,
+        }
+    }
+}
+
+const PILL_H: f32 = 22.0;
+const PILL_FONT: FontId = FontId::proportional(10.5);
+const ITEM_GAP: f32 = 4.0;
+const SHELF_SIDE_PAD: f32 = 8.0;
+const ICON_W: f32 = 16.0;
+
+/// Largura exata de uma pílula (ícone? + texto medido + respiro). Mesma fórmula
+/// usada na renderização — cápsula nunca menor que o conteúdo.
+fn pill_width(has_icon: bool, text_w: f32) -> f32 {
+    let icon_w = if has_icon { ICON_W } else { 0.0 };
+    let padding = if has_icon && text_w > 0.0 { 16.0 } else { 12.0 };
+    (icon_w + text_w + padding).max(24.0)
+}
+
+fn measure_text(ui: &Ui, label: &str) -> f32 {
+    ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), PILL_FONT, tokens::TEXT_PRIMARY))
+        .size()
+        .x
+        + 4.0
+}
+
+/// Modo responsivo da shelf (Wave 4 — §7.2), decidido por larguras medidas.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShelfMode {
+    /// Ícone + rótulo em tudo.
+    Full,
+    /// Primários com rótulo; secundários só ícone.
+    Compact,
+    /// Primários só ícone; resto no popover "More…".
+    Overflow,
+    /// Só pílula "Tools…" com popover (viewport muito estreita).
+    Pill,
+    /// Sem espaço nem para a pílula.
+    Hidden,
+}
 
 /// Renderiza a barra contextual horizontal flutuante na base do Viewport 3D.
 /// Retorna o `Rect` ocupado pela shelf para permitir bloqueio de eventos na cena 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Rect> {
     puffin::profile_function!();
-    let screen_w = viewport_rect.width();
-    if screen_w < 380.0 {
+    let avail = viewport_rect.width() - 24.0;
+    if avail <= 0.0 {
         return None;
     }
 
-    // Calcula largura dinâmica da shelf com medição real do frame anterior
-    let shelf_height = 36.0;
-    let bottom_margin = 12.0;
+    let (commands, widgets) = build_shelf(state);
 
-    let (estimated_w, content_closure) = match state.workspace {
-        Workspace::Model => {
-            if state.mode == EditMode::Edit {
-                (780.0_f32, ShelfContent::ModelEdit)
-            } else {
-                (700.0_f32, ShelfContent::ModelObject)
-            }
+    // Mede todos os rótulos uma vez (galley real — nunca `len() * k`).
+    let measured: Vec<(ShelfCommand, f32)> = commands
+        .into_iter()
+        .map(|cmd| {
+            let w = measure_text(ui, &cmd.label);
+            (cmd, w)
+        })
+        .collect();
+
+    let gap_total = |n: usize| {
+        if n == 0 {
+            0.0
+        } else {
+            ITEM_GAP * (n as f32 - 1.0)
         }
-        Workspace::Paint => (480.0_f32, ShelfContent::Paint),
-        Workspace::Uv => (440.0_f32, ShelfContent::Uv),
-        Workspace::Animate => (640.0_f32, ShelfContent::Animate),
     };
+    let full_w: f32 = measured
+        .iter()
+        .map(|(c, w)| pill_width(c.icon.is_some(), *w))
+        .sum::<f32>()
+        + gap_total(measured.len())
+        + widget_width_sum(&widgets)
+        + SHELF_SIDE_PAD * 2.0;
+    let compact_w: f32 = measured
+        .iter()
+        .map(|(c, w)| {
+            let show_label = c.priority == ShelfPriority::Primary;
+            pill_width(c.icon.is_some(), if show_label { *w } else { 0.0 })
+        })
+        .sum::<f32>()
+        + gap_total(measured.len())
+        + widget_width_sum(&widgets)
+        + SHELF_SIDE_PAD * 2.0;
+    let more_w = pill_width(false, measure_text(ui, &state.t("ui.more")));
+    let primary_icon_w: f32 = measured
+        .iter()
+        .filter(|(c, _)| c.priority == ShelfPriority::Primary)
+        .map(|(c, _)| pill_width(c.icon.is_some(), 0.0))
+        .sum::<f32>();
+    let primary_n = measured
+        .iter()
+        .filter(|(c, _)| c.priority == ShelfPriority::Primary)
+        .count();
+    let overflow_w = primary_icon_w
+        + gap_total(primary_n + widgets.len() + 1)
+        + more_w
+        + widget_width_sum(&widgets)
+        + SHELF_SIDE_PAD * 2.0;
+    let tools_w =
+        pill_width(false, measure_text(ui, &state.t("ui.tools_menu"))) + SHELF_SIDE_PAD * 2.0;
 
-    let shelf_id = ui.make_persistent_id("contextual_shelf_width");
-    let shelf_w = ui.ctx().data(|d| {
-        d.get_temp::<f32>(shelf_id)
-            .unwrap_or(estimated_w)
-            .max(estimated_w)
-            .min(screen_w - 24.0)
-    });
+    let mode = if full_w <= avail {
+        ShelfMode::Full
+    } else if compact_w <= avail {
+        ShelfMode::Compact
+    } else if overflow_w <= avail {
+        ShelfMode::Overflow
+    } else if tools_w <= avail {
+        ShelfMode::Pill
+    } else {
+        ShelfMode::Hidden
+    };
+    if mode == ShelfMode::Hidden {
+        return None;
+    }
 
+    // Largura exata do conteúdo no modo escolhido → cápsula sem folga nem falta.
+    let content_w = match mode {
+        ShelfMode::Full => full_w,
+        ShelfMode::Compact => compact_w,
+        ShelfMode::Overflow => overflow_w,
+        ShelfMode::Pill => tools_w,
+        ShelfMode::Hidden => return None,
+    } - SHELF_SIDE_PAD * 2.0;
+    let shelf_h = 36.0;
+    let bottom_margin = 12.0;
     let shelf_rect = Rect::from_center_size(
-        egui::pos2(
+        pos2(
             viewport_rect.center().x,
-            viewport_rect.max.y - bottom_margin - shelf_height * 0.5,
+            viewport_rect.max.y - bottom_margin - shelf_h * 0.5,
         ),
-        vec2(shelf_w, shelf_height),
+        vec2(content_w + SHELF_SIDE_PAD * 2.0, shelf_h),
     );
 
-    // Fundo da cápsula com tokens dinâmicos do tema
     let painter = ui.painter();
     painter.rect_filled(
         shelf_rect,
@@ -71,363 +225,382 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Re
     // Escudo de eventos: impede que cliques na shelf atravessem para o raycasting da cena 3D
     let _ = ui.allocate_rect(shelf_rect, egui::Sense::click_and_drag());
 
-    // Renderiza controles horizontais centralizados dentro da cápsula com espaço para medição natural
-    let max_avail_rect = Rect::from_center_size(
-        shelf_rect.center(),
-        vec2((screen_w - 24.0).max(shelf_w), shelf_height),
-    );
-    let mut shelf_ui = ui.new_child(egui::UiBuilder::new().max_rect(max_avail_rect));
-    let content_resp = shelf_ui.horizontal_centered(|ui| {
-        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
-        ui.add_space(8.0);
-
-        match content_closure {
-            ShelfContent::ModelEdit => draw_model_edit_shelf(ui, state),
-            ShelfContent::ModelObject => draw_model_object_shelf(ui, state),
-            ShelfContent::Paint => draw_paint_shelf(ui, state),
-            ShelfContent::Uv => draw_uv_shelf(ui, state),
-            ShelfContent::Animate => draw_animate_shelf(ui, state),
+    let inner = shelf_rect.shrink2(vec2(SHELF_SIDE_PAD, (shelf_h - PILL_H) * 0.5));
+    let mut row = ui.new_child(egui::UiBuilder::new().max_rect(inner));
+    row.spacing_mut().item_spacing = vec2(ITEM_GAP, 0.0);
+    row.horizontal_centered(|ui| {
+        match mode {
+            ShelfMode::Full => {
+                for (cmd, text_w) in &measured {
+                    draw_shelf_pill(ui, state, cmd, Some(*text_w));
+                }
+            }
+            ShelfMode::Compact => {
+                for (cmd, text_w) in &measured {
+                    let show_label = cmd.priority == ShelfPriority::Primary;
+                    draw_shelf_pill(ui, state, cmd, show_label.then_some(*text_w));
+                }
+            }
+            ShelfMode::Overflow => {
+                for (cmd, _) in measured
+                    .iter()
+                    .filter(|(c, _)| c.priority == ShelfPriority::Primary)
+                {
+                    draw_shelf_pill(ui, state, cmd, None);
+                }
+                let overflowed: Vec<&ShelfCommand> = measured
+                    .iter()
+                    .filter(|(c, _)| c.priority == ShelfPriority::Secondary)
+                    .map(|(c, _)| c)
+                    .collect();
+                if !overflowed.is_empty() {
+                    draw_more_popover(ui, state, &state.t("ui.more"), &overflowed);
+                }
+            }
+            ShelfMode::Pill => {
+                let all: Vec<&ShelfCommand> = measured.iter().map(|(c, _)| c).collect();
+                draw_more_popover(ui, state, &state.t("ui.tools_menu"), &all);
+            }
+            ShelfMode::Hidden => {}
         }
-
-        ui.add_space(8.0);
-    });
-
-    let measured_w = (content_resp.response.rect.width() + 24.0).min(screen_w - 24.0);
-    ui.ctx().data_mut(|d| {
-        d.insert_temp(shelf_id, measured_w);
+        for widget in &widgets {
+            // Controles finos ficam visíveis em Full/Compact/Overflow (Pill não tem espaço).
+            if mode == ShelfMode::Pill {
+                continue;
+            }
+            draw_shelf_widget(ui, state, *widget);
+        }
     });
 
     Some(shelf_rect)
 }
 
-enum ShelfContent {
-    ModelEdit,
-    ModelObject,
-    Paint,
-    Uv,
-    Animate,
+fn widget_width_sum(widgets: &[ShelfWidget]) -> f32 {
+    let n = widgets.len();
+    widgets.iter().map(|w| w.fixed_width()).sum::<f32>()
+        + if n == 0 { 0.0 } else { ITEM_GAP * n as f32 }
 }
 
-fn draw_model_edit_shelf(ui: &mut Ui, state: &mut AppState) {
-    // 1. Comandos Principais de Modelagem de Malha
-    let modeling_ops = [
-        ("extrude", PetuniaIcon::Extrude, "E"),
-        ("inset", PetuniaIcon::Inset, "I"),
-        ("bevel", PetuniaIcon::Bevel, "Ctrl+B"),
-        ("loop_cut", PetuniaIcon::LoopCut, "Ctrl+R"),
-        ("knife", PetuniaIcon::Knife, "K"),
-    ];
-
-    for (tool_id, icon, shortcut) in modeling_ops {
-        let is_active = state.active_tool == tool_id;
-        let name = state.t(&format!("tools.{tool_id}"));
-        let hint = format!("{name} · [{shortcut}]");
-        if pill_button(ui, Some(icon), &name, is_active, &hint).clicked() {
-            state.active_tool = tool_id.to_string();
-            state.mark_dirty();
-        }
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    // 2. Operações Topológicas de Malha
-    let sub_name = state.t("actions.subdivide");
-    if pill_button(
-        ui,
-        Some(PetuniaIcon::Subdivide),
-        &sub_name,
-        false,
-        &sub_name,
-    )
-    .clicked()
-    {
-        let _ = state.dispatch(&SubdivideSelectionCmd);
-    }
-
-    let merge_name = state.t("actions.merge_center");
-    if pill_button(
-        ui,
-        Some(PetuniaIcon::Custom("merge")),
-        &merge_name,
-        false,
-        &merge_name,
-    )
-    .clicked()
-    {
-        let _ = state.dispatch(&MergeCenterCmd);
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    // 3. Imagem de Referência
-    let ref_name = state.t("ui.refs");
-    if pill_button(
-        ui,
-        Some(PetuniaIcon::ReferenceImage),
-        &ref_name,
-        false,
-        &ref_name,
-    )
-    .clicked()
-    {
-        state.ui.show_reference_manager = true;
-    }
-}
-
-fn draw_model_object_shelf(ui: &mut Ui, state: &mut AppState) {
-    // 1. Ferramentas de Transformação de Objeto
-    let transforms = [
-        (ModalKind::Move, PetuniaIcon::Move, "tools.move", "G"),
-        (ModalKind::Rotate, PetuniaIcon::Rotate, "tools.rotate", "R"),
-        (ModalKind::Scale, PetuniaIcon::Scale, "tools.scale", "S"),
-    ];
-
-    for (gizmo_m, icon, key, shortcut) in transforms {
-        let is_active = state.gizmo_mode == gizmo_m;
-        let label = state.t(key);
-        let hint = format!("{label} · [{shortcut}]");
-        if pill_button(ui, Some(icon), &label, is_active, &hint).clicked() {
-            state.gizmo_mode = gizmo_m;
-            state.mark_dirty();
-        }
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    // 2. Criação Rápida de Primitivas na coordenada do 3D Cursor
-    let prims = [
-        ("Cube", "prims.cube", 0),
-        ("Sphere", "prims.sphere", 1),
-        ("Cylinder", "prims.cylinder", 2),
-        ("Plane", "prims.plane", 3),
-    ];
-
-    for (name, key, kind) in prims {
-        let label = state.t(key);
-        let hint = format!("{} no 3D Cursor", label);
-        if pill_button(ui, Some(PetuniaIcon::AddPrimitive), &label, false, &hint).clicked() {
-            add_primitive_to_scene(state, kind, name);
-        }
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    // 3. Duplicar Objeto
-    let dup_label = state.t("ui.duplicate");
-    let dup_hint = format!("{dup_label} · [Shift+D]");
-    if pill_button(
-        ui,
-        Some(PetuniaIcon::Duplicate),
-        &dup_label,
-        false,
-        &dup_hint,
-    )
-    .clicked()
-    {
-        let _ = state.dispatch(&DuplicateSelectionCmd);
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    // 4. Imagem de Referência
-    let ref_label = state.t("ui.refs");
-    if pill_button(
-        ui,
-        Some(PetuniaIcon::ReferenceImage),
-        &ref_label,
-        false,
-        &ref_label,
-    )
-    .clicked()
-    {
-        state.ui.show_reference_manager = true;
-    }
-}
-
-fn draw_paint_shelf(ui: &mut Ui, state: &mut AppState) {
-    let tools = [
-        ("paint", Some(PetuniaIcon::Custom("paint")), "Pincel"),
-        ("eraser", Some(PetuniaIcon::Custom("delete")), "Apagador"),
-        ("picker", Some(PetuniaIcon::Cursor3D), "Conta-gotas"),
-    ];
-
-    for (id, icon, label) in tools {
-        let is_active = state.active_tool == id;
-        if pill_button(ui, icon, label, is_active, label).clicked() {
+/// Executa a ação semântica de um comando da shelf.
+fn exec_shelf_action(state: &mut AppState, action: &ShelfAction) {
+    match action {
+        ShelfAction::SetActiveTool(id) => {
             state.active_tool = id.to_string();
-            state.mark_dirty();
         }
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    ui.label(
-        RichText::new("Raio:")
-            .size(10.5)
-            .color(tokens::TEXT_SECONDARY),
-    );
-    ui.add(
-        egui::DragValue::new(&mut state.paint_radius)
-            .range(0.01..=5.0)
-            .speed(0.02),
-    );
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    ui.label(
-        RichText::new("Cor:")
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
-    );
-    ui.color_edit_button_rgb(&mut state.paint_color);
-}
-
-fn draw_uv_shelf(ui: &mut Ui, state: &mut AppState) {
-    let uv_tools = [
-        ("uv_select", "Seleção UV"),
-        ("uv_unwrap", "Desdobrar (Unwrap)"),
-        ("uv_project", "Projetar da Câmera"),
-        ("uv_seam", "Marcar Costura"),
-    ];
-
-    for (id, label) in uv_tools {
-        let is_active = state.active_tool == id;
-        if pill_button(ui, None, label, is_active, label).clicked() {
-            state.active_tool = id.to_string();
-            state.mark_dirty();
+        ShelfAction::SetGizmo(gizmo) => {
+            state.active_tool = "transform".to_string();
+            state.gizmo_mode = *gizmo;
         }
-    }
-}
-
-fn draw_animate_shelf(ui: &mut Ui, state: &mut AppState) {
-    if pill_button(
-        ui,
-        None,
-        "👤 Humanoide",
-        false,
-        "Adicionar Armature Humanoide",
-    )
-    .clicked()
-    {
-        let skel = petunia_project::animation::RigPreset::humanoid(1.0);
-        state.project.add_skeleton(skel);
-        state.mark_dirty();
-    }
-    if pill_button(
-        ui,
-        None,
-        "✨ Auto-Rig",
-        false,
-        "Auto-Rig sobre o modelo ativo",
-    )
-    .clicked()
-    {
-        let active = state.project.active;
-        if let Some(asset) = state.project.assets.get_mut(active) {
-            let skel = petunia_project::animation::auto_fit_humanoid(&asset.mesh);
-            let skel_id = skel.id;
-            let skin = petunia_project::animation::compute_auto_skin_weights(&asset.mesh, &skel);
-            asset.skeleton_id = Some(skel_id);
-            asset.skin_data = Some(skin);
+        ShelfAction::DomainOp(DomainOp::Subdivide) => {
+            let _ = state.dispatch(&SubdivideSelectionCmd);
+        }
+        ShelfAction::DomainOp(DomainOp::MergeCenter) => {
+            let _ = state.dispatch(&MergeCenterCmd);
+        }
+        ShelfAction::DomainOp(DomainOp::Duplicate) => {
+            let _ = state.dispatch(&DuplicateSelectionCmd);
+        }
+        ShelfAction::AddPrimitive { kind, name } => {
+            add_primitive_to_scene(state, *kind as usize, name);
+        }
+        ShelfAction::OpenReferenceManager => {
+            state.ui.show_reference_manager = true;
+        }
+        ShelfAction::AddHumanoidArmature => {
+            let skel = petunia_project::animation::RigPreset::humanoid(1.0);
             state.project.add_skeleton(skel);
-            state.mark_dirty();
+        }
+        ShelfAction::AutoRigActiveMesh => {
+            let active = state.project.active;
+            if let Some(asset) = state.project.assets.get_mut(active) {
+                let skel = petunia_project::animation::auto_fit_humanoid(&asset.mesh);
+                let skel_id = skel.id;
+                let skin =
+                    petunia_project::animation::compute_auto_skin_weights(&asset.mesh, &skel);
+                asset.skeleton_id = Some(skel_id);
+                asset.skin_data = Some(skin);
+                state.project.add_skeleton(skel);
+            }
+        }
+        ShelfAction::TimelineFirst => {
+            state.ui.timeline_frame = state.ui.timeline_start;
+        }
+        ShelfAction::TimelinePlayPause => {
+            state.ui.timeline_playing = !state.ui.timeline_playing;
+        }
+        ShelfAction::TimelineLast => {
+            state.ui.timeline_frame = state.ui.timeline_end;
         }
     }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    if pill_button(
-        ui,
-        Some(PetuniaIcon::JumpStart),
-        "",
-        false,
-        "Primeiro Frame",
-    )
-    .clicked()
-    {
-        state.ui.timeline_frame = state.ui.timeline_start;
-        state.mark_dirty();
-    }
-
-    let (play_icon, play_label) = if state.ui.timeline_playing {
-        (PetuniaIcon::Pause, "Pause")
-    } else {
-        (PetuniaIcon::Play, "Play")
-    };
-    if pill_button(
-        ui,
-        Some(play_icon),
-        play_label,
-        state.ui.timeline_playing,
-        "Iniciar/Pausar animação",
-    )
-    .clicked()
-    {
-        state.ui.timeline_playing = !state.ui.timeline_playing;
-        state.mark_dirty();
-    }
-
-    if pill_button(ui, Some(PetuniaIcon::JumpEnd), "", false, "Último Frame").clicked() {
-        state.ui.timeline_frame = state.ui.timeline_end;
-        state.mark_dirty();
-    }
-
-    ui.add_space(2.0);
-    shelf_separator(ui);
-    ui.add_space(2.0);
-
-    ui.label(
-        RichText::new("Frame:")
-            .size(10.5)
-            .color(tokens::TEXT_SECONDARY),
-    );
-    ui.add(
-        egui::DragValue::new(&mut state.ui.timeline_frame)
-            .range(state.ui.timeline_start..=state.ui.timeline_end),
-    );
+    state.mark_dirty();
 }
 
-fn pill_button(
+fn tool_cmd(
+    state: &AppState,
+    tool_id: &'static str,
+    key: &str,
+    icon: PetuniaIcon,
+    priority: ShelfPriority,
+    action: ShelfAction,
+) -> ShelfCommand {
+    let name = state.t(&format!("tools.{tool_id}"));
+    ShelfCommand {
+        icon: Some(icon),
+        label: name.clone(),
+        tooltip: format!("{name} · [{key}]"),
+        priority,
+        action,
+    }
+}
+
+/// Constrói comandos + widgets da shelf para o workspace/modo atual.
+fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
+    match state.workspace {
+        Workspace::Model if state.mode == EditMode::Edit => {
+            let mut cmds = vec![
+                tool_cmd(
+                    state,
+                    "extrude",
+                    "E",
+                    PetuniaIcon::Extrude,
+                    ShelfPriority::Primary,
+                    ShelfAction::SetActiveTool("extrude"),
+                ),
+                tool_cmd(
+                    state,
+                    "inset",
+                    "I",
+                    PetuniaIcon::Inset,
+                    ShelfPriority::Primary,
+                    ShelfAction::SetActiveTool("inset"),
+                ),
+                tool_cmd(
+                    state,
+                    "bevel",
+                    "Ctrl+B",
+                    PetuniaIcon::Bevel,
+                    ShelfPriority::Primary,
+                    ShelfAction::SetActiveTool("bevel"),
+                ),
+                tool_cmd(
+                    state,
+                    "loop_cut",
+                    "Ctrl+R",
+                    PetuniaIcon::LoopCut,
+                    ShelfPriority::Secondary,
+                    ShelfAction::SetActiveTool("loop_cut"),
+                ),
+                tool_cmd(
+                    state,
+                    "knife",
+                    "K",
+                    PetuniaIcon::Knife,
+                    ShelfPriority::Secondary,
+                    ShelfAction::SetActiveTool("knife"),
+                ),
+            ];
+            let sub_name = state.t("actions.subdivide");
+            cmds.push(ShelfCommand {
+                icon: Some(PetuniaIcon::Subdivide),
+                label: sub_name.clone(),
+                tooltip: sub_name,
+                priority: ShelfPriority::Secondary,
+                action: ShelfAction::DomainOp(DomainOp::Subdivide),
+            });
+            let merge_name = state.t("actions.merge_center");
+            cmds.push(ShelfCommand {
+                icon: Some(PetuniaIcon::Custom("merge")),
+                label: merge_name.clone(),
+                tooltip: merge_name,
+                priority: ShelfPriority::Secondary,
+                action: ShelfAction::DomainOp(DomainOp::MergeCenter),
+            });
+            let ref_name = state.t("ui.refs");
+            cmds.push(ShelfCommand {
+                icon: Some(PetuniaIcon::ReferenceImage),
+                label: ref_name.clone(),
+                tooltip: ref_name,
+                priority: ShelfPriority::Secondary,
+                action: ShelfAction::OpenReferenceManager,
+            });
+            (cmds, vec![])
+        }
+        Workspace::Model => {
+            let mut cmds = vec![
+                tool_cmd(
+                    state,
+                    "move",
+                    "G",
+                    PetuniaIcon::Move,
+                    ShelfPriority::Primary,
+                    ShelfAction::SetGizmo(ModalKind::Move),
+                ),
+                tool_cmd(
+                    state,
+                    "rotate",
+                    "R",
+                    PetuniaIcon::Rotate,
+                    ShelfPriority::Primary,
+                    ShelfAction::SetGizmo(ModalKind::Rotate),
+                ),
+                tool_cmd(
+                    state,
+                    "scale",
+                    "S",
+                    PetuniaIcon::Scale,
+                    ShelfPriority::Primary,
+                    ShelfAction::SetGizmo(ModalKind::Scale),
+                ),
+            ];
+            for (name, key, kind) in [
+                ("Cube", "prims.cube", 0u8),
+                ("Sphere", "prims.sphere", 1),
+                ("Cylinder", "prims.cylinder", 2),
+                ("Plane", "prims.plane", 3),
+            ] {
+                let label = state.t(key);
+                cmds.push(ShelfCommand {
+                    icon: Some(PetuniaIcon::AddPrimitive),
+                    label: label.clone(),
+                    tooltip: format!("{} no 3D Cursor", label),
+                    priority: ShelfPriority::Secondary,
+                    action: ShelfAction::AddPrimitive { kind, name },
+                });
+            }
+            let dup_label = state.t("ui.duplicate");
+            cmds.push(ShelfCommand {
+                icon: Some(PetuniaIcon::Duplicate),
+                label: dup_label.clone(),
+                tooltip: format!("{dup_label} · [Shift+D]"),
+                priority: ShelfPriority::Primary,
+                action: ShelfAction::DomainOp(DomainOp::Duplicate),
+            });
+            let ref_label = state.t("ui.refs");
+            cmds.push(ShelfCommand {
+                icon: Some(PetuniaIcon::ReferenceImage),
+                label: ref_label.clone(),
+                tooltip: ref_label,
+                priority: ShelfPriority::Secondary,
+                action: ShelfAction::OpenReferenceManager,
+            });
+            (cmds, vec![])
+        }
+        Workspace::Paint => {
+            let cmds = ["paint", "eraser", "picker"]
+                .into_iter()
+                .map(|id| {
+                    let label = state.t(&format!("tools.{id}"));
+                    ShelfCommand {
+                        icon: Some(match id {
+                            "paint" => PetuniaIcon::Custom("paint"),
+                            "eraser" => PetuniaIcon::Custom("delete"),
+                            _ => PetuniaIcon::Cursor3D,
+                        }),
+                        label: label.clone(),
+                        tooltip: label,
+                        priority: ShelfPriority::Primary,
+                        action: ShelfAction::SetActiveTool(id),
+                    }
+                })
+                .collect();
+            (
+                cmds,
+                vec![ShelfWidget::PaintRadius, ShelfWidget::PaintColor],
+            )
+        }
+        Workspace::Uv => {
+            let cmds = [
+                ("uv_select", ShelfPriority::Primary),
+                ("uv_unwrap", ShelfPriority::Primary),
+                ("uv_project", ShelfPriority::Secondary),
+                ("uv_seam", ShelfPriority::Secondary),
+            ]
+            .into_iter()
+            .map(|(id, priority)| {
+                let label = state.t(&format!("tools.{id}"));
+                ShelfCommand {
+                    icon: None,
+                    label: label.clone(),
+                    tooltip: label,
+                    priority,
+                    action: ShelfAction::SetActiveTool(id),
+                }
+            })
+            .collect();
+            (cmds, vec![])
+        }
+        Workspace::Animate => {
+            let hum_label = state.t("animate.humanoid");
+            let rig_label = state.t("animate.auto_rig");
+            let play_label = state.t(if state.ui.timeline_playing {
+                "animate.pause"
+            } else {
+                "animate.play"
+            });
+            let cmds = vec![
+                ShelfCommand {
+                    icon: None,
+                    label: hum_label.clone(),
+                    tooltip: hum_label,
+                    priority: ShelfPriority::Secondary,
+                    action: ShelfAction::AddHumanoidArmature,
+                },
+                ShelfCommand {
+                    icon: None,
+                    label: rig_label.clone(),
+                    tooltip: rig_label,
+                    priority: ShelfPriority::Secondary,
+                    action: ShelfAction::AutoRigActiveMesh,
+                },
+                ShelfCommand {
+                    icon: Some(PetuniaIcon::JumpStart),
+                    label: String::new(),
+                    tooltip: state.t("animate.first_frame"),
+                    priority: ShelfPriority::Primary,
+                    action: ShelfAction::TimelineFirst,
+                },
+                ShelfCommand {
+                    icon: Some(if state.ui.timeline_playing {
+                        PetuniaIcon::Pause
+                    } else {
+                        PetuniaIcon::Play
+                    }),
+                    label: play_label.clone(),
+                    tooltip: play_label,
+                    priority: ShelfPriority::Primary,
+                    action: ShelfAction::TimelinePlayPause,
+                },
+                ShelfCommand {
+                    icon: Some(PetuniaIcon::JumpEnd),
+                    label: String::new(),
+                    tooltip: state.t("animate.last_frame"),
+                    priority: ShelfPriority::Primary,
+                    action: ShelfAction::TimelineLast,
+                },
+            ];
+            (cmds, vec![ShelfWidget::TimelineFrame])
+        }
+    }
+}
+
+fn draw_shelf_pill(
     ui: &mut Ui,
-    icon: Option<PetuniaIcon>,
-    label: &str,
-    is_active: bool,
-    tooltip: &str,
+    state: &mut AppState,
+    cmd: &ShelfCommand,
+    text_w: Option<f32>,
 ) -> Response {
+    let is_active = matches!(cmd.action, ShelfAction::SetActiveTool(id) if state.active_tool == id)
+        || matches!(cmd.action, ShelfAction::SetGizmo(g) if state.gizmo_mode == g && state.active_tool == "transform")
+        || matches!(cmd.action, ShelfAction::TimelinePlayPause if state.ui.timeline_playing);
     let (bg, fg) = if is_active {
         (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
     } else {
         (tokens::BG_SURFACE, tokens::TEXT_PRIMARY)
     };
 
-    let text_len = if label.is_empty() {
-        0.0
-    } else {
-        label.len() as f32 * 6.5 + 4.0
-    };
-    let icon_w = if icon.is_some() { 16.0 } else { 0.0 };
-    let padding = if icon.is_some() && !label.is_empty() {
-        16.0
-    } else {
-        12.0
-    };
-    let desired_size = vec2((icon_w + text_len + padding).max(24.0), 22.0);
+    let label = text_w.map(|_| cmd.label.as_str()).unwrap_or("");
+    let tw = text_w.unwrap_or(0.0);
+    let desired_size = vec2(pill_width(cmd.icon.is_some(), tw), PILL_H);
 
     let (rect, resp) = ui.allocate_exact_size(desired_size, egui::Sense::click());
     if ui.is_rect_visible(rect) {
@@ -441,17 +614,17 @@ fn pill_button(
         ui.painter().rect_filled(rect, tokens::RADIUS_PILL, fill);
 
         let mut start_x = rect.min.x
-            + if icon.is_some() && label.is_empty() {
+            + if cmd.icon.is_some() && label.is_empty() {
                 (rect.width() - 14.0) * 0.5
             } else {
                 6.0
             };
-        if let Some(ic) = icon {
+        if let Some(ic) = &cmd.icon {
             let icon_rect = Rect::from_min_size(
                 pos2(start_x, rect.min.y + (rect.height() - 14.0) * 0.5),
                 vec2(14.0, 14.0),
             );
-            IconRegistry::paint(ui.ctx(), ui.painter(), &ic, icon_rect, fg);
+            IconRegistry::paint(ui.ctx(), ui.painter(), ic, icon_rect, fg);
             start_x += 17.0;
         }
 
@@ -460,21 +633,75 @@ fn pill_button(
                 pos2(start_x, rect.min.y + (rect.height() - 13.0) * 0.5),
                 egui::Align2::LEFT_TOP,
                 label,
-                egui::FontId::proportional(10.5),
+                PILL_FONT,
                 fg,
             );
         }
     }
 
-    resp.on_hover_text(tooltip)
+    let resp = resp.on_hover_text(&cmd.tooltip);
+    if resp.clicked() {
+        exec_shelf_action(state, &cmd.action);
+    }
+    resp
 }
 
-fn shelf_separator(ui: &mut Ui) {
-    let (rect, _) = ui.allocate_exact_size(vec2(1.0, 16.0), egui::Sense::hover());
-    ui.painter().line_segment(
-        [rect.center_top(), rect.center_bottom()],
-        tokens::stroke_border(),
-    );
+fn draw_more_popover(ui: &mut Ui, state: &mut AppState, label: &str, cmds: &[&ShelfCommand]) {
+    ui.menu_button(label, |ui| {
+        ui.set_min_width(165.0);
+        for cmd in cmds {
+            let mut item = PetuniaMenuItem::new(&cmd.label);
+            if let Some(icon) = &cmd.icon {
+                item = item.icon(*icon);
+            }
+            if item.show(ui).on_hover_text(&cmd.tooltip).clicked() {
+                exec_shelf_action(state, &cmd.action);
+                ui.close();
+            }
+        }
+    });
+}
+
+fn draw_shelf_widget(ui: &mut Ui, state: &mut AppState, widget: ShelfWidget) {
+    match widget {
+        ShelfWidget::PaintRadius => {
+            ui.label(
+                RichText::new(state.t("paint.radius"))
+                    .size(10.5)
+                    .color(tokens::TEXT_SECONDARY),
+            );
+            ui.add_sized(
+                vec2(64.0, 18.0),
+                egui::DragValue::new(&mut state.paint_radius)
+                    .range(0.01..=5.0)
+                    .speed(0.02),
+            );
+        }
+        ShelfWidget::PaintColor => {
+            ui.label(
+                RichText::new(state.t("paint.color"))
+                    .size(11.0)
+                    .color(tokens::TEXT_SECONDARY),
+            );
+            let mut color = state.paint_color;
+            ui.add_sized(vec2(24.0, 18.0), |ui: &mut Ui| {
+                ui.color_edit_button_rgb(&mut color)
+            });
+            state.paint_color = color;
+        }
+        ShelfWidget::TimelineFrame => {
+            ui.label(
+                RichText::new(state.t("animate.frame"))
+                    .size(10.5)
+                    .color(tokens::TEXT_SECONDARY),
+            );
+            ui.add_sized(
+                vec2(64.0, 18.0),
+                egui::DragValue::new(&mut state.ui.timeline_frame)
+                    .range(state.ui.timeline_start..=state.ui.timeline_end),
+            );
+        }
+    }
 }
 
 #[cfg(test)]
@@ -493,5 +720,27 @@ mod tests {
         })
         .textures_delta
         .clear();
+    }
+
+    #[test]
+    fn pill_width_covers_icon_text_and_padding() {
+        // Sem estimativa: texto de 100px + ícone 16 + respiro 16.
+        assert_eq!(pill_width(true, 100.0), 132.0);
+        assert_eq!(pill_width(false, 100.0), 112.0);
+        assert_eq!(pill_width(true, 0.0), 28.0);
+        assert_eq!(pill_width(false, 0.0), 24.0);
+    }
+
+    #[test]
+    fn every_workspace_builds_commands() {
+        for workspace in Workspace::all() {
+            let mut state = AppState::new("en");
+            state.workspace = workspace;
+            for mode in [EditMode::Object, EditMode::Edit] {
+                state.mode = mode;
+                let (cmds, _) = build_shelf(&state);
+                assert!(!cmds.is_empty(), "{workspace:?} sem comandos");
+            }
+        }
     }
 }

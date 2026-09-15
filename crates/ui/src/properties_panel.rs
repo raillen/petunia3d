@@ -538,6 +538,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
 
         let groups = state.project.annotation_groups.clone();
         egui::ComboBox::from_id_salt("annotation_group_selector")
+            .width(ui.available_width().clamp(96.0, 180.0))
             .selected_text(current_label)
             .show_ui(ui, |ui| {
                 if ui
@@ -933,6 +934,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                     .unwrap_or_else(|| "Nenhum".to_string());
 
                 egui::ComboBox::from_id_salt("material_picker_dropdown")
+                    .width(ui.available_width().clamp(96.0, 180.0))
                     .selected_text(current_name)
                     .show_ui(ui, |ui| {
                         let mats: Vec<(Uuid, String)> = state
@@ -1009,6 +1011,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                 ui.horizontal(|ui| {
                     ui.label("Perfil:");
                     egui::ComboBox::from_id_salt("material_profile_combo")
+                        .width(ui.available_width().clamp(96.0, 180.0))
                         .selected_text(mat.profile.label())
                         .show_ui(ui, |ui| {
                             for prof in ShaderProfile::ALL {
@@ -1093,6 +1096,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                         AlphaMode::Blend => "Translucidez (Blend)",
                     };
                     egui::ComboBox::from_id_salt("material_alpha_mode_combo")
+                        .width(ui.available_width().clamp(96.0, 180.0))
                         .selected_text(mode_lbl)
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut mat.alpha_mode, AlphaMode::Opaque, "Opaco");

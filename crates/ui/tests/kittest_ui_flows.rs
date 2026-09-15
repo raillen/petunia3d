@@ -185,7 +185,14 @@ fn test_kittest_settings_modal_stability_over_multiple_frames() {
     let mut state = AppState::new("en");
     state.ui.show_settings = true;
 
-    for tab in ["appearance", "icons", "language", "keymap"] {
+    for tab in [
+        "appearance",
+        "icons",
+        "language",
+        "keymap",
+        "interface",
+        "import_export",
+    ] {
         state.ui.settings_tab = tab.to_string();
         let mut harness = Harness::builder().build_ui(|ui| {
             petunia_ui::settings_modal::draw(ui.ctx(), &mut state);
@@ -408,14 +415,53 @@ fn test_kittest_contextual_shelf_across_all_workspaces() {
     harness_anim.run_steps(2);
     drop(harness_anim);
 
-    // 6. Narrow Viewport — Graceful Collapse
+    // 6. Narrow Viewport — Wave 4: pílula "Tools…" em vez de sumir, sem clippar.
     let narrow_rect = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(300.0, 600.0));
     let mut harness_narrow = Harness::builder().build_ui(|ui| {
         let shelf_rect = contextual_shelf::draw(ui, &mut state, narrow_rect);
-        assert!(shelf_rect.is_none());
+        let shelf = shelf_rect.expect("narrow shelf collapses to pill, not None");
+        assert!(shelf.width() <= narrow_rect.width());
+        assert!(narrow_rect.contains_rect(shelf));
     });
     harness_narrow.run_steps(2);
     drop(harness_narrow);
+
+    // 7. Medium Viewport — Compact/Overflow sem clippar.
+    let medium_rect = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(700.0, 600.0));
+    let mut harness_medium = Harness::builder().build_ui(|ui| {
+        let shelf_rect = contextual_shelf::draw(ui, &mut state, medium_rect);
+        let shelf = shelf_rect.expect("medium shelf stays visible");
+        assert!(shelf.width() <= medium_rect.width());
+        assert!(medium_rect.contains_rect(shelf));
+    });
+    harness_medium.run_steps(2);
+    drop(harness_medium);
+
+    // 8. Tiny Viewport — sem espaço nem para a pílula.
+    let tiny_rect = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(60.0, 600.0));
+    let mut harness_tiny = Harness::builder().build_ui(|ui| {
+        let shelf_rect = contextual_shelf::draw(ui, &mut state, tiny_rect);
+        assert!(shelf_rect.is_none());
+    });
+    harness_tiny.run_steps(2);
+    drop(harness_tiny);
+}
+
+#[test]
+fn test_kittest_menu_rows_fit_content() {
+    // Linhas de menu acompanham o conteúdo (Wave 4 — §8.1), sem mínimo global.
+    let mut harness = Harness::builder().build_ui(|ui| {
+        let short = petunia_ui::widgets::PetuniaMenuItem::new("OK").show(ui);
+        let long =
+            petunia_ui::widgets::PetuniaMenuItem::new("Exportar malha selecionada como OBJ…")
+                .shortcut(Some("Ctrl+E"))
+                .show(ui);
+        assert!(short.rect.width() < long.rect.width());
+        assert!(long.rect.width() <= petunia_ui::widgets::MENU_MAX_W + 1.0);
+        assert!(short.rect.width() >= petunia_ui::widgets::MENU_MIN_W - 1.0);
+    });
+    harness.run_steps(2);
+    drop(harness);
 }
 
 #[test]
@@ -714,6 +760,64 @@ fn test_kittest_animate_toolbar_has_pose_tools() {
     // Ferramenta de malha não faz sentido no Animate: normalização do Model
     // não se aplica, mas o estado sobrevive intacto ao desenho.
     assert_eq!(state.workspace, Workspace::Animate);
+}
+
+#[test]
+fn test_kittest_hidden_shelf_records_no_region() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    state.borrow_mut().ui.show_shelf = false;
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    harness.run_steps(6);
+    drop(harness);
+
+    let regions = seen.borrow().clone().expect("regions recorded");
+    assert!(regions.shelf.is_none());
+    assert!(regions.viewport.is_some());
+}
+
+#[test]
+fn test_kittest_reference_manager_grid_at_widths() {
+    // Grade determinística: renderiza estável em 3 larguras, sem pânico.
+    for width in [1280.0, 800.0, 520.0] {
+        let mut state = AppState::new("pt-BR");
+        state.ui.show_reference_manager = true;
+        state
+            .project
+            .refs
+            .push(petunia_core::ReferenceImage::from_rgba(
+                "grid_ref.png".to_string(),
+                64,
+                64,
+                vec![255u8; 64 * 64 * 4],
+            ));
+
+        let mut harness = Harness::builder()
+            .with_size(egui::Vec2::new(width, 700.0))
+            .build_ui(|ui| {
+                petunia_ui::reference_manager::draw(ui.ctx(), &mut state);
+            });
+        harness.run_steps(10);
+        drop(harness);
+        assert!(state.ui.show_reference_manager);
+    }
 }
 
 #[test]

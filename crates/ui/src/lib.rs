@@ -77,21 +77,39 @@ static REF_TEXTURES: std::sync::Mutex<
     Option<std::collections::HashMap<String, egui::TextureHandle>>,
 > = std::sync::Mutex::new(None);
 
+/// Textura egui de uma imagem de referência (Wave 5 — §9.5).
+///
+/// Chave inclui dimensões + tamanho do buffer (troca de imagem reaproveita o
+/// slot sem exibir pixels obsoletos) e entradas de refs removidas são podadas
+/// para não vazar VRAM de UI.
 pub fn get_ref_texture(
     ctx: &egui::Context,
     img: &petunia_core::ReferenceImage,
+    live: &[petunia_core::ReferenceImage],
 ) -> egui::TextureHandle {
+    let key = format!(
+        "{}|{}x{}#{}",
+        img.name,
+        img.width,
+        img.height,
+        img.rgba.len()
+    );
     let mut lock = REF_TEXTURES.lock().unwrap();
     let map = lock.get_or_insert_with(std::collections::HashMap::new);
-    if let Some(handle) = map.get(&img.name) {
+    let live_keys: std::collections::HashSet<String> = live
+        .iter()
+        .map(|r| format!("{}|{}x{}#{}", r.name, r.width, r.height, r.rgba.len()))
+        .collect();
+    map.retain(|k, _| live_keys.contains(k));
+    if let Some(handle) = map.get(&key) {
         return handle.clone();
     }
     let color_img = egui::ColorImage::from_rgba_unmultiplied(
         [img.width as usize, img.height as usize],
         &img.rgba,
     );
-    let handle = ctx.load_texture(&img.name, color_img, egui::TextureOptions::LINEAR);
-    map.insert(img.name.clone(), handle.clone());
+    let handle = ctx.load_texture(&key, color_img, egui::TextureOptions::LINEAR);
+    map.insert(key, handle.clone());
     handle
 }
 
@@ -521,7 +539,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
             for i in 0..n {
                 let (tex_id, aspect) = {
                     let r = &state.project.refs[i];
-                    let tex = get_ref_texture(&ctx, r);
+                    let tex = get_ref_texture(&ctx, r, &state.project.refs);
                     (Some(tex.id()), r.height as f32 / r.width.max(1) as f32)
                 };
                 {
@@ -859,7 +877,12 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
 
         // Barra contextual horizontal flutuante na base da viewport.
         // Posicionada dentro do `rect` da viewport (nunca da tela global).
-        let shelf_rect = contextual_shelf::draw(ui, state, rect);
+        // Respeita a preferência `show_shelf` (Settings → Interface).
+        let shelf_rect = if state.ui.show_shelf {
+            contextual_shelf::draw(ui, state, rect)
+        } else {
+            None
+        };
         if let Some(shelf) = shelf_rect {
             regions::record(&ctx, regions::RegionSlot::Shelf, shelf);
         }

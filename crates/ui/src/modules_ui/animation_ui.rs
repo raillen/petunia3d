@@ -221,6 +221,7 @@ fn draw_bone_inspector_section(ui: &mut Ui, state: &mut AppState) {
     });
 
     egui::ComboBox::from_label("Osso Ativo")
+        .width(ui.available_width().clamp(96.0, 180.0))
         .selected_text(
             skel.get_bone(selected_bone_id)
                 .map(|b| b.name.as_str())

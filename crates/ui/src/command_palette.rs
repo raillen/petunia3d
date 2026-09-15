@@ -27,8 +27,9 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     let search_input_id = Id::new("command_palette_search_input");
 
     let screen_rect = ctx.viewport_rect();
-    let palette_width = 560.0_f32.min(screen_rect.width() - 32.0);
-    let max_h = (screen_rect.height() - 64.0).max(300.0);
+    let palette_width = 560.0_f32.min((screen_rect.width() - 32.0).max(200.0));
+    // Wave 5 (§9.4): altura máxima presa à viewport útil.
+    let max_h = (screen_rect.height() - 64.0).clamp(200.0, 600.0);
 
     egui::Window::new("Command Palette")
         .title_bar(false)

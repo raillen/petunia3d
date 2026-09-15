@@ -19,17 +19,20 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     }
 
     let mut open = state.ui.show_asset_library;
+    // Wave 5 (§9.4): mínimo e máximo nunca excedem a viewport útil.
     let screen_rect = ctx.viewport_rect();
-    let default_width = (screen_rect.width() * 0.65).clamp(420.0, 780.0);
-    let default_height = (screen_rect.height() * 0.60).clamp(340.0, 600.0);
-    let max_width = (screen_rect.width() - 32.0).max(420.0);
-    let max_height = (screen_rect.height() - 32.0).max(340.0);
+    let (default_size, min_size, max_size) = crate::regions::modal_sizes(
+        screen_rect,
+        vec2(screen_rect.width() * 0.65, screen_rect.height() * 0.60),
+        vec2(380.0, 280.0),
+        vec2(780.0, 640.0),
+    );
 
     Window::new(RichText::new("Project Asset Library").strong().size(14.0))
         .open(&mut open)
-        .default_size(vec2(default_width, default_height))
-        .min_size(vec2(380.0, 280.0))
-        .max_size(vec2(max_width, max_height))
+        .default_size(default_size)
+        .min_size(min_size)
+        .max_size(max_size)
         .resizable(true)
         .collapsible(false)
         .frame(

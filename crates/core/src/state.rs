@@ -669,6 +669,8 @@ pub struct UiState {
     pub workspace_memory: [WorkspaceUiMemory; 4],
     /// No workspace UV estreito, alterna entre editor UV e prévia 3D (Wave 3).
     pub uv_show_preview: bool,
+    /// Exibe a shelf contextual sobre a viewport (Wave 5: preferência real).
+    pub show_shelf: bool,
     pub timeline_frame: i32,
     pub timeline_start: i32,
     pub timeline_end: i32,
@@ -708,6 +710,7 @@ impl UiState {
             inspector_collapsed: false,
             workspace_memory: Default::default(),
             uv_show_preview: true,
+            show_shelf: true,
             timeline_frame: 1,
             timeline_start: 1,
             timeline_end: 250,

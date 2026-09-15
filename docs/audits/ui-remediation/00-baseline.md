@@ -107,3 +107,39 @@ profiler scopes. Wave 1 implements the renderer correction on top.
 - Gates: core 76+ lib/integração, ui 115 lib + 27 kittest (3 novos de workspace),
   workspace clippy clean, arch-check verde, `docs-generate` (chaves `uv.preview_3d`,
   `uv.faces` en+pt-BR).
+
+## Wave 4 close-out (2026-09-15)
+
+- Shelf como dados (`contextual_shelf.rs`): `ShelfCommand` (ícone, rótulo,
+  tooltip, `ShelfPriority`, `ShelfAction`) + widgets finos de largura fixa.
+- Sem estimativa: pílulas medidas por galley (`pill_width` idêntica na medição
+  e na renderização); cápsula com largura exata do conteúdo — fim do "fundo
+  menor que os elementos".
+- Modos determinísticos por frame (Full → Compact → Overflow → Pill → Hidden),
+  sem feedback de frame anterior; "More…" com `PetuniaMenuItem` reaproveitado.
+- Menus (`widgets.rs`): `menu_row_width` por galley + `MENU_MIN/MAX_W`
+  (120/320) nos 3 tipos de item; popup acompanha o conteúdo.
+- ComboBox: inspector com `available.clamp(96, 180)`; toolbar já tinha
+  larguras locais (62/88/116) — mantidas.
+- Chaves novas: `tools.eraser/picker/uv_*`, `paint.color`, `ui.more/tools_menu`,
+  `[animate]` (7) en+pt-BR. Restante hardcoded da shelf vai para Wave 7.
+- Gates: ui 117→122 lib + 28→30 kittest (modos narrow/medium/tiny + menu),
+  clippy limpo.
+
+## Wave 5 close-out (2026-09-15)
+
+- Reference Manager: grade determinística (`grid_columns`, `grid_card_width`,
+  1–3 cols, testes), header empilha <560px, cartões com zonas fixas
+  (header/prévia 140/status) + ajuste fino colapsável, `✕` no lugar do 🗑,
+  títulos via `refs.*`, janela com `modal_sizes`.
+- `regions::modal_sizes` (dono único §9.4): aplicado em Settings, Reference
+  Manager, Asset Library, Recovery; paleta com clamp seguro.
+- Texturas de ref: chave nome+dims+len (sem pixels obsoletos) + poda de
+  removidas (sem leak de VRAM de UI).
+- Settings: abas Interface (shelf toggle real + 2 resets reais §15.7) e
+  Import/Export (`export_gltf` real); sem placebo (Performance/Autosave sem
+  contraparte real ficam de fora — ledger).
+- Sem escopo: glyphs restantes (👁📁↺) → Wave 6; i18n residual → Wave 7;
+  prefs em disco → follow-up (sem infra no repo).
+- Gates: ui 122 lib + 30 kittest, workspace clippy limpo, arch-check verde,
+  `docs-check` (VitePress build OK).

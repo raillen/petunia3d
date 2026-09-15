@@ -163,6 +163,36 @@ pub fn split_heights(
     }
 }
 
+/// Tamanhos seguros de modal a partir da viewport (Wave 5 — §9.4).
+///
+/// Nenhum valor excede a viewport útil: `min = min(pedido, disponível)` com
+/// piso absoluto, `max = min(disponível, teto)`, padrão preso entre os dois.
+/// Retorna `(default_size, min_size, max_size)`.
+pub fn modal_sizes(
+    viewport: egui::Rect,
+    default_desired: egui::Vec2,
+    min_req: egui::Vec2,
+    max_cap: egui::Vec2,
+) -> (egui::Vec2, egui::Vec2, egui::Vec2) {
+    let avail = egui::vec2(
+        (viewport.width() - 24.0).max(0.0),
+        (viewport.height() - 24.0).max(0.0),
+    );
+    let min = egui::vec2(
+        min_req.x.min(avail.x).max(200.0),
+        min_req.y.min(avail.y).max(160.0),
+    );
+    let max = egui::vec2(
+        avail.x.min(max_cap.x).max(min.x),
+        avail.y.min(max_cap.y).max(min.y),
+    );
+    let default = egui::vec2(
+        default_desired.x.clamp(min.x, max.x),
+        default_desired.y.clamp(min.y, max.y),
+    );
+    (default, min, max)
+}
+
 const REGIONS_KEY: &str = "petunia_ui_regions";
 
 /// Reseta as regiões no início do frame (evita slots obsoletos de painéis ocultos).
@@ -281,5 +311,26 @@ mod tests {
         let (out_wide, _) = split_heights(600.0, 1.0, false, false);
         assert!(out_narrow >= DOCK_HEADER_H && out_wide <= 600.0 - DOCK_SEPARATOR_H);
         assert!(out_narrow < out_wide);
+    }
+
+    #[test]
+    fn modal_sizes_never_exceed_viewport() {
+        for (w, h) in [
+            (1920.0, 1080.0),
+            (1280.0, 800.0),
+            (700.0, 500.0),
+            (400.0, 300.0),
+        ] {
+            let vp = rect(0.0, 0.0, w, h);
+            let (def, min, max) = modal_sizes(
+                vp,
+                egui::vec2(720.0, 560.0),
+                egui::vec2(480.0, 360.0),
+                egui::vec2(860.0, 720.0),
+            );
+            assert!(max.x <= w - 24.0 + 0.01 && max.y <= h - 24.0 + 0.01);
+            assert!(min.x <= max.x && min.y <= max.y);
+            assert!(def.x >= min.x && def.x <= max.x && def.y >= min.y && def.y <= max.y);
+        }
     }
 }

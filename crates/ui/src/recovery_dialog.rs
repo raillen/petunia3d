@@ -19,10 +19,14 @@ pub enum RecoveryAction {
 /// Renderiza o diálogo modal de recuperação caso haja uma recuperação pendente.
 pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<RecoveryAction> {
     let mut action = None;
+    // Wave 5 (§9.4): máximo nunca excede a viewport útil.
     let screen_rect = ctx.viewport_rect();
-    let width = (screen_rect.width() * 0.5).clamp(420.0, 560.0);
-    let max_w = (screen_rect.width() - 32.0).max(420.0);
-    let max_h = (screen_rect.height() - 32.0).max(240.0);
+    let (default_size, min_size, max_size) = crate::regions::modal_sizes(
+        screen_rect,
+        vec2(screen_rect.width() * 0.5, 240.0),
+        vec2(380.0, 200.0),
+        vec2(560.0, 420.0),
+    );
 
     Window::new(
         RichText::new(state.t("recovery.title"))
@@ -30,8 +34,9 @@ pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<
             .size(13.5)
             .color(tokens::ACCENT_AMBER),
     )
-    .default_size(vec2(width, 240.0))
-    .max_size(vec2(max_w, max_h))
+    .default_size(default_size)
+    .min_size(min_size)
+    .max_size(max_size)
     .resizable(false)
     .collapsible(false)
     .frame(
