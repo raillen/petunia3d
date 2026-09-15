@@ -1,0 +1,104 @@
+name: modeling-convergence-wave-3
+
+on:
+  push:
+    branches:
+      - ux/modeling-tool-system-convergence
+    paths:
+      - scripts/apply_wave3_ux_polish.py
+      - .github/workflows/wave3-ux-polish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-validate:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ux/modeling-tool-system-convergence
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install native Linux UI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            liblzma-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libx11-dev \
+            libxi-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev
+
+      - name: Apply Wave 3 implementation
+        run: python3 scripts/apply_wave3_ux_polish.py
+
+      - name: Guard Wave 2 convergence
+        run: |
+          test ! -f crates/ui/src/modules_ui/model_ui.rs
+          ! grep -R "model_ui" -n crates/ui/src --include='*.rs'
+
+      - name: Guard viewport localization
+        run: |
+          ! grep -n 'Soltar para Instanciar\|Objeto Bloqueado\|"Modelagem"' crates/ui/src/viewport_interaction.rs
+          grep -q 'viewport.drop_to_instantiate' crates/ui/src/viewport_interaction.rs
+          grep -q 'context.object_locked' crates/ui/src/viewport_interaction.rs
+          grep -q 'context.modeling' crates/ui/src/viewport_interaction.rs
+
+      - name: Format
+        run: cargo fmt --all
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Check Wave 3 crates
+        run: cargo check -p petunia_ui -p petunia_app -p petunia_module_model -p petunia_core -p petunia_config
+
+      - name: Clippy Wave 3 crates
+        run: cargo clippy -p petunia_ui -p petunia_app -p petunia_module_model -p petunia_core --all-targets -- -D warnings
+
+      - name: Test UI visual and layout contracts
+        run: cargo test -p petunia_ui --lib
+
+      - name: Test core interaction lifecycle
+        run: cargo test -p petunia_core
+
+      - name: Test modeling module
+        run: cargo test -p petunia_module_model
+
+      - name: Test localization/config
+        run: cargo test -p petunia_config
+
+      - name: Test app integration
+        run: cargo test -p petunia_app --lib
+
+      - name: Remove staging automation
+        run: |
+          rm -f scripts/apply_wave3_ux_polish.py
+          rm -f .github/workflows/wave3-ux-polish.yml
+
+      - name: Commit validated Wave 3
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "refactor: polish viewport overlays and responsive modeling UX [skip ci]"
+          git push origin HEAD:ux/modeling-tool-system-convergence
