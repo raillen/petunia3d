@@ -23,30 +23,42 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           path = Path('crates/app/src/lib.rs')
           text = path.read_text()
-          old_wgpu = '''            WindowEvent::CursorMoved { position, .. } => {
+
+          wgpu_pattern = re.compile(
+              r'(WindowEvent::CursorMoved\s*\{\s*position,\s*\.\.\s*\}\s*=>\s*\{\s*\n'
+              r'\s*self\.core\.last_mouse\s*=\s*Some\(\(position\.x,\s*position\.y\)\);\s*\n)'
+              r'\s*gfx\.window\.request_redraw\(\);\s*\n(\s*\})'
+          )
+          gl_pattern = re.compile(
+              r'(WindowEvent::CursorMoved\s*\{\s*position,\s*\.\.\s*\}\s*=>\s*\{\s*\n'
+              r'\s*self\.core\.last_mouse\s*=\s*Some\(\(position\.x,\s*position\.y\)\);\s*\n)'
+              r'\s*g\.gl_window\.window\(\)\.request_redraw\(\);\s*\n(\s*\})'
+          )
+
+          text, wgpu_count = wgpu_pattern.subn(
+              r'''            WindowEvent::CursorMoved { position, .. } => {
+                // egui-winit already reports whether pointer movement needs repaint.
+                // Avoid a second unconditional full 3D + UI frame on every event.
                 self.core.last_mouse = Some((position.x, position.y));
-                gfx.window.request_redraw();
-            }'''
-          new_wgpu = '''            WindowEvent::CursorMoved { position, .. } => {
-                // `egui_state.on_window_event` already requests a redraw when pointer
-                // movement changes hover/interaction state. Do not force a second,
-                // unconditional full 3D + UI frame for every cursor event.
-                self.core.last_mouse = Some((position.x, position.y));
-            }'''
-          old_gl = '''            WindowEvent::CursorMoved { position, .. } => {
-                self.core.last_mouse = Some((position.x, position.y));
-                g.gl_window.window().request_redraw();
-            }'''
-          new_gl = '''            WindowEvent::CursorMoved { position, .. } => {
+            }''',
+              text,
+              count=1,
+          )
+          text, gl_count = gl_pattern.subn(
+              r'''            WindowEvent::CursorMoved { position, .. } => {
                 // Same policy as WGPU: egui decides whether pointer movement needs
-                // repaint; avoid an unconditional full render on every event.
+                // repaint, avoiding an unconditional full render on every event.
                 self.core.last_mouse = Some((position.x, position.y));
-            }'''
-          if old_wgpu not in text or old_gl not in text:
-              raise SystemExit('expected CursorMoved blocks were not found')
-          text = text.replace(old_wgpu, new_wgpu, 1).replace(old_gl, new_gl, 1)
+            }''',
+              text,
+              count=1,
+          )
+          if (wgpu_count, gl_count) != (1, 1):
+              raise SystemExit(f'expected one WGPU and one GL block, got {wgpu_count=} {gl_count=}')
           path.write_text(text)
           PY
       - name: Format
