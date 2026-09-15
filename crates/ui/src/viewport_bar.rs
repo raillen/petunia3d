@@ -10,9 +10,9 @@
 
 use egui::{Color32, CornerRadius, Rect, Ui, pos2, vec2};
 use petunia_core::{
-    AddPrimitiveCmd, AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode,
-    InvertSelectionCmd, MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff,
-    SelectAllCmd, SelectionDomain, SnapTarget, SubdivideSelectionCmd, TransformOrientation,
+    AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode, InvertSelectionCmd,
+    MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff, SelectAllCmd, SelectionDomain,
+    SnapTarget, SubdivideSelectionCmd, TransformOrientation,
 };
 use petunia_render::Shading;
 
@@ -65,6 +65,42 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
             draw_display_toggles_cluster(ui, state);
         });
     });
+}
+
+/// Grupos canônicos do menu Add (§36): três famílias, dez espécies, sem
+/// duplicata. Fonte única usada pelo menu e pelo teste de cobertura.
+fn primitive_menu_groups() -> [(petunia_config::TextId, &'static [PrimitiveKind]); 3] {
+    use petunia_config::text_id as T;
+    [
+        (
+            T::PRIMS_GROUP_BASIC,
+            [
+                PrimitiveKind::Cube,
+                PrimitiveKind::Plane,
+                PrimitiveKind::Wedge,
+            ]
+            .as_slice(),
+        ),
+        (
+            T::PRIMS_GROUP_ROUND,
+            [
+                PrimitiveKind::Cylinder,
+                PrimitiveKind::Cone,
+                PrimitiveKind::Circle,
+                PrimitiveKind::Torus,
+            ]
+            .as_slice(),
+        ),
+        (
+            T::PRIMS_GROUP_ORGANIC,
+            [
+                PrimitiveKind::Sphere,
+                PrimitiveKind::Icosphere,
+                PrimitiveKind::Capsule,
+            ]
+            .as_slice(),
+        ),
+    ]
 }
 
 /// Trata atalhos de teclado (Tab, 1, 2, 3, 0) diretamente no egui para máxima responsividade.
@@ -401,50 +437,30 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
-    // Menu Add
+    // Menu Add: três famílias de formas (§36), caminho único via sessão.
     let mut spawn_kind: Option<PrimitiveKind> = None;
     ui.menu_button(format!("{} ▾", state.t("tools.primitives")), |ui| {
-        if PetuniaMenuItem::new(&state.t("prims.cube"))
-            .icon(PetuniaIcon::AddPrimitive)
-            .show(ui)
-            .clicked()
-        {
-            spawn_kind = Some(PrimitiveKind::Cube);
-            ui.close();
+        for (group, kinds) in primitive_menu_groups() {
+            ui.label(
+                egui::RichText::new(state.t_id(group))
+                    .size(10.5)
+                    .color(tokens::TEXT_MUTED)
+                    .strong(),
+            );
+            for kind in kinds {
+                let label = state.t_id(kind.name_key());
+                if PetuniaMenuItem::new(&label)
+                    .icon(PetuniaIcon::AddPrimitive)
+                    .show(ui)
+                    .on_hover_text(&label)
+                    .clicked()
+                {
+                    spawn_kind = Some(*kind);
+                    ui.close();
+                }
+            }
+            petunia_menu_separator(ui);
         }
-        if PetuniaMenuItem::new(&state.t("prims.sphere"))
-            .icon(PetuniaIcon::AddPrimitive)
-            .show(ui)
-            .clicked()
-        {
-            spawn_kind = Some(PrimitiveKind::Sphere);
-            ui.close();
-        }
-        if PetuniaMenuItem::new(&state.t("prims.cylinder"))
-            .icon(PetuniaIcon::AddPrimitive)
-            .show(ui)
-            .clicked()
-        {
-            spawn_kind = Some(PrimitiveKind::Cylinder);
-            ui.close();
-        }
-        if PetuniaMenuItem::new(&state.t("prims.plane"))
-            .icon(PetuniaIcon::AddPrimitive)
-            .show(ui)
-            .clicked()
-        {
-            spawn_kind = Some(PrimitiveKind::Plane);
-            ui.close();
-        }
-        if PetuniaMenuItem::new(&state.t("prims.cone"))
-            .icon(PetuniaIcon::AddPrimitive)
-            .show(ui)
-            .clicked()
-        {
-            spawn_kind = Some(PrimitiveKind::Cone);
-            ui.close();
-        }
-        petunia_menu_separator(ui);
         if PetuniaMenuItem::new(&state.t("ui.refs"))
             .icon(PetuniaIcon::ReferenceImage)
             .shortcut(Some("Shift+R"))
@@ -457,12 +473,9 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         }
     });
 
+    // Caminho canônico único: sessão de criação (§82), nunca inserção direta.
     if let Some(kind) = spawn_kind {
-        let _ = state.dispatch(&AddPrimitiveCmd {
-            kind,
-            name: None,
-            at_cursor: true,
-        });
+        state.begin_primitive(kind, None);
     }
 
     // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
@@ -1314,6 +1327,20 @@ fn draw_shading_spheres_cluster(ui: &mut Ui, state: &mut AppState) {
 mod tests {
     use super::*;
     use petunia_core::SelectMode;
+
+    #[test]
+    fn primitive_menu_covers_all_ten_species_once() {
+        let groups = primitive_menu_groups();
+        assert_eq!(groups.len(), 3);
+        let mut seen: Vec<PrimitiveKind> = Vec::new();
+        for (_, kinds) in &groups {
+            seen.extend(kinds.iter().copied());
+        }
+        assert_eq!(seen.len(), 10);
+        seen.sort_by_key(|k| *k as u8);
+        seen.dedup();
+        assert_eq!(seen.len(), 10);
+    }
 
     #[test]
     fn test_viewport_bar_renders_without_panic() {

@@ -844,7 +844,7 @@ impl CommandDispatcher {
 // Comandos Canônicos
 // -------------------------------------------------------------------------------------------------
 
-/// Tipos de primitivas geométricas tridimensionais suportadas.
+/// Tipos de primitivas geométricas tridimensionais suportadas (V1: dez).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveKind {
     Cube,
@@ -853,6 +853,10 @@ pub enum PrimitiveKind {
     Plane,
     Cone,
     Capsule,
+    Wedge,
+    Circle,
+    Torus,
+    Icosphere,
 }
 
 impl PrimitiveKind {
@@ -864,17 +868,43 @@ impl PrimitiveKind {
             Self::Plane => "Plane",
             Self::Cone => "Cone",
             Self::Capsule => "Capsule",
+            Self::Wedge => "Wedge",
+            Self::Circle => "Circle",
+            Self::Torus => "Torus",
+            Self::Icosphere => "Icosphere",
         }
     }
 
+    /// Nome i18n (`prims.cube`, …).
+    pub fn name_key(&self) -> petunia_config::TextId {
+        use petunia_config::text_id as T;
+        match self {
+            Self::Cube => T::PRIMS_CUBE,
+            Self::Sphere => T::PRIMS_SPHERE,
+            Self::Cylinder => T::PRIMS_CYLINDER,
+            Self::Plane => T::PRIMS_PLANE,
+            Self::Cone => T::PRIMS_CONE,
+            Self::Capsule => T::PRIMS_CAPSULE,
+            Self::Wedge => T::PRIMS_WEDGE,
+            Self::Circle => T::PRIMS_CIRCLE,
+            Self::Torus => T::PRIMS_TORUS,
+            Self::Icosphere => T::PRIMS_ICOSPHERE,
+        }
+    }
+
+    /// Malha padrão: defaults intencionalmente low-poly (§5 do gauntlet).
     pub fn generate_mesh(&self) -> Mesh {
         match self {
             Self::Cube => Mesh::cube(1.0),
-            Self::Sphere => Mesh::sphere_low(16, 12, 0.5),
-            Self::Cylinder => Mesh::cylinder(16, 0.5, 1.0),
-            Self::Plane => Mesh::plane(2.0),
-            Self::Cone => Mesh::cone(16, 0.5, 1.0),
-            Self::Capsule => Mesh::capsule(16, 0.3, 0.8),
+            Self::Sphere => Mesh::sphere_low(12, 6, 0.5),
+            Self::Cylinder => Mesh::cylinder(8, 0.5, 1.0),
+            Self::Plane => Mesh::plane(1.0),
+            Self::Cone => Mesh::cone(8, 0.5, 1.0),
+            Self::Capsule => Mesh::capsule_profile(8, 0.3, 0.8, 2),
+            Self::Wedge => Mesh::wedge(1.0, 1.0, 1.0),
+            Self::Circle => Mesh::circle(1.0, 12, true),
+            Self::Torus => Mesh::torus(1.0, 0.3, 12, 6),
+            Self::Icosphere => Mesh::icosphere(0.5, 1),
         }
     }
 }

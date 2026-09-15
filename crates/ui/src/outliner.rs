@@ -5,9 +5,7 @@
 
 use egui::{Color32, Id, Rect, Response, ScrollArea, Ui, vec2};
 use egui_ltreeview::{Action, NodeBuilder, TreeView, TreeViewSettings};
-use petunia_core::{
-    AddPrimitiveCmd, AnnotationItem, AppState, DeleteAssetCmd, DuplicateAssetCmd, PrimitiveKind,
-};
+use petunia_core::{AnnotationItem, AppState, DeleteAssetCmd, DuplicateAssetCmd, PrimitiveKind};
 use uuid::Uuid;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
@@ -1592,29 +1590,22 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     }
 }
 
+/// Caminho canônico único de criação (P1D-§82): todas as espécies abrem a
+/// sessão de criação (transação única + cartão Last Operation).
 pub fn add_primitive_to_scene(state: &mut AppState, kind: usize, name: &str) {
-    // Wave 8: espécies com cartão de parâmetros abrem sessão (transação única
-    // + Last Operation); Cone/Capsule mantêm inserção direta.
-    let session_kind = match kind {
-        0 => Some(PrimitiveKind::Cube),
-        1 => Some(PrimitiveKind::Sphere),
-        2 => Some(PrimitiveKind::Cylinder),
-        3 => Some(PrimitiveKind::Plane),
-        _ => None,
-    };
-    if let Some(p_kind) = session_kind {
-        state.begin_primitive(p_kind, Some(name.to_string()));
-        return;
-    }
     let p_kind = match kind {
+        0 => PrimitiveKind::Cube,
+        1 => PrimitiveKind::Sphere,
+        2 => PrimitiveKind::Cylinder,
+        3 => PrimitiveKind::Plane,
         4 => PrimitiveKind::Cone,
-        _ => PrimitiveKind::Capsule,
+        5 => PrimitiveKind::Capsule,
+        6 => PrimitiveKind::Wedge,
+        7 => PrimitiveKind::Circle,
+        8 => PrimitiveKind::Torus,
+        _ => PrimitiveKind::Icosphere,
     };
-    let _ = state.dispatch(&AddPrimitiveCmd {
-        kind: p_kind,
-        name: Some(name.to_string()),
-        at_cursor: true,
-    });
+    state.begin_primitive(p_kind, Some(name.to_string()));
 }
 
 #[cfg(test)]

@@ -15,6 +15,7 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 - **i18n e a11y (Wave 7)**: `TextId` tipado, paridade en/pt-BR em CI, pseudo-locale, switch com redesenho, locales embutidos de reserva, foco por Tab, matriz de escala.
 - **Criação de primitivas (Wave 8)**: sessão `PrimitiveCreationSession` com cartão Last Operation (6 espécies, regeneração ao vivo, transação única de undo, Esc cancela).
 - **Convergência (Wave 9)**: removidos `tiles_workspace.rs`, `app_icons.rs` e PNGs inalcançáveis da toolbar; pilots P1 com gate (`flex_layout`, `inbox_bridge`) mantidos com veredito no ledger.
+- **Primitivas V1 (gauntlet dedicado)**: dez espécies validadas (Cube/Box W/H/D, Plane, Wedge, Cylinder/Cone via gerador frustum com tampas, Circle/Disc, Torus, UV Sphere com polos soldados, Icosphere 0–3, Capsule parametrizada); defaults low-poly; menu Add agrupado; sessão + cartão com Reset e estatísticas; i18n en/pt-BR completa das superfícies; pipeline save/load/OBJ/GLB por espécie.
 
 ## [0.32.0] - 2026-09-14 — Wave 10: Animation & Rigging (P3D-066, P3D-067, P3D-135 a P3D-139)
 

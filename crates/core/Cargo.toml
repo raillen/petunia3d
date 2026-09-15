@@ -26,6 +26,7 @@ schemars = { workspace = true }
 proptest = { workspace = true }
 criterion = { workspace = true }
 insta = { workspace = true }
+tempfile = { workspace = true }
 
 [[bench]]
 name = "core_jobs"

@@ -1030,6 +1030,53 @@ fn test_kittest_primitive_session_card_lifecycle() {
 }
 
 #[test]
+fn test_kittest_primitive_card_pseudo_and_narrow() {
+    // Painel de criação sobrevive a rótulos longos e janela estreita (§39).
+    for (width, lang) in [(800.0, "pseudo"), (700.0, "pt-BR"), (1280.0, "en")] {
+        let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+        if lang == "pseudo" {
+            state.borrow_mut().ui.i18n =
+                petunia_config::I18n::pseudo_from(&petunia_config::I18n::load("en"));
+        } else {
+            state.borrow_mut().ui.i18n = petunia_config::I18n::load(lang);
+        }
+        assert!(
+            state
+                .borrow_mut()
+                .begin_primitive(petunia_core::PrimitiveKind::Torus, None)
+        );
+        let tools = ToolRegistry::new();
+        let mut registry = petunia_core::ModuleRegistry::new();
+        let mut action = petunia_ui::UiAction::none();
+        let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+        let seen_clone = seen.clone();
+        let state_clone = state.clone();
+
+        let mut harness = Harness::builder()
+            .with_size(egui::Vec2::new(width, 700.0))
+            .build_ui(move |ui| {
+                petunia_ui::draw(
+                    ui,
+                    &mut state_clone.borrow_mut(),
+                    &tools,
+                    &mut registry,
+                    &mut action,
+                );
+                *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+            });
+        harness.run_steps(6);
+        drop(harness);
+
+        assert!(
+            state.borrow().primitive_session_valid(),
+            "sessão viva em {width}/{lang}"
+        );
+        let regions = seen.borrow().clone().expect("regions recorded");
+        assert!(regions.status_overlaps().is_empty(), "{width}/{lang}");
+    }
+}
+
+#[test]
 fn test_kittest_animation_workspace_and_rig_panel() {
     let mut state = AppState {
         session: petunia_core::state::EditorSession {

@@ -61,6 +61,7 @@ export default withMermaid(
               { text: 'Viewport 3D & Câmera', link: '/manual/viewport' },
               { text: 'Modos de Seleção', link: '/manual/selection' },
               { text: 'Fluxo de Modelagem', link: '/manual/modeling' },
+              { text: 'Primitivas & Criação', link: '/manual/primitives' },
               { text: 'Pintura & Cores', link: '/manual/paint' },
               { text: 'Mapeamento UV', link: '/manual/uv' },
               { text: 'Linha do Tempo', link: '/manual/animation' },

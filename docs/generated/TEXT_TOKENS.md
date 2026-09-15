@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **280**.
+Total de chaves de localização cadastradas: **316**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -145,22 +145,58 @@ Total de chaves de localização cadastradas: **280**.
 | `paint.size` | Size px | Tam px |
 | `paint.strength` | Strength | Força |
 | `paint.vertex` | Vertex paint | Pintura vértice |
+| `prims.body_length` | Body Length | Comprimento do Corpo |
+| `prims.bottom_radius` | Bottom Radius | Raio da Base |
 | `prims.cancel` | Cancel | Cancelar |
+| `prims.cap` | Cap | Tampa |
+| `prims.cap_both` | Both | Ambas |
+| `prims.cap_bottom_only` | Bottom | Base |
+| `prims.cap_none` | None | Nenhuma |
+| `prims.cap_top_only` | Top | Topo |
 | `prims.capsule` | Capsule | Cápsula |
+| `prims.circle` | Circle | Círculo |
 | `prims.cone` | Cone (8) | Cone (8) |
 | `prims.confirm` | Confirm | Confirmar |
 | `prims.confirm_hint` | Enter confirms · Esc cancels | Enter confirma · Esc cancela |
 | `prims.cube` | Cube | Cubo |
 | `prims.cylinder` | Cylinder (8) | Cilindro (8) |
+| `prims.depth` | Depth | Profundidade |
+| `prims.fill` | Fill | Preenchimento |
+| `prims.fill_disc` | Disc | Disco |
+| `prims.fill_none` | None | Nenhum |
+| `prims.group_basic` | BASIC | BÁSICAS |
+| `prims.group_organic` | ORGANIC | ORGÂNICAS |
+| `prims.group_round` | ROUND | REDONDAS |
 | `prims.height` | Height | Altura |
+| `prims.icosphere` | Icosphere | Icoesfera |
+| `prims.major_radius` | Major Radius | Raio Maior |
+| `prims.minor_radius` | Minor Radius | Raio Menor |
 | `prims.plane` | Plane | Plano |
 | `prims.radius` | Radius | Raio |
 | `prims.reopen` | Last operation… | Última operação… |
+| `prims.reset` | Reset | Redefinir |
 | `prims.rings` | Rings | Anéis |
 | `prims.segments` | Segments | Segmentos |
 | `prims.sides` | Sides | Lados |
 | `prims.size` | Size | Tamanho |
 | `prims.sphere` | Sphere (low) | Esfera (low) |
+| `prims.subdivision` | Subdivision Level | Nível de Subdivisão |
+| `prims.tip_body_length` | Length of the straight body between the rounded caps. | Comprimento do corpo reto entre as calotas. |
+| `prims.tip_caps` | Close the top and bottom with flat caps. | Fecha topo e base com tampas planas. |
+| `prims.tip_fill` | Fill the circle with a triangle fan, or keep only the outline. | Preenche o círculo com leque de triângulos ou mantém só o contorno. |
+| `prims.tip_major_radius` | Distance from the Torus center to the center of its tube. | Distância do centro do Toro ao centro do tubo. |
+| `prims.tip_minor_radius` | Radius of the Torus tube. | Raio do tubo do Toro. |
+| `prims.tip_rings` | Rings from bottom to top. Fewer rings read more low-poly. | Anéis da base ao topo. Menos anéis, mais low-poly. |
+| `prims.tip_segments` | Segments around the shape. Fewer segments read more low-poly. | Segmentos ao redor da forma. Menos segmentos, mais low-poly. |
+| `prims.tip_sides` | Number of sides around the shape. Lower values create a more visibly low-poly result. | Número de lados ao redor da forma. Valores menores deixam o low-poly mais visível. |
+| `prims.tip_subdiv` | Each level significantly increases the number of faces in the Icosphere. | Cada nível aumenta muito o número de faces da Icoesfera. |
+| `prims.tip_top_radius` | Radius of the upper ring. Set it to zero to create a cone. | Raio do anel superior. Zere para criar um cone. |
+| `prims.tip_vertices` | Vertices around the circle. | Vértices ao redor do círculo. |
+| `prims.top_radius` | Top Radius | Raio do Topo |
+| `prims.torus` | Torus | Toro |
+| `prims.tris` | Tris | Tris |
+| `prims.vertices` | Vertices | Vértices |
+| `prims.wedge` | Wedge | Cunha |
 | `prims.width` | Width | Largura |
 | `profile.clear` | Clear | Limpar |
 | `profile.close` | Close | Fechar |

@@ -47,3 +47,72 @@ proptest! {
         }
     }
 }
+
+proptest! {
+    /// Primitivas radiais: finitas, válidas e sem degeneradas em toda a faixa.
+    #[test]
+    fn radial_primitives_hold_invariants(
+        sides in 0u32..70,
+        radius in 0.0f32..50.0,
+        height in 0.0f32..50.0,
+        top in 0.0f32..50.0,
+    ) {
+        for mesh in [
+            Mesh::cylinder(sides, radius, height),
+            Mesh::cone(sides, radius, height),
+            Mesh::radial_frustum(radius, top, height, sides, true, true),
+            Mesh::radial_frustum(radius, top, height, sides, false, false),
+        ] {
+            let a = petunia_mesh::primitives::primitive_audit(&mesh);
+            prop_assert!(a.all_finite);
+            prop_assert!(a.indices_valid);
+            prop_assert_eq!(a.degenerate_faces, 0);
+            prop_assert!(a.bounds_min.iter().all(|x| x.is_finite()));
+        }
+    }
+
+    /// Redondas/orgânicas: finitas, válidas e sem degeneradas em toda a faixa.
+    #[test]
+    fn round_primitives_hold_invariants(
+        radius in 0.0f32..50.0,
+        seg in 0u32..70,
+        rings in 0u32..50,
+        subdiv in 0u32..8,
+    ) {
+        for mesh in [
+            Mesh::sphere_low(seg, rings, radius),
+            Mesh::icosphere(radius, subdiv),
+            Mesh::capsule_profile(seg, radius, radius * 2.0, 2),
+            Mesh::torus(radius + 1.0, radius * 0.4 + 0.01, seg, rings),
+            Mesh::circle(radius, seg, true),
+            Mesh::circle(radius, seg, false),
+        ] {
+            let a = petunia_mesh::primitives::primitive_audit(&mesh);
+            prop_assert!(a.all_finite);
+            prop_assert!(a.indices_valid);
+            prop_assert_eq!(a.degenerate_faces, 0);
+            prop_assert_eq!(a.coincident_verts, 0);
+        }
+    }
+
+    /// Caixas/cunhas/planos: invariantes em dimensões arbitrárias.
+    #[test]
+    fn box_family_holds_invariants(
+        w in 0.0f32..50.0,
+        h in 0.0f32..50.0,
+        d in 0.0f32..50.0,
+    ) {
+        for mesh in [
+            Mesh::cube(w),
+            Mesh::box_dim(w, h, d),
+            Mesh::wedge(w, h, d),
+            Mesh::plane(w),
+        ] {
+            let a = petunia_mesh::primitives::primitive_audit(&mesh);
+            prop_assert!(a.all_finite);
+            prop_assert!(a.indices_valid);
+            prop_assert_eq!(a.degenerate_faces, 0);
+            prop_assert_eq!(a.outward_violations, 0);
+        }
+    }
+}

@@ -215,6 +215,12 @@ pub mod text_id {
     pub const REFS_OFFSET: TextId = TextId::new("refs.offset");
     pub const REFS_ROTATION: TextId = TextId::new("refs.rotation");
 
+    pub const PRIMS_CUBE: TextId = TextId::new("prims.cube");
+    pub const PRIMS_PLANE: TextId = TextId::new("prims.plane");
+    pub const PRIMS_CYLINDER: TextId = TextId::new("prims.cylinder");
+    pub const PRIMS_SPHERE: TextId = TextId::new("prims.sphere");
+    pub const PRIMS_CONE: TextId = TextId::new("prims.cone");
+    pub const PRIMS_CAPSULE: TextId = TextId::new("prims.capsule");
     pub const PRIMS_SIZE: TextId = TextId::new("prims.size");
     pub const PRIMS_RADIUS: TextId = TextId::new("prims.radius");
     pub const PRIMS_SEGMENTS: TextId = TextId::new("prims.segments");
@@ -226,6 +232,42 @@ pub mod text_id {
     pub const PRIMS_CANCEL: TextId = TextId::new("prims.cancel");
     pub const PRIMS_REOPEN: TextId = TextId::new("prims.reopen");
     pub const PRIMS_CONFIRM_HINT: TextId = TextId::new("prims.confirm_hint");
+    pub const PRIMS_WEDGE: TextId = TextId::new("prims.wedge");
+    pub const PRIMS_CIRCLE: TextId = TextId::new("prims.circle");
+    pub const PRIMS_TORUS: TextId = TextId::new("prims.torus");
+    pub const PRIMS_ICOSPHERE: TextId = TextId::new("prims.icosphere");
+    pub const PRIMS_GROUP_BASIC: TextId = TextId::new("prims.group_basic");
+    pub const PRIMS_GROUP_ROUND: TextId = TextId::new("prims.group_round");
+    pub const PRIMS_GROUP_ORGANIC: TextId = TextId::new("prims.group_organic");
+    pub const PRIMS_DEPTH: TextId = TextId::new("prims.depth");
+    pub const PRIMS_TOP_RADIUS: TextId = TextId::new("prims.top_radius");
+    pub const PRIMS_BOTTOM_RADIUS: TextId = TextId::new("prims.bottom_radius");
+    pub const PRIMS_MAJOR_RADIUS: TextId = TextId::new("prims.major_radius");
+    pub const PRIMS_MINOR_RADIUS: TextId = TextId::new("prims.minor_radius");
+    pub const PRIMS_VERTICES: TextId = TextId::new("prims.vertices");
+    pub const PRIMS_FILL: TextId = TextId::new("prims.fill");
+    pub const PRIMS_CAP: TextId = TextId::new("prims.cap");
+    pub const PRIMS_SUBDIV: TextId = TextId::new("prims.subdivision");
+    pub const PRIMS_BODY_LENGTH: TextId = TextId::new("prims.body_length");
+    pub const PRIMS_RESET: TextId = TextId::new("prims.reset");
+    pub const PRIMS_TRIS: TextId = TextId::new("prims.tris");
+    pub const PRIMS_CAP_BOTH: TextId = TextId::new("prims.cap_both");
+    pub const PRIMS_CAP_TOP: TextId = TextId::new("prims.cap_top_only");
+    pub const PRIMS_CAP_BOTTOM: TextId = TextId::new("prims.cap_bottom_only");
+    pub const PRIMS_CAP_NONE: TextId = TextId::new("prims.cap_none");
+    pub const PRIMS_FILL_NONE: TextId = TextId::new("prims.fill_none");
+    pub const PRIMS_FILL_DISC: TextId = TextId::new("prims.fill_disc");
+    pub const PRIMS_TIP_SIDES: TextId = TextId::new("prims.tip_sides");
+    pub const PRIMS_TIP_TOP_RADIUS: TextId = TextId::new("prims.tip_top_radius");
+    pub const PRIMS_TIP_SUBDIV: TextId = TextId::new("prims.tip_subdiv");
+    pub const PRIMS_TIP_MAJOR_RADIUS: TextId = TextId::new("prims.tip_major_radius");
+    pub const PRIMS_TIP_MINOR_RADIUS: TextId = TextId::new("prims.tip_minor_radius");
+    pub const PRIMS_TIP_SEGMENTS: TextId = TextId::new("prims.tip_segments");
+    pub const PRIMS_TIP_RINGS: TextId = TextId::new("prims.tip_rings");
+    pub const PRIMS_TIP_VERTICES: TextId = TextId::new("prims.tip_vertices");
+    pub const PRIMS_TIP_FILL: TextId = TextId::new("prims.tip_fill");
+    pub const PRIMS_TIP_CAPS: TextId = TextId::new("prims.tip_caps");
+    pub const PRIMS_TIP_BODY_LENGTH: TextId = TextId::new("prims.tip_body_length");
 
     /// Todos os ids do catálogo (cobertura de tradução).
     pub const ALL: &[TextId] = &[
@@ -294,6 +336,48 @@ pub mod text_id {
         PRIMS_CANCEL,
         PRIMS_REOPEN,
         PRIMS_CONFIRM_HINT,
+        PRIMS_CUBE,
+        PRIMS_PLANE,
+        PRIMS_CYLINDER,
+        PRIMS_SPHERE,
+        PRIMS_CONE,
+        PRIMS_CAPSULE,
+        PRIMS_WEDGE,
+        PRIMS_CIRCLE,
+        PRIMS_TORUS,
+        PRIMS_ICOSPHERE,
+        PRIMS_GROUP_BASIC,
+        PRIMS_GROUP_ROUND,
+        PRIMS_GROUP_ORGANIC,
+        PRIMS_DEPTH,
+        PRIMS_TOP_RADIUS,
+        PRIMS_BOTTOM_RADIUS,
+        PRIMS_MAJOR_RADIUS,
+        PRIMS_MINOR_RADIUS,
+        PRIMS_VERTICES,
+        PRIMS_FILL,
+        PRIMS_CAP,
+        PRIMS_SUBDIV,
+        PRIMS_BODY_LENGTH,
+        PRIMS_RESET,
+        PRIMS_TRIS,
+        PRIMS_CAP_BOTH,
+        PRIMS_CAP_TOP,
+        PRIMS_CAP_BOTTOM,
+        PRIMS_CAP_NONE,
+        PRIMS_FILL_NONE,
+        PRIMS_FILL_DISC,
+        PRIMS_TIP_SIDES,
+        PRIMS_TIP_TOP_RADIUS,
+        PRIMS_TIP_SUBDIV,
+        PRIMS_TIP_MAJOR_RADIUS,
+        PRIMS_TIP_MINOR_RADIUS,
+        PRIMS_TIP_SEGMENTS,
+        PRIMS_TIP_RINGS,
+        PRIMS_TIP_VERTICES,
+        PRIMS_TIP_FILL,
+        PRIMS_TIP_CAPS,
+        PRIMS_TIP_BODY_LENGTH,
     ];
 }
 

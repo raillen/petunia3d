@@ -434,7 +434,8 @@ mod tests {
     #[test]
     fn cylinder_side_ring_preserves_triangle_caps_and_winding() {
         let mesh = Mesh::cylinder(12, 1.0, 2.0);
-        let ring = LoopRing::discover(&mesh, (0, 1)).unwrap();
+        // Anel inferior 0..12, superior 12..24: aresta vertical (0, 12).
+        let ring = LoopRing::discover(&mesh, (0, 12)).unwrap();
         assert!(ring.is_closed());
         assert_eq!(ring.face_count(), 12);
         let result = ring.apply(&mesh, 3, 0.35).unwrap();
