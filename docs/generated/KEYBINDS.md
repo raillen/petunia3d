@@ -63,7 +63,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>E</kbd> |
@@ -113,7 +113,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>Shift+A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>R</kbd> |
@@ -163,7 +163,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>R</kbd> |
@@ -213,7 +213,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>R</kbd> |
@@ -263,7 +263,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>E</kbd> |
@@ -313,7 +313,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>Shift+A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>R</kbd> |
@@ -325,7 +325,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.select_vertex` | <kbd>1</kbd> |
 | `model.slice` | <kbd>Shift+K</kbd> |
 | `model.subdivide` | <kbd>W</kbd> |
-| `model.transform` | <kbd>G</kbd> |
+| `model.transform` | <kbd>T</kbd> |
 | `paint.paint` | <kbd>B</kbd> |
 | `view.frame_all` | <kbd>Home</kbd> |
 | `view.frame_selection` | <kbd>F</kbd> |
@@ -363,7 +363,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>R</kbd> |
@@ -413,7 +413,7 @@ description: Referência canônica dos perfis de teclado e atalhos configurávei
 | `model.knife` | <kbd>K</kbd> |
 | `model.loop_cut` | <kbd>Ctrl+R</kbd> |
 | `model.merge` | <kbd>M</kbd> |
-| `model.mirror` | <kbd>Ctrl+M</kbd> |
+| `model.move` | <kbd>G</kbd> |
 | `model.primitives` | <kbd>A</kbd> |
 | `model.push_pull` | <kbd>P</kbd> |
 | `model.rotate` | <kbd>R</kbd> |

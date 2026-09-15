@@ -18,6 +18,7 @@ struct MeshVertex {
     pos: [f32; 3],
     normal: [f32; 3],
     color: [f32; 3],
+    uv: [f32; 2],
 }
 
 #[repr(C)]
@@ -60,12 +61,34 @@ struct RefGpu {
     bind_group: wgpu::BindGroup,
 }
 
+/// Slot de textura do canvas de um asset (paridade com o backend GL:
+/// recria em resize, re-upload só com conteúdo novo via hash).
+struct AssetTexGpu {
+    asset_id: uuid::Uuid,
+    width: u32,
+    height: u32,
+    hash: std::cell::Cell<u64>,
+    texture: wgpu::Texture,
+    #[allow(dead_code)]
+    view: wgpu::TextureView,
+    bind_group: wgpu::BindGroup,
+}
+
+/// Faixa de vértices de um asset no VB único + textura (paridade GL).
+struct MeshRange {
+    start: u32,
+    count: u32,
+    asset_id: Option<uuid::Uuid>,
+}
+
 pub struct Renderer {
     depth_format: wgpu::TextureFormat,
     depth_view: Option<wgpu::TextureView>,
     depth_size: (u32, u32),
     mesh_pipeline: wgpu::RenderPipeline,
     mesh_xray_pipeline: wgpu::RenderPipeline,
+    mesh_tex_pipeline: wgpu::RenderPipeline,
+    mesh_tex_xray_pipeline: wgpu::RenderPipeline,
     line_pipeline: wgpu::RenderPipeline,
     line_xray_pipeline: wgpu::RenderPipeline,
     xray: bool,
@@ -74,9 +97,12 @@ pub struct Renderer {
     cam_buffer: wgpu::Buffer,
     cam_bind_group: wgpu::BindGroup,
     ref_tex_layout: wgpu::BindGroupLayout,
+    mesh_tex_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
     mesh_vb: Option<wgpu::Buffer>,
     mesh_count: u32,
+    mesh_ranges: Vec<MeshRange>,
+    asset_tex: Vec<AssetTexGpu>,
     line_vb: Option<wgpu::Buffer>,
     line_count: u32,
     grid_vb: wgpu::Buffer,
@@ -142,6 +168,87 @@ fn fs_xray(in: Out) -> @location(0) vec4<f32> {
     return vec4<f32>(c, 0.45);
 }
 "#;
+
+/// Variante texturizada da malha (paridade com o backend GL): multiplica a
+/// cor do vértice pelo texel do canvas do asset. Fora do modo texturizado
+/// (ou sem canvas) o range usa o pipeline de cor sólida.
+const MESH_TEX_WGSL: &str = r#"
+struct Camera { view_proj: mat4x4<f32> };
+@group(0) @binding(0) var<uniform> cam: Camera;
+@group(1) @binding(0) var tex: texture_2d<f32>;
+@group(1) @binding(1) var smp: sampler;
+
+struct In {
+    @location(0) pos: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+    @location(2) color: vec3<f32>,
+    @location(3) uv: vec2<f32>,
+};
+struct Out {
+    @builtin(position) clip: vec4<f32>,
+    @location(0) normal: vec3<f32>,
+    @location(1) color: vec3<f32>,
+    @location(2) wpos: vec3<f32>,
+    @location(3) uv: vec2<f32>,
+};
+@vertex
+fn vs_main(in: In) -> Out {
+    var o: Out;
+    o.clip = cam.view_proj * vec4<f32>(in.pos, 1.0);
+    o.normal = in.normal;
+    o.color = in.color;
+    o.wpos = in.pos;
+    o.uv = in.uv;
+    return o;
+}
+"#;
+
+/// Monta o shader texturizado com as constantes de luz compartilhadas.
+fn mesh_tex_wgsl() -> String {
+    const FRAG: &str = r#"
+@fragment
+fn fs_tex(in: Out) -> @location(0) vec4<f32> {
+    let t = textureSample(tex, smp, in.uv);
+    let base = in.color * t.rgb;
+    if (length(in.normal) < 0.1) {
+        return vec4<f32>(base, 1.0);
+    }
+    let light = normalize(vec3<f32>(LIGHT_X, LIGHT_Y, LIGHT_Z));
+    let n = normalize(in.normal);
+    let diff = max(dot(n, light), 0.0);
+    let amb = LIGHT_AMB;
+    let c = base * (amb + LIGHT_DIF * diff);
+    return vec4<f32>(c, 1.0);
+}
+
+@fragment
+fn fs_tex_xray(in: Out) -> @location(0) vec4<f32> {
+    let t = textureSample(tex, smp, in.uv);
+    let base = in.color * t.rgb;
+    if (length(in.normal) < 0.1) {
+        return vec4<f32>(base, 0.45);
+    }
+    let light = normalize(vec3<f32>(LIGHT_X, LIGHT_Y, LIGHT_Z));
+    let n = normalize(in.normal);
+    let diff = max(dot(n, light), 0.0);
+    let amb = LIGHT_AMB;
+    let c = base * (amb + LIGHT_DIF * diff);
+    return vec4<f32>(c, 0.45);
+}
+"#;
+    (MESH_TEX_WGSL.to_string() + FRAG)
+        .replace("LIGHT_X", &petunia_render::scene::LIGHT_DIR[0].to_string())
+        .replace("LIGHT_Y", &petunia_render::scene::LIGHT_DIR[1].to_string())
+        .replace("LIGHT_Z", &petunia_render::scene::LIGHT_DIR[2].to_string())
+        .replace(
+            "LIGHT_AMB",
+            &petunia_render::scene::LIGHT_AMBIENT.to_string(),
+        )
+        .replace(
+            "LIGHT_DIF",
+            &petunia_render::scene::LIGHT_DIFFUSE.to_string(),
+        )
+}
 
 /// Monta o shader da malha com as constantes de luz compartilhadas
 /// (`render::scene`), mantendo uma fonte só.
@@ -293,7 +400,7 @@ impl Renderer {
                 buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<MeshVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3],
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3, 3 => Float32x2],
                 })],
                 compilation_options: Default::default(),
             },
@@ -372,7 +479,7 @@ impl Renderer {
                 buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<MeshVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3],
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3, 3 => Float32x2],
                 })],
                 compilation_options: Default::default(),
             },
@@ -566,6 +673,114 @@ impl Renderer {
             ..Default::default()
         });
 
+        // Malha texturizada (paridade GL): grupo 1 = textura + sampler.
+        let mesh_tex_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("simple3d-mesh-tex-layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        let mesh_tex_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("simple3d-mesh-tex"),
+            source: wgpu::ShaderSource::Wgsl(mesh_tex_wgsl().into()),
+        });
+        let mesh_tex_pipe_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("simple3d-mesh-tex-layout"),
+            bind_group_layouts: &[Some(&cam_layout), Some(&mesh_tex_layout)],
+            immediate_size: 0,
+        });
+        let tex_vb_layout = wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<MeshVertex>() as u64,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x3, 3 => Float32x2],
+        };
+        let mesh_tex_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("simple3d-mesh-tex-pipe"),
+            layout: Some(&mesh_tex_pipe_layout),
+            vertex: wgpu::VertexState {
+                module: &mesh_tex_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[Some(tex_vb_layout.clone())],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &mesh_tex_shader,
+                entry_point: Some("fs_tex"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                cull_mode: None,
+                ..Default::default()
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth24Plus,
+                depth_write_enabled: Some(true),
+                depth_compare: Some(wgpu::CompareFunction::Less),
+                stencil: Default::default(),
+                bias: Default::default(),
+            }),
+            multisample: Default::default(),
+            multiview_mask: None,
+            cache: None,
+        });
+        let mesh_tex_xray_pipeline =
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("simple3d-mesh-tex-xray-pipe"),
+                layout: Some(&mesh_tex_pipe_layout),
+                vertex: wgpu::VertexState {
+                    module: &mesh_tex_shader,
+                    entry_point: Some("vs_main"),
+                    buffers: &[Some(tex_vb_layout)],
+                    compilation_options: Default::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &mesh_tex_shader,
+                    entry_point: Some("fs_tex_xray"),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: Default::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    cull_mode: None,
+                    ..Default::default()
+                },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: wgpu::TextureFormat::Depth24Plus,
+                    depth_write_enabled: Some(false),
+                    depth_compare: Some(wgpu::CompareFunction::LessEqual),
+                    stencil: Default::default(),
+                    bias: Default::default(),
+                }),
+                multisample: Default::default(),
+                multiview_mask: None,
+                cache: None,
+            });
+
         let grid = grid_lines();
         let grid_count = grid.len() as u32;
         let grid_vb = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -580,6 +795,8 @@ impl Renderer {
             depth_size: (0, 0),
             mesh_pipeline,
             mesh_xray_pipeline,
+            mesh_tex_pipeline,
+            mesh_tex_xray_pipeline,
             line_pipeline,
             line_xray_pipeline,
             xray: false,
@@ -588,9 +805,12 @@ impl Renderer {
             cam_buffer,
             cam_bind_group,
             ref_tex_layout,
+            mesh_tex_layout,
             sampler,
             mesh_vb: None,
             mesh_count: 0,
+            mesh_ranges: Vec::new(),
+            asset_tex: Vec::new(),
             line_vb: None,
             line_count: 0,
             grid_vb,
@@ -664,6 +884,7 @@ impl Renderer {
         shading: Shading,
         xray: bool,
         show_triangulation: bool,
+        textured: bool,
     ) {
         puffin::profile_function!();
         self.xray = xray;
@@ -682,7 +903,7 @@ impl Renderer {
                 shading,
                 xray,
                 show_triangulation,
-                textured: false,
+                textured,
                 edit_mode_is_edit: false,
                 show_wireframe_overlay: false,
             },
@@ -701,6 +922,7 @@ impl Renderer {
         // malha
         let mut mv: Vec<MeshVertex> = Vec::new();
         let mut lv: Vec<LineVertex> = Vec::new();
+        let mut mesh_ranges: Vec<MeshRange> = Vec::new();
         let smooth = shading == Shading::Smooth;
         let unlit = shading == Shading::Unlit;
         let is_wire = shading == Shading::Wireframe;
@@ -708,6 +930,8 @@ impl Renderer {
             if !obj.visible {
                 continue;
             }
+            let range_start = mv.len() as u32;
+            let mesh = obj.evaluated_mesh();
             if !is_wire {
                 let (mat_profile, mat_color, has_emission, emission_color) =
                     if let Some(mat) = obj.material(scene) {
@@ -735,11 +959,11 @@ impl Renderer {
                     || mat_profile == petunia_project::ShaderProfile::Emissive;
 
                 let tris = if obj_unlit {
-                    obj.mesh.to_triangles_unlit()
+                    mesh.to_triangles_unlit()
                 } else {
-                    obj.mesh.to_triangles_smooth(smooth)
+                    mesh.to_triangles_smooth(smooth)
                 };
-                for (pos, n, mut col, _uv) in tris {
+                for (pos, n, mut col, uv) in tris {
                     if (col[0] - 0.72).abs() < 0.02
                         && (col[1] - 0.73).abs() < 0.02
                         && (col[2] - 0.78).abs() < 0.02
@@ -757,12 +981,29 @@ impl Renderer {
                         pos,
                         normal: n,
                         color: col,
+                        uv,
                     });
                 }
             }
+            let range_count = mv.len() as u32 - range_start;
+            if range_count > 0 {
+                let tex_canvas = obj
+                    .texture
+                    .as_ref()
+                    .or_else(|| obj.material(scene).and_then(|m| m.albedo_texture.as_ref()));
+                mesh_ranges.push(MeshRange {
+                    start: range_start,
+                    count: range_count,
+                    asset_id: if textured && tex_canvas.is_some() {
+                        Some(obj.id)
+                    } else {
+                        None
+                    },
+                });
+            }
 
             if is_wire {
-                for (a, b, sel) in obj.mesh.to_edges() {
+                for (a, b, sel) in mesh.to_edges() {
                     let c = if sel {
                         [1.0, 0.3, 0.1]
                     } else {
@@ -773,7 +1014,7 @@ impl Renderer {
                 }
             } else {
                 // overlay sutil das arestas (estilo Blender: wire sobre solid)
-                for (a, b, sel) in obj.mesh.to_edges() {
+                for (a, b, sel) in mesh.to_edges() {
                     let c = if sel {
                         [1.0, 0.35, 0.1]
                     } else {
@@ -792,7 +1033,7 @@ impl Renderer {
             if show_triangulation {
                 let diag_c = [0.3, 0.65, 0.95];
                 let lift = if is_wire { 0.0 } else { 0.0012 };
-                for (a, b) in obj.mesh.triangulation_wireframe() {
+                for (a, b) in mesh.triangulation_wireframe() {
                     lv.push(LineVertex {
                         pos: [a[0], a[1] + lift, a[2]],
                         color: diag_c,
@@ -805,6 +1046,8 @@ impl Renderer {
             }
         }
         self.mesh_count = mv.len() as u32;
+        self.mesh_ranges = mesh_ranges;
+        self.sync_asset_textures(device, queue, scene, textured);
         self.mesh_vb = if mv.is_empty() {
             None
         } else {
@@ -943,6 +1186,125 @@ impl Renderer {
         }
     }
 
+    /// Garante slots de textura dos assets com canvas (paridade GL):
+    /// recria em resize, re-upload só com conteúdo novo (hash), poda saídos.
+    fn sync_asset_textures(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        scene: &Project,
+        textured: bool,
+    ) {
+        use petunia_project::Canvas;
+        let wanted: Vec<(uuid::Uuid, u32, u32, Vec<u8>)> = if !textured {
+            Vec::new()
+        } else {
+            scene
+                .assets
+                .iter()
+                .filter(|o| o.visible)
+                .filter_map(|o| {
+                    let cv: &Canvas = o
+                        .texture
+                        .as_ref()
+                        .or_else(|| o.material(scene).and_then(|m| m.albedo_texture.as_ref()))?;
+                    Some((o.id, cv.w, cv.h, cv.pixels.clone()))
+                })
+                .collect()
+        };
+        // Poda slots sem canvas/asset correspondente.
+        self.asset_tex.retain(|slot| {
+            wanted
+                .iter()
+                .any(|(id, w, h, _)| *id == slot.asset_id && *w == slot.width && *h == slot.height)
+        });
+        for (id, w, h, pixels) in wanted {
+            let hash = fnv1a_hash(&pixels);
+            if let Some(slot) = self.asset_tex.iter().find(|s| s.asset_id == id) {
+                if slot.hash.get() != hash {
+                    slot.hash.set(hash);
+                    queue.write_texture(
+                        wgpu::TexelCopyTextureInfo {
+                            texture: &slot.texture,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d::ZERO,
+                            aspect: wgpu::TextureAspect::All,
+                        },
+                        &pixels,
+                        wgpu::TexelCopyBufferLayout {
+                            offset: 0,
+                            bytes_per_row: Some(4 * w),
+                            rows_per_image: Some(h),
+                        },
+                        wgpu::Extent3d {
+                            width: w,
+                            height: h,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                }
+                continue;
+            }
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("simple3d-asset-tex"),
+                size: wgpu::Extent3d {
+                    width: w,
+                    height: h,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            });
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &pixels,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * w),
+                    rows_per_image: Some(h),
+                },
+                wgpu::Extent3d {
+                    width: w,
+                    height: h,
+                    depth_or_array_layers: 1,
+                },
+            );
+            let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("simple3d-asset-tex-bg"),
+                layout: &self.mesh_tex_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&self.sampler),
+                    },
+                ],
+            });
+            self.asset_tex.push(AssetTexGpu {
+                asset_id: id,
+                width: w,
+                height: h,
+                hash: std::cell::Cell::new(hash),
+                texture,
+                view,
+                bind_group,
+            });
+        }
+    }
+
     /// Upload dos pixels + opacidade por ref (chamado todo frame; wgpu ignora se igual via hash cache).
     pub fn upload_ref_pixels(&self, queue: &wgpu::Queue, refs: &[petunia_core::ReferenceImage]) {
         for (i, r) in refs.iter().enumerate() {
@@ -1016,15 +1378,41 @@ impl Renderer {
             }
         }
 
-        // malha sólida (ou raio-x com transparência)
+        // malha sólida (ou raio-x com transparência); ranges com canvas usam
+        // o pipeline texturizado (paridade com o backend GL).
         if let Some(vb) = &self.mesh_vb {
-            if self.xray {
-                pass.set_pipeline(&self.mesh_xray_pipeline);
-            } else {
-                pass.set_pipeline(&self.mesh_pipeline);
-            }
             pass.set_vertex_buffer(0, vb.slice(..));
-            pass.draw(0..self.mesh_count, 0..1);
+            if self.mesh_ranges.is_empty() {
+                if self.xray {
+                    pass.set_pipeline(&self.mesh_xray_pipeline);
+                } else {
+                    pass.set_pipeline(&self.mesh_pipeline);
+                }
+                pass.draw(0..self.mesh_count, 0..1);
+            } else {
+                for range in &self.mesh_ranges {
+                    let tex_bg = range
+                        .asset_id
+                        .and_then(|id| self.asset_tex.iter().find(|s| s.asset_id == id));
+                    match (tex_bg, self.xray) {
+                        (Some(slot), false) => {
+                            pass.set_pipeline(&self.mesh_tex_pipeline);
+                            pass.set_bind_group(1, &slot.bind_group, &[]);
+                        }
+                        (Some(slot), true) => {
+                            pass.set_pipeline(&self.mesh_tex_xray_pipeline);
+                            pass.set_bind_group(1, &slot.bind_group, &[]);
+                        }
+                        (None, true) => {
+                            pass.set_pipeline(&self.mesh_xray_pipeline);
+                        }
+                        (None, false) => {
+                            pass.set_pipeline(&self.mesh_pipeline);
+                        }
+                    }
+                    pass.draw(range.start..range.start + range.count, 0..1);
+                }
+            }
         }
         // arestas
         if let Some(vb) = &self.line_vb {

@@ -2,8 +2,10 @@
 //!
 //! Motor de pintura 2D e 3D por projeção UV:
 //! - Pincéis: Pixel Brush rígido (P3D-056), Soft Brush com atenuação suave (P3D-057),
-//!   Borracha (P3D-058), Flood Fill (P3D-059), Conta-gotas / Eyedropper (P3D-060).
-//! - Camadas de pintura e modos de mesclagem (P3D-061).
+//!   Borracha (P3D-058), Flood Fill (P3D-059), Conta-gotas / Eyedropper (P3D-060),
+//!   Linha e Retângulo (cap. 15/44, raster ops simples).
+//! - Pilha de camadas por asset em `petunia_project` (P3D-061); este crate
+//!   re-exporta os tipos e implementa as operações sobre a camada ativa.
 //! - Pintura direta sobre malha 3D via coordenadas baricêntricas e UV (P3D-062).
 //! - Isolamento de seleção / Paint Masks (P3D-132).
 //! - Sincronização direta com o modelo canônico de Material (P3D-050).
@@ -13,6 +15,10 @@ use std::collections::VecDeque;
 use glam::Vec3;
 use petunia_core::{AppState, Module};
 use petunia_project::Canvas;
+
+pub use petunia_project::paint_layers::{
+    DecalLayer, LayerBlendMode, LayerKind, PaintEffect, PaintLayer, PaintLayerStack, blend_pixels,
+};
 use serde::{Deserialize, Serialize};
 
 /// Tipo de pincel ativo no motor de pintura (P3D-056 a P3D-060).
@@ -29,357 +35,23 @@ pub enum BrushType {
     Fill,
     /// Amostrador de cor / conta-gotas (P3D-060).
     Eyedropper,
+    /// Linha reta entre dois pontos (cap. 15/44: raster op simples).
+    /// No fim do enum de propósito: preserva os discriminantes serializados.
+    Line,
+    /// Retângulo preenchido entre dois cantos (cap. 15/44). Idem.
+    Rectangle,
 }
 
-/// Modo de mesclagem de camadas de pintura (P3D-061).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum LayerBlendMode {
-    #[default]
-    Normal,
-    Multiply,
-    Add,
-    Screen,
-}
-
-/// Efeitos não-destrutivos sobre texturas / camadas (P3D-134).
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub enum PaintEffect {
-    /// Pixelização com tamanho de bloco especificado (P3D-134).
-    Pixelate { cell_size: u32 },
-    /// Quantização / posterização de tons por canal de cor (P3D-134).
-    Posterize { levels: u8 },
-    /// Inversão de cores RGB.
-    Invert,
-}
-
-/// Decalque / projeção 2D parametrizada e reposicionável (P3D-133).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DecalLayer {
-    pub image: Canvas,
-    /// Centro da projeção no espaço UV [0.0..1.0]
-    pub center_uv: [f32; 2],
-    /// Escala relativa da estampa no espaço UV [0.0..1.0]
-    pub scale_uv: [f32; 2],
-    /// Rotação do decalque em radianos
-    pub rotation_rad: f32,
-}
-
-impl DecalLayer {
-    pub fn new(image: Canvas, center_uv: [f32; 2], scale_uv: [f32; 2], rotation_rad: f32) -> Self {
-        Self {
-            image,
-            center_uv,
-            scale_uv,
-            rotation_rad,
-        }
-    }
-}
-
-/// Conteúdo específico da camada (Raster, Decal ou Efeito).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum LayerKind {
-    /// Camada de pintura raster comum com canvas próprio (P3D-061).
-    Raster(Canvas),
-    /// Camada de decalque / estampa projetada sobre o UV (P3D-133).
-    Decal(DecalLayer),
-    /// Camada de efeito não-destrutivo aplicada sobre a composição inferior (P3D-134).
-    Effect(PaintEffect),
-}
-
-/// Camada de pintura unificada com suporte a raster, decalques e efeitos (P3D-061, P3D-133, P3D-134).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PaintLayer {
-    pub id: uuid::Uuid,
-    pub name: String,
-    pub visible: bool,
-    pub opacity: f32,
-    pub blend: LayerBlendMode,
-    pub kind: LayerKind,
-}
-
-impl PaintLayer {
-    pub fn new(name: impl Into<String>, w: u32, h: u32, fill: [u8; 4]) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4(),
-            name: name.into(),
-            visible: true,
-            opacity: 1.0,
-            blend: LayerBlendMode::Normal,
-            kind: LayerKind::Raster(Canvas::new(w, h, fill)),
-        }
-    }
-
-    pub fn new_raster(name: impl Into<String>, canvas: Canvas) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4(),
-            name: name.into(),
-            visible: true,
-            opacity: 1.0,
-            blend: LayerBlendMode::Normal,
-            kind: LayerKind::Raster(canvas),
-        }
-    }
-
-    pub fn new_decal(name: impl Into<String>, decal: DecalLayer) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4(),
-            name: name.into(),
-            visible: true,
-            opacity: 1.0,
-            blend: LayerBlendMode::Normal,
-            kind: LayerKind::Decal(decal),
-        }
-    }
-
-    pub fn new_effect(name: impl Into<String>, effect: PaintEffect) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4(),
-            name: name.into(),
-            visible: true,
-            opacity: 1.0,
-            blend: LayerBlendMode::Normal,
-            kind: LayerKind::Effect(effect),
-        }
-    }
-
-    pub fn canvas(&self) -> Option<&Canvas> {
-        match &self.kind {
-            LayerKind::Raster(c) => Some(c),
-            LayerKind::Decal(d) => Some(&d.image),
-            LayerKind::Effect(_) => None,
-        }
-    }
-
-    pub fn canvas_mut(&mut self) -> Option<&mut Canvas> {
-        match &mut self.kind {
-            LayerKind::Raster(c) => Some(c),
-            LayerKind::Decal(d) => Some(&mut d.image),
-            LayerKind::Effect(_) => None,
-        }
-    }
-}
-
-/// Mistura dois pixels com modo de mesclagem e opacidade.
-pub fn blend_pixels(dst: [u8; 4], src: [u8; 4], opacity: f32, mode: LayerBlendMode) -> [u8; 4] {
-    let alpha = (src[3] as f32 / 255.0) * opacity.clamp(0.0, 1.0);
-    if alpha <= 0.0 {
-        return dst;
-    }
-
-    let (sr, sg, sb) = (src[0] as f32, src[1] as f32, src[2] as f32);
-    let (dr, dg, db) = (dst[0] as f32, dst[1] as f32, dst[2] as f32);
-
-    let (mr, mg, mb) = match mode {
-        LayerBlendMode::Normal => (sr, sg, sb),
-        LayerBlendMode::Multiply => (sr * dr / 255.0, sg * dg / 255.0, sb * db / 255.0),
-        LayerBlendMode::Add => (
-            (sr + dr).min(255.0),
-            (sg + dg).min(255.0),
-            (sb + db).min(255.0),
-        ),
-        LayerBlendMode::Screen => (
-            255.0 - ((255.0 - sr) * (255.0 - dr) / 255.0),
-            255.0 - ((255.0 - sg) * (255.0 - dg) / 255.0),
-            255.0 - ((255.0 - sb) * (255.0 - db) / 255.0),
-        ),
-    };
-
-    let out_r = (dr * (1.0 - alpha) + mr * alpha).round().clamp(0.0, 255.0) as u8;
-    let out_g = (dg * (1.0 - alpha) + mg * alpha).round().clamp(0.0, 255.0) as u8;
-    let out_b = (db * (1.0 - alpha) + mb * alpha).round().clamp(0.0, 255.0) as u8;
-    let out_a = (dst[3] as f32 * (1.0 - alpha) + src[3] as f32 * alpha)
-        .round()
-        .clamp(0.0, 255.0) as u8;
-
-    [out_r, out_g, out_b, out_a]
-}
-
-/// Pilha unificada de camadas de pintura, decalques e efeitos (P3D-061, P3D-133, P3D-134).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct PaintLayerStack {
-    pub layers: Vec<PaintLayer>,
-    pub active_layer: usize,
-}
-
-impl PaintLayerStack {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn add_layer(&mut self, layer: PaintLayer) -> uuid::Uuid {
-        let id = layer.id;
-        self.layers.push(layer);
-        self.active_layer = self.layers.len() - 1;
-        id
-    }
-
-    pub fn remove_layer(&mut self, id: uuid::Uuid) -> bool {
-        if let Some(pos) = self.layers.iter().position(|l| l.id == id) {
-            self.layers.remove(pos);
-            if self.active_layer >= self.layers.len() && !self.layers.is_empty() {
-                self.active_layer = self.layers.len() - 1;
-            }
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn move_layer(&mut self, from: usize, to: usize) -> bool {
-        if from < self.layers.len() && to < self.layers.len() && from != to {
-            let l = self.layers.remove(from);
-            self.layers.insert(to, l);
-            self.active_layer = to;
-            true
-        } else {
-            false
-        }
-    }
-
-    /// Executa a composição determinística de todas as camadas sobre o canvas base.
-    pub fn composite(&self, base: &mut Canvas) {
-        for layer in &self.layers {
-            if !layer.visible || layer.opacity <= 0.0 {
-                continue;
-            }
-
-            match &layer.kind {
-                LayerKind::Raster(canvas) => {
-                    let w = base.w.min(canvas.w);
-                    let h = base.h.min(canvas.h);
-                    for y in 0..h {
-                        for x in 0..w {
-                            if let (Some(dst), Some(src)) = (base.get(x, y), canvas.get(x, y)) {
-                                let blended = blend_pixels(dst, src, layer.opacity, layer.blend);
-                                base.set(x, y, blended);
-                            }
-                        }
-                    }
-                }
-                LayerKind::Decal(decal) => {
-                    if decal.scale_uv[0].abs() < 1e-5 || decal.scale_uv[1].abs() < 1e-5 {
-                        continue;
-                    }
-                    let w = base.w;
-                    let h = base.h;
-                    let cos_rot = (-decal.rotation_rad).cos();
-                    let sin_rot = (-decal.rotation_rad).sin();
-
-                    for y in 0..h {
-                        for x in 0..w {
-                            let u = (x as f32 + 0.5) / w as f32;
-                            let v = (y as f32 + 0.5) / h as f32;
-
-                            let dx = u - decal.center_uv[0];
-                            let dy = v - decal.center_uv[1];
-
-                            let rx = dx * cos_rot - dy * sin_rot;
-                            let ry = dx * sin_rot + dy * cos_rot;
-
-                            let decal_u = rx / decal.scale_uv[0] + 0.5;
-                            let decal_v = ry / decal.scale_uv[1] + 0.5;
-
-                            if (0.0..=1.0).contains(&decal_u) && (0.0..=1.0).contains(&decal_v) {
-                                let sx = (decal_u * decal.image.w as f32)
-                                    .clamp(0.0, decal.image.w as f32 - 1.0)
-                                    as u32;
-                                let sy = (decal_v * decal.image.h as f32)
-                                    .clamp(0.0, decal.image.h as f32 - 1.0)
-                                    as u32;
-
-                                if let (Some(dst), Some(src)) =
-                                    (base.get(x, y), decal.image.get(sx, sy))
-                                {
-                                    let blended =
-                                        blend_pixels(dst, src, layer.opacity, layer.blend);
-                                    base.set(x, y, blended);
-                                }
-                            }
-                        }
-                    }
-                }
-                LayerKind::Effect(effect) => {
-                    let w = base.w;
-                    let h = base.h;
-                    match effect {
-                        PaintEffect::Pixelate { cell_size } => {
-                            let step = (*cell_size).max(1);
-                            for y_block in (0..h).step_by(step as usize) {
-                                for x_block in (0..w).step_by(step as usize) {
-                                    if let Some(sample) = base.get(x_block, y_block) {
-                                        for dy in 0..step {
-                                            for dx in 0..step {
-                                                let px = x_block + dx;
-                                                let py = y_block + dy;
-                                                if px < w
-                                                    && py < h
-                                                    && let Some(current) = base.get(px, py)
-                                                {
-                                                    let blended = blend_pixels(
-                                                        current,
-                                                        sample,
-                                                        layer.opacity,
-                                                        LayerBlendMode::Normal,
-                                                    );
-                                                    base.set(px, py, blended);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        PaintEffect::Posterize { levels } => {
-                            let n = (*levels).max(2) as f32;
-                            let step = 255.0 / (n - 1.0);
-                            for y in 0..h {
-                                for x in 0..w {
-                                    if let Some(c) = base.get(x, y) {
-                                        let pr = (((c[0] as f32 / 255.0 * (n - 1.0)).round())
-                                            * step)
-                                            .clamp(0.0, 255.0)
-                                            as u8;
-                                        let pg = (((c[1] as f32 / 255.0 * (n - 1.0)).round())
-                                            * step)
-                                            .clamp(0.0, 255.0)
-                                            as u8;
-                                        let pb = (((c[2] as f32 / 255.0 * (n - 1.0)).round())
-                                            * step)
-                                            .clamp(0.0, 255.0)
-                                            as u8;
-                                        let quant = [pr, pg, pb, c[3]];
-                                        let blended = blend_pixels(
-                                            c,
-                                            quant,
-                                            layer.opacity,
-                                            LayerBlendMode::Normal,
-                                        );
-                                        base.set(x, y, blended);
-                                    }
-                                }
-                            }
-                        }
-                        PaintEffect::Invert => {
-                            for y in 0..h {
-                                for x in 0..w {
-                                    if let Some(c) = base.get(x, y) {
-                                        let inv = [255 - c[0], 255 - c[1], 255 - c[2], c[3]];
-                                        let blended = blend_pixels(
-                                            c,
-                                            inv,
-                                            layer.opacity,
-                                            LayerBlendMode::Normal,
-                                        );
-                                        base.set(x, y, blended);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+/// Traço de forma (Line/Rectangle) com estilo do pincel ativo.
+#[derive(Clone, Copy, Debug)]
+pub struct ShapeStroke {
+    pub x0: u32,
+    pub y0: u32,
+    pub x1: u32,
+    pub y1: u32,
+    pub brush: BrushType,
+    pub color: [u8; 4],
+    pub strength: f32,
 }
 
 #[derive(Default)]
@@ -457,7 +129,84 @@ impl PaintModule {
         )
     }
 
-    // ---- Canvas 2D & Material Texture Synchronization (P3D-050, P3D-055) ----
+    // ---- Pilha de camadas por asset (P3D-061) ----
+
+    /// Garante a pilha de camadas do ativo: migra a `texture` existente para
+    /// a camada base (sem perda) ou cria base nova. Sem checkpoint aqui —
+    /// quem chama decide a transação.
+    pub fn ensure_stack(state: &mut AppState) {
+        Self::ensure_canvas(state);
+        let active_idx = state.project.active;
+        let needs = !state
+            .project
+            .assets
+            .get(active_idx)
+            .is_some_and(|a| a.paint_stack.is_some());
+        if !needs {
+            return;
+        }
+        let base = state
+            .project
+            .assets
+            .get(active_idx)
+            .and_then(|a| a.texture.clone())
+            .unwrap_or_else(|| Canvas::new(256, 256, [0, 0, 0, 0]));
+        if let Some(o) = state.project.assets.get_mut(active_idx) {
+            o.paint_stack = Some(PaintLayerStack::with_base("Base", base));
+        }
+    }
+
+    /// Recompõe o stack na `texture` do ativo e sincroniza o Albedo.
+    /// Chamar após qualquer mutação de camada (sem checkpoint próprio).
+    pub fn composite_active(state: &mut AppState) {
+        let active_idx = state.project.active;
+        let composed = state.project.assets.get(active_idx).and_then(|a| {
+            a.paint_stack.as_ref().map(|stack| {
+                let (w, h) = a.texture.as_ref().map(|c| (c.w, c.h)).unwrap_or((256, 256));
+                let mut base = Canvas::new(w, h, [0, 0, 0, 0]);
+                stack.composite(&mut base);
+                base
+            })
+        });
+        let mat_id = state
+            .project
+            .assets
+            .get(active_idx)
+            .and_then(|a| a.material_id);
+        if let Some(cv) = composed {
+            if let Some(o) = state.project.assets.get_mut(active_idx) {
+                o.texture = Some(cv.clone());
+            }
+            if let Some(mid) = mat_id
+                && let Some(mat) = state.project.project.get_material_mut(mid)
+            {
+                mat.albedo_texture = Some(cv);
+            }
+        }
+        state.render.canvas_dirty = true;
+        state.mark_dirty();
+    }
+
+    /// Redimensiona canvas base + todas as camadas raster (operação explícita;
+    /// quem chama faz checkpoint antes).
+    pub fn resize_canvas(state: &mut AppState, w: u32, h: u32) {
+        Self::ensure_stack(state);
+        let active_idx = state.project.active;
+        if let Some(o) = state.project.assets.get_mut(active_idx) {
+            if let Some(cv) = o.texture.as_ref() {
+                o.texture = Some(cv.resized(w, h));
+            }
+            if let Some(stack) = o.paint_stack.as_mut() {
+                for layer in &mut stack.layers {
+                    if let Some(cv) = layer.canvas_mut() {
+                        let next = cv.resized(w, h);
+                        *cv = next;
+                    }
+                }
+            }
+        }
+        Self::composite_active(state);
+    }
 
     pub fn has_canvas(state: &AppState) -> bool {
         if let Some(o) = state.project.assets.get(state.project.active) {
@@ -579,6 +328,86 @@ impl PaintModule {
         }
     }
 
+    /// Linha de Bresenham com o pincel atual (Pixel=sólido, Soft=carimbos
+    /// espaçados, Eraser=apaga). Uma transaction (quem chama faz checkpoint).
+    pub fn stroke_line(canvas: &mut Canvas, stroke: &ShapeStroke) {
+        let (mut x0, mut y0) = (stroke.x0 as i32, stroke.y0 as i32);
+        let (x1, y1) = (stroke.x1 as i32, stroke.y1 as i32);
+        let dx = (x1 - x0).abs();
+        let dy = -(y1 - y0).abs();
+        let sx = if x0 < x1 { 1 } else { -1 };
+        let sy = if y0 < y1 { 1 } else { -1 };
+        let mut err = dx + dy;
+        let mut step = 0u32;
+        loop {
+            if x0 >= 0 && y0 >= 0 {
+                let (px, py) = (x0 as u32, y0 as u32);
+                match stroke.brush {
+                    BrushType::Soft => {
+                        // Carimbo espaçado p/ não empilhar opacidade no traço.
+                        if step.is_multiple_of(2) {
+                            Self::stamp_soft_brush(
+                                canvas,
+                                px,
+                                py,
+                                1,
+                                stroke.color,
+                                stroke.strength,
+                            );
+                        }
+                    }
+                    BrushType::Eraser => Self::stamp_eraser(canvas, px, py, 1, stroke.strength),
+                    _ => {
+                        canvas.set(px, py, stroke.color);
+                    }
+                }
+            }
+            if x0 == x1 && y0 == y1 {
+                break;
+            }
+            let e2 = 2 * err;
+            if e2 >= dy {
+                err += dy;
+                x0 += sx;
+            }
+            if e2 <= dx {
+                err += dx;
+                y0 += sy;
+            }
+            step += 1;
+        }
+    }
+
+    /// Retângulo preenchido entre dois cantos (ordem qualquer).
+    pub fn stroke_rect(canvas: &mut Canvas, stroke: &ShapeStroke) {
+        let (xa, xb) = (stroke.x0.min(stroke.x1), stroke.x0.max(stroke.x1));
+        let (ya, yb) = (stroke.y0.min(stroke.y1), stroke.y0.max(stroke.y1));
+        match stroke.brush {
+            BrushType::Eraser => {
+                for y in ya..=yb {
+                    for x in xa..=xb {
+                        Self::stamp_eraser(canvas, x, y, 0, stroke.strength);
+                    }
+                }
+            }
+            BrushType::Soft => {
+                for y in ya..=yb {
+                    for x in xa..=xb {
+                        // Raio 1: raio 0 degenera a atenuação (0/0).
+                        Self::stamp_soft_brush(canvas, x, y, 1, stroke.color, stroke.strength);
+                    }
+                }
+            }
+            _ => {
+                for y in ya..=yb {
+                    for x in xa..=xb {
+                        canvas.set(x, y, stroke.color);
+                    }
+                }
+            }
+        }
+    }
+
     /// Preenchimento flood-fill 4-conectado com tolerância de cor (P3D-059).
     pub fn flood_fill(
         canvas: &mut Canvas,
@@ -646,7 +475,7 @@ impl PaintModule {
         radius: u32,
         strength: f32,
     ) {
-        Self::ensure_canvas(state);
+        Self::ensure_stack(state);
         let color = [
             (state.paint_color[0] * 255.0) as u8,
             (state.paint_color[1] * 255.0) as u8,
@@ -655,47 +484,60 @@ impl PaintModule {
         ];
 
         let active_idx = state.project.active;
-        let mat_id = state
-            .project
-            .assets
-            .get(active_idx)
-            .and_then(|a| a.material_id);
-
-        if let Some(o) = state.project.active_mut()
-            && let Some(cv) = o.texture.as_mut()
+        let mut picked = None;
+        // Conta-gotas amostra o composto (o que o usuário vê — P3D-060).
+        if matches!(brush, BrushType::Eyedropper) {
+            if let Some(o) = state.project.assets.get(active_idx)
+                && let Some(cv) = o.texture.as_ref()
+                && x < cv.w
+                && y < cv.h
+                && let Some(c) = cv.get(x, y)
+            {
+                picked = Some([
+                    c[0] as f32 / 255.0,
+                    c[1] as f32 / 255.0,
+                    c[2] as f32 / 255.0,
+                ]);
+            }
+        } else if let Some(o) = state.project.assets.get_mut(active_idx)
+            && let Some(stack) = o.paint_stack.as_mut()
+            && let Some(layer) = stack.active_mut()
+            && let Some(cv) = layer.canvas_mut()
         {
             match brush {
                 BrushType::Pixel => Self::stamp_pixel_brush(cv, x, y, radius, color),
                 BrushType::Soft => Self::stamp_soft_brush(cv, x, y, radius, color, strength),
                 BrushType::Eraser => Self::stamp_eraser(cv, x, y, radius, strength),
                 BrushType::Fill => Self::flood_fill(cv, x, y, color, 16),
-                BrushType::Eyedropper => {
-                    if let Some(c) = cv.get(x, y) {
-                        state.paint_color = [
-                            c[0] as f32 / 255.0,
-                            c[1] as f32 / 255.0,
-                            c[2] as f32 / 255.0,
-                        ];
-                    }
-                }
+                // Formas e conta-gotas têm caminho próprio (commit_shape / composto).
+                BrushType::Line | BrushType::Rectangle | BrushType::Eyedropper => {}
             }
         }
-
-        let cloned_cv = state
-            .project
-            .assets
-            .get(active_idx)
-            .and_then(|o| o.texture.clone());
-
-        // Sincroniza de volta com o canal Albedo do Material (P3D-050, P3D-051)
-        if let (Some(mid), Some(src_cv)) = (mat_id, cloned_cv)
-            && let Some(mat) = state.project.project.get_material_mut(mid)
-        {
-            mat.albedo_texture = Some(src_cv);
+        if let Some(c) = picked {
+            state.paint_color = c;
         }
 
-        state.render.canvas_dirty = true;
-        state.mark_dirty();
+        // Recompõe stack → texture → Albedo (representação única).
+        Self::composite_active(state);
+    }
+
+    /// Confirma forma (Line/Rectangle) entre dois pontos do canvas.
+    /// Roteia o estilo pelo pincel ativo (Pixel=sólido, Soft=suave,
+    /// Eraser=apaga). Quem chama faz 1 checkpoint antes.
+    pub fn commit_shape(state: &mut AppState, stroke: ShapeStroke) {
+        Self::ensure_stack(state);
+        let active_idx = state.project.active;
+        if let Some(o) = state.project.assets.get_mut(active_idx)
+            && let Some(stack) = o.paint_stack.as_mut()
+            && let Some(layer) = stack.active_mut()
+            && let Some(cv) = layer.canvas_mut()
+        {
+            match stroke.brush {
+                BrushType::Rectangle => Self::stroke_rect(cv, &stroke),
+                _ => Self::stroke_line(cv, &stroke),
+            }
+        }
+        Self::composite_active(state);
     }
 
     /// Wrapper compatível com API legado.
@@ -708,9 +550,9 @@ impl PaintModule {
         Self::canvas_brush_advanced(state, x, y, brush, state.canvas_brush, 1.0);
     }
 
-    /// Preenche todo o canvas ativo com a cor selecionada.
+    /// Preenche a camada ativa com a cor selecionada.
     pub fn canvas_fill(state: &mut AppState) {
-        Self::ensure_canvas(state);
+        Self::ensure_stack(state);
         let color = [
             (state.paint_color[0] * 255.0) as u8,
             (state.paint_color[1] * 255.0) as u8,
@@ -719,30 +561,105 @@ impl PaintModule {
         ];
 
         let active_idx = state.project.active;
-        let mat_id = state
-            .project
-            .assets
-            .get(active_idx)
-            .and_then(|a| a.material_id);
-
-        if let Some(o) = state.project.active_mut()
-            && let Some(cv) = o.texture.as_mut()
+        if let Some(o) = state.project.assets.get_mut(active_idx)
+            && let Some(stack) = o.paint_stack.as_mut()
+            && let Some(layer) = stack.active_mut()
+            && let Some(cv) = layer.canvas_mut()
         {
             cv.fill(color);
         }
 
-        if let Some(mid) = mat_id
-            && let Some(mat) = state.project.project.get_material_mut(mid)
-            && let Some(cv) = mat.albedo_texture.as_mut()
-        {
-            cv.fill(color);
-        }
+        Self::composite_active(state);
+    }
 
-        state.render.canvas_dirty = true;
-        state.mark_dirty();
+    /// Limpa a camada ativa (alfa zero).
+    pub fn canvas_clear(state: &mut AppState) {
+        Self::ensure_stack(state);
+        let active_idx = state.project.active;
+        if let Some(o) = state.project.assets.get_mut(active_idx)
+            && let Some(stack) = o.paint_stack.as_mut()
+            && let Some(layer) = stack.active_mut()
+            && let Some(cv) = layer.canvas_mut()
+        {
+            cv.fill([0, 0, 0, 0]);
+        }
+        Self::composite_active(state);
     }
 
     // ---- Pintura 3D Direta sobre Malha via UV (P3D-062, P3D-132) ----
+
+    /// UV do ponto de impacto numa face (raycast → baricêntricas → UV).
+    /// `None` = fora da face ou máscara de isolamento vetou.
+    pub fn face_hit_uv(
+        state: &AppState,
+        face_idx: usize,
+        hit_pos: Vec3,
+        isolate_selection: bool,
+    ) -> Option<[f32; 2]> {
+        let active_asset = state.project.assets.get(state.project.active)?;
+        let mesh = &active_asset.mesh;
+        let face = mesh.faces.get(face_idx)?;
+
+        // P3D-132: Paint Masks / Face & Selection Isolation
+        if isolate_selection {
+            let has_selected_faces = mesh.faces.iter().any(|f| f.selected);
+            if has_selected_faces && !face.selected {
+                return None;
+            }
+        }
+
+        let m = face.verts.len();
+        if m < 3 || face.uv.len() < m {
+            return None;
+        }
+
+        // Decompõe face em triângulos fan a partir do vértice 0
+        for i in 1..m - 1 {
+            let idx0 = face.verts[0] as usize;
+            let idx1 = face.verts[i] as usize;
+            let idx2 = face.verts[i + 1] as usize;
+
+            if idx0 < mesh.verts.len() && idx1 < mesh.verts.len() && idx2 < mesh.verts.len() {
+                let v0 = mesh.verts[idx0].vec();
+                let v1 = mesh.verts[idx1].vec();
+                let v2 = mesh.verts[idx2].vec();
+
+                let uv0 = face.uv[0];
+                let uv1 = face.uv[i];
+                let uv2 = face.uv[i + 1];
+
+                if let Some(interpolated) = barycentric_uv(hit_pos, v0, v1, v2, uv0, uv1, uv2) {
+                    return Some(interpolated);
+                }
+            }
+        }
+        None
+    }
+
+    /// Converte UV [0,1] em pixel do canvas (com wrap + flip V).
+    pub fn uv_to_px(state: &AppState, uv: [f32; 2]) -> Option<(u32, u32)> {
+        let (w, h) = state
+            .project
+            .assets
+            .get(state.project.active)
+            .and_then(|o| {
+                o.paint_stack
+                    .as_ref()
+                    .and_then(|s| s.active())
+                    .and_then(|l| l.canvas())
+                    .or(o.texture.as_ref())
+            })
+            .map(|cv| (cv.w, cv.h))?;
+        if w == 0 || h == 0 {
+            return None;
+        }
+        let u = uv[0].rem_euclid(1.0);
+        let v = uv[1].rem_euclid(1.0);
+        Some((
+            ((u * w as f32) as u32).min(w.saturating_sub(1)),
+            (((1.0 - v) * h as f32) as u32).min(h.saturating_sub(1)),
+        ))
+    }
 
     /// Pinta na textura 2D do modelo projetando o ponto de impacto 3D nas coordenadas UV da face.
     pub fn paint_mesh_3d(
@@ -754,81 +671,21 @@ impl PaintModule {
         strength: f32,
         isolate_selection: bool,
     ) -> bool {
-        let (uv, should_paint) = {
-            let active_asset = match state.project.assets.get(state.project.active) {
-                Some(a) => a,
-                None => return false,
-            };
-            let mesh = &active_asset.mesh;
-
-            let face = match mesh.faces.get(face_idx) {
-                Some(f) => f,
-                None => return false,
-            };
-
-            // P3D-132: Paint Masks / Face & Selection Isolation
-            if isolate_selection {
-                let has_selected_faces = mesh.faces.iter().any(|f| f.selected);
-                if has_selected_faces && !face.selected {
-                    return false;
-                }
-            }
-
-            let m = face.verts.len();
-            if m < 3 || face.uv.len() < m {
-                return false;
-            }
-
-            let mut best_uv = None;
-            // Decompõe face em triângulos fan a partir do vértice 0
-            for i in 1..m - 1 {
-                let idx0 = face.verts[0] as usize;
-                let idx1 = face.verts[i] as usize;
-                let idx2 = face.verts[i + 1] as usize;
-
-                if idx0 < mesh.verts.len() && idx1 < mesh.verts.len() && idx2 < mesh.verts.len() {
-                    let v0 = mesh.verts[idx0].vec();
-                    let v1 = mesh.verts[idx1].vec();
-                    let v2 = mesh.verts[idx2].vec();
-
-                    let uv0 = face.uv[0];
-                    let uv1 = face.uv[i];
-                    let uv2 = face.uv[i + 1];
-
-                    if let Some(interpolated) = barycentric_uv(hit_pos, v0, v1, v2, uv0, uv1, uv2) {
-                        best_uv = Some(interpolated);
-                        break;
-                    }
-                }
-            }
-
-            (best_uv, true)
+        let Some(uv) = Self::face_hit_uv(state, face_idx, hit_pos, isolate_selection) else {
+            return false;
         };
-
-        if !should_paint {
+        // Formas são confirmadas no release (commit_shape); aqui só pincéis livres.
+        if matches!(brush, BrushType::Line | BrushType::Rectangle) {
             return false;
         }
 
-        if let Some(uv) = uv {
-            Self::ensure_canvas(state);
-            let (w, h) = if let Some(o) = state.project.assets.get(state.project.active)
-                && let Some(cv) = &o.texture
-            {
-                (cv.w, cv.h)
-            } else {
-                (256, 256)
-            };
+        Self::ensure_canvas(state);
+        let Some((px, py)) = Self::uv_to_px(state, uv) else {
+            return false;
+        };
 
-            let u = uv[0].rem_euclid(1.0);
-            let v = uv[1].rem_euclid(1.0);
-            let px = ((u * w as f32) as u32).min(w.saturating_sub(1));
-            let py = (((1.0 - v) * h as f32) as u32).min(h.saturating_sub(1));
-
-            Self::canvas_brush_advanced(state, px, py, brush, radius, strength);
-            true
-        } else {
-            false
-        }
+        Self::canvas_brush_advanced(state, px, py, brush, radius, strength);
+        true
     }
 }
 
@@ -982,6 +839,146 @@ mod tests {
         assert!(asset.texture.is_some());
         let mat = state.project.active_material().unwrap();
         assert!(mat.albedo_texture.is_some());
+    }
+
+    #[test]
+    fn test_stack_migrates_existing_texture_without_loss() {
+        let mut state = AppState::new("en");
+        PaintModule::ensure_canvas(&mut state);
+        // Marca a textura legada com um pixel conhecido.
+        if let Some(o) = state.project.active_mut()
+            && let Some(cv) = o.texture.as_mut()
+        {
+            cv.set(10, 10, [11, 22, 33, 255]);
+        }
+        PaintModule::ensure_stack(&mut state);
+        let asset = state.project.active().unwrap();
+        let stack = asset.paint_stack.as_ref().expect("stack criado");
+        assert_eq!(stack.layers.len(), 1);
+        // Conteúdo migrado para a base e recomposto sem perda.
+        let base = stack.layers[0].canvas().expect("base raster");
+        assert_eq!(base.get(10, 10), Some([11, 22, 33, 255]));
+        PaintModule::composite_active(&mut state);
+        let tex = state.project.active().unwrap().texture.as_ref().unwrap();
+        assert_eq!(tex.get(10, 10), Some([11, 22, 33, 255]));
+    }
+
+    #[test]
+    fn test_resize_keeps_content_proportionally() {
+        let mut state = AppState::new("en");
+        PaintModule::ensure_canvas(&mut state);
+        state.checkpoint("resize test");
+        PaintModule::resize_canvas(&mut state, 64, 64);
+        let asset = state.project.active().unwrap();
+        let tex = asset.texture.as_ref().unwrap();
+        assert_eq!((tex.w, tex.h), (64, 64));
+        let stack = asset.paint_stack.as_ref().unwrap();
+        assert_eq!(
+            (
+                stack.layers[0].canvas().unwrap().w,
+                stack.layers[0].canvas().unwrap().h
+            ),
+            (64, 64)
+        );
+        assert!(state.project.undo.can_undo());
+    }
+
+    #[test]
+    fn test_layer_add_paint_composite_and_undo() {
+        let mut state = AppState::new("en");
+        state.paint_color = [1.0, 0.0, 0.0];
+        PaintModule::ensure_stack(&mut state);
+        state.checkpoint("layer add");
+        let active = state.project.active;
+        if let Some(o) = state.project.assets.get_mut(active)
+            && let Some(stack) = o.paint_stack.as_mut()
+        {
+            stack.add_layer(PaintLayer::new("Top", 256, 256, [0, 0, 0, 0]));
+        }
+        // Pinta na camada ativa (topo) e recompõe.
+        PaintModule::canvas_brush_advanced(&mut state, 20, 20, BrushType::Pixel, 2, 1.0);
+        let tex = state.project.active().unwrap().texture.as_ref().unwrap();
+        let px = tex.get(20, 20).unwrap();
+        assert!(px[0] > 200, "vermelho do topo deve dominar: {px:?}");
+        state.undo();
+        let tex = state.project.active().unwrap().texture.as_ref().unwrap();
+        assert_eq!(tex.get(20, 20), Some([191, 191, 198, 255]));
+    }
+
+    #[test]
+    fn test_stroke_line_is_continuous_diagonal() {
+        let mut cv = Canvas::new(8, 8, [0, 0, 0, 255]);
+        PaintModule::stroke_line(
+            &mut cv,
+            &ShapeStroke {
+                x0: 0,
+                y0: 0,
+                x1: 7,
+                y1: 7,
+                brush: BrushType::Pixel,
+                color: [255, 255, 255, 255],
+                strength: 1.0,
+            },
+        );
+        for k in 0..8 {
+            assert_eq!(
+                cv.get(k, k),
+                Some([255, 255, 255, 255]),
+                "falha em ({k},{k})"
+            );
+        }
+        assert_eq!(cv.get(0, 7), Some([0, 0, 0, 255]));
+    }
+
+    #[test]
+    fn test_stroke_rect_fills_bounds() {
+        let mut cv = Canvas::new(8, 8, [0, 0, 0, 255]);
+        PaintModule::stroke_rect(
+            &mut cv,
+            &ShapeStroke {
+                x0: 5,
+                y0: 5,
+                x1: 2,
+                y1: 2,
+                brush: BrushType::Pixel,
+                color: [0, 255, 0, 255],
+                strength: 1.0,
+            },
+        );
+        assert_eq!(cv.get(2, 2), Some([0, 255, 0, 255]));
+        assert_eq!(cv.get(5, 5), Some([0, 255, 0, 255]));
+        assert_eq!(cv.get(0, 0), Some([0, 0, 0, 255]));
+        assert_eq!(cv.get(7, 7), Some([0, 0, 0, 255]));
+    }
+
+    #[test]
+    fn test_face_hit_uv_and_shape_commit_on_cube() {
+        let mut state = AppState::new("en");
+        let hit = Vec3::new(0.0, 0.0, 1.0);
+        let uv = PaintModule::face_hit_uv(&state, 0, hit, false).expect("uv na face 0");
+        assert!(uv[0].is_finite() && uv[1].is_finite());
+        PaintModule::ensure_stack(&mut state);
+        state.checkpoint("shape test");
+        let (x0, y0) = PaintModule::uv_to_px(&state, uv).expect("px válido");
+        PaintModule::commit_shape(
+            &mut state,
+            ShapeStroke {
+                x0,
+                y0,
+                x1: x0 + 4,
+                y1: y0 + 4,
+                brush: BrushType::Line,
+                color: [255, 0, 0, 255],
+                strength: 1.0,
+            },
+        );
+        assert!(state.project.undo.can_undo());
+        state.undo();
+        let tex = state.project.active().unwrap().texture.as_ref().unwrap();
+        assert_eq!(
+            tex.get(x0.min(255), y0.min(255)),
+            Some([191, 191, 198, 255])
+        );
     }
 
     #[test]

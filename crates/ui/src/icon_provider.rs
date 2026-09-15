@@ -11,12 +11,15 @@
 //! 5 GiB dev machine; CI enables the feature).
 
 /// Generic (non-domain) icon pack selectable at runtime.
+///
+/// Iconoir é o padrão da interface (decisão de produto: biblioteca única
+/// por enquanto; Lucide segue como reserva compilada).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum GenericPack {
-    /// Lucide (default).
-    #[default]
+    /// Lucide (reserva).
     Lucide,
-    /// Iconoir.
+    /// Iconoir (default).
+    #[default]
     Iconoir,
     /// Tabler (`extended-icon-packs` feature).
     Tabler,
@@ -105,6 +108,16 @@ impl GenericIcon {
             Self::Move => "move",
             Self::Settings => "settings",
             Self::Camera => "camera",
+        }
+    }
+
+    /// Ordered glyph candidates (Iconoir não tem "move": usa "expand").
+    pub fn glyph_candidates(self) -> &'static [&'static str] {
+        match self {
+            Self::Box => &["box"],
+            Self::Move => &["move", "expand", "drag"],
+            Self::Settings => &["settings"],
+            Self::Camera => &["camera"],
         }
     }
 }
@@ -221,6 +234,12 @@ pub fn is_pack_owned(icon: crate::icon_registry::PetuniaIcon) -> bool {
             | P::SelectVertex
             | P::SelectEdge
             | P::SelectFace
+            | P::PaintBrush
+            | P::PaintEraser
+            | P::PaintFill
+            | P::PaintPicker
+            | P::PaintLine
+            | P::PaintRect
     )
 }
 
@@ -292,6 +311,12 @@ pub fn utility_candidates(icon: crate::icon_registry::PetuniaIcon) -> &'static [
         P::SelectVertex => &["circle-dot", "circle", "dot"],
         P::SelectEdge => &["minus", "slash"],
         P::SelectFace => &["square", "box"],
+        P::PaintBrush => &["design-pencil", "edit-pencil", "brush", "paintbrush"],
+        P::PaintEraser => &["erase", "eraser"],
+        P::PaintFill => &["fill-color", "paint-bucket", "bucket"],
+        P::PaintPicker => &["color-picker", "pipette", "dropper"],
+        P::PaintLine => &["slash", "line", "minus"],
+        P::PaintRect => &["square", "rectangle"],
         _ => &[],
     }
 }
@@ -364,20 +389,22 @@ impl PetuniaIconProvider {
                 pack: self.pack.name(),
             });
         }
-        let name = icon.glyph_name();
-        iconflow::try_icon(
-            self.pack.iconflow_pack(),
-            name,
-            iconflow::Style::Regular,
-            iconflow::Size::Regular,
-        )
-        .map(|icon_ref| ResolvedIcon {
-            family: icon_ref.family,
-            codepoint: icon_ref.codepoint,
-        })
-        .map_err(|_| ProviderError::Missing {
+        for name in icon.glyph_candidates() {
+            if let Ok(icon_ref) = iconflow::try_icon(
+                self.pack.iconflow_pack(),
+                name,
+                iconflow::Style::Regular,
+                iconflow::Size::Regular,
+            ) {
+                return Ok(ResolvedIcon {
+                    family: icon_ref.family,
+                    codepoint: icon_ref.codepoint,
+                });
+            }
+        }
+        Err(ProviderError::Missing {
             pack: self.pack.name(),
-            name: name.to_string(),
+            name: icon.glyph_name().to_string(),
         })
     }
 
@@ -397,7 +424,7 @@ mod tests {
     #[test]
     fn default_pack_resolves_core_icons() {
         let provider = PetuniaIconProvider::default();
-        assert_eq!(provider.pack(), GenericPack::Lucide);
+        assert_eq!(provider.pack(), GenericPack::Iconoir);
         for icon in [
             GenericIcon::Box,
             GenericIcon::Move,

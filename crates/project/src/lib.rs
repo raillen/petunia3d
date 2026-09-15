@@ -15,6 +15,7 @@ pub mod io_atomic;
 pub mod material;
 pub mod model_library;
 pub mod package;
+pub mod paint_layers;
 pub mod palette;
 pub mod pipeline;
 pub mod rig;
@@ -33,6 +34,9 @@ pub use model_library::{AssetSummary, ModelLibraryQuery, ModelLibraryService, Mo
 pub use package::{
     Attachment, PACKAGE_VERSION, PackageError, PackageManifest, open_package, open_package_bytes,
     save_package, save_package_bytes,
+};
+pub use paint_layers::{
+    DecalLayer, LayerBlendMode, LayerKind, PaintEffect, PaintLayer, PaintLayerStack, blend_pixels,
 };
 pub use palette::{export_gpl, export_hex, import_gpl, import_hex, preset_gameboy, preset_pico8};
 pub use pipeline::{
@@ -89,12 +93,81 @@ impl Canvas {
         }
     }
 
+    /// Redimensiona por vizinho mais próximo (operação explícita de resize;
+    /// preserva o conteúdo proporcionalmente, sem filtros caros).
+    pub fn resized(&self, w: u32, h: u32) -> Self {
+        let w = w.clamp(1, 1024);
+        let h = h.clamp(1, 1024);
+        if w == self.w && h == self.h {
+            return self.clone();
+        }
+        let mut out = Self::new(w, h, [0, 0, 0, 0]);
+        for y in 0..h {
+            for x in 0..w {
+                let sx = ((x as f32 * self.w as f32) / w as f32) as u32;
+                let sy = ((y as f32 * self.h as f32) / h as f32) as u32;
+                if let Some(px) = self.get(sx.min(self.w - 1), sy.min(self.h - 1)) {
+                    out.set(x, y, px);
+                }
+            }
+        }
+        out
+    }
+
     /// Repara canvas vindo de arquivo (M4): dims 1..1024 + pixels exatos.
     pub fn validate(&mut self) {
         self.w = self.w.clamp(1, 1024);
         self.h = self.h.clamp(1, 1024);
         let want = (self.w * self.h * 4) as usize;
         self.pixels.resize(want, 0);
+    }
+}
+
+/// Operação não destrutiva persistente avaliada sobre a malha-base do asset.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum ModifierKind {
+    Mirror {
+        axis: usize,
+        weld: f32,
+    },
+    Symmetry {
+        axis: usize,
+        positive_to_negative: bool,
+        weld: f32,
+    },
+}
+
+/// Instância ordenada de modifier. O UUID mantém identidade estável para UI,
+/// reordenação e futuras animações/serialization migrations.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct ModifierInstance {
+    pub id: Uuid,
+    pub enabled: bool,
+    pub kind: ModifierKind,
+}
+
+impl ModifierInstance {
+    pub fn mirror(axis: usize, weld: f32) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            enabled: true,
+            kind: ModifierKind::Mirror {
+                axis: axis.min(2),
+                weld: weld.max(0.0),
+            },
+        }
+    }
+
+    pub fn symmetry(axis: usize, positive_to_negative: bool, weld: f32) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            enabled: true,
+            kind: ModifierKind::Symmetry {
+                axis: axis.min(2),
+                positive_to_negative,
+                weld: weld.max(0.0),
+            },
+        }
     }
 }
 
@@ -111,6 +184,10 @@ pub struct Asset {
     pub collection: Option<String>,
     pub base_color: [f32; 3],
     pub texture: Option<Canvas>,
+    /// Pilha de camadas de pintura (P3D-061). `None` = legado/sem camadas:
+    /// a `texture` é a representação composta.
+    #[serde(default)]
+    pub paint_stack: Option<PaintLayerStack>,
     #[serde(default)]
     pub material_id: Option<Uuid>,
     #[serde(default)]
@@ -121,6 +198,8 @@ pub struct Asset {
     pub favorite: bool,
     #[serde(default)]
     pub tags: Vec<String>,
+    #[serde(default)]
+    pub modifiers: Vec<ModifierInstance>,
 }
 
 impl Asset {
@@ -139,12 +218,37 @@ impl Asset {
             skin_data: None,
             favorite: false,
             tags: Vec::new(),
+            modifiers: Vec::new(),
+            paint_stack: None,
         }
     }
 
     /// Obtém o material atribuído ao asset a partir do projeto.
     pub fn material<'a>(&self, project: &'a Project) -> Option<&'a Material> {
         self.material_id.and_then(|id| project.get_material(id))
+    }
+
+    /// Avalia a pilha de modifiers sem alterar a malha-base.
+    /// Render, preview e export usam este resultado; edição continua operando
+    /// sobre `mesh`, preservando a natureza não destrutiva da pilha.
+    pub fn evaluated_mesh(&self) -> Mesh {
+        let mut mesh = self.mesh.clone();
+        for modifier in &self.modifiers {
+            if !modifier.enabled {
+                continue;
+            }
+            match modifier.kind {
+                ModifierKind::Mirror { axis, weld } => mesh.mirror(axis, weld),
+                ModifierKind::Symmetry {
+                    axis,
+                    positive_to_negative,
+                    weld,
+                } => {
+                    mesh.symmetrize(axis, positive_to_negative, weld);
+                }
+            }
+        }
+        mesh
     }
 
     /// Duplicata com novo UUID.

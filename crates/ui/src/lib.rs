@@ -40,6 +40,7 @@ pub mod measurement;
 #[cfg(test)]
 mod modal_tests;
 mod modal_viewport;
+pub mod modeling_tool_properties;
 pub mod modules_ui;
 pub mod nav_gizmo;
 pub mod outliner;
@@ -54,7 +55,8 @@ pub mod settings_modal;
 pub mod status_bar;
 pub mod timeline;
 pub mod tokens;
-mod tool_fields;
+pub mod tool_fields;
+pub mod tool_properties_popover;
 pub mod toolbar;
 pub mod transform_gizmo_integration;
 pub mod twill_bridge;
@@ -1001,28 +1003,50 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
         if let Some(shelf) = shelf_rect {
             regions::record(&ctx, regions::RegionSlot::Shelf, shelf);
         }
-        // Cartão Last Operation da criação ativa (Wave 8).
+        // Viewport-local interactive chrome. Every surface returns its actual
+        // rect, which becomes both QA evidence and a hit-test exclusion zone.
         let had_primitive_session = state.session.primitive_session.is_some();
-        primitive_card::draw_primitive_card(ui, state, rect);
-        let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
-            ui.input(|i| {
-                i.pointer
-                    .interact_pos()
-                    .or(i.pointer.hover_pos())
-                    .is_some_and(|pos| sr.contains(pos))
-            })
+        let primitive_card_rect = primitive_card::draw_primitive_card(ui, state, rect);
+        if let Some(card_rect) = primitive_card_rect {
+            regions::record(&ctx, regions::RegionSlot::PrimitiveCard, card_rect);
+        }
+        // Avoid flashing a second contextual surface on the same frame that a
+        // primitive card confirms/cancels itself.
+        let tool_properties_rect = if had_primitive_session {
+            None
+        } else {
+            tool_properties_popover::draw(ui, state, rect)
+        };
+        if let Some(tool_rect) = tool_properties_rect {
+            regions::record(&ctx, regions::RegionSlot::ToolProperties, tool_rect);
+        }
+
+        let pointer_on_viewport_chrome = ui.input(|i| {
+            i.pointer
+                .interact_pos()
+                .or(i.pointer.hover_pos())
+                .is_some_and(|pos| {
+                    [shelf_rect, primitive_card_rect, tool_properties_rect]
+                        .into_iter()
+                        .flatten()
+                        .any(|overlay| overlay.contains(pos))
+                })
         });
 
-        if pointer_on_shelf {
+        if pointer_on_viewport_chrome {
+            // Critical Wave 3 invariant: buttons, fields and scroll gestures in
+            // viewport chrome must never become box-select starts or GPU picks.
             state.ui.box_select_start = None;
             return;
         }
-        if resp.drag_started_by(egui::PointerButton::Primary)
+        if state.active_tool == "select_box"
+            && resp.drag_started_by(egui::PointerButton::Primary)
             && let Some(pos) = resp.interact_pointer_pos()
         {
             state.ui.box_select_start = Some([pos.x, pos.y]);
         }
-        if resp.dragged_by(egui::PointerButton::Primary)
+        if state.active_tool == "select_box"
+            && resp.dragged_by(egui::PointerButton::Primary)
             && let (Some(start), Some(curr)) =
                 (state.ui.box_select_start, resp.interact_pointer_pos())
         {
@@ -1040,7 +1064,8 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
             );
             state.mark_dirty();
         }
-        if resp.drag_stopped_by(egui::PointerButton::Primary)
+        if state.active_tool == "select_box"
+            && resp.drag_stopped_by(egui::PointerButton::Primary)
             && let (Some(start), Some(curr)) = (
                 state.ui.box_select_start.take(),
                 resp.interact_pointer_pos(),

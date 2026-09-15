@@ -508,9 +508,9 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                     let label = state.t(&format!("tools.{id}"));
                     ShelfCommand {
                         icon: Some(match id {
-                            "paint" => PetuniaIcon::Custom("paint"),
-                            "eraser" => PetuniaIcon::Custom("delete"),
-                            _ => PetuniaIcon::Cursor3D,
+                            "paint" => PetuniaIcon::PaintBrush,
+                            "eraser" => PetuniaIcon::PaintEraser,
+                            _ => PetuniaIcon::PaintPicker,
                         }),
                         label: label.clone(),
                         tooltip: label,
@@ -685,7 +685,7 @@ fn draw_shelf_pill(
 
 fn draw_more_popover(ui: &mut Ui, state: &mut AppState, label: &str, cmds: &[&ShelfCommand]) {
     ui.menu_button(label, |ui| {
-        ui.set_min_width(165.0);
+        ui.set_min_width(148.0);
         for cmd in cmds {
             let mut item = PetuniaMenuItem::new(&cmd.label);
             if let Some(icon) = &cmd.icon {

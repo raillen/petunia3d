@@ -3,6 +3,5 @@
 //! dos módulos (`model`, `paint`, `uv`), mantendo os crates de módulo puros.
 
 pub mod animation_ui;
-pub mod model_ui;
 pub mod paint_ui;
 pub mod uv_ui;

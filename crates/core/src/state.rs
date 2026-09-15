@@ -324,6 +324,11 @@ pub struct ToolState {
     pub canvas_brush: u32,
     pub paint_brush_kind: usize,
     pub paint_isolate_selection: bool,
+    /// Canal de textura alvo da pintura (P3D-062). V1: só Albedo opera;
+    /// demais canais ficam desabilitados na UI até V1.x.
+    pub paint_channel: petunia_project::TextureChannel,
+    /// Grade de pixels no canvas 2D (contextual: só com zoom suficiente).
+    pub paint_pixel_grid: bool,
     pub transform_delta: [f32; 3],
     pub transform_rotation: [f32; 3],
     pub transform_scale: f32,
@@ -331,6 +336,7 @@ pub struct ToolState {
     pub inset_factor: f32,
     pub bevel_amount: f32,
     pub bevel_segments: u32,
+    pub subdivide_cuts: u32,
     pub revolve_segments: u32,
     pub revolve_angle: f32,
     pub revolve_axis: usize,
@@ -375,6 +381,8 @@ impl ToolState {
             canvas_brush: 4,
             paint_brush_kind: 0,
             paint_isolate_selection: false,
+            paint_channel: petunia_project::TextureChannel::Albedo,
+            paint_pixel_grid: true,
             transform_delta: [0.0; 3],
             transform_rotation: [0.0; 3],
             transform_scale: 1.0,
@@ -382,6 +390,7 @@ impl ToolState {
             inset_factor: 0.3,
             bevel_amount: 0.15,
             bevel_segments: 1,
+            subdivide_cuts: 1,
             revolve_segments: 16,
             revolve_angle: 360.0,
             revolve_axis: 1,
@@ -752,7 +761,7 @@ impl UiState {
             command_palette_query: String::new(),
             command_palette_selected_index: 0,
             active_theme_id: "petunia-dark".to_string(),
-            active_icon_pack_id: "petunia".to_string(),
+            active_icon_pack_id: "iconoir".to_string(),
             active_keymap_id: "petunia-default".to_string(),
             asset_thumbnail_size: 64.0,
             inspector_detached: false,
@@ -1577,7 +1586,7 @@ impl AppState {
         if cancel {
             self.project.project = original;
         } else {
-            let changed = original
+            let verts_changed = original
                 .active_mesh()
                 .zip(self.project.active_mesh())
                 .is_some_and(|(a, b)| {
@@ -1586,7 +1595,17 @@ impl AppState {
                         .zip(&b.verts)
                         .any(|(a, b)| a.color != b.color)
                 });
-            if changed {
+            // Stroke só de textura também gera 1 nível (compara pixels).
+            let tex_changed =
+                original
+                    .assets
+                    .iter()
+                    .zip(self.project.assets.iter())
+                    .any(|(a, b)| {
+                        a.texture.as_ref().map(|c| &c.pixels)
+                            != b.texture.as_ref().map(|c| &c.pixels)
+                    });
+            if verts_changed || tex_changed {
                 self.project.undo.checkpoint("Paint stroke", &original);
             }
         }

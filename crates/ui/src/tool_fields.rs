@@ -1,4 +1,4 @@
-//! Editable tool properties driving the same transaction as viewport transforms.
+//! Editable Tool Properties driving the same transaction as viewport transforms.
 use egui::{Key, Modifiers};
 use glam::Vec3;
 use petunia_core::{AppState, ModalConstraint, ModalKind};
@@ -31,7 +31,7 @@ impl FieldSession {
         }
     }
 
-    fn parsed(&self) -> Result<Vec3, String> {
+    fn parsed(&self, state: &AppState) -> Result<Vec3, String> {
         let count = if transform(self.kind) { 3 } else { 1 };
         let mut values = [0.0; 3];
         for (index, slot) in values.iter_mut().enumerate().take(count) {
@@ -41,7 +41,7 @@ impl FieldSession {
                 .parse::<f32>()
                 .ok()
                 .filter(|value| value.is_finite())
-                .ok_or_else(|| "Informe um número finito em cada campo.".to_string())?;
+                .ok_or_else(|| state.t("tool_properties.error_number"))?;
         }
         Ok(Vec3::from_array(values))
     }
@@ -54,7 +54,7 @@ impl FieldSession {
                 .map_err(|error| error.to_string())?;
             self.active = true;
         }
-        let values = self.parsed()?;
+        let values = self.parsed(state)?;
         if transform(self.kind) {
             state.update_modal_components(values)
         } else {
@@ -71,6 +71,18 @@ fn transform(kind: ModalKind) -> bool {
     matches!(kind, ModalKind::Move | ModalKind::Rotate | ModalKind::Scale)
 }
 
+pub fn kind_label(state: &AppState, kind: ModalKind) -> String {
+    state.t(match kind {
+        ModalKind::Move => "tools.move",
+        ModalKind::Rotate => "tools.rotate",
+        ModalKind::Scale => "tools.scale",
+        ModalKind::Extrude => "tools.extrude",
+        ModalKind::Inset => "tools.inset",
+        ModalKind::Bevel => "tools.bevel",
+        ModalKind::PushPull => "tools.pushpull",
+    })
+}
+
 /// Viewport input yields while the property editor owns the active transaction.
 pub fn owns_modal(ctx: &egui::Context) -> bool {
     ctx.data_mut(|data| data.get_temp::<FieldSession>(egui::Id::new(SESSION_ID)))
@@ -84,11 +96,15 @@ fn selected_kind(state: &AppState) -> Option<ModalKind> {
         .map(|modal| modal.kind)
         .or(state.pending_modal)
         .or(match state.active_tool.as_str() {
-            "transform" => Some(state.gizmo_mode),
+            "move" => Some(ModalKind::Move),
+            "rotate" => Some(ModalKind::Rotate),
+            "scale" => Some(ModalKind::Scale),
             "extrude" => Some(ModalKind::Extrude),
             "inset" => Some(ModalKind::Inset),
             "bevel" => Some(ModalKind::Bevel),
             "pushpull" => Some(ModalKind::PushPull),
+            // Universal Transform is intentionally not an implicit alias for
+            // whichever gizmo mode happened to be selected previously.
             _ => None,
         })
 }
@@ -97,8 +113,21 @@ fn field_id(ui: &egui::Ui, kind: ModalKind, index: usize) -> egui::Id {
     ui.id().with((SESSION_ID, kind.label(), index))
 }
 
-/// Returns true when the selected tool has editable numeric properties.
-/// This section must be drawn outside the disabled legacy tool controls.
+fn activate_transform_kind(state: &mut AppState, session: &mut FieldSession, kind: ModalKind) {
+    let active_tool = match kind {
+        ModalKind::Move => "move",
+        ModalKind::Rotate => "rotate",
+        ModalKind::Scale => "scale",
+        _ => return,
+    };
+    state.active_tool = active_tool.to_owned();
+    state.gizmo_mode = kind;
+    state.pending_modal = Some(kind);
+    *session = FieldSession::new(kind, state);
+    state.mark_dirty();
+}
+
+/// Returns true when the selected tool has canonical editable numeric properties.
 pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
     let ctx = ui.ctx().clone();
     let id = egui::Id::new(SESSION_ID);
@@ -116,26 +145,27 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
     let blocked = state.mesh_preview.is_some()
         || state.paint_stroke.is_some()
         || (state.modal.is_some() && !session.active);
-    ui.heading("Propriedades da ferramenta");
+
     if transform(kind) {
         ui.add_enabled_ui(!session.active && !blocked, |ui| {
             ui.horizontal(|ui| {
-                for (label, candidate) in [
-                    ("Mover", ModalKind::Move),
-                    ("Rotacionar", ModalKind::Rotate),
-                    ("Escalar", ModalKind::Scale),
+                for (candidate, label_id) in [
+                    (ModalKind::Move, "tools.move"),
+                    (ModalKind::Rotate, "tools.rotate"),
+                    (ModalKind::Scale, "tools.scale"),
                 ] {
-                    if ui.selectable_label(kind == candidate, label).clicked() {
+                    if ui
+                        .selectable_label(kind == candidate, state.t(label_id))
+                        .clicked()
+                    {
                         kind = candidate;
-                        state.gizmo_mode = kind;
-                        state.pending_modal = None;
-                        session = FieldSession::new(kind, state);
-                        state.mark_dirty();
+                        activate_transform_kind(state, &mut session, kind);
                     }
                 }
             });
         });
     }
+
     if blocked {
         if let Some(modal) = &state.modal {
             session.values = if transform(kind) {
@@ -145,18 +175,20 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
             }
             .map(|value| format!("{value:.4}"));
         }
-        ui.label("Confirme ou cancele a operação no viewport para editar os campos.");
+        ui.small(state.t("tool_properties.blocked"));
     }
+
     let (label, unit) = match kind {
-        ModalKind::Move => ("Deslocamento", "m"),
-        ModalKind::Rotate => ("Rotação XYZ", "°"),
-        ModalKind::Scale => ("Escala por eixo", "×"),
-        ModalKind::Extrude => ("Distância de extrusão", "m"),
-        ModalKind::Inset => ("Fator de inset", "0–0,95"),
-        ModalKind::Bevel => ("Largura do chanfro", "m"),
-        ModalKind::PushPull => ("Distância de empurrar/puxar", "m"),
+        ModalKind::Move => (state.t("tool_properties.displacement"), "m"),
+        ModalKind::Rotate => (state.t("tool_properties.rotation_xyz"), "°"),
+        ModalKind::Scale => (state.t("tool_properties.scale_xyz"), "×"),
+        ModalKind::Extrude => (state.t("tool_properties.extrude_distance"), "m"),
+        ModalKind::Inset => (state.t("tool_properties.inset_factor"), "0–0.95"),
+        ModalKind::Bevel => (state.t("tool_properties.bevel_width"), "m"),
+        ModalKind::PushPull => (state.t("tool_properties.pushpull_distance"), "m"),
     };
     ui.label(label);
+
     let mut changed = false;
     let mut focused = false;
     let mut apply = false;
@@ -167,9 +199,9 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
             .show(ui, |ui| {
                 for index in 0..if transform(kind) { 3 } else { 1 } {
                     ui.label(if transform(kind) {
-                        ["X", "Y", "Z"][index]
+                        ["X", "Y", "Z"][index].to_owned()
                     } else {
-                        "Valor"
+                        state.t("tool_properties.value")
                     });
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut session.values[index])
@@ -189,12 +221,15 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
         }
         ui.horizontal(|ui| {
             apply = ui
-                .add_enabled(session.parsed().is_ok(), egui::Button::new("Aplicar"))
+                .add_enabled(
+                    session.parsed(state).is_ok(),
+                    egui::Button::new(state.t("actions.apply")),
+                )
                 .clicked();
             cancel = ui
                 .add_enabled(
                     session.active || state.pending_modal.is_some(),
-                    egui::Button::new("Cancelar"),
+                    egui::Button::new(state.t("actions.cancel")),
                 )
                 .clicked();
         });
@@ -203,13 +238,14 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
             cancel |= ctx.input_mut(|input| input.consume_key(Modifiers::NONE, Key::Escape));
         }
     });
+
     if cancel {
         state.cancel_modal();
         session = FieldSession::new(kind, state);
     } else if apply {
         match session.preview(state) {
             Ok(()) => {
-                if let Ok(values) = session.parsed() {
+                if let Ok(values) = session.parsed(state) {
                     match kind {
                         ModalKind::Extrude => state.extrude_dist = values.x,
                         ModalKind::Inset => state.inset_factor = values.x,
@@ -224,16 +260,43 @@ pub fn draw(ui: &mut egui::Ui, state: &mut AppState) -> bool {
             Err(error) => session.error = Some(error),
         }
     }
+
     if let Some(error) = &session.error {
         ui.colored_label(egui::Color32::LIGHT_RED, error);
     }
-    ui.small("A edição mostra uma prévia. Enter aplica; Esc cancela.");
+    ui.small(state.t("tool_properties.preview_hint"));
     if kind == ModalKind::Rotate {
-        ui.small("Ângulos em graus, ordem Euler XYZ, em torno do centro da seleção.");
+        ui.small(state.t("tool_properties.rotation_hint"));
     }
     if kind == ModalKind::Bevel {
-        ui.small("Uma aresta convexa com cantos simples; um segmento.");
+        ui.small(state.t("tool_properties.bevel_hint"));
     }
     ctx.data_mut(|data| data.insert_temp(id, session));
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn transform_children_map_explicitly_and_universal_does_not_alias_stale_mode() {
+        let mut state = AppState::new("en");
+        state.gizmo_mode = ModalKind::Scale;
+        state.active_tool = "transform".into();
+        assert_eq!(selected_kind(&state), None);
+        state.active_tool = "move".into();
+        assert_eq!(selected_kind(&state), Some(ModalKind::Move));
+        state.active_tool = "rotate".into();
+        assert_eq!(selected_kind(&state), Some(ModalKind::Rotate));
+        state.active_tool = "scale".into();
+        assert_eq!(selected_kind(&state), Some(ModalKind::Scale));
+    }
+
+    #[test]
+    fn modal_kind_labels_are_localized() {
+        let state = AppState::new("pt-BR");
+        assert_eq!(kind_label(&state, ModalKind::Move), "Mover");
+        assert_eq!(kind_label(&state, ModalKind::Bevel), "Bevel");
+    }
 }

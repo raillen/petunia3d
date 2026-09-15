@@ -159,7 +159,8 @@ fn inspector_tabs_and_sections_layout_metrics() {
         harness.run();
 
         // Abas na mesma linha, ordenadas, sem sobreposição, altura ≥ 28.
-        let rows: Vec<egui::Rect> = ["Object", "Modify", "Material"]
+        // ("Modifiers": renomeado de "Modify" na convergência ux/modeling-tool-system-convergence.)
+        let rows: Vec<egui::Rect> = ["Object", "Modifiers", "Material"]
             .iter()
             .map(|label| harness.get_by_label(label).rect())
             .collect();

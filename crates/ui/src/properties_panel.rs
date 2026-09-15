@@ -17,7 +17,6 @@ use crate::inspector_context::{
 };
 use crate::inspector_widgets::{self};
 use crate::tokens;
-use crate::tool_fields;
 use crate::widgets::{self};
 
 /// Renderiza o painel de propriedades: barra de contexto + inspector
@@ -248,8 +247,6 @@ fn draw_object_sections(ui: &mut Ui, state: &mut AppState) {
     draw_transform_section(ui, state, idx, false);
     ui.add_space(gap);
     draw_geometry_section(ui, state, idx, false);
-    ui.add_space(gap);
-    draw_modifiers_section(ui, state, false);
     ui.add_space(gap);
     draw_display_section(ui, state, idx, false);
     if !state.project.refs.is_empty() {
@@ -599,15 +596,20 @@ fn draw_geometry_section(ui: &mut Ui, state: &mut AppState, idx: Option<usize>, 
             {
                 ui.label(format!("{}: {}", state.t("props.verts"), mesh.vert_count()));
                 ui.label(format!("{}: {}", state.t("props.faces"), mesh.faces.len()));
-                ui.label(format!("Tris: {}", mesh.tri_count()));
+                ui.label(format!(
+                    "{}: {}",
+                    state.t("geometry.tris"),
+                    mesh.tri_count()
+                ));
             }
         },
     );
 }
 
-/// Seção Modifiers: pilha real quando existir; hoje, vazio honesto + atalhos
-/// que armam ferramentas existentes (navegação, sem controle fake).
+/// Seção Modifiers: pilha persistente, não destrutiva e reordenável.
 fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
+    use petunia_project::{ModifierInstance, ModifierKind};
+
     let section_title = state.t("modifiers.title");
     inspector_widgets::section(
         ui,
@@ -620,33 +622,206 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
             force_open,
         },
         |ui| {
-            ui.horizontal(|ui| {
+            let Some(asset_idx) =
+                inspected_asset_idx(state).filter(|idx| *idx < state.project.assets.len())
+            else {
+                ui.label(RichText::new(state.t("empty.no_selection")).color(tokens::TEXT_MUTED));
+                return;
+            };
+
+            // Precompute localized strings before mutably borrowing a modifier.
+            let enable_tip = state.t("modifiers.enable");
+            let remove_tip = state.t("modifiers.remove");
+            let axis_label = state.t("modifiers.axis");
+            let weld_label = state.t("actions.weld_eps");
+            let mirror_title = state.t("tools.mirror");
+            let symmetry_title = state.t("tools.symmetrize");
+            let add_mirror = state.t("modifiers.add_mirror");
+            let add_symmetry = state.t("modifiers.add_symmetry");
+            let move_up_tip = state.t("toolbar.move_up");
+            let move_down_tip = state.t("toolbar.move_down");
+            let positive_to_negative = state.t("actions.symmetrize_dir_pos");
+            let negative_to_positive = state.t("actions.symmetrize_dir_neg");
+
+            let mut changed = false;
+            let mut remove = None;
+            let mut move_up = None;
+            let mut move_down = None;
+            let modifier_count = state.project.assets[asset_idx].modifiers.len();
+            ui.push_id("modifier_stack_rows", |ui| {
+                for modifier_idx in 0..modifier_count {
+                    let snapshot = state.project.assets[asset_idx].modifiers[modifier_idx].clone();
+                    egui::Frame::new()
+                        .fill(tokens::bg_surface(state))
+                        .stroke(tokens::stroke_border_dyn(state))
+                        .corner_radius(tokens::RADIUS_CONTAINER)
+                        .inner_margin(egui::Margin::symmetric(8, 6))
+                        .show(ui, |ui| {
+                            ui.set_min_width(ui.available_width());
+                            ui.horizontal(|ui| {
+                                let mut enabled = snapshot.enabled;
+                                if ui
+                                    .checkbox(&mut enabled, "")
+                                    .on_hover_text(&enable_tip)
+                                    .changed()
+                                {
+                                    state.project.assets[asset_idx].modifiers[modifier_idx]
+                                        .enabled = enabled;
+                                    changed = true;
+                                }
+                                let title = match snapshot.kind {
+                                    ModifierKind::Mirror { .. } => &mirror_title,
+                                    ModifierKind::Symmetry { .. } => &symmetry_title,
+                                };
+                                ui.strong(title);
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui.small_button("×").on_hover_text(&remove_tip).clicked()
+                                        {
+                                            remove = Some(modifier_idx);
+                                        }
+                                        if ui
+                                            .add_enabled(
+                                                modifier_idx + 1 < modifier_count,
+                                                egui::Button::new("↓"),
+                                            )
+                                            .on_hover_text(&move_down_tip)
+                                            .clicked()
+                                        {
+                                            move_down = Some(modifier_idx);
+                                        }
+                                        if ui
+                                            .add_enabled(modifier_idx > 0, egui::Button::new("↑"))
+                                            .on_hover_text(&move_up_tip)
+                                            .clicked()
+                                        {
+                                            move_up = Some(modifier_idx);
+                                        }
+                                    },
+                                );
+                            });
+
+                            match &mut state.project.assets[asset_idx].modifiers[modifier_idx].kind
+                            {
+                                ModifierKind::Mirror { axis, weld } => {
+                                    ui.horizontal(|ui| {
+                                        ui.label(&axis_label);
+                                        for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
+                                            if ui
+                                                .selectable_label(*axis == candidate, name)
+                                                .clicked()
+                                            {
+                                                *axis = candidate;
+                                                changed = true;
+                                            }
+                                        }
+                                    });
+                                    changed |= ui
+                                        .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
+                                        .changed();
+                                }
+                                ModifierKind::Symmetry {
+                                    axis,
+                                    positive_to_negative: direction,
+                                    weld,
+                                } => {
+                                    ui.horizontal(|ui| {
+                                        ui.label(&axis_label);
+                                        for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
+                                            if ui
+                                                .selectable_label(*axis == candidate, name)
+                                                .clicked()
+                                            {
+                                                *axis = candidate;
+                                                changed = true;
+                                            }
+                                        }
+                                    });
+                                    ui.horizontal(|ui| {
+                                        if ui
+                                            .selectable_label(*direction, &positive_to_negative)
+                                            .clicked()
+                                        {
+                                            *direction = true;
+                                            changed = true;
+                                        }
+                                        if ui
+                                            .selectable_label(!*direction, &negative_to_positive)
+                                            .clicked()
+                                        {
+                                            *direction = false;
+                                            changed = true;
+                                        }
+                                    });
+                                    changed |= ui
+                                        .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
+                                        .changed();
+                                }
+                            }
+                        });
+                    ui.add_space(4.0);
+                }
+            });
+
+            if let Some(index) = remove {
+                state.project.assets[asset_idx].modifiers.remove(index);
+                changed = true;
+            } else if let Some(index) = move_up {
+                state.project.assets[asset_idx]
+                    .modifiers
+                    .swap(index, index - 1);
+                changed = true;
+            } else if let Some(index) = move_down {
+                state.project.assets[asset_idx]
+                    .modifiers
+                    .swap(index, index + 1);
+                changed = true;
+            }
+
+            if modifier_count == 0 {
                 ui.label(
                     RichText::new(state.t("modifiers.empty"))
                         .size(11.0)
                         .color(tokens::TEXT_MUTED),
                 );
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let add_label = state.t("modifiers.add");
-                    widgets::PetuniaMenuButton::new(&add_label).show(ui, |ui| {
-                        for (label_key, tool) in [
-                            ("inspector.tool_bevel", "bevel"),
-                            ("inspector.tool_mirror", "mirror"),
-                            ("inspector.tool_subdivide", "subdivide"),
-                        ] {
-                            if widgets::PetuniaMenuItem::new(&state.t(label_key))
-                                .show(ui)
-                                .clicked()
-                            {
-                                state.active_tool = tool.into();
-                                state.pending_modal = None;
-                                state.mark_dirty();
-                                ui.close();
-                            }
-                        }
-                    });
+            }
+
+            let narrow_actions = ui.available_width() < 220.0;
+            if narrow_actions {
+                if ui.button(&add_mirror).clicked() {
+                    state.project.assets[asset_idx]
+                        .modifiers
+                        .push(ModifierInstance::mirror(0, 0.001));
+                    changed = true;
+                }
+                if ui.button(&add_symmetry).clicked() {
+                    state.project.assets[asset_idx]
+                        .modifiers
+                        .push(ModifierInstance::symmetry(0, true, 0.001));
+                    changed = true;
+                }
+            } else {
+                ui.horizontal(|ui| {
+                    if ui.button(&add_mirror).clicked() {
+                        state.project.assets[asset_idx]
+                            .modifiers
+                            .push(ModifierInstance::mirror(0, 0.001));
+                        changed = true;
+                    }
+                    if ui.button(&add_symmetry).clicked() {
+                        state.project.assets[asset_idx]
+                            .modifiers
+                            .push(ModifierInstance::symmetry(0, true, 0.001));
+                        changed = true;
+                    }
                 });
-            });
+            }
+
+            if changed {
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
         },
     );
 }
@@ -706,7 +881,7 @@ fn draw_selection_tab(ui: &mut Ui, state: &mut AppState) {
         RichText::new(format!(
             "{sv} {} · {se} {} · {sf} {} {}",
             state.t("props.verts"),
-            "edges",
+            state.t("props.edges"),
             state.t("props.faces"),
             state.t("selection.selected")
         ))
@@ -738,62 +913,9 @@ fn draw_selection_tab(ui: &mut Ui, state: &mut AppState) {
     draw_transform_section(ui, state, idx, false);
 }
 
-/// Aba Modify: bloco da operação ativa (temporário) + parâmetros da ferramenta.
+/// Aba Modifiers: propriedades persistentes do objeto. Tool Properties vivem no viewport.
 fn draw_modify_tab(ui: &mut Ui, state: &mut AppState) {
-    // Bloco da operação modal ativa: some ao confirmar/cancelar.
-    if state.modal.is_some() {
-        let title = state
-            .modal
-            .as_ref()
-            .map(|modal| modal.kind.label().to_string())
-            .unwrap_or_else(|| state.t("inspector.tool_active"));
-        ui.horizontal(|ui| {
-            ui.label(RichText::new(&title).strong().size(12.0));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if widgets::petunia_action_button(ui, None, &state.t("actions.apply"), false)
-                    .clicked()
-                {
-                    state.commit_modal();
-                }
-                if widgets::petunia_action_button(ui, None, &state.t("actions.cancel"), false)
-                    .clicked()
-                {
-                    state.cancel_modal();
-                }
-            });
-        });
-        tool_fields::draw(ui, state);
-        ui.add_space(4.0);
-        ui.separator();
-        ui.add_space(4.0);
-    }
-    draw_modify_tool_panel(ui, state, false);
-}
-
-/// Parâmetros da ferramenta ativa (contextuais por ferramenta/modo).
-fn draw_modify_tool_panel(ui: &mut Ui, state: &mut AppState, force_open: bool) {
-    let active_id = state.active_tool.clone();
-    let label = state.t(&format!("tools.{active_id}"));
-    let title = if label == format!("tools.{active_id}") {
-        active_id.clone()
-    } else {
-        label
-    };
-    let section_title = title;
-    inspector_widgets::section(
-        ui,
-        state.ui.density,
-        "modify_tool",
-        inspector_widgets::SectionOpts {
-            title: &section_title,
-            summary: None,
-            default_open: true,
-            force_open,
-        },
-        |ui| {
-            crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active_id);
-        },
-    );
+    draw_modifiers_section(ui, state, true);
 }
 
 /// Cena vazia: atalhos reais de criação (operam de imediato).
@@ -942,16 +1064,6 @@ fn draw_inspector_search_results(
     }
     if show_matched(state, "display.title") {
         draw_display_section(ui, state, idx, true);
-    }
-    let tool_label = state.t(&format!("tools.{}", state.active_tool));
-    if tool_label.to_lowercase().contains(query)
-        || state
-            .t("inspector.tool_active")
-            .to_lowercase()
-            .contains(query)
-    {
-        any = true;
-        draw_modify_tool_panel(ui, state, true);
     }
     if state
         .t("inspector.tab_material")
@@ -1534,6 +1646,20 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                     }
                     state.mark_dirty();
                 }
+
+                if let Some(material_id) = active_mat_id
+                    && ui
+                        .button("×")
+                        .on_hover_text("Excluir material ativo")
+                        .clicked()
+                {
+                    state.checkpoint("delete material");
+                    if state.project.project.remove_material(material_id) {
+                        state.render.canvas_dirty = true;
+                        state.emit_mesh_changed();
+                        state.mark_dirty();
+                    }
+                }
             });
 
             ui.separator();
@@ -1699,14 +1825,6 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
             }
 
             if should_emit_change {
-                if let Some(mat) = state.project.project.get_material(mat_id).cloned()
-                    && let Some(o) = state.project.assets.get_mut(active_idx)
-                {
-                    o.base_color = [mat.base_color[0], mat.base_color[1], mat.base_color[2]];
-                    if let Some(tex) = mat.albedo_texture {
-                        o.texture = Some(tex);
-                    }
-                }
                 state.render.canvas_dirty = true;
                 state.emit_mesh_changed();
                 state.mark_dirty();

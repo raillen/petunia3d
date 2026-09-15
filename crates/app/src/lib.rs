@@ -496,13 +496,14 @@ impl Core {
             }
             "model.frame_selection" => petunia_ui::frame_selection(&mut self.state),
             "model.transform" => self.set_tool("transform", None),
-            "model.rotate" | "model.scale" => {
-                self.state.pending_modal = Some(if action == "model.rotate" {
-                    petunia_core::modal::ModalKind::Rotate
-                } else {
-                    petunia_core::modal::ModalKind::Scale
-                });
-                self.state.active_tool = "transform".into();
+            "model.move" | "model.rotate" | "model.scale" => {
+                let (tool_id, kind) = match action.as_str() {
+                    "model.move" => ("move", petunia_core::modal::ModalKind::Move),
+                    "model.rotate" => ("rotate", petunia_core::modal::ModalKind::Rotate),
+                    _ => ("scale", petunia_core::modal::ModalKind::Scale),
+                };
+                self.state.pending_modal = Some(kind);
+                self.state.active_tool = tool_id.into();
                 self.state.mark_dirty();
             }
             "model.primitives" => self.set_tool("primitives", None),
@@ -511,7 +512,6 @@ impl Core {
             "model.inset" => self.set_tool("inset", None),
             "model.bevel" => self.set_tool("bevel", None),
             "model.subdivide" => self.set_tool("subdivide", None),
-            "model.mirror" => self.set_tool("mirror", None),
             "model.push_pull" => self.set_tool("pushpull", None),
             "model.extrude" => {
                 self.set_tool("extrude", None);
@@ -529,9 +529,7 @@ impl Core {
             "model.flip_diagonal" => {
                 let _ = self.state.dispatch(&petunia_core::FlipDiagonalCmd);
             }
-            "model.revolve" => {
-                let _ = self.state.dispatch(&petunia_core::RevolveCmd::default());
-            }
+            "model.revolve" => self.set_tool("revolve", None),
             "model.delete" => {
                 let _ = self.state.dispatch(&DeleteSelectionCmd);
             }
@@ -870,7 +868,11 @@ impl WgpuApp {
     fn init_gfx(&mut self, event_loop: &ActiveEventLoop) -> Result<(), String> {
         let window = Arc::new(
             event_loop
-                .create_window(Window::default_attributes().with_title("Petunia3D"))
+                .create_window(
+                    Window::default_attributes()
+                        .with_title("Petunia3D")
+                        .with_inner_size(PhysicalSize::new(1280, 800)),
+                )
                 .map_err(|error| format!("wgpu window: {error}"))?,
         );
         let size = window.inner_size();
@@ -1012,6 +1014,7 @@ impl WgpuApp {
             self.core.state.shading,
             self.core.state.show_xray,
             self.core.state.show_triangulation,
+            self.core.state.textured,
         );
         gfx.renderer3d
             .set_overlays(self.core.state.show_overlays, self.core.state.show_grid);
@@ -1456,7 +1459,9 @@ impl GlApp {
                 .with_title("Petunia3D (OpenGL)")
                 .with_inner_size(winit::dpi::LogicalSize::new(w, h))
         } else {
-            Window::default_attributes().with_title("Petunia3D (OpenGL)")
+            Window::default_attributes()
+                .with_title("Petunia3D (OpenGL)")
+                .with_inner_size(PhysicalSize::new(1280, 800))
         };
         let gl_window = petunia_render_gl::GlWindow::create(event_loop, attrs)?;
         let caps = gl_window.caps();

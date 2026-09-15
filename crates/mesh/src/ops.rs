@@ -471,116 +471,285 @@ impl Mesh {
         self.sync_vert_selection_from_faces();
     }
 
+    /// Subdivide selected triangle/quad faces with one uniform cut per edge.
+    ///
+    /// This is the compatibility entry point used by older commands. The actual
+    /// implementation is `subdivide_selected_cuts`, which treats `cuts` as the
+    /// number of inserted edge cuts on the original face (not recursive levels).
     pub fn subdivide_selected(&mut self) {
-        let sel: Vec<usize> = self
+        self.subdivide_selected_cuts(1);
+    }
+
+    /// Subdivide selected triangle/quad faces using exactly `cuts` uniformly
+    /// spaced cuts on every original edge.
+    ///
+    /// A quad produces `(cuts + 1)^2` quads. A triangle produces
+    /// `(cuts + 1)^2` triangles. Boundary split vertices are shared between
+    /// adjacent selected faces so the selected region does not crack.
+    pub fn subdivide_selected_cuts(&mut self, cuts: u32) {
+        let segments = cuts.clamp(1, 64) + 1;
+        let selected_faces: Vec<usize> = self
             .faces
             .iter()
             .enumerate()
-            .filter(|(_, x)| x.selected)
-            .map(|(i, _)| i)
+            .filter(|(_, face)| face.selected)
+            .map(|(index, _)| index)
             .collect();
-        if sel.is_empty() {
+        if selected_faces.is_empty() {
             return;
         }
-        let mut new_faces: Vec<Face> = Vec::new();
-        let mut remove: Vec<usize> = Vec::new();
-        for &fi in &sel {
-            let src = self.faces[fi].clone();
-            if src.verts.len() == 4 {
-                let (a, b, c, d) = (src.verts[0], src.verts[1], src.verts[2], src.verts[3]);
-                let (uva, uvb, uvc, uvd) = (src.uv[0], src.uv[1], src.uv[2], src.uv[3]);
-                let mab = self.mid_vert(a, b);
-                let mbc = self.mid_vert(b, c);
-                let mcd = self.mid_vert(c, d);
-                let mda = self.mid_vert(d, a);
-                let ctr = self.mid_vert4(a, b, c, d);
-                let muv = |x: [f32; 2], y: [f32; 2]| [(x[0] + y[0]) * 0.5, (x[1] + y[1]) * 0.5];
-                let (mab_uv, mbc_uv, mcd_uv, mda_uv) =
-                    (muv(uva, uvb), muv(uvb, uvc), muv(uvc, uvd), muv(uvd, uva));
-                let ctr_uv = [
-                    (uva[0] + uvb[0] + uvc[0] + uvd[0]) * 0.25,
-                    (uva[1] + uvb[1] + uvc[1] + uvd[1]) * 0.25,
-                ];
-                new_faces.push(Face::with_uv(
-                    vec![a, mab, ctr, mda],
-                    vec![uva, mab_uv, ctr_uv, mda_uv],
-                ));
-                new_faces.push(Face::with_uv(
-                    vec![mab, b, mbc, ctr],
-                    vec![mab_uv, uvb, mbc_uv, ctr_uv],
-                ));
-                new_faces.push(Face::with_uv(
-                    vec![ctr, mbc, c, mcd],
-                    vec![ctr_uv, mbc_uv, uvc, mcd_uv],
-                ));
-                new_faces.push(Face::with_uv(
-                    vec![mda, ctr, mcd, d],
-                    vec![mda_uv, ctr_uv, mcd_uv, uvd],
-                ));
-                for nf in new_faces.iter_mut().rev().take(4) {
-                    nf.selected = true;
+
+        let mut edge_vertices: HashMap<(u32, u32, u32), u32> = HashMap::new();
+        let mut replacement_faces = Vec::new();
+        let mut remove_faces = Vec::new();
+
+        for face_index in selected_faces {
+            let source = self.faces[face_index].clone();
+            if source.uv.len() != source.verts.len() {
+                continue;
+            }
+
+            match source.verts.as_slice() {
+                [a, b, c, d] => {
+                    let [a, b, c, d] = [*a, *b, *c, *d];
+                    let side = (segments + 1) as usize;
+                    let mut grid = vec![vec![0_u32; side]; side];
+
+                    let pa = self.verts[a as usize].vec();
+                    let pb = self.verts[b as usize].vec();
+                    let pc = self.verts[c as usize].vec();
+                    let pd = self.verts[d as usize].vec();
+                    let ca = self.verts[a as usize].color;
+                    let cb = self.verts[b as usize].color;
+                    let cc = self.verts[c as usize].color;
+                    let cd = self.verts[d as usize].color;
+
+                    for row in 0..=segments {
+                        for column in 0..=segments {
+                            let vertex_index = if row == 0 {
+                                self.subdivide_edge_vertex(
+                                    &mut edge_vertices,
+                                    a,
+                                    b,
+                                    column,
+                                    segments,
+                                )
+                            } else if column == segments {
+                                self.subdivide_edge_vertex(&mut edge_vertices, b, c, row, segments)
+                            } else if row == segments {
+                                self.subdivide_edge_vertex(
+                                    &mut edge_vertices,
+                                    d,
+                                    c,
+                                    column,
+                                    segments,
+                                )
+                            } else if column == 0 {
+                                self.subdivide_edge_vertex(&mut edge_vertices, a, d, row, segments)
+                            } else {
+                                let u = column as f32 / segments as f32;
+                                let v = row as f32 / segments as f32;
+                                let top = pa.lerp(pb, u);
+                                let bottom = pd.lerp(pc, u);
+                                let position = top.lerp(bottom, v);
+                                let top_color = [
+                                    ca[0] + (cb[0] - ca[0]) * u,
+                                    ca[1] + (cb[1] - ca[1]) * u,
+                                    ca[2] + (cb[2] - ca[2]) * u,
+                                ];
+                                let bottom_color = [
+                                    cd[0] + (cc[0] - cd[0]) * u,
+                                    cd[1] + (cc[1] - cd[1]) * u,
+                                    cd[2] + (cc[2] - cd[2]) * u,
+                                ];
+                                let color = [
+                                    top_color[0] + (bottom_color[0] - top_color[0]) * v,
+                                    top_color[1] + (bottom_color[1] - top_color[1]) * v,
+                                    top_color[2] + (bottom_color[2] - top_color[2]) * v,
+                                ];
+                                let index = self.verts.len() as u32;
+                                self.verts.push(Vertex {
+                                    pos: position.to_array(),
+                                    color,
+                                    selected: true,
+                                });
+                                index
+                            };
+                            grid[row as usize][column as usize] = vertex_index;
+                        }
+                    }
+
+                    let uv_at = |column: u32, row: u32| {
+                        let u = column as f32 / segments as f32;
+                        let v = row as f32 / segments as f32;
+                        let top = [
+                            source.uv[0][0] + (source.uv[1][0] - source.uv[0][0]) * u,
+                            source.uv[0][1] + (source.uv[1][1] - source.uv[0][1]) * u,
+                        ];
+                        let bottom = [
+                            source.uv[3][0] + (source.uv[2][0] - source.uv[3][0]) * u,
+                            source.uv[3][1] + (source.uv[2][1] - source.uv[3][1]) * u,
+                        ];
+                        [
+                            top[0] + (bottom[0] - top[0]) * v,
+                            top[1] + (bottom[1] - top[1]) * v,
+                        ]
+                    };
+
+                    for row in 0..segments {
+                        for column in 0..segments {
+                            let mut face = Face::with_uv(
+                                vec![
+                                    grid[row as usize][column as usize],
+                                    grid[row as usize][(column + 1) as usize],
+                                    grid[(row + 1) as usize][(column + 1) as usize],
+                                    grid[(row + 1) as usize][column as usize],
+                                ],
+                                vec![
+                                    uv_at(column, row),
+                                    uv_at(column + 1, row),
+                                    uv_at(column + 1, row + 1),
+                                    uv_at(column, row + 1),
+                                ],
+                            );
+                            face.selected = true;
+                            face.material_slot = source.material_slot;
+                            replacement_faces.push(face);
+                        }
+                    }
+                    remove_faces.push(face_index);
                 }
-                remove.push(fi);
-            } else if src.verts.len() == 3 {
-                let (a, b, c) = (src.verts[0], src.verts[1], src.verts[2]);
-                let (uva, uvb, uvc) = (src.uv[0], src.uv[1], src.uv[2]);
-                let mab = self.mid_vert(a, b);
-                let mbc = self.mid_vert(b, c);
-                let mca = self.mid_vert(c, a);
-                let muv = |x: [f32; 2], y: [f32; 2]| [(x[0] + y[0]) * 0.5, (x[1] + y[1]) * 0.5];
-                let (mab_uv, mbc_uv, mca_uv) = (muv(uva, uvb), muv(uvb, uvc), muv(uvc, uva));
-                for t in [
-                    (vec![a, mab, mca], vec![uva, mab_uv, mca_uv]),
-                    (vec![mab, b, mbc], vec![mab_uv, uvb, mbc_uv]),
-                    (vec![mca, mbc, c], vec![mca_uv, mbc_uv, uvc]),
-                    (vec![mab, mbc, mca], vec![mab_uv, mbc_uv, mca_uv]),
-                ] {
-                    let mut nf = Face::with_uv(t.0, t.1);
-                    nf.selected = true;
-                    new_faces.push(nf);
+                [a, b, c] => {
+                    let [a, b, c] = [*a, *b, *c];
+                    let mut grid: HashMap<(u32, u32), u32> = HashMap::new();
+                    let pa = self.verts[a as usize].vec();
+                    let pb = self.verts[b as usize].vec();
+                    let pc = self.verts[c as usize].vec();
+                    let ca = self.verts[a as usize].color;
+                    let cb = self.verts[b as usize].color;
+                    let cc = self.verts[c as usize].color;
+
+                    for i in 0..=segments {
+                        for j in 0..=segments - i {
+                            let vertex_index = if j == 0 {
+                                self.subdivide_edge_vertex(&mut edge_vertices, a, b, i, segments)
+                            } else if i == 0 {
+                                self.subdivide_edge_vertex(&mut edge_vertices, a, c, j, segments)
+                            } else if i + j == segments {
+                                self.subdivide_edge_vertex(&mut edge_vertices, b, c, j, segments)
+                            } else {
+                                let wb = i as f32 / segments as f32;
+                                let wc = j as f32 / segments as f32;
+                                let wa = 1.0 - wb - wc;
+                                let position = pa * wa + pb * wb + pc * wc;
+                                let color = [
+                                    ca[0] * wa + cb[0] * wb + cc[0] * wc,
+                                    ca[1] * wa + cb[1] * wb + cc[1] * wc,
+                                    ca[2] * wa + cb[2] * wb + cc[2] * wc,
+                                ];
+                                let index = self.verts.len() as u32;
+                                self.verts.push(Vertex {
+                                    pos: position.to_array(),
+                                    color,
+                                    selected: true,
+                                });
+                                index
+                            };
+                            grid.insert((i, j), vertex_index);
+                        }
+                    }
+
+                    let uv_at = |i: u32, j: u32| {
+                        let wb = i as f32 / segments as f32;
+                        let wc = j as f32 / segments as f32;
+                        let wa = 1.0 - wb - wc;
+                        [
+                            source.uv[0][0] * wa + source.uv[1][0] * wb + source.uv[2][0] * wc,
+                            source.uv[0][1] * wa + source.uv[1][1] * wb + source.uv[2][1] * wc,
+                        ]
+                    };
+
+                    for i in 0..segments {
+                        for j in 0..segments - i {
+                            let mut first = Face::with_uv(
+                                vec![grid[&(i, j)], grid[&(i + 1, j)], grid[&(i, j + 1)]],
+                                vec![uv_at(i, j), uv_at(i + 1, j), uv_at(i, j + 1)],
+                            );
+                            first.selected = true;
+                            first.material_slot = source.material_slot;
+                            replacement_faces.push(first);
+
+                            if i + j < segments - 1 {
+                                let mut second = Face::with_uv(
+                                    vec![
+                                        grid[&(i + 1, j)],
+                                        grid[&(i + 1, j + 1)],
+                                        grid[&(i, j + 1)],
+                                    ],
+                                    vec![uv_at(i + 1, j), uv_at(i + 1, j + 1), uv_at(i, j + 1)],
+                                );
+                                second.selected = true;
+                                second.material_slot = source.material_slot;
+                                replacement_faces.push(second);
+                            }
+                        }
+                    }
+                    remove_faces.push(face_index);
                 }
-                remove.push(fi);
+                _ => {}
             }
         }
-        remove.sort_unstable_by(|a, b| b.cmp(a));
-        for fi in remove {
-            self.faces.remove(fi);
+
+        remove_faces.sort_unstable_by(|left, right| right.cmp(left));
+        for face_index in remove_faces {
+            self.faces.remove(face_index);
         }
-        for nf in new_faces {
-            self.push_face(nf);
+        for face in replacement_faces {
+            self.push_face(face);
         }
+        self.selected_edges.clear();
         self.sync_vert_selection_from_faces();
     }
 
-    fn mid_vert(&mut self, a: u32, b: u32) -> u32 {
-        let pa = self.verts[a as usize].vec();
-        let pb = self.verts[b as usize].vec();
-        let ca = self.verts[a as usize].color;
-        let cb = self.verts[b as usize].color;
-        self.verts.push(Vertex {
-            pos: ((pa + pb) * 0.5).to_array(),
-            color: [
-                (ca[0] + cb[0]) * 0.5,
-                (ca[1] + cb[1]) * 0.5,
-                (ca[2] + cb[2]) * 0.5,
-            ],
-            selected: false,
-        });
-        (self.verts.len() - 1) as u32
-    }
+    fn subdivide_edge_vertex(
+        &mut self,
+        cache: &mut HashMap<(u32, u32, u32), u32>,
+        a: u32,
+        b: u32,
+        step: u32,
+        segments: u32,
+    ) -> u32 {
+        if step == 0 {
+            return a;
+        }
+        if step >= segments {
+            return b;
+        }
 
-    fn mid_vert4(&mut self, a: u32, b: u32, c: u32, d: u32) -> u32 {
-        let p = (self.verts[a as usize].vec()
-            + self.verts[b as usize].vec()
-            + self.verts[c as usize].vec()
-            + self.verts[d as usize].vec())
-            * 0.25;
+        let (low, high) = edge_key(a, b);
+        let canonical_step = if a == low { step } else { segments - step };
+        let key = (low, high, canonical_step);
+        if let Some(&index) = cache.get(&key) {
+            return index;
+        }
+
+        let t = step as f32 / segments as f32;
+        let start = &self.verts[a as usize];
+        let end = &self.verts[b as usize];
+        let position = start.vec().lerp(end.vec(), t);
+        let color = [
+            start.color[0] + (end.color[0] - start.color[0]) * t,
+            start.color[1] + (end.color[1] - start.color[1]) * t,
+            start.color[2] + (end.color[2] - start.color[2]) * t,
+        ];
+        let index = self.verts.len() as u32;
         self.verts.push(Vertex {
-            pos: p.to_array(),
-            color: [0.75, 0.75, 0.78],
-            selected: false,
+            pos: position.to_array(),
+            color,
+            selected: true,
         });
-        (self.verts.len() - 1) as u32
+        cache.insert(key, index);
+        index
     }
 
     /// Chanfra uma aresta convexa manifold com extremidades trivalentes (1 segmento padrão).
