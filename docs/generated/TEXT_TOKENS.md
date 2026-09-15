@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **451**.
+Total de chaves de localização cadastradas: **480**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -112,9 +112,11 @@ Total de chaves de localização cadastradas: **451**.
 | `context.isolate_tip_on` | Isolate Active (Numpad /): Restore visibility of all objects | Isolar Ativo (Numpad /): Restaurar visibilidade de todos os objetos |
 | `context.lock` | Lock Object | Bloquear Objeto |
 | `context.lock_tip` | Lock Object (prevents transform) | Bloquear Objeto (impede transformar) |
+| `context.modeling` | Modeling | Modelagem |
 | `context.move_to_collection` | Move to Collection | Mover para Coleção |
 | `context.new_collection_tip` | Create a new Collection to organize models | Criar nova Coleção para organizar modelos |
 | `context.none_root` | None (Root) | Nenhuma (Raiz) |
+| `context.object_locked` | Object Locked | Objeto Bloqueado |
 | `context.rename` | Rename | Renomear |
 | `context.rename_collection` | Rename Collection | Renomear Coleção |
 | `context.show` | Show in 3D Viewport | Mostrar na Viewport 3D |
@@ -149,6 +151,7 @@ Total de chaves de localização cadastradas: **451**.
 | `file.save` | Save | Salvar |
 | `file.save_as` | Save as… | Salvar como… |
 | `geometry.title` | Geometry | Geometria |
+| `geometry.tris` | Triangles | Triângulos |
 | `help.body` | MMB orbit • Shift+MMB pan • wheel zoom • Tab mode • Del delete • Home reset • H help • Ctrl+Z/Y undo | MMB orbita • Shift+MMB pan • scroll zoom • Tab modo • Del apaga • Home reseta • H ajuda • Ctrl+Z/Y desfaz |
 | `hints.bevel` | Ctrl+B: interactive bevel of one supported edge. | Ctrl+B: bevel interativo de uma aresta suportada. |
 | `hints.connect` | B: bridge two loops or faces. | B: conecta (bridge) dois loops ou faces. |
@@ -201,7 +204,12 @@ Total de chaves de localização cadastradas: **451**.
 | `modes.paint` | Texture Paint | Pintura |
 | `modes.vertex` | Vertex | Vértice |
 | `modifiers.add` | Add | Adicionar |
+| `modifiers.add_mirror` | Add Mirror | Adicionar Espelho |
+| `modifiers.add_symmetry` | Add Symmetry | Adicionar Simetria |
+| `modifiers.axis` | Axis | Eixo |
 | `modifiers.empty` | No modifiers in stack. | Sem modificadores na pilha. |
+| `modifiers.enable` | Enable modifier | Ativar modificador |
+| `modifiers.remove` | Remove modifier | Remover modificador |
 | `modifiers.title` | Modifiers | Modificadores |
 | `paint.brush` | Brush | Pincel |
 | `paint.canvas` | Albedo canvas | Canvas albedo |
@@ -369,11 +377,30 @@ Total de chaves de localização cadastradas: **451**.
 | `shading.tip_wireframe` | Wireframe (Z 4) | Arame (Z 4) |
 | `shading.unlit` | Unlit | Sem Luz |
 | `shading.wire` | Wireframe | Arame |
+| `tool_properties.bevel_hint` | Supports one manifold convex edge with simple corners; one segment. | Suporta uma aresta convexa manifold com cantos simples; um segmento. |
+| `tool_properties.bevel_width` | Bevel width | Largura do bevel |
+| `tool_properties.blocked` | Confirm or cancel the viewport operation before editing these fields. | Confirme ou cancele a operação na viewport antes de editar estes campos. |
+| `tool_properties.choose_transform` | Choose a transform handle or use G/R/S. | Escolha uma alça de transformação ou use G/R/S. |
+| `tool_properties.cuts` | Cuts | Cortes |
+| `tool_properties.displacement` | Displacement | Deslocamento |
+| `tool_properties.error_number` | Enter a finite number in every field. | Informe um número finito em cada campo. |
+| `tool_properties.extrude_distance` | Extrude distance | Distância de extrusão |
+| `tool_properties.inset_factor` | Inset factor | Fator de inset |
+| `tool_properties.preview_hint` | Changes preview live. Enter applies; Esc cancels. | As alterações são pré-visualizadas em tempo real. Enter aplica; Esc cancela. |
+| `tool_properties.profile_usage` | Click in an orthographic view to add points. Click near the first point to close the profile. | Clique em uma vista ortográfica para adicionar pontos. Clique perto do primeiro ponto para fechar o perfil. |
+| `tool_properties.pushpull_distance` | Push/Pull distance | Distância de Push/Pull |
+| `tool_properties.rotation_hint` | Angles are degrees, Euler XYZ, around the selection center. | Ângulos em graus, Euler XYZ, em torno do centro da seleção. |
+| `tool_properties.rotation_xyz` | XYZ Rotation | Rotação XYZ |
+| `tool_properties.scale_xyz` | Scale per axis | Escala por eixo |
+| `tool_properties.title` | Tool Properties | Propriedades da ferramenta |
+| `tool_properties.universal_transform` | Universal Transform | Transformação unificada |
+| `tool_properties.value` | Value | Valor |
 | `toolbar.columns` | Columns | Colunas |
 | `toolbar.configure` | Configure Toolbar | Configurar Barra |
 | `toolbar.move_down` | Move down | Descer |
 | `toolbar.move_up` | Move up | Subir |
 | `toolbar.one_column` | 1 column | 1 coluna |
+| `toolbar.planned` | Planned feature | Recurso planejado |
 | `toolbar.reset` | Reset toolbar | Redefinir barra |
 | `toolbar.two_columns` | 2 columns | 2 colunas |
 | `toolbar.visible` | Visible | Visível |
@@ -404,6 +431,7 @@ Total de chaves de localização cadastradas: **451**.
 | `tools.scale` | Scale | Escalar |
 | `tools.select` | Select | Seleção |
 | `tools.select_box` | Box Select | Seleção em caixa |
+| `tools.select_lasso` | Lasso Select | Seleção em laço |
 | `tools.slice` | Slice | Fatiar |
 | `tools.subdivide` | Cut | Cortar |
 | `tools.symmetrize` | Symmetrize | Simetrizar |
@@ -456,6 +484,7 @@ Total de chaves de localização cadastradas: **451**.
 | `view.frame_all` | Frame All | Enquadrar tudo |
 | `viewport.axis_lock` | Lock axis | Travar eixo |
 | `viewport.axis_unlock` | Unlock axis | Destravar eixo |
+| `viewport.drop_to_instantiate` | Drop to Instantiate | Soltar para Instanciar |
 | `viewport.orientation` | Orientation | Orientação |
 | `viewport.overflow` | More viewport tools | Mais ferramentas da viewport |
 | `viewport.overlays_tip` | Toggle Overlays display | Alternar exibição de Overlays |
