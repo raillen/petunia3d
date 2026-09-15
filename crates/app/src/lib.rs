@@ -529,9 +529,7 @@ impl Core {
             "model.flip_diagonal" => {
                 let _ = self.state.dispatch(&petunia_core::FlipDiagonalCmd);
             }
-            "model.revolve" => {
-                let _ = self.state.dispatch(&petunia_core::RevolveCmd::default());
-            }
+            "model.revolve" => self.set_tool("revolve", None),
             "model.delete" => {
                 let _ = self.state.dispatch(&DeleteSelectionCmd);
             }

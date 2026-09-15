@@ -1,49 +1,37 @@
 //! Floating Tool Properties owned by the viewport, not the Object Inspector.
-//!
-//! This is the transitional convergence boundary: interactive modal tools
-//! use the canonical `tool_fields`, while non-modal modeling tools reuse
-//! their existing controls in a viewport-local card until every tool has
-//! a descriptor-backed session.
 
 use egui::{Align2, RichText, Ui, Vec2};
 use petunia_core::{AppState, Workspace};
 
 pub fn draw(ui: &mut Ui, state: &mut AppState, viewport: egui::Rect) {
-    if state.workspace != Workspace::Model || state.is_active_locked() {
-        return;
-    }
-    let active = state.active_tool.clone();
-    let show = state.modal.is_some()
-        || state.pending_modal.is_some()
-        || matches!(
-            active.as_str(),
-            "primitives"
-                | "extrude"
-                | "inset"
-                | "bevel"
-                | "pushpull"
-                | "slice"
-                | "subdivide"
-                | "draw_profile"
-                | "merge"
-                | "connect"
-                | "dissolve"
-                | "revolve"
-        );
-    if !show {
+    if state.workspace != Workspace::Model
+        || state.is_active_locked()
+        || !crate::modeling_tool_properties::supports(state)
+    {
         return;
     }
 
+    let active = state.active_tool.clone();
     let title = state
         .modal
         .as_ref()
-        .map(|modal| modal.kind.label().to_string())
+        .map(|modal| crate::tool_fields::kind_label(state, modal.kind))
+        .or_else(|| {
+            state
+                .pending_modal
+                .map(|kind| crate::tool_fields::kind_label(state, kind))
+        })
         .unwrap_or_else(|| {
-            let translated = state.t(&format!("tools.{active}"));
-            if translated == format!("tools.{active}") {
-                active.clone()
+            if active == "transform" {
+                state.t("tool_properties.universal_transform")
             } else {
-                translated
+                let key = format!("tools.{active}");
+                let translated = state.t(&key);
+                if translated == key {
+                    active.clone()
+                } else {
+                    translated
+                }
             }
         });
 
@@ -55,24 +43,11 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, viewport: egui::Rect) {
         .show(ui.ctx(), |ui| {
             egui::Frame::popup(ui.style()).show(ui, |ui| {
                 ui.set_min_width(220.0);
-                ui.set_max_width(286.0);
+                ui.set_max_width(300.0);
                 ui.label(RichText::new(&title).strong().size(12.0));
+                ui.small(state.t("tool_properties.title"));
                 ui.separator();
-
-                if state.modal.is_some() {
-                    crate::tool_fields::draw(ui, state);
-                    ui.separator();
-                    ui.horizontal(|ui| {
-                        if ui.button(state.t("actions.apply")).clicked() {
-                            state.commit_modal();
-                        }
-                        if ui.button(state.t("actions.cancel")).clicked() {
-                            state.cancel_modal();
-                        }
-                    });
-                } else {
-                    crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active);
-                }
+                crate::modeling_tool_properties::draw(ui, state);
             });
         });
 }

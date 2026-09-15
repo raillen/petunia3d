@@ -40,6 +40,7 @@ pub mod measurement;
 #[cfg(test)]
 mod modal_tests;
 mod modal_viewport;
+pub mod modeling_tool_properties;
 pub mod modules_ui;
 pub mod nav_gizmo;
 pub mod outliner;

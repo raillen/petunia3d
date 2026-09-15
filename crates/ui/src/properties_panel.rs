@@ -596,7 +596,11 @@ fn draw_geometry_section(ui: &mut Ui, state: &mut AppState, idx: Option<usize>, 
             {
                 ui.label(format!("{}: {}", state.t("props.verts"), mesh.vert_count()));
                 ui.label(format!("{}: {}", state.t("props.faces"), mesh.faces.len()));
-                ui.label(format!("Tris: {}", mesh.tri_count()));
+                ui.label(format!(
+                    "{}: {}",
+                    state.t("geometry.tris"),
+                    mesh.tri_count()
+                ));
             }
         },
     );
@@ -625,6 +629,20 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                 return;
             };
 
+            // Precompute localized strings before mutably borrowing a modifier.
+            let enable_tip = state.t("modifiers.enable");
+            let remove_tip = state.t("modifiers.remove");
+            let axis_label = state.t("modifiers.axis");
+            let weld_label = state.t("actions.weld_eps");
+            let mirror_title = state.t("tools.mirror");
+            let symmetry_title = state.t("tools.symmetrize");
+            let add_mirror = state.t("modifiers.add_mirror");
+            let add_symmetry = state.t("modifiers.add_symmetry");
+            let move_up_tip = state.t("toolbar.move_up");
+            let move_down_tip = state.t("toolbar.move_down");
+            let positive_to_negative = state.t("actions.symmetrize_dir_pos");
+            let negative_to_positive = state.t("actions.symmetrize_dir_neg");
+
             let mut changed = false;
             let mut remove = None;
             let mut move_up = None;
@@ -638,7 +656,7 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                             let mut enabled = snapshot.enabled;
                             if ui
                                 .checkbox(&mut enabled, "")
-                                .on_hover_text("Enable modifier")
+                                .on_hover_text(&enable_tip)
                                 .changed()
                             {
                                 state.project.assets[asset_idx].modifiers[modifier_idx].enabled =
@@ -646,18 +664,14 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                                 changed = true;
                             }
                             let title = match snapshot.kind {
-                                ModifierKind::Mirror { .. } => "Mirror",
-                                ModifierKind::Symmetry { .. } => "Symmetry",
+                                ModifierKind::Mirror { .. } => &mirror_title,
+                                ModifierKind::Symmetry { .. } => &symmetry_title,
                             };
                             ui.strong(title);
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    if ui
-                                        .small_button("×")
-                                        .on_hover_text("Remove modifier")
-                                        .clicked()
-                                    {
+                                    if ui.small_button("×").on_hover_text(&remove_tip).clicked() {
                                         remove = Some(modifier_idx);
                                     }
                                     if ui
@@ -665,12 +679,14 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                                             modifier_idx + 1 < modifier_count,
                                             egui::Button::new("↓"),
                                         )
+                                        .on_hover_text(&move_down_tip)
                                         .clicked()
                                     {
                                         move_down = Some(modifier_idx);
                                     }
                                     if ui
                                         .add_enabled(modifier_idx > 0, egui::Button::new("↑"))
+                                        .on_hover_text(&move_up_tip)
                                         .clicked()
                                     {
                                         move_up = Some(modifier_idx);
@@ -682,7 +698,7 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                         match &mut state.project.assets[asset_idx].modifiers[modifier_idx].kind {
                             ModifierKind::Mirror { axis, weld } => {
                                 ui.horizontal(|ui| {
-                                    ui.label("Axis");
+                                    ui.label(&axis_label);
                                     for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
                                         if ui.selectable_label(*axis == candidate, name).clicked() {
                                             *axis = candidate;
@@ -691,16 +707,16 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                                     }
                                 });
                                 changed |= ui
-                                    .add(egui::Slider::new(weld, 0.0..=0.05).text("Weld"))
+                                    .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
                                     .changed();
                             }
                             ModifierKind::Symmetry {
                                 axis,
-                                positive_to_negative,
+                                positive_to_negative: direction,
                                 weld,
                             } => {
                                 ui.horizontal(|ui| {
-                                    ui.label("Axis");
+                                    ui.label(&axis_label);
                                     for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
                                         if ui.selectable_label(*axis == candidate, name).clicked() {
                                             *axis = candidate;
@@ -708,9 +724,24 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                                         }
                                     }
                                 });
-                                changed |= ui.checkbox(positive_to_negative, "+ → −").changed();
+                                ui.horizontal(|ui| {
+                                    if ui
+                                        .selectable_label(*direction, &positive_to_negative)
+                                        .clicked()
+                                    {
+                                        *direction = true;
+                                        changed = true;
+                                    }
+                                    if ui
+                                        .selectable_label(!*direction, &negative_to_positive)
+                                        .clicked()
+                                    {
+                                        *direction = false;
+                                        changed = true;
+                                    }
+                                });
                                 changed |= ui
-                                    .add(egui::Slider::new(weld, 0.0..=0.05).text("Weld"))
+                                    .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
                                     .changed();
                             }
                         }
@@ -743,13 +774,13 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
             }
 
             ui.horizontal(|ui| {
-                if ui.button("+ Mirror").clicked() {
+                if ui.button(add_mirror).clicked() {
                     state.project.assets[asset_idx]
                         .modifiers
                         .push(ModifierInstance::mirror(0, 0.001));
                     changed = true;
                 }
-                if ui.button("+ Symmetry").clicked() {
+                if ui.button(add_symmetry).clicked() {
                     state.project.assets[asset_idx]
                         .modifiers
                         .push(ModifierInstance::symmetry(0, true, 0.001));
@@ -820,7 +851,7 @@ fn draw_selection_tab(ui: &mut Ui, state: &mut AppState) {
         RichText::new(format!(
             "{sv} {} · {se} {} · {sf} {} {}",
             state.t("props.verts"),
-            "edges",
+            state.t("props.edges"),
             state.t("props.faces"),
             state.t("selection.selected")
         ))

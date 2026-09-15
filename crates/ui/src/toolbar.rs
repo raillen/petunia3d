@@ -406,8 +406,8 @@ fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
                 state.mark_dirty();
                 ui.close();
             }
-            ui.add_enabled(false, egui::Button::new("Lasso"))
-                .on_hover_text("Planned selection behavior");
+            ui.add_enabled(false, egui::Button::new(state.t("tools.select_lasso")))
+                .on_hover_text(state.t("toolbar.planned"));
         });
     }
 }

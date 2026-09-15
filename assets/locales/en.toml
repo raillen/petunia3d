@@ -116,6 +116,7 @@ two_columns = "2 columns"
 move_up = "Move up"
 move_down = "Move down"
 visible = "Visible"
+planned = "Planned feature"
 
 [dock]
 side = "Dock side"
@@ -182,11 +183,17 @@ selected = "selected"
 
 [geometry]
 title = "Geometry"
+tris = "Triangles"
 
 [modifiers]
 title = "Modifiers"
 empty = "No modifiers in stack."
 add = "Add"
+enable = "Enable modifier"
+remove = "Remove modifier"
+axis = "Axis"
+add_mirror = "Add Mirror"
+add_symmetry = "Add Symmetry"
 
 [display]
 title = "Display"
@@ -225,6 +232,7 @@ frame_all = "Frame All"
 [tools]
 select = "Select"
 select_box = "Box Select"
+select_lasso = "Lasso Select"
 cursor_3d = "3D Cursor"
 move = "Move"
 rotate = "Rotate"
@@ -325,6 +333,26 @@ no_mesh = "No active mesh"
 revolve_open_hint = "Angles below 360° leave the profile open."
 revolve_need_edges = "Select at least 2 connected edges first."
 cursor_to_origin = "Cursor to World Origin"
+
+[tool_properties]
+title = "Tool Properties"
+universal_transform = "Universal Transform"
+choose_transform = "Choose a transform handle or use G/R/S."
+blocked = "Confirm or cancel the viewport operation before editing these fields."
+error_number = "Enter a finite number in every field."
+value = "Value"
+displacement = "Displacement"
+rotation_xyz = "XYZ Rotation"
+scale_xyz = "Scale per axis"
+extrude_distance = "Extrude distance"
+inset_factor = "Inset factor"
+bevel_width = "Bevel width"
+pushpull_distance = "Push/Pull distance"
+preview_hint = "Changes preview live. Enter applies; Esc cancels."
+rotation_hint = "Angles are degrees, Euler XYZ, around the selection center."
+bevel_hint = "Supports one manifold convex edge with simple corners; one segment."
+cuts = "Cuts"
+profile_usage = "Click in an orthographic view to add points. Click near the first point to close the profile."
 
 [props]
 name = "Name"
