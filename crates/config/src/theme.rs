@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, LazyLock, OnceLock, RwLock};
 
 /// Cor RGBA pura (0-255).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -77,6 +78,31 @@ pub enum ThemeToken {
     StatusSuccess,
 }
 
+const ALL_THEME_TOKENS: [ThemeToken; 22] = [
+    ThemeToken::BgCanvas,
+    ThemeToken::BgHeader,
+    ThemeToken::BgPanel,
+    ThemeToken::BgPanelHeader,
+    ThemeToken::BgSurface,
+    ThemeToken::BgSurfaceHover,
+    ThemeToken::BgSurfaceActive,
+    ThemeToken::TextPrimary,
+    ThemeToken::TextSecondary,
+    ThemeToken::TextMuted,
+    ThemeToken::TextActive,
+    ThemeToken::AccentBlue,
+    ThemeToken::AccentOrange,
+    ThemeToken::AccentHover,
+    ThemeToken::AccentBorder,
+    ThemeToken::BorderSubtle,
+    ThemeToken::BorderStrong,
+    ThemeToken::BorderFocus,
+    ThemeToken::StatusInfo,
+    ThemeToken::StatusWarning,
+    ThemeToken::StatusError,
+    ThemeToken::StatusSuccess,
+];
+
 /// Metadados de manifesto do tema (`manifest.toml`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeManifest {
@@ -129,6 +155,10 @@ pub struct ThemeColors {
     pub status_warning: String,
     pub status_error: String,
     pub status_success: String,
+    /// Cache puramente derivado. Temas são tratados como valores imutáveis após
+    /// carregamento; assim os hexadecimais são parseados no máximo uma vez.
+    #[serde(skip)]
+    resolved: OnceLock<HashMap<ThemeToken, ColorRgba>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -172,14 +202,14 @@ impl Default for ThemeColors {
             status_warning: "#fbbf24".into(),
             status_error: "#f87171".into(),
             status_success: "#4ade80".into(),
+            resolved: OnceLock::new(),
         }
     }
 }
 
 impl ThemeColors {
-    /// Converte um token canônico na cor correspondente deste tema em formato RGBA puro.
-    pub fn get_token_color_rgba(&self, token: ThemeToken) -> ColorRgba {
-        let hex = match token {
+    fn hex_for_token(&self, token: ThemeToken) -> &str {
+        match token {
             ThemeToken::BgCanvas => &self.bg_canvas,
             ThemeToken::BgHeader => &self.bg_header,
             ThemeToken::BgPanel => &self.bg_panel,
@@ -202,37 +232,26 @@ impl ThemeColors {
             ThemeToken::StatusWarning => &self.status_warning,
             ThemeToken::StatusError => &self.status_error,
             ThemeToken::StatusSuccess => &self.status_success,
-        };
+        }
+    }
 
-        Theme::hex(hex).unwrap_or_else(|| {
-            // Fallback para as cores padrão
+    fn resolve_uncached(&self, token: ThemeToken) -> ColorRgba {
+        Theme::hex(self.hex_for_token(token)).unwrap_or_else(|| {
             let defaults = ThemeColors::default();
-            let def_hex = match token {
-                ThemeToken::BgCanvas => &defaults.bg_canvas,
-                ThemeToken::BgHeader => &defaults.bg_header,
-                ThemeToken::BgPanel => &defaults.bg_panel,
-                ThemeToken::BgPanelHeader => &defaults.bg_panel_header,
-                ThemeToken::BgSurface => &defaults.bg_surface,
-                ThemeToken::BgSurfaceHover => &defaults.bg_surface_hover,
-                ThemeToken::BgSurfaceActive => &defaults.bg_surface_active,
-                ThemeToken::TextPrimary => &defaults.text_primary,
-                ThemeToken::TextSecondary => &defaults.text_secondary,
-                ThemeToken::TextMuted => &defaults.text_muted,
-                ThemeToken::TextActive => &defaults.text_active,
-                ThemeToken::AccentBlue => &defaults.accent_blue,
-                ThemeToken::AccentOrange => &defaults.accent_orange,
-                ThemeToken::AccentHover => &defaults.accent_hover,
-                ThemeToken::AccentBorder => &defaults.accent_border,
-                ThemeToken::BorderSubtle => &defaults.border_subtle,
-                ThemeToken::BorderStrong => &defaults.border_strong,
-                ThemeToken::BorderFocus => &defaults.border_focus,
-                ThemeToken::StatusInfo => &defaults.status_info,
-                ThemeToken::StatusWarning => &defaults.status_warning,
-                ThemeToken::StatusError => &defaults.status_error,
-                ThemeToken::StatusSuccess => &defaults.status_success,
-            };
-            Theme::hex(def_hex).unwrap_or(ColorRgba::WHITE)
+            Theme::hex(defaults.hex_for_token(token)).unwrap_or(ColorRgba::WHITE)
         })
+    }
+
+    /// Converte um token canônico na cor correspondente deste tema em formato RGBA puro.
+    /// O mapa inteiro é resolvido apenas na primeira consulta do tema.
+    pub fn get_token_color_rgba(&self, token: ThemeToken) -> ColorRgba {
+        let resolved = self.resolved.get_or_init(|| {
+            ALL_THEME_TOKENS
+                .into_iter()
+                .map(|theme_token| (theme_token, self.resolve_uncached(theme_token)))
+                .collect()
+        });
+        resolved.get(&token).copied().unwrap_or(ColorRgba::WHITE)
     }
 
     /// Alias conveniente para obter a cor do token em ColorRgba.
@@ -278,15 +297,37 @@ pub struct ThemeRegistry {
     manifests: Vec<ThemeManifest>,
 }
 
+/// Snapshot global imutável. Leituras no hot path fazem somente clone de `Arc`;
+/// varredura de disco/TOML ocorre no primeiro acesso ou em reload explícito.
+static GLOBAL_THEME_REGISTRY: LazyLock<RwLock<Arc<ThemeRegistry>>> =
+    LazyLock::new(|| RwLock::new(Arc::new(ThemeRegistry::load_all())));
+
 impl ThemeRegistry {
-    /// Obtém instância singleton ou carrega temas disponíveis.
-    pub fn global() -> Self {
-        let mut reg = Self {
+    fn load_all() -> Self {
+        let mut registry = Self {
             themes: HashMap::new(),
             manifests: Vec::new(),
         };
-        reg.scan_and_load();
-        reg
+        registry.scan_and_load();
+        registry
+    }
+
+    /// Obtém o snapshot global já carregado, sem I/O nem parsing por chamada.
+    pub fn global() -> Arc<Self> {
+        match GLOBAL_THEME_REGISTRY.read() {
+            Ok(registry) => Arc::clone(&registry),
+            Err(poisoned) => Arc::clone(&poisoned.into_inner()),
+        }
+    }
+
+    /// Reescaneia temas fora do hot path e troca o snapshot de forma atômica
+    /// para leitores subsequentes. Usado pelo file watcher/hot reload.
+    pub fn reload_global() {
+        let reloaded = Arc::new(Self::load_all());
+        match GLOBAL_THEME_REGISTRY.write() {
+            Ok(mut registry) => *registry = reloaded,
+            Err(poisoned) => *poisoned.into_inner() = reloaded,
+        }
     }
 
     /// Retorna a lista de manifestos de todos os temas válidos encontrados.
@@ -303,6 +344,10 @@ impl ThemeRegistry {
 
     /// Escaneia pastas de temas em busca de `manifest.toml` e `theme.toml`.
     pub fn scan_and_load(&mut self) {
+        // Permite reload idempotente sem duplicar manifestos built-in.
+        self.themes.clear();
+        self.manifests.clear();
+
         // 1. Carrega os 4 temas built-in garantidos em memória
         self.register_builtin_themes();
 
@@ -529,6 +574,13 @@ mod tests {
     }
 
     #[test]
+    fn test_theme_registry_global_reuses_snapshot() {
+        let first = ThemeRegistry::global();
+        let second = ThemeRegistry::global();
+        assert!(Arc::ptr_eq(&first, &second));
+    }
+
+    #[test]
     fn test_theme_tokens_resolve_valid_colors() {
         let registry = ThemeRegistry::global();
         for manifest in registry.available() {
@@ -545,6 +597,7 @@ mod tests {
                 let c = theme.colors.get_token_color(token);
                 assert_ne!(c, ColorRgba::TRANSPARENT);
             }
+            assert!(theme.colors.resolved.get().is_some());
         }
     }
 }

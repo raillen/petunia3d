@@ -463,71 +463,89 @@ struct IconPackFile {
     icon_pack: IconPackManifest,
 }
 
-/// Registro centralizado de ícones do Petunia3D.
-pub struct IconRegistry;
+static ICON_PACK_CACHE: LazyLock<RwLock<Vec<IconPackManifest>>> =
+    LazyLock::new(|| RwLock::new(discover_icon_packs()));
 
-impl IconRegistry {
-    /// Retorna a lista de pacotes de ícones disponíveis (embutidos e escaneados de assets/icons/).
-    pub fn available_packs() -> Vec<IconPackManifest> {
-        let mut packs = vec![
-            IconPackManifest {
-                id: "petunia".into(),
-                name: "Petunia (Padrão)".into(),
-                version: "1.0.0".into(),
-                author: Some("Petunia3D Team".into()),
-                description: Some(
-                    "Ícones nativos com estilo Blender e renderização vetorial".into(),
-                ),
-            },
-            IconPackManifest {
-                id: "phosphor".into(),
-                name: "Phosphor Icons".into(),
-                version: "2.1.0".into(),
-                author: Some("Phosphor Team".into()),
-                description: Some("Linhas limpas, modernas e equilibradas".into()),
-            },
-            IconPackManifest {
-                id: "tabler".into(),
-                name: "Tabler Icons".into(),
-                version: "3.2.0".into(),
-                author: Some("Paweł Kuna".into()),
-                description: Some("Grade 24x24 consistente e técnica".into()),
-            },
-            IconPackManifest {
-                id: "iconoir".into(),
-                name: "Iconoir".into(),
-                version: "7.7.0".into(),
-                author: Some("Damien Erambert".into()),
-                description: Some("Visual minimalista e geométrico".into()),
-            },
-            IconPackManifest {
-                id: "lucide".into(),
-                name: "Lucide Icons".into(),
-                version: "0.450.0".into(),
-                author: Some("Lucide Contributors".into()),
-                description: Some("Traço vetorial refinado de 2px".into()),
-            },
-        ];
+fn discover_icon_packs() -> Vec<IconPackManifest> {
+    let mut packs = vec![
+        IconPackManifest {
+            id: "petunia".into(),
+            name: "Petunia (Padrão)".into(),
+            version: "1.0.0".into(),
+            author: Some("Petunia3D Team".into()),
+            description: Some("Ícones nativos com estilo Blender e renderização vetorial".into()),
+        },
+        IconPackManifest {
+            id: "phosphor".into(),
+            name: "Phosphor Icons".into(),
+            version: "2.1.0".into(),
+            author: Some("Phosphor Team".into()),
+            description: Some("Linhas limpas, modernas e equilibradas".into()),
+        },
+        IconPackManifest {
+            id: "tabler".into(),
+            name: "Tabler Icons".into(),
+            version: "3.2.0".into(),
+            author: Some("Paweł Kuna".into()),
+            description: Some("Grade 24x24 consistente e técnica".into()),
+        },
+        IconPackManifest {
+            id: "iconoir".into(),
+            name: "Iconoir".into(),
+            version: "7.7.0".into(),
+            author: Some("Damien Erambert".into()),
+            description: Some("Visual minimalista e geométrico".into()),
+        },
+        IconPackManifest {
+            id: "lucide".into(),
+            name: "Lucide Icons".into(),
+            version: "0.450.0".into(),
+            author: Some("Lucide Contributors".into()),
+            description: Some("Traço vetorial refinado de 2px".into()),
+        },
+    ];
 
-        for dir in ["assets/icons", "icons"] {
-            if let Ok(entries) = std::fs::read_dir(dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        let manifest_path = path.join("manifest.toml");
-                        if let Ok(text) = std::fs::read_to_string(&manifest_path)
-                            && let Ok(m) = toml::from_str::<IconPackFile>(&text)
-                            && !packs.iter().any(|p| p.id == m.icon_pack.id)
-                        {
-                            packs.push(m.icon_pack);
-                        }
+    for dir in ["assets/icons", "icons"] {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let manifest_path = path.join("manifest.toml");
+                    if let Ok(text) = std::fs::read_to_string(&manifest_path)
+                        && let Ok(m) = toml::from_str::<IconPackFile>(&text)
+                        && !packs.iter().any(|p| p.id == m.icon_pack.id)
+                    {
+                        packs.push(m.icon_pack);
                     }
                 }
             }
         }
-
-        packs
     }
+    packs
+}
+
+/// Registro centralizado de ícones do Petunia3D.
+pub struct IconRegistry;
+
+impl IconRegistry {
+    /// Retorna a lista de pacotes em cache. O filesystem é consultado somente
+    /// na primeira chamada ou em [`Self::refresh_available_packs`].
+    pub fn available_packs() -> Vec<IconPackManifest> {
+        match ICON_PACK_CACHE.read() {
+            Ok(packs) => packs.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
+        }
+    }
+
+    /// Reescaneia manifests de pacotes fora do hot path da UI.
+    pub fn refresh_available_packs() {
+        let packs = discover_icon_packs();
+        match ICON_PACK_CACHE.write() {
+            Ok(mut cached) => *cached = packs,
+            Err(poisoned) => *poisoned.into_inner() = packs,
+        }
+    }
+
     /// Inicializa os conjuntos de fontes de ícones no contexto do egui, se ainda
     /// não configurados (Wave 6): Phosphor (fallback) + fontes `iconflow` dos
     /// pacotes habilitados. Glifos de pacote renderizam na família nomeada —

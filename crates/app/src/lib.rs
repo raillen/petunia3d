@@ -1364,8 +1364,9 @@ impl ApplicationHandler for WgpuApp {
                 gfx.window.request_redraw();
             }
             WindowEvent::CursorMoved { position, .. } => {
+                // egui-winit already reports whether pointer movement needs repaint.
+                // Avoid a second unconditional full 3D + UI frame on every event.
                 self.core.last_mouse = Some((position.x, position.y));
-                gfx.window.request_redraw();
             }
             WindowEvent::KeyboardInput { event, .. } => {
                 if event.state == ElementState::Pressed {
@@ -1727,8 +1728,9 @@ impl ApplicationHandler for GlApp {
                 g.gl_window.window().request_redraw();
             }
             WindowEvent::CursorMoved { position, .. } => {
+                // Same policy as WGPU: egui decides whether pointer movement needs
+                // repaint, avoiding an unconditional full render on every event.
                 self.core.last_mouse = Some((position.x, position.y));
-                g.gl_window.window().request_redraw();
             }
             WindowEvent::KeyboardInput { event, .. } => {
                 if event.state == ElementState::Pressed {
