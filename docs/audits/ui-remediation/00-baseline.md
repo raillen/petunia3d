@@ -207,3 +207,32 @@ profiler scopes. Wave 1 implements the renderer correction on top.
   cada arquivo vira tarefa incremental com o pseudo-teste como rede.
 - Gates: config 9, core 76+, ui 125 lib + 36 kittest, workspace clippy limpo,
   arch-check verde, docs regenerados.
+
+## Wave 8 close-out (2026-09-15)
+
+- `PrimitiveCreationSession` no Core (`primitive_session.rs` + métodos em
+  `AppState`): 6 espécies com parâmetros, regeneração sem checkpoint, UMA
+  transação de undo (testado: N edições = 1 checkpoint), Esc cancela e remove,
+  validade por asset+topo-do-undo (op interveniente finaliza sozinha).
+- Cartão Last Operation (`primitive_card.rs`): âncora no bbox projetado +
+  `constrain_to`, Enter/Esc só com hover (Esc global nunca apaga), clique na
+  viewport confirma, reabertura explícita na shelf (F9 global fora de escopo:
+  sem pipeline de atalhos para ele).
+- Shelf/outliner roteiam criação pela sessão (Cone/Capsule diretos por ora —
+  cartão cobre as 4 do exit gate + Cone/Capsule de brinde no core).
+- Gates: 7 testes de sessão + 1 kittest; clippy limpo.
+
+## Wave 9 close-out (2026-09-15)
+
+- Removidos: `tiles_workspace.rs` (pilot inativo; split próprio venceu na Wave 2),
+  `app_icons.rs` (0 usos), PNGs inalcançáveis da toolbar (~2MB de binário),
+  dep `egui_tiles`, teste kittest do tiles; READMEs atualizados.
+- Mantidos com veredito: `flex_layout`/`inbox_bridge` (exigidos pelo arch-check
+  P1 como adapters testados) e PNGs das abas (sem fonte SVG).
+- CHANGELOG com seção Unreleased da remediação.
+- AMBIENTE: volume `/home/raillen/Documentos` chegou a 100% (target/ com 91GB
+  de acúmulo) — `cargo clean` liberou 94GB; o "linker bus error" era falta de
+  disco, não RAM. Rebuild limpo + suíte total: **902 passed, 0 failed**
+  (367 lib + 535 integração, bins incluídos).
+- Gates finais: fmt --check, clippy workspace `-D warnings`, cargo-deny,
+  arch-check, docs-check (VitePress build) — todos verdes.

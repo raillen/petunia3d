@@ -378,19 +378,10 @@ impl PetuniaIcon {
 static TEXTURE_CACHE: LazyLock<RwLock<HashMap<String, TextureHandle>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
-// --------------------------------------------------------- Bytes Embutidos dos PNGs da Toolbar
-const PNG_SELECT_BOX: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/select_box.png");
-const PNG_CURSOR_3D: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/cursor_3d.png");
-const PNG_MOVE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/move.png");
-const PNG_ROTATE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/rotate.png");
-const PNG_SCALE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/scale.png");
-const PNG_TRANSFORM: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/transform.png");
-const PNG_ANNOTATE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/annotate.png");
-const PNG_MEASURE: &[u8] = include_bytes!("../../../assets/ui/icons/toolbar/measure.png");
-const PNG_ADD_PRIMITIVE: &[u8] =
-    include_bytes!("../../../assets/ui/icons/toolbar/add_primitive.png");
-
 // -------------------------------------------------- Bytes Embutidos dos PNGs de Properties Tabs
+// NOTA (Wave 9): os PNGs da toolbar foram removidos — inalcançáveis, pois toda
+// ferramenta tem arte vetorial (`is_toolbar_vector_tool`). Restam os PNGs das
+// abas de properties (arte raster sem fonte SVG).
 const PNG_TAB_01: &[u8] = include_bytes!("../../../assets/ui/icons/properties/data_tab_01.png");
 const PNG_TAB_02: &[u8] = include_bytes!("../../../assets/ui/icons/properties/data_tab_02.png");
 const PNG_TAB_03: &[u8] = include_bytes!("../../../assets/ui/icons/properties/data_tab_03.png");
@@ -409,16 +400,6 @@ const PNG_TAB_15: &[u8] = include_bytes!("../../../assets/ui/icons/properties/da
 
 fn get_embedded_png_bytes(id: &str) -> Option<&'static [u8]> {
     match id {
-        "select_box" => Some(PNG_SELECT_BOX),
-        "cursor_3d" => Some(PNG_CURSOR_3D),
-        "move" => Some(PNG_MOVE),
-        "rotate" => Some(PNG_ROTATE),
-        "scale" => Some(PNG_SCALE),
-        "transform" => Some(PNG_TRANSFORM),
-        "annotate" => Some(PNG_ANNOTATE),
-        "measure" => Some(PNG_MEASURE),
-        "add_primitive" => Some(PNG_ADD_PRIMITIVE),
-
         "data_tab_01" => Some(PNG_TAB_01),
         "data_tab_02" => Some(PNG_TAB_02),
         "data_tab_03" => Some(PNG_TAB_03),
@@ -862,9 +843,11 @@ mod tests {
 
     #[test]
     fn test_embedded_png_decoder_preserves_alpha() {
-        let bytes = get_embedded_png_bytes("move").expect("move png must exist");
+        // PNGs da toolbar foram removidos (Wave 9: inalcançáveis); restam os
+        // das abas de properties (22x22).
+        let bytes = get_embedded_png_bytes("data_tab_01").expect("data_tab_01 png must exist");
         let image = decode_png_to_alpha_mask(bytes).expect("must decode valid alpha mask");
-        assert_eq!(image.size, [256, 256]);
+        assert_eq!(image.size, [22, 22]);
         assert!(!image.pixels.is_empty());
     }
 

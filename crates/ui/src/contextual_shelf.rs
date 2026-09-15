@@ -13,7 +13,6 @@ use petunia_core::{
 };
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
-use crate::outliner::add_primitive_to_scene;
 use crate::tokens;
 use crate::widgets::PetuniaMenuItem;
 use petunia_config::text_id;
@@ -34,6 +33,7 @@ pub enum ShelfAction {
     SetGizmo(ModalKind),
     DomainOp(DomainOp),
     AddPrimitive { kind: u8, name: &'static str },
+    ReopenLast,
     OpenReferenceManager,
     AddHumanoidArmature,
     AutoRigActiveMesh,
@@ -302,7 +302,11 @@ fn exec_shelf_action(state: &mut AppState, action: &ShelfAction) {
             let _ = state.dispatch(&DuplicateSelectionCmd);
         }
         ShelfAction::AddPrimitive { kind, name } => {
-            add_primitive_to_scene(state, *kind as usize, name);
+            // Wave 8: criação com sessão (cartão Last Operation), não inserção seca.
+            crate::outliner::add_primitive_to_scene(state, *kind as usize, name);
+        }
+        ShelfAction::ReopenLast => {
+            state.reopen_last_primitive();
         }
         ShelfAction::OpenReferenceManager => {
             state.ui.show_reference_manager = true;
@@ -476,6 +480,17 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                 priority: ShelfPriority::Primary,
                 action: ShelfAction::DomainOp(DomainOp::Duplicate),
             });
+            // Reabertura explícita da última criação (Wave 8 — F9 ou botão).
+            if state.session.primitive_session.is_none() && state.session.last_primitive.is_some() {
+                let reopen_label = state.t_id(text_id::PRIMS_REOPEN);
+                cmds.push(ShelfCommand {
+                    icon: Some(PetuniaIcon::Undo),
+                    label: reopen_label.clone(),
+                    tooltip: reopen_label,
+                    priority: ShelfPriority::Secondary,
+                    action: ShelfAction::ReopenLast,
+                });
+            }
             let ref_label = state.t_id(text_id::UI_REFS);
             cmds.push(ShelfCommand {
                 icon: Some(PetuniaIcon::ReferenceImage),

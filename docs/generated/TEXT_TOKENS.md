@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **269**.
+Total de chaves de localização cadastradas: **280**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -145,12 +145,23 @@ Total de chaves de localização cadastradas: **269**.
 | `paint.size` | Size px | Tam px |
 | `paint.strength` | Strength | Força |
 | `paint.vertex` | Vertex paint | Pintura vértice |
+| `prims.cancel` | Cancel | Cancelar |
 | `prims.capsule` | Capsule | Cápsula |
 | `prims.cone` | Cone (8) | Cone (8) |
+| `prims.confirm` | Confirm | Confirmar |
+| `prims.confirm_hint` | Enter confirms · Esc cancels | Enter confirma · Esc cancela |
 | `prims.cube` | Cube | Cubo |
 | `prims.cylinder` | Cylinder (8) | Cilindro (8) |
+| `prims.height` | Height | Altura |
 | `prims.plane` | Plane | Plano |
+| `prims.radius` | Radius | Raio |
+| `prims.reopen` | Last operation… | Última operação… |
+| `prims.rings` | Rings | Anéis |
+| `prims.segments` | Segments | Segmentos |
+| `prims.sides` | Sides | Lados |
+| `prims.size` | Size | Tamanho |
 | `prims.sphere` | Sphere (low) | Esfera (low) |
+| `prims.width` | Width | Largura |
 | `profile.clear` | Clear | Limpar |
 | `profile.close` | Close | Fechar |
 | `profile.closed` | profile closed | perfil fechado |

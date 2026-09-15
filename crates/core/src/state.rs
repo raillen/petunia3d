@@ -508,6 +508,10 @@ pub struct EditorSession {
     pub show_wireframe_overlay: bool,
     pub show_cursor: bool,
     pub tools: ToolState,
+    /// Criação de primitiva em andamento (Wave 8: cartão Last Operation).
+    pub primitive_session: Option<crate::primitive_session::PrimitiveCreationSession>,
+    /// Último descritor confirmado (reabertura explícita).
+    pub last_primitive: Option<crate::primitive_session::PrimitiveDescriptor>,
 }
 
 impl std::ops::Deref for EditorSession {
@@ -564,6 +568,8 @@ impl EditorSession {
             show_wireframe_overlay: false,
             show_cursor: true,
             tools: ToolState::new(),
+            primitive_session: None,
+            last_primitive: None,
         }
     }
 
@@ -897,6 +903,199 @@ impl AppState {
         self.render.mark_dirty();
     }
 
+    /// Sessão de criação válida? Ativo + asset presente + checkpoint no topo.
+    ///
+    /// Qualquer outra operação com checkpoint no meio invalida (a primitiva vira
+    /// malha comum e o cartão some): Esc posterior não remove nada.
+    pub fn primitive_session_valid(&self) -> bool {
+        match &self.session.primitive_session {
+            None => false,
+            Some(session) => {
+                self.project.assets.iter().any(|a| a.id == session.asset_id)
+                    && self.project.undo.undo_label() == Some(session.undo_label.as_str())
+            }
+        }
+    }
+
+    /// Inicia uma criação com transação única de undo (Wave 8 — §10).
+    ///
+    /// Uma sessão anterior válida é confirmada silenciosamente (malha mantida).
+    pub fn begin_primitive(
+        &mut self,
+        kind: crate::command::PrimitiveKind,
+        name: Option<String>,
+    ) -> bool {
+        use crate::primitive_session::PrimitiveDescriptor;
+        self.finalize_primitive_session();
+        let descriptor = PrimitiveDescriptor::default_for(kind);
+        self.begin_primitive_with(descriptor, name)
+    }
+
+    /// Inicia uma criação a partir de um descritor (reabertura Last Operation).
+    pub fn begin_primitive_with(
+        &mut self,
+        descriptor: crate::primitive_session::PrimitiveDescriptor,
+        name: Option<String>,
+    ) -> bool {
+        self.finalize_primitive_session();
+        let original_selection = self.session.selection.clone();
+        let cursor_offset = self.session.cursor_3d;
+        let asset_name = name.unwrap_or_else(|| descriptor.kind().default_name().to_string());
+        let undo_label = format!("add primitive: {asset_name}");
+        self.checkpoint(&undo_label);
+        let mut mesh = descriptor.build();
+        for v in &mut mesh.verts {
+            v.pos[0] += cursor_offset[0];
+            v.pos[1] += cursor_offset[1];
+            v.pos[2] += cursor_offset[2];
+        }
+        self.project.add(&asset_name, mesh);
+        let Some(asset_id) = self.project.assets.last().map(|a| a.id) else {
+            return false;
+        };
+        self.session.primitive_session = Some(crate::primitive_session::PrimitiveCreationSession {
+            asset_id,
+            descriptor,
+            cursor_offset,
+            undo_label,
+            original_selection,
+        });
+        self.sync_selection();
+        self.emit_mesh_changed();
+        self.set_status(format!("Added {asset_name}"));
+        true
+    }
+
+    /// Regenera a malha a partir de novos parâmetros (sem checkpoint).
+    pub fn update_primitive(
+        &mut self,
+        descriptor: crate::primitive_session::PrimitiveDescriptor,
+    ) -> bool {
+        if !self.primitive_session_valid() {
+            self.session.primitive_session = None;
+            return false;
+        }
+        let (asset_id, cursor_offset) = match &self.session.primitive_session {
+            Some(session) => (session.asset_id, session.cursor_offset),
+            None => return false,
+        };
+        let Some(asset) = self.project.assets.iter_mut().find(|a| a.id == asset_id) else {
+            self.session.primitive_session = None;
+            return false;
+        };
+        let mut mesh = descriptor.build();
+        for v in &mut mesh.verts {
+            v.pos[0] += cursor_offset[0];
+            v.pos[1] += cursor_offset[1];
+            v.pos[2] += cursor_offset[2];
+        }
+        asset.mesh = mesh;
+        if let Some(session) = self.session.primitive_session.as_mut() {
+            session.descriptor = descriptor;
+        }
+        self.emit_mesh_changed();
+        true
+    }
+
+    /// Confirma a criação (uma transação no undo; guarda para reabrir).
+    pub fn confirm_primitive(&mut self) -> bool {
+        if !self.primitive_session_valid() {
+            self.session.primitive_session = None;
+            return false;
+        }
+        if let Some(session) = self.session.primitive_session.take() {
+            self.session.last_primitive = Some(session.descriptor);
+        }
+        self.mark_dirty();
+        true
+    }
+
+    /// Cancela a criação: desfaz até o ponto de inserção e restaura a seleção.
+    pub fn cancel_primitive(&mut self) -> bool {
+        let Some(session) = self.session.primitive_session.take() else {
+            return false;
+        };
+        if !(self.project.assets.iter().any(|a| a.id == session.asset_id)
+            && self.project.undo.undo_label() == Some(session.undo_label.as_str()))
+        {
+            return false;
+        }
+        // Desempilha até o checkpoint de inserção (normalmente um pop; o laço
+        // tolera modais/strokes que o primeiro undo() só finaliza).
+        for _ in 0..4 {
+            if self.project.undo.undo_label() != Some(session.undo_label.as_str()) {
+                break;
+            }
+            if !self.undo() {
+                break;
+            }
+        }
+        self.restore_selection_snapshot(session.original_selection);
+        self.mark_dirty();
+        true
+    }
+
+    /// Reabre a última criação confirmada como nova sessão (Last Operation).
+    pub fn reopen_last_primitive(&mut self) -> bool {
+        if self.session.primitive_session.is_some() {
+            return false;
+        }
+        let Some(descriptor) = self.session.last_primitive else {
+            return false;
+        };
+        self.begin_primitive_with(descriptor, None)
+    }
+
+    /// Finaliza silenciosamente (malha mantida, vira edição comum).
+    pub fn finalize_primitive_session(&mut self) {
+        if let Some(session) = self.session.primitive_session.take()
+            && self.project.assets.iter().any(|a| a.id == session.asset_id)
+        {
+            self.session.last_primitive = Some(session.descriptor);
+        }
+    }
+
+    /// Reaplica um snapshot de seleção com guarda de limites.
+    fn restore_selection_snapshot(&mut self, snapshot: Selection) {
+        for asset in &mut self.project.assets {
+            for v in &mut asset.mesh.verts {
+                v.selected = false;
+            }
+            for f in &mut asset.mesh.faces {
+                f.selected = false;
+            }
+            asset.mesh.selected_edges.clear();
+        }
+        if let Some(id) = snapshot.asset
+            && let Some(idx) = self.project.assets.iter().position(|a| a.id == id)
+        {
+            self.project.active = idx;
+            if let Some(asset) = self.project.assets.get_mut(idx) {
+                for v in snapshot.verts {
+                    if let Some(vert) = asset.mesh.verts.get_mut(v as usize) {
+                        vert.selected = true;
+                    }
+                }
+                for f in snapshot.faces {
+                    if let Some(face) = asset.mesh.faces.get_mut(f) {
+                        face.selected = true;
+                    }
+                }
+                asset.mesh.selected_edges = snapshot
+                    .edges
+                    .into_iter()
+                    .filter(|(a, b)| {
+                        (*a as usize) < asset.mesh.verts.len()
+                            && (*b as usize) < asset.mesh.verts.len()
+                            && a != b
+                    })
+                    .map(|(a, b)| (a.min(b), a.max(b)))
+                    .collect();
+            }
+        }
+        self.sync_selection();
+    }
+
     /// Troca de workspace com memória de layout por workspace (Wave 3 — §6.5).
     ///
     /// Dono único da transição (§3.2): salva split/aba/colapsos do workspace
@@ -907,6 +1106,8 @@ impl AppState {
         if prev == next {
             return;
         }
+        // Troca de workspace finaliza a criação (vira malha comum).
+        self.finalize_primitive_session();
         self.ui.workspace_memory[workspace_index(prev)] = WorkspaceUiMemory {
             dock_split: self.ui.right_dock_split,
             inspector_tab: self.ui.properties_tab.clone(),

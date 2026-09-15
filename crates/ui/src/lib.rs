@@ -11,7 +11,6 @@ use petunia_module_model::ToolRegistry;
 use petunia_project::export;
 
 pub mod annotation;
-pub mod app_icons;
 pub mod asset_browser;
 pub mod asset_library_drawer;
 pub mod camera_controls;
@@ -42,13 +41,13 @@ pub mod nav_gizmo;
 pub mod outliner;
 #[cfg(feature = "palette-autocomplete")]
 pub mod palette_complete;
+pub mod primitive_card;
 pub mod properties_panel;
 pub mod recovery_dialog;
 pub mod reference_manager;
 pub mod regions;
 pub mod settings_modal;
 pub mod status_bar;
-pub mod tiles_workspace;
 pub mod timeline;
 pub mod tokens;
 mod tool_fields;
@@ -887,6 +886,9 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
         if let Some(shelf) = shelf_rect {
             regions::record(&ctx, regions::RegionSlot::Shelf, shelf);
         }
+        // Cartão Last Operation da criação ativa (Wave 8).
+        let had_primitive_session = state.session.primitive_session.is_some();
+        primitive_card::draw_primitive_card(ui, state, rect);
         let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
             ui.input(|i| {
                 i.pointer
@@ -950,8 +952,11 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
             }
         }
         if resp.clicked() {
-            state.ui.box_select_start = None;
-            if let Some(pos) = resp.interact_pointer_pos() {
+            // Clique fora confirma a criação ativa (Wave 8 — §10.5).
+            if had_primitive_session {
+                state.confirm_primitive();
+                state.ui.box_select_start = None;
+            } else if let Some(pos) = resp.interact_pointer_pos() {
                 let nx = ((pos.x - rect.min.x) / rect.width().max(1.0)) * 2.0 - 1.0;
                 let ny = 1.0 - ((pos.y - rect.min.y) / rect.height().max(1.0)) * 2.0;
                 state.ui.pending_pick = Some((nx, ny));

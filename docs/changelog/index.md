@@ -3,6 +3,19 @@
 Todas as alterações notáveis deste projeto são documentadas neste arquivo.
 O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [Unreleased] — UI/UX, Responsiveness, Performance & Architecture Remediation (Waves 0–9)
+
+### Corrigido & Aprimorado
+- **Renderers por revisão (Wave 1)**: buffers WGPU/OpenGL só reconstróem com mudança de geometria (fingerprint de cena); órbita de câmera atualiza só uniforms; VBOs GL persistentes por asset; sem create/delete por draw; contadores de telemetria e escopos puffin.
+- **Dock direito dividido (Wave 2)**: Outliner e Inspector independentes com divisor arrastável persistente, colapso independente e `UiRegions` como fonte única de retângulos do shell.
+- **Workspaces reais (Wave 3)**: perfis de composição Model/Paint/UV/Animate (paletas, centro split no UV, Timeline no Animate), transição com memória de layout e paleta de pose no Animate.
+- **Shelf responsiva (Wave 4)**: comandos com prioridade, medição por galley, cápsula exata, modos Full/Compact/Overflow/Pill; menus com largura de conteúdo; ComboBoxes com larguras locais.
+- **Reference Manager e Settings (Wave 5)**: grade determinística, ajuste fino colapsável, `modal_sizes` seguro, texturas sem leak, abas Interface e Import/Export sem placebo.
+- **Ícones convergidos (Wave 6)**: glifos iconflow reais por pacote para utilitários, arte Petunia para ferramentas, `PetuniaIconButton` canônico, emoji erradicado do código UI.
+- **i18n e a11y (Wave 7)**: `TextId` tipado, paridade en/pt-BR em CI, pseudo-locale, switch com redesenho, locales embutidos de reserva, foco por Tab, matriz de escala.
+- **Criação de primitivas (Wave 8)**: sessão `PrimitiveCreationSession` com cartão Last Operation (6 espécies, regeneração ao vivo, transação única de undo, Esc cancela).
+- **Convergência (Wave 9)**: removidos `tiles_workspace.rs`, `app_icons.rs` e PNGs inalcançáveis da toolbar; pilots P1 com gate (`flex_layout`, `inbox_bridge`) mantidos com veredito no ledger.
+
 ## [0.32.0] - 2026-09-14 — Wave 10: Animation & Rigging (P3D-066, P3D-067, P3D-135 a P3D-139)
 
 ### Implementado & Aprimorado

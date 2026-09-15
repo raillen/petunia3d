@@ -24,7 +24,6 @@ glam = { workspace = true }
 egui-phosphor = "0.14"
 egui-file-dialog = "0.15"
 egui_ltreeview = "0.9"
-egui_tiles = "0.17"
 egui_inbox = { workspace = true }
 egui_taffy = { workspace = true }
 twill = { workspace = true }

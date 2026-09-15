@@ -1593,11 +1593,20 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 }
 
 pub fn add_primitive_to_scene(state: &mut AppState, kind: usize, name: &str) {
+    // Wave 8: espécies com cartão de parâmetros abrem sessão (transação única
+    // + Last Operation); Cone/Capsule mantêm inserção direta.
+    let session_kind = match kind {
+        0 => Some(PrimitiveKind::Cube),
+        1 => Some(PrimitiveKind::Sphere),
+        2 => Some(PrimitiveKind::Cylinder),
+        3 => Some(PrimitiveKind::Plane),
+        _ => None,
+    };
+    if let Some(p_kind) = session_kind {
+        state.begin_primitive(p_kind, Some(name.to_string()));
+        return;
+    }
     let p_kind = match kind {
-        0 => PrimitiveKind::Cube,
-        1 => PrimitiveKind::Sphere,
-        2 => PrimitiveKind::Cylinder,
-        3 => PrimitiveKind::Plane,
         4 => PrimitiveKind::Cone,
         _ => PrimitiveKind::Capsule,
     };

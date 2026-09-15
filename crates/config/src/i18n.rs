@@ -215,6 +215,18 @@ pub mod text_id {
     pub const REFS_OFFSET: TextId = TextId::new("refs.offset");
     pub const REFS_ROTATION: TextId = TextId::new("refs.rotation");
 
+    pub const PRIMS_SIZE: TextId = TextId::new("prims.size");
+    pub const PRIMS_RADIUS: TextId = TextId::new("prims.radius");
+    pub const PRIMS_SEGMENTS: TextId = TextId::new("prims.segments");
+    pub const PRIMS_RINGS: TextId = TextId::new("prims.rings");
+    pub const PRIMS_HEIGHT: TextId = TextId::new("prims.height");
+    pub const PRIMS_SIDES: TextId = TextId::new("prims.sides");
+    pub const PRIMS_WIDTH: TextId = TextId::new("prims.width");
+    pub const PRIMS_CONFIRM: TextId = TextId::new("prims.confirm");
+    pub const PRIMS_CANCEL: TextId = TextId::new("prims.cancel");
+    pub const PRIMS_REOPEN: TextId = TextId::new("prims.reopen");
+    pub const PRIMS_CONFIRM_HINT: TextId = TextId::new("prims.confirm_hint");
+
     /// Todos os ids do catálogo (cobertura de tradução).
     pub const ALL: &[TextId] = &[
         UI_OUTLINER,
@@ -271,6 +283,17 @@ pub mod text_id {
         REFS_SIZE,
         REFS_OFFSET,
         REFS_ROTATION,
+        PRIMS_SIZE,
+        PRIMS_RADIUS,
+        PRIMS_SEGMENTS,
+        PRIMS_RINGS,
+        PRIMS_HEIGHT,
+        PRIMS_SIDES,
+        PRIMS_WIDTH,
+        PRIMS_CONFIRM,
+        PRIMS_CANCEL,
+        PRIMS_REOPEN,
+        PRIMS_CONFIRM_HINT,
     ];
 }
 

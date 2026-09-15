@@ -3,9 +3,7 @@
 use egui_kittest::Harness;
 use petunia_core::{AppState, EditMode, ModalKind, SelectMode, Workspace};
 use petunia_module_model::ToolRegistry;
-use petunia_ui::{
-    UiAction, contextual_shelf, main_header, outliner, tiles_workspace, toolbar, viewport_bar,
-};
+use petunia_ui::{UiAction, contextual_shelf, main_header, outliner, toolbar, viewport_bar};
 
 #[test]
 fn test_kittest_toolbar_flow() {
@@ -61,21 +59,6 @@ fn test_kittest_outliner_tree_flow() {
     harness.run();
     drop(harness);
     assert_eq!(state.ui.outliner_search, "Cube");
-}
-
-#[test]
-fn test_kittest_tiles_workspace_flow() {
-    let mut state = AppState::new("en");
-    let mut tree = tiles_workspace::create_canonical_tree();
-
-    let mut harness = Harness::builder().build_ui(|ui| {
-        let mut behavior = tiles_workspace::PetuniaTilesBehavior::new(&mut state);
-        tree.ui(&mut behavior, ui);
-    });
-
-    harness.run();
-    drop(harness);
-    assert!(tree.root().is_some());
 }
 
 #[test]
@@ -1001,6 +984,49 @@ fn test_shelf_commands_all_have_tooltips() {
             drop(harness);
         }
     }
+}
+
+#[test]
+fn test_kittest_primitive_session_card_lifecycle() {
+    // Sessão ativa → cartão renderiza sem pânico; centros registrados OK.
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    assert!(
+        state
+            .borrow_mut()
+            .begin_primitive(petunia_core::PrimitiveKind::Cube, None)
+    );
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let seen_clone = seen.clone();
+    let state_clone = state.clone();
+
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+        });
+    harness.run_steps(6);
+    drop(harness);
+
+    assert!(state.borrow().primitive_session_valid());
+    let regions = seen.borrow().clone().expect("regions recorded");
+    assert!(regions.status_overlaps().is_empty());
+    assert!(regions.viewport.is_some());
+
+    // Cancela: asset some, sessão limpa, UI segue estável.
+    let before = state.borrow().project.assets.len();
+    assert!(state.borrow_mut().cancel_primitive());
+    assert_eq!(state.borrow().project.assets.len(), before - 1);
+    assert!(!state.borrow().primitive_session_valid());
 }
 
 #[test]
