@@ -25,16 +25,31 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           src = Path('.github/workflows/modeling-convergence-stack.yml').read_text().splitlines()
           start = next(i for i, line in enumerate(src) if line.strip() == '- name: Apply modifier, subdivide, performance and SVG patches')
           run_line = next(i for i in range(start + 1, len(src)) if src[i].strip() == 'run: |')
           end = next(i for i in range(run_line + 1, len(src)) if src[i].startswith('      - name: Install Linux UI dependencies'))
           lines = src[run_line + 1:end]
           shell = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
-          Path('/tmp/modeling-stack.sh').write_text(shell)
+
+          old_wgpu = """if target not in text:\n    raise SystemExit('wgpu asset loop not found')\ntext = text.replace(target, repl, 1)"""
+          new_wgpu = """if 'let mesh = obj.evaluated_mesh();' not in text:\n    text, count = re.subn(\n        r'(        for obj in &scene\\.assets \\{\\n            if !obj\\.visible \\{\\n                continue;\\n            \\}\\n)',\n        r'\\1            let mesh = obj.evaluated_mesh();\\n',\n        text,\n        count=1,\n    )\n    if count != 1:\n        raise SystemExit(f'wgpu asset loop patch count: {count}')"""
+          if old_wgpu not in shell:
+              raise SystemExit('could not harden WGPU patch block')
+          shell = shell.replace(old_wgpu, new_wgpu, 1)
+
+          old_gl = """if target not in text:\n    raise SystemExit('gl asset loop not found')\ntext = text.replace(target, target + '            let mesh = obj.evaluated_mesh();\\n', 1)"""
+          new_gl = """if 'let mesh = obj.evaluated_mesh();' not in text:\n    text, count = re.subn(\n        r'(        for obj in &state\\.project\\.assets \\{\\n            if !obj\\.visible \\{\\n                continue;\\n            \\}\\n)',\n        r'\\1            let mesh = obj.evaluated_mesh();\\n',\n        text,\n        count=1,\n    )\n    if count != 1:\n        raise SystemExit(f'gl asset loop patch count: {count}')"""
+          if old_gl not in shell:
+              raise SystemExit('could not harden OpenGL patch block')
+          shell = shell.replace(old_gl, new_gl, 1)
+
+          Path('/tmp/modeling-stack.sh').write_text('set -euo pipefail\n' + shell)
           PY
           bash /tmp/modeling-stack.sh
           rm -f .github/workflows/modeling-stack-run.yml
+          rm -f .github/workflows/modeling-convergence-stack.yml
       - name: Install Linux UI dependencies
         run: |
           sudo apt-get update
@@ -53,6 +68,8 @@ jobs:
         run: |
           cargo check -p petunia_ui
           cargo check -p petunia_app
+      - name: Refresh intentional persistence snapshot
+        run: INSTA_UPDATE=always cargo test -p petunia_project --test save_tree save_creates_exact_tree
       - name: Focused tests
         run: |
           cargo test -p petunia_project
