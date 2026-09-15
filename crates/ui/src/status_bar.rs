@@ -8,7 +8,9 @@ use egui::{Align, Layout, RichText, Ui, vec2};
 use petunia_core::AppState;
 use petunia_module_model::ToolRegistry;
 
+use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
+use crate::widgets::PetuniaIconButton;
 
 /// Renderiza a barra de status inferior estruturada em 3 blocos.
 pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
@@ -108,30 +110,26 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
 
                     ui.separator();
 
-                    // Botões de Desfazer / Refazer
-                    if ui
-                        .add_enabled(
-                            !state.is_interacting() && state.project.undo.can_undo(),
-                            egui::Button::new(RichText::new("↩").size(10.5)),
-                        )
-                        .on_hover_text(format!(
-                            "Desfazer · Ctrl+Z · {}",
-                            state.project.undo.undo_label().unwrap_or("")
-                        ))
+                    // Botões de Desfazer / Refazer (ícones semânticos, Wave 6).
+                    let undo_tip = format!(
+                        "Desfazer · Ctrl+Z · {}",
+                        state.project.undo.undo_label().unwrap_or("")
+                    );
+                    if PetuniaIconButton::new(PetuniaIcon::Undo, &undo_tip, 22.0)
+                        .enabled(!state.is_interacting() && state.project.undo.can_undo())
+                        .show(ui)
                         .clicked()
                     {
                         state.undo();
                     }
 
-                    if ui
-                        .add_enabled(
-                            !state.is_interacting() && state.project.undo.can_redo(),
-                            egui::Button::new(RichText::new("↪").size(10.5)),
-                        )
-                        .on_hover_text(format!(
-                            "Refazer · Ctrl+Shift+Z · {}",
-                            state.project.undo.redo_label().unwrap_or("")
-                        ))
+                    let redo_tip = format!(
+                        "Refazer · Ctrl+Shift+Z · {}",
+                        state.project.undo.redo_label().unwrap_or("")
+                    );
+                    if PetuniaIconButton::new(PetuniaIcon::Redo, &redo_tip, 22.0)
+                        .enabled(!state.is_interacting() && state.project.undo.can_redo())
+                        .show(ui)
                         .clicked()
                     {
                         state.redo();

@@ -2,11 +2,12 @@
 //! Renderiza controles de projeção/escala UV e canvas interativo de edição 0..1.
 
 use egui::{Color32, Pos2, Shape, Stroke, Ui};
+use petunia_config::text_id;
 use petunia_core::AppState;
 use petunia_module_uv::UvModule;
 
 pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
-    let l_uv = state.t("uv.title");
+    let l_uv = state.t_id(text_id::UV_TITLE);
     let l_reproj = state.t("uv.reproject");
     let l_scale = state.t("uv.scale");
     egui::CollapsingHeader::new(l_uv)
@@ -48,7 +49,7 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
                     UvModule::scale_selected(state, 1.0 / 1.1);
                 }
                 if ui
-                    .button("⟳ 90°")
+                    .button("90°")
                     .on_hover_text("Gira seleção 90 graus")
                     .clicked()
                 {
@@ -59,7 +60,7 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
             });
             ui.small(format!(
                 "{}: {}",
-                state.t("uv.selected"),
+                state.t_id(text_id::UV_SELECTED),
                 state.uv_selected.len()
             ));
             // canvas UV 0..1 (preenche o pai: inspector estreito ou editor central).
@@ -127,7 +128,7 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
                     state.emit_mesh_changed();
                 }
             }
-            ui.small(state.t("uv.hint"));
+            ui.small(state.t_id(text_id::UV_HINT));
         });
 }
 
@@ -136,21 +137,29 @@ pub fn draw_uv_panel(ui: &mut Ui, state: &mut AppState) {
 /// O editor interativo mora no centro (§6.3); aqui só o essencial de contexto,
 /// sem duplicar widgets interativos.
 pub fn draw_uv_summary(ui: &mut Ui, state: &mut AppState) {
-    ui.label(egui::RichText::new(state.t("uv.title")).size(12.0).strong());
+    ui.label(
+        egui::RichText::new(state.t_id(text_id::UV_TITLE))
+            .size(12.0)
+            .strong(),
+    );
     if let Some(asset) = state.project.assets.get(state.project.active) {
         let selected = asset.mesh.faces.iter().filter(|f| f.selected).count();
-        ui.label(format!("{}: {}", state.t("ui.assets"), asset.name));
+        ui.label(format!(
+            "{}: {}",
+            state.t_id(text_id::UI_ASSETS),
+            asset.name
+        ));
         ui.label(format!(
             "{}: {} / {}",
-            state.t("uv.faces"),
+            state.t_id(text_id::UV_FACES),
             selected,
             asset.mesh.faces.len()
         ));
     }
     ui.label(format!(
         "{}: {}",
-        state.t("uv.selected"),
+        state.t_id(text_id::UV_SELECTED),
         state.uv_selected.len()
     ));
-    ui.small(state.t("uv.hint"));
+    ui.small(state.t_id(text_id::UV_HINT));
 }

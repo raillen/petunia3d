@@ -58,6 +58,17 @@ impl GenericPack {
         }
     }
 
+    /// Pack pelo id de configuração (`None` = Petunia ou pacote de disco).
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "lucide" => Some(Self::Lucide),
+            "iconoir" => Some(Self::Iconoir),
+            "tabler" => Some(Self::Tabler),
+            "phosphor" => Some(Self::Phosphor),
+            _ => None,
+        }
+    }
+
     fn iconflow_pack(self) -> iconflow::Pack {
         match self {
             Self::Lucide => iconflow::Pack::Lucide,
@@ -142,6 +153,178 @@ impl ResolvedIcon {
     pub fn as_char(self) -> Option<char> {
         char::from_u32(self.codepoint)
     }
+}
+
+/// Instala as fontes `iconflow` (pacotes habilitados) no egui (Wave 6 — §11.2).
+///
+/// Cada asset vira uma `FontFamily::Name(family)`; glifos resolvidos por
+/// [`PetuniaIconProvider`] renderizam nessa família — nunca na fonte padrão
+/// (que produziria tofu). Idempotente por contexto.
+pub fn install_fonts(fonts: &mut egui::FontDefinitions) {
+    for asset in iconflow::fonts() {
+        fonts.font_data.insert(
+            asset.family.to_owned(),
+            egui::FontData::from_static(asset.bytes).into(),
+        );
+        fonts
+            .families
+            .entry(egui::FontFamily::Name(asset.family.into()))
+            .or_default()
+            .push(asset.family.to_owned());
+    }
+}
+
+/// Ícones utilitários/chrome que seguem o pacote genérico (Wave 6).
+///
+/// Ferramentas de domínio (move/rotate/extrude/…), abas de properties, shading,
+/// gizmos e overlays de viewport permanecem Petunia-owned em todos os pacotes:
+/// trocar o pacote muda o glifo, nunca o significado — e o sistema vetorial
+/// desenhado do Petunia não regride para glifo monocromático.
+pub fn is_pack_owned(icon: crate::icon_registry::PetuniaIcon) -> bool {
+    use crate::icon_registry::PetuniaIcon as P;
+    matches!(
+        icon,
+        P::Search
+            | P::Folder
+            | P::File
+            | P::Eye
+            | P::EyeHidden
+            | P::Lock
+            | P::Unlock
+            | P::ChevronLeft
+            | P::ChevronRight
+            | P::ChevronDown
+            | P::ChevronUp
+            | P::Close
+            | P::Minimize
+            | P::Maximize
+            | P::Play
+            | P::Pause
+            | P::StepForward
+            | P::StepBackward
+            | P::JumpStart
+            | P::JumpEnd
+            | P::Undo
+            | P::Redo
+            | P::Plus
+            | P::Trash
+            | P::Settings
+            | P::MoreVert
+            | P::Filter
+            | P::Duplicate
+            | P::Delete
+            | P::Collection
+            | P::ReferenceImage
+            | P::ObjectMesh
+            | P::ModeObject
+            | P::ModeEdit
+            | P::SelectVertex
+            | P::SelectEdge
+            | P::SelectFace
+    )
+}
+
+/// Nomes candidatos por ícone utilitário, em ordem de preferência (Wave 6).
+///
+/// Variações de nomenclatura entre pacotes (lucide kebab, iconoir próprio,
+/// tabler player-*, phosphor compostos) são absorvidas aqui; a resolução usa
+/// o primeiro nome que existe no pacote ativo. O teste de auditoria garante
+/// ao menos um acerto por (ícone, pacote habilitado).
+pub fn utility_candidates(icon: crate::icon_registry::PetuniaIcon) -> &'static [&'static str] {
+    use crate::icon_registry::PetuniaIcon as P;
+    match icon {
+        P::Search => &["search", "magnifying-glass"],
+        P::Folder => &["folder", "folder-closed"],
+        P::File => &["file", "page", "file-text"],
+        P::Eye => &["eye"],
+        P::EyeHidden => &["eye-off", "eye-closed", "eye-slash"],
+        P::Lock => &["lock"],
+        P::Unlock => &["lock-open", "lock-slash", "unlock"],
+        P::ChevronLeft => &["chevron-left", "nav-arrow-left", "caret-left", "arrow-left"],
+        P::ChevronRight => &[
+            "chevron-right",
+            "nav-arrow-right",
+            "caret-right",
+            "arrow-right",
+        ],
+        P::ChevronDown => &["chevron-down", "nav-arrow-down", "caret-down", "arrow-down"],
+        P::ChevronUp => &["chevron-up", "nav-arrow-up", "caret-up", "arrow-up"],
+        P::Close => &["x", "xmark", "close"],
+        P::Minimize => &["minus", "minimize"],
+        P::Maximize => &["maximize", "expand", "arrows-out"],
+        P::Play => &["play", "player-play"],
+        P::Pause => &["pause", "player-pause"],
+        P::StepForward => &["skip-forward", "skip-next", "chevron-right", "step-forward"],
+        P::StepBackward => &["skip-back", "skip-prev", "chevron-left", "step-back"],
+        P::JumpStart => &["chevrons-left", "rewind", "skip-prev", "arrow-line-left"],
+        P::JumpEnd => &["chevrons-right", "forward", "skip-next", "arrow-line-right"],
+        P::Undo => &[
+            "undo",
+            "undo-2",
+            "arrow-counter-clockwise",
+            "rotate-ccw",
+            "arrow-back-up",
+        ],
+        P::Redo => &[
+            "redo",
+            "redo-2",
+            "arrow-clockwise",
+            "rotate-cw",
+            "arrow-forward-up",
+        ],
+        P::Plus => &["plus", "add"],
+        P::Trash => &["trash", "trash-2", "delete"],
+        P::Settings => &["settings", "gear", "cog"],
+        P::MoreVert => &[
+            "ellipsis-vertical",
+            "more-vert",
+            "dots-vertical",
+            "dots-three-vertical",
+        ],
+        P::Filter => &["funnel", "filter", "list-filter"],
+        P::Duplicate => &["copy", "duplicate"],
+        P::Delete => &["trash", "trash-2", "delete"],
+        P::Collection => &["archive", "folder", "collection"],
+        P::ReferenceImage => &["image", "media-image", "photo"],
+        P::ObjectMesh => &["box", "cube", "package"],
+        P::ModeObject => &["box", "cube", "package"],
+        P::ModeEdit => &["pencil", "edit", "edit-pencil", "pencil-simple"],
+        P::SelectVertex => &["circle-dot", "circle", "dot"],
+        P::SelectEdge => &["minus", "slash"],
+        P::SelectFace => &["square", "box"],
+        _ => &[],
+    }
+}
+
+/// Resolve um ícone utilitário no pacote ativo (primeiro candidato existente).
+pub fn resolve_utility(
+    icon: crate::icon_registry::PetuniaIcon,
+    pack: GenericPack,
+) -> Result<ResolvedIcon, ProviderError> {
+    if !pack.is_enabled() {
+        return Err(ProviderError::PackDisabled { pack: pack.name() });
+    }
+    for name in utility_candidates(icon) {
+        if let Ok(icon_ref) = iconflow::try_icon(
+            pack.iconflow_pack(),
+            name,
+            iconflow::Style::Regular,
+            iconflow::Size::Regular,
+        ) {
+            return Ok(ResolvedIcon {
+                family: icon_ref.family,
+                codepoint: icon_ref.codepoint,
+            });
+        }
+    }
+    Err(ProviderError::Missing {
+        pack: pack.name(),
+        name: utility_candidates(icon)
+            .first()
+            .copied()
+            .unwrap_or("?")
+            .to_string(),
+    })
 }
 
 /// Single entry point for generic icons. Owns the active pack; workspace code

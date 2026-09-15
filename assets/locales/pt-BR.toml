@@ -25,6 +25,9 @@ expand = "Expandir painel"
 dock_split_hint = "Arraste para redimensionar os painéis"
 more = "Mais…"
 tools_menu = "Ferramentas…"
+floating_inspector = "Inspector Flutuante"
+redock = "Reancorar o Painel de Propriedades na barra lateral"
+at_3d_cursor = "no Cursor 3D"
 
 [animate]
 humanoid = "Humanoide"
@@ -34,6 +37,11 @@ pause = "Pausar"
 first_frame = "Primeiro frame"
 last_frame = "Último frame"
 frame = "Frame"
+tip_first = "Ir ao Primeiro Frame · Shift+Left"
+tip_prev = "Voltar 1 Frame · Left"
+tip_play = "Reproduzir / Pausar Animação · Space"
+tip_next = "Avançar 1 Frame · Right"
+tip_last = "Ir ao Último Frame · Shift+Right"
 
 [menu]
 file = "Arquivo"

@@ -12,6 +12,8 @@ use petunia_core::{AppState, RefAxis, ViewPreset};
 use crate::file_dialog_service;
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
+use crate::widgets;
+use petunia_config::text_id;
 
 /// Slots ortográficos canônicos: eixo + marcador neutro de orientação + preset.
 /// Nomes vêm do i18n (`refs.front`…); o marcador (+Z…) é símbolo, não texto.
@@ -135,13 +137,13 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             ui.horizontal(|ui| {
                 let total = state.project.refs.len();
                 ui.label(
-                    egui::RichText::new(format!("{total} {}", state.t("refs.loaded")))
+                    egui::RichText::new(format!("{total} {}", state.t_id(text_id::REFS_LOADED)))
                         .color(tokens::text_muted(state))
                         .size(11.0),
                 );
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(state.t("ui.close")).clicked() {
+                    if ui.button(state.t_id(text_id::UI_CLOSE)).clicked() {
                         state.ui.show_reference_manager = false;
                     }
                 });
@@ -163,7 +165,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 
 fn draw_global_actions(ui: &mut Ui, state: &mut AppState) {
     if ui
-        .button(format!("🗑 {}", state.t("refs.clear_all")))
+        .button(state.t("refs.clear_all"))
         .on_hover_text(state.t("refs.clear_all_tooltip"))
         .clicked()
     {
@@ -201,7 +203,10 @@ fn fine_slider(
         if ui.add(slider).changed() {
             *changed = true;
         }
-        if ui.small_button("↺").on_hover_text(reset_tip).clicked() {
+        if widgets::PetuniaIconButton::new(PetuniaIcon::Undo, reset_tip, 18.0)
+            .show(ui)
+            .clicked()
+        {
             *value = reset_to;
             *changed = true;
         }
@@ -223,7 +228,7 @@ fn draw_slot_card(
 ) {
     // Título traduzido (símbolo de orientação é neutro, não texto).
     let title = format!("{axis_tag} · {}", state.t(axis.key()));
-    let align_tip = state.t("refs.align_view");
+    let align_tip = state.t_id(text_id::REFS_ALIGN_VIEW);
     ui.allocate_ui_with_layout(
         vec2(card_w, 0.0),
         egui::Layout::top_down_justified(egui::Align::Min),
@@ -261,10 +266,13 @@ fn draw_slot_card(
                         );
 
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui
-                                .small_button(format!("👁 {}", state.t(axis.key())))
-                                .on_hover_text(&align_tip)
-                                .clicked()
+                            if widgets::PetuniaIconButton::new(
+                                PetuniaIcon::Eye,
+                                &format!("{} · {align_tip}", state.t(axis.key())),
+                                20.0,
+                            )
+                            .show(ui)
+                            .clicked()
                             {
                                 *align_preset = Some(preset);
                             }
@@ -337,7 +345,7 @@ fn draw_slot_card(
                             ui.painter().text(
                                 box_rect.center(),
                                 egui::Align2::CENTER_CENTER,
-                                format!("↻ {}", state.t("refs.replace")),
+                                state.t_id(text_id::REFS_REPLACE),
                                 egui::FontId::proportional(12.0),
                                 Color32::WHITE,
                             );
@@ -373,9 +381,9 @@ fn draw_slot_card(
                         let mut locked = state.project.refs[idx].locked;
                         let mut flags_changed = false;
 
-                        let vis_label = state.t("refs.visible");
-                        let lock_label = state.t("refs.lock");
-                        let remove_tip = state.t("refs.remove");
+                        let vis_label = state.t_id(text_id::REFS_VISIBLE);
+                        let lock_label = state.t_id(text_id::REFS_LOCK);
+                        let remove_tip = state.t_id(text_id::REFS_REMOVE);
                         ui.horizontal(|ui| {
                             if ui.checkbox(&mut vis, vis_label).changed() {
                                 flags_changed = true;
@@ -403,12 +411,12 @@ fn draw_slot_card(
 
                         // Ajuste fino colapsável: cartões carregados mantêm a
                         // mesma altura base; sliders abrem sob demanda.
-                        let fine_label = state.t("refs.fine_tune");
-                        let reset_tip = state.t("refs.reset_default");
-                        let opacity_label = format!("{}:", state.t("refs.opacity"));
-                        let size_label = format!("{}:", state.t("refs.size"));
-                        let offset_label = format!("{}:", state.t("refs.offset"));
-                        let rotation_label = format!("{}:", state.t("refs.rotation"));
+                        let fine_label = state.t_id(text_id::REFS_FINE_TUNE);
+                        let reset_tip = state.t_id(text_id::REFS_RESET_DEFAULT);
+                        let opacity_label = format!("{}:", state.t_id(text_id::REFS_OPACITY));
+                        let size_label = format!("{}:", state.t_id(text_id::REFS_SIZE));
+                        let offset_label = format!("{}:", state.t_id(text_id::REFS_OFFSET));
+                        let rotation_label = format!("{}:", state.t_id(text_id::REFS_ROTATION));
                         egui::CollapsingHeader::new(fine_label)
                             .default_open(false)
                             .show(ui, |ui| {
@@ -485,13 +493,13 @@ fn draw_slot_card(
                             egui::StrokeKind::Inside,
                         );
 
-                        // Marcador central (Wave 6 troca o glifo por ícone semântico).
+                        // Marcador central com ícone semântico (Wave 6).
                         let center = box_rect.center();
-                        ui.painter().text(
-                            center,
-                            egui::Align2::CENTER_CENTER,
-                            "📁",
-                            egui::FontId::proportional(22.0),
+                        IconRegistry::paint(
+                            ctx,
+                            ui.painter(),
+                            &PetuniaIcon::Folder,
+                            Rect::from_center_size(center, vec2(22.0, 22.0)),
                             tokens::text_muted(state),
                         );
 
@@ -507,14 +515,14 @@ fn draw_slot_card(
                         });
                         ui.add_space(26.0);
                         ui.label(
-                            egui::RichText::new(state.t("refs.no_image"))
+                            egui::RichText::new(state.t_id(text_id::REFS_NO_IMAGE))
                                 .size(10.5)
                                 .color(tokens::text_muted(state))
                                 .italics(),
                         );
                         ui.add_space(4.0);
                         ui.label(
-                            egui::RichText::new(state.t("refs.click_to_load"))
+                            egui::RichText::new(state.t_id(text_id::REFS_CLICK_TO_LOAD))
                                 .size(11.5)
                                 .color(if is_hovered {
                                     tokens::text_primary(state)

@@ -203,6 +203,99 @@ impl PetuniaIcon {
         }
     }
 
+    /// Todos os ícones nomeados + customs usados no código (Wave 6: auditoria).
+    ///
+    /// Fonte única para testes de cobertura, smoke de render e prévia de pacotes.
+    /// `PropertyTab` entra com amostra paramétrica; customs cobrem os ids reais
+    /// em toolbar/shelf/viewport (`merge`, `paint`, `delete`, `flip_diagonal`,
+    /// `revolve`).
+    pub fn all() -> Vec<PetuniaIcon> {
+        vec![
+            PetuniaIcon::SelectBox,
+            PetuniaIcon::Cursor3D,
+            PetuniaIcon::Move,
+            PetuniaIcon::Rotate,
+            PetuniaIcon::Scale,
+            PetuniaIcon::Transform,
+            PetuniaIcon::Annotate,
+            PetuniaIcon::Measure,
+            PetuniaIcon::AddPrimitive,
+            PetuniaIcon::Extrude,
+            PetuniaIcon::Inset,
+            PetuniaIcon::Bevel,
+            PetuniaIcon::LoopCut,
+            PetuniaIcon::Knife,
+            PetuniaIcon::PushPull,
+            PetuniaIcon::Slice,
+            PetuniaIcon::Subdivide,
+            PetuniaIcon::DrawProfile,
+            PetuniaIcon::PropertyTab(1),
+            PetuniaIcon::PropTool,
+            PetuniaIcon::PropRender,
+            PetuniaIcon::PropOutput,
+            PetuniaIcon::PropViewLayer,
+            PetuniaIcon::PropScene,
+            PetuniaIcon::PropWorld,
+            PetuniaIcon::PropCollection,
+            PetuniaIcon::PropObject,
+            PetuniaIcon::PropModifiers,
+            PetuniaIcon::PropData,
+            PetuniaIcon::PropMaterial,
+            PetuniaIcon::ModeObject,
+            PetuniaIcon::ModeEdit,
+            PetuniaIcon::SelectVertex,
+            PetuniaIcon::SelectEdge,
+            PetuniaIcon::SelectFace,
+            PetuniaIcon::ShadingWireframe,
+            PetuniaIcon::ShadingSolid,
+            PetuniaIcon::ShadingMaterial,
+            PetuniaIcon::ShadingRendered,
+            PetuniaIcon::SnapMagnet,
+            PetuniaIcon::ProportionalEditing,
+            PetuniaIcon::XRay,
+            PetuniaIcon::Overlays,
+            PetuniaIcon::OrientationGlobal,
+            PetuniaIcon::PivotMedian,
+            PetuniaIcon::ObjectMesh,
+            PetuniaIcon::ReferenceImage,
+            PetuniaIcon::Collection,
+            PetuniaIcon::Duplicate,
+            PetuniaIcon::Delete,
+            PetuniaIcon::Search,
+            PetuniaIcon::Folder,
+            PetuniaIcon::File,
+            PetuniaIcon::Eye,
+            PetuniaIcon::EyeHidden,
+            PetuniaIcon::Lock,
+            PetuniaIcon::Unlock,
+            PetuniaIcon::ChevronLeft,
+            PetuniaIcon::ChevronRight,
+            PetuniaIcon::ChevronDown,
+            PetuniaIcon::ChevronUp,
+            PetuniaIcon::Close,
+            PetuniaIcon::Minimize,
+            PetuniaIcon::Maximize,
+            PetuniaIcon::Play,
+            PetuniaIcon::Pause,
+            PetuniaIcon::StepForward,
+            PetuniaIcon::StepBackward,
+            PetuniaIcon::JumpStart,
+            PetuniaIcon::JumpEnd,
+            PetuniaIcon::Undo,
+            PetuniaIcon::Redo,
+            PetuniaIcon::Plus,
+            PetuniaIcon::Trash,
+            PetuniaIcon::Settings,
+            PetuniaIcon::MoreVert,
+            PetuniaIcon::Filter,
+            PetuniaIcon::Custom("merge"),
+            PetuniaIcon::Custom("paint"),
+            PetuniaIcon::Custom("delete"),
+            PetuniaIcon::Custom("flip_diagonal"),
+            PetuniaIcon::Custom("revolve"),
+        ]
+    }
+
     /// Retorna o glifo Phosphor correspondente, se aplicável.
     pub fn phosphor_glyph(&self) -> Option<&'static str> {
         match self {
@@ -450,18 +543,70 @@ impl IconRegistry {
 
         packs
     }
-    /// Inicializa os conjuntos de fontes adicionais (Phosphor) no contexto do egui, se ainda não configurados.
+    /// Inicializa os conjuntos de fontes de ícones no contexto do egui, se ainda
+    /// não configurados (Wave 6): Phosphor (fallback) + fontes `iconflow` dos
+    /// pacotes habilitados. Glifos de pacote renderizam na família nomeada —
+    /// nunca na fonte padrão (que produziria tofu).
+    ///
+    /// O egui aplica `set_fonts` no fim do pass: [`Self::icon_fonts_ready`]
+    /// indica quando a pintura nomeada é segura (sem pânico em ctx fresco).
     pub fn ensure_fonts(ctx: &Context) {
         let _ = ctx.style_of(ctx.theme()); // Garante inicialização básica
-        let font_id = egui::Id::new("petunia_phosphor_fonts_initialized");
-        let already_initialized = ctx.data(|d| d.get_temp::<bool>(font_id).unwrap_or(false));
-
-        if !already_initialized {
+        let font_id = egui::Id::new("petunia_icon_fonts_pass");
+        let installed = ctx.data(|d| d.get_temp::<u64>(font_id));
+        if installed.is_none() {
             let mut fonts = egui::FontDefinitions::default();
             egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
+            crate::icon_provider::install_fonts(&mut fonts);
             ctx.set_fonts(fonts);
-            ctx.data_mut(|d| d.insert_temp(font_id, true));
+            // Fora do closure de dados: `cumulative_pass_nr` trava outro lock.
+            let pass = ctx.cumulative_pass_nr();
+            ctx.data_mut(|d| d.insert_temp(font_id, pass));
         }
+    }
+
+    /// Fontes de ícones prontas neste contexto (fronteira de pass cruzada).
+    fn icon_fonts_ready(ctx: &Context) -> bool {
+        let font_id = egui::Id::new("petunia_icon_fonts_pass");
+        let current = ctx.cumulative_pass_nr();
+        ctx.data(|d| {
+            d.get_temp::<u64>(font_id)
+                .is_some_and(|pass| pass < current)
+        })
+    }
+
+    /// Pacote genérico correspondente ao id ativo (`None` = Petunia/desconhecido).
+    fn generic_pack_for_id(id: &str) -> Option<crate::icon_provider::GenericPack> {
+        use crate::icon_provider::GenericPack as P;
+        match id {
+            "lucide" => Some(P::Lucide),
+            "iconoir" => Some(P::Iconoir),
+            "tabler" => Some(P::Tabler),
+            "phosphor" => Some(P::Phosphor),
+            _ => None,
+        }
+    }
+
+    /// Renderiza um glifo `iconflow` resolvido na sua família nomeada.
+    fn paint_resolved(
+        painter: &Painter,
+        resolved: crate::icon_provider::ResolvedIcon,
+        target_rect: Rect,
+        tint: Color32,
+    ) {
+        let Some(ch) = resolved.as_char() else {
+            return;
+        };
+        let size = target_rect.height().min(target_rect.width()).max(1.0);
+        let mut text = String::with_capacity(4);
+        text.push(ch);
+        painter.text(
+            target_rect.center(),
+            Align2::CENTER_CENTER,
+            text,
+            egui::FontId::new(size, egui::FontFamily::Name(resolved.family.into())),
+            tint,
+        );
     }
 
     /// Obtém ou carrega uma textura em cache (executado uma única vez por ícone rasterizado).
@@ -507,6 +652,15 @@ impl IconRegistry {
     }
 
     /// Renderiza um ícone do Petunia com tingimento dinâmico e suporte explícito ao pacote selecionado.
+    ///
+    /// Cadeia canônica (Wave 6 — §11.1), sem renderização fictícia:
+    /// ```text
+    /// PetuniaIcon
+    ///   ├── pacote genérico + ícone utilitário → glifo real do pacote (iconflow)
+    ///   ├── ferramenta/domínio Petunia → arte vetorial/PNG própria (todos os pacotes)
+    ///   ├── fallback → glifo Phosphor (fonte sempre instalada)
+    ///   └── último recurso → losango vetorial (nunca tofu silencioso)
+    /// ```
     pub fn paint_pack(
         ctx: &Context,
         painter: &Painter,
@@ -515,26 +669,49 @@ impl IconRegistry {
         tint: Color32,
         pack: &str,
     ) {
+        use crate::icon_provider::{GenericPack, is_pack_owned, resolve_utility};
         let id = icon.id();
 
-        // 1. Se o pacote for Phosphor (ou fallback de fonte), prioriza o glifo Phosphor
-        if (pack == "phosphor" || pack == "tabler" || pack == "lucide" || pack == "iconoir")
-            && let Some(glyph) = icon.phosphor_glyph()
+        // 1. Pacote genérico + ícone utilitário/chrome: glifo REAL do pacote.
+        // Exige fontes prontas (pós-fronteira de pass); senão cai para o
+        // caminho de domínio neste frame e se autocorrige no próximo.
+        if let Some(active) = Self::generic_pack_for_id(pack)
+            && is_pack_owned(*icon)
         {
+            // Pacote ativo primeiro; Lucide (sempre compilado) como reserva.
+            let mut candidates = vec![active];
+            if active != GenericPack::Lucide {
+                candidates.push(GenericPack::Lucide);
+            }
             Self::ensure_fonts(ctx);
-            let font_size = target_rect.height().min(target_rect.width()) * 0.85;
-            painter.text(
-                target_rect.center(),
-                Align2::CENTER_CENTER,
-                glyph,
-                FontId::proportional(font_size),
-                tint,
-            );
-            return;
+            if Self::icon_fonts_ready(ctx) {
+                for candidate in candidates {
+                    if let Ok(resolved) = resolve_utility(*icon, candidate) {
+                        Self::paint_resolved(painter, resolved, target_rect, tint);
+                        return;
+                    }
+                }
+            }
+            // Sem glifo no pacote: registra em dev e cai para o caminho Petunia
+            // abaixo (mesmo significado, arte própria) — nunca tofu.
+            #[cfg(debug_assertions)]
+            {
+                static LOGGED: LazyLock<std::sync::Mutex<std::collections::HashSet<String>>> =
+                    LazyLock::new(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+                let key = format!("{pack}:{}", icon.id());
+                if LOGGED
+                    .lock()
+                    .map(|mut s| s.insert(key.clone()))
+                    .unwrap_or(false)
+                {
+                    eprintln!("petunia icons: '{key}' sem glifo no pacote — fallback Petunia");
+                }
+            }
         }
 
-        // 2. Se o pacote for "petunia" e for ferramenta da Toolbar, usa renderização vetorial nítida com paleta colorida estilo Blender
-        if pack == "petunia" && is_toolbar_vector_tool(&id) {
+        // 2. Arte de domínio Petunia (ferramentas, vetores, PNGs Figma): vale para
+        // TODOS os pacotes, por decisão — pacote muda o chrome, não a ferramenta.
+        if is_toolbar_vector_tool(&id) {
             icons::paint(painter, &id, target_rect, tint);
             return;
         }
@@ -546,7 +723,7 @@ impl IconRegistry {
             return;
         }
 
-        // 4. Fallback para glifo vetorial Phosphor se aplicável
+        // 4. Fallback para glifo Phosphor (fonte sempre instalada em ensure_fonts)
         if let Some(glyph) = icon.phosphor_glyph() {
             Self::ensure_fonts(ctx);
             let font_size = target_rect.height().min(target_rect.width()) * 0.85;
@@ -560,7 +737,7 @@ impl IconRegistry {
             return;
         }
 
-        // 5. Fallback para desenho vetorial nativo de alta precisão
+        // 5. Último recurso: losango vetorial (nunca tofu silencioso)
         icons::paint(painter, &id, target_rect, tint);
     }
 }
@@ -700,6 +877,59 @@ mod tests {
             let image = decode_png_to_alpha_mask(bytes).expect("must decode valid alpha mask");
             assert_eq!(image.size, [22, 22]);
         }
+    }
+
+    #[test]
+    fn test_pack_owned_icons_resolve_in_available_packs() {
+        use crate::icon_provider::{GenericPack, is_pack_owned, resolve_utility};
+        // Auditoria tofu (Wave 6 — §11.5): todo ícone de pacote tem ao menos um
+        // glifo válido em todo pacote habilitado neste build.
+        for icon in PetuniaIcon::all() {
+            if !is_pack_owned(icon) {
+                continue;
+            }
+            for pack in GenericPack::available() {
+                let resolved = resolve_utility(icon, *pack);
+                assert!(resolved.is_ok(), "{icon:?} sem glifo em '{}'", pack.name());
+                let resolved = resolved.unwrap();
+                assert!(resolved.as_char().is_some(), "{icon:?} codepoint inválido");
+                assert!(!resolved.family.is_empty(), "{icon:?} sem família");
+            }
+        }
+    }
+
+    #[test]
+    fn test_all_icons_paint_without_panic_in_all_packs() {
+        use crate::icon_provider::GenericPack;
+        // Sem aquecimento de propósito: ctx fresco deve cair no fallback sem pânico.
+        let ctx = egui::Context::default();
+        let mut packs = vec!["petunia".to_string()];
+        packs.extend(
+            GenericPack::available()
+                .iter()
+                .map(|p| p.name().to_string()),
+        );
+
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                for pack in &packs {
+                    for icon in PetuniaIcon::all() {
+                        let (rect, _) =
+                            ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+                        IconRegistry::paint_pack(
+                            &ctx,
+                            ui.painter(),
+                            &icon,
+                            rect,
+                            tokens::TEXT_ACTIVE,
+                            pack,
+                        );
+                    }
+                }
+            });
+        })
+        .textures_delta
+        .clear();
     }
 
     #[test]

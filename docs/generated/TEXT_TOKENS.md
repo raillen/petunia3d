@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **261**.
+Total de chaves de localização cadastradas: **269**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -52,6 +52,11 @@ Total de chaves de localização cadastradas: **261**.
 | `animate.last_frame` | Last frame | Último frame |
 | `animate.pause` | Pause | Pausar |
 | `animate.play` | Play | Reproduzir |
+| `animate.tip_first` | Jump to First Frame · Shift+Left | Ir ao Primeiro Frame · Shift+Left |
+| `animate.tip_last` | Jump to Last Frame · Shift+Right | Ir ao Último Frame · Shift+Right |
+| `animate.tip_next` | Step 1 Frame Forward · Right | Avançar 1 Frame · Right |
+| `animate.tip_play` | Play / Pause Animation · Space | Reproduzir / Pausar Animação · Space |
+| `animate.tip_prev` | Step 1 Frame Backward · Left | Voltar 1 Frame · Left |
 | `app.title` | Petunia3D | Petunia3D |
 | `camera.back` | Back | Traseira |
 | `camera.bottom` | Bottom | Inferior |
@@ -246,11 +251,13 @@ Total de chaves de localização cadastradas: **261**.
 | `tools.uv_unwrap` | Unwrap | Desdobrar |
 | `ui.active_tool` | Active tool | Ferramenta ativa |
 | `ui.assets` | Asset Library | Assets |
+| `ui.at_3d_cursor` | at 3D Cursor | no Cursor 3D |
 | `ui.close` | Close | Fechar |
 | `ui.collapse` | Collapse section | Recolher painel |
 | `ui.dock_split_hint` | Drag to resize panels | Arraste para redimensionar os painéis |
 | `ui.duplicate` | Duplicate | Duplicar |
 | `ui.expand` | Expand section | Expandir painel |
+| `ui.floating_inspector` | Floating Inspector | Inspector Flutuante |
 | `ui.help` | Help | Ajuda |
 | `ui.language` | Language | Idioma |
 | `ui.lock` | Lock | Bloquear |
@@ -259,6 +266,7 @@ Total de chaves de localização cadastradas: **261**.
 | `ui.no_tool` | Tool disabled in tools.toml | Ferramenta desligada no tools.toml |
 | `ui.outliner` | Outliner | Outliner |
 | `ui.properties` | Properties | Propriedades |
+| `ui.redock` | Re-dock the Properties panel into the sidebar | Reancorar o Painel de Propriedades na barra lateral |
 | `ui.refs` | Reference images | Imagens de referência |
 | `ui.rename` | Rename | Renomear |
 | `ui.search` | Search | Buscar |

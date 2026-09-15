@@ -343,6 +343,90 @@ pub fn menu_row_width(
     measured.min(ui.available_width().max(MENU_MIN_W))
 }
 
+/// Botão somente-ícone com ícone semântico, tooltip e apelido acessível
+/// (Wave 6 — §13.2: todo controle só-ícone deriva daqui ou equivalente).
+///
+/// Produz `widget_info` (nome + papel), anel de foco visível e estados
+/// hover/selected/disabled. Tamanho quadrado explícito — sem estimativa.
+pub struct PetuniaIconButton<'a> {
+    pub icon: PetuniaIcon,
+    pub tooltip: &'a str,
+    pub size: f32,
+    pub selected: bool,
+    pub enabled: bool,
+}
+
+impl<'a> PetuniaIconButton<'a> {
+    pub fn new(icon: PetuniaIcon, tooltip: &'a str, size: f32) -> Self {
+        Self {
+            icon,
+            tooltip,
+            size,
+            selected: false,
+            enabled: true,
+        }
+    }
+
+    pub fn selected(mut self, selected: bool) -> Self {
+        self.selected = selected;
+        self
+    }
+
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    pub fn show(self, ui: &mut Ui) -> Response {
+        let (rect, response) = ui.allocate_exact_size(
+            vec2(self.size, self.size),
+            if self.enabled {
+                Sense::click()
+            } else {
+                Sense::hover()
+            },
+        );
+
+        response.widget_info(|| {
+            WidgetInfo::selected(
+                WidgetType::Button,
+                ui.is_enabled() && self.enabled,
+                self.selected,
+                self.tooltip,
+            )
+        });
+
+        if ui.is_rect_visible(rect) {
+            let painter = ui.painter();
+            if self.selected {
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::ACCENT_BLUE);
+            } else if self.enabled && response.hovered() {
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+            }
+            if response.has_focus() {
+                painter.rect_stroke(
+                    rect,
+                    tokens::RADIUS_CONTROL,
+                    tokens::stroke_focus(),
+                    StrokeKind::Inside,
+                );
+            }
+            let fg = if !self.enabled {
+                tokens::TEXT_MUTED
+            } else if self.selected {
+                tokens::TEXT_ACTIVE
+            } else {
+                tokens::TEXT_PRIMARY
+            };
+            let icon_rect =
+                Rect::from_center_size(rect.center(), vec2(self.size * 0.7, self.size * 0.7));
+            IconRegistry::paint(ui.ctx(), painter, &self.icon, icon_rect, fg);
+        }
+
+        response.on_hover_text(self.tooltip)
+    }
+}
+
 /// Item padronizado de menu suspenso ou popup do Petunia3D (`[Icon] Label ... [Shortcut] ›`).
 pub struct PetuniaMenuItem<'a> {
     pub icon: Option<PetuniaIcon>,

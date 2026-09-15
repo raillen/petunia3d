@@ -130,7 +130,7 @@ fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if state.ui.inspector_detached {
                         let dock_resp = ui.button(
-                            egui::RichText::new("⇲ Dock")
+                            egui::RichText::new("Dock")
                                 .size(11.0)
                                 .color(tokens::TEXT_PRIMARY),
                         );

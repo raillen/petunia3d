@@ -141,5 +141,69 @@ profiler scopes. Wave 1 implements the renderer correction on top.
   contraparte real ficam de fora — ledger).
 - Sem escopo: glyphs restantes (👁📁↺) → Wave 6; i18n residual → Wave 7;
   prefs em disco → follow-up (sem infra no repo).
+
+## Wave 6 close-out (2026-09-15)
+
+- Serviço canônico único: `IconRegistry::paint_pack` resolve `PetuniaIcon` →
+  glifo REAL do pacote (iconflow) para 38 ícones utilitários/chrome, arte de
+  domínio Petunia (vetor/PNG) para ferramentas, Phosphor como fallback,
+  losango vetorial como último recurso. Fim da renderização fictícia (todos os
+  pacotes usavam glifos Phosphor).
+- Tabela de nomes por pacote verificada por teste (dumps de `iconflow::list`):
+  lucide/iconoir 100% auditados; tabler/phosphor com candidatos + aliases —
+  o mesmo teste de auditoria roda no CI com `extended-icon-packs`.
+- Fontes: `install_fonts` (iconflow) + phosphor em `ensure_fonts`; pintura por
+  família nomeada com guarda `icon_fonts_ready` (pass boundary) — sem pânico
+  em ctx fresco, sem deadlock (pass lido fora do lock de dados).
+- Settings: só pacotes compilados selecionáveis; tabler/phosphor sem feature
+  mostram nota honesta; prévia com utilitários; sem promessa de download.
+- `PetuniaIconButton` (§13.2): botão só-ícone canônico (tooltip, widget_info,
+  foco, selected, disabled). Emoji erradicado do código UI (timeline,
+  status, dock, refmgr, animation, paint, uv, settings, paleta, viewport).
+  Restam só glifos tipográficos (› ✓ … + – ✕ ↑↓ ⚠); Wave 7 revisa tooltips.
+- Escopo documentado: ferramentas de domínio NÃO seguem o pacote (regressão
+  de design); PNGs das abas de properties permanecem (arte raster sem fonte
+  SVG); `app_icons.rs` sem nenhum uso → candidato à remoção na Wave 9.
+- Gates: ui 124 lib + 30 kittest, clippy limpo (após corrigir clone_on_copy e
+  deadlock de lock em `ensure_fonts`).
 - Gates: ui 122 lib + 30 kittest, workspace clippy limpo, arch-check verde,
   `docs-check` (VitePress build OK).
+
+## Wave 6 close-out (2026-09-15)
+
+- Serviço canônico único: `IconRegistry::paint_pack` resolve `PetuniaIcon` →
+  glifo REAL do pacote (iconflow) para 38 ícones utilitários/chrome, arte de
+  domínio Petunia (vetor/PNG) para ferramentas, Phosphor como fallback,
+  losango vetorial como último recurso. Fim da renderização fictícia.
+- Tabela de nomes verificada por dumps de `iconflow::list` + teste de
+  auditoria (38 ícones × pacotes habilitados; CI cobre tabler/phosphor).
+- Fontes via `install_fonts` + guarda `icon_fonts_ready` (fronteira de pass;
+  sem pânico em ctx fresco, sem deadlock com locks do egui).
+- Settings: só compilados selecionáveis + notas honestas + prévia de
+  utilitários. `PetuniaIconButton` canônico (§13.2). Emoji erradicado do
+  código UI (restam glifos tipográficos › ✓ … + – ✕ ↑↓ ⚠).
+- Escopo: domínio NÃO segue pacote (decisão de design); PNGs das abas ficam
+  (sem fonte SVG); `app_icons.rs` sem uso → Wave 9.
+- Gates: ui 124 lib + 30 kittest, workspace clippy limpo.
+
+## Wave 7 close-out (2026-09-15)
+
+- `TextId` + catálogo (`text_id`, 54 ids) + `t_id` + 64 call sites das Waves
+  2–6 migrados; chaves pré-existentes seguem compatíveis.
+- Paridade CI: `locale_parity_en_ptbr` + `text_id_catalog_resolves` com TOMLs
+  embutidos (determinístico em qualquer CWD).
+- Pseudo-locale (`I18n::pseudo_from`, +40% com acentos): full draw 1280+700
+  mantém invariantes de regiões — pega clipping real.
+- Switch en↔pt-BR testado com redesenho; locales embutidos como reserva
+  (binário instalado sem dir de locales nunca exibe chaves).
+- Cobertura: hint_keys de todas as ferramentas traduzidos; shelf com tooltips;
+  Tab alcança controles do Settings; matriz de escala 1.0–1.75.
+- Chaves novas: `animate.tip_*` (5), `ui.floating_inspector/redock/at_3d_cursor`.
+- HONESTO / NÃO ATINGIDO: migração 100% dos literais. Backlog inventariado
+  (literais visíveis aparentes por arquivo): properties_panel ~60,
+  animation_ui ~35, viewport_bar ~30, toolbar ~25, outliner ~25, settings
+  descrições ~20, asset_browser ~15, main_header ~15, paint_ui ~10, uv_ui ~8,
+  status_bar ~8, outros ~15. Mecanismo (TextId + paridade + pseudo) é o caminho;
+  cada arquivo vira tarefa incremental com o pseudo-teste como rede.
+- Gates: config 9, core 76+, ui 125 lib + 36 kittest, workspace clippy limpo,
+  arch-check verde, docs regenerados.

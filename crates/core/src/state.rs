@@ -725,6 +725,11 @@ impl UiState {
         self.i18n.t(key)
     }
 
+    /// Traduz um [`TextId`](petunia_config::TextId) tipado (Wave 7).
+    pub fn t_id(&self, id: petunia_config::TextId) -> String {
+        self.i18n.t_id(id)
+    }
+
     pub fn set_status(&mut self, msg: impl Into<String>) {
         self.status = msg.into();
     }
@@ -877,6 +882,10 @@ impl AppState {
 
     pub fn t(&self, key: &str) -> String {
         self.ui.t(key)
+    }
+
+    pub fn t_id(&self, id: petunia_config::TextId) -> String {
+        self.ui.t_id(id)
     }
 
     pub fn set_status(&mut self, msg: impl Into<String>) {

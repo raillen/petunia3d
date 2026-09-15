@@ -14,6 +14,7 @@ use petunia_core::AppState;
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::widgets;
+use petunia_config::text_id;
 
 /// Renderiza a janela modal de preferências quando `state.ui.show_settings` for verdadeiro.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
@@ -57,27 +58,31 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing = vec2(6.0, 6.0);
 
-        let interface_label = state.t("settings.interface");
-        let import_export_label = state.t("settings.import_export");
+        let interface_label = state.t_id(text_id::SETTINGS_INTERFACE);
+        let import_export_label = state.t_id(text_id::SETTINGS_IMPORT_EXPORT);
+        let appearance_label = state.t("settings.appearance");
+        let icons_label = state.t("settings.icons");
+        let language_label = state.t("settings.language");
+        let keymap_label = state.t("settings.keymap");
         let tabs = [
             (
                 "appearance",
-                "🎨 Aparência",
+                appearance_label.as_str(),
                 "Temas visuais, paletas e tokens semânticos",
             ),
             (
                 "icons",
-                "✨ Ícones",
+                icons_label.as_str(),
                 "Pacotes de ícones e símbolos da interface",
             ),
             (
                 "language",
-                "🌐 Idioma",
+                language_label.as_str(),
                 "Localização, traduções e arquivos TOML",
             ),
             (
                 "keymap",
-                "⌨ Atalhos",
+                keymap_label.as_str(),
                 "Perfis de keymap e detecção de conflitos",
             ),
             ("interface", interface_label.as_str(), ""),
@@ -149,7 +154,7 @@ fn reset_all_layouts(state: &mut AppState) {
 // ------------------------------------------------- Aba: Interface
 fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
     ui.label(
-        RichText::new(state.t("settings.interface"))
+        RichText::new(state.t_id(text_id::SETTINGS_INTERFACE))
             .strong()
             .size(13.0)
             .color(tokens::TEXT_PRIMARY),
@@ -158,7 +163,7 @@ fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
 
     let mut shelf = state.ui.show_shelf;
     if ui
-        .checkbox(&mut shelf, state.t("settings.show_shelf"))
+        .checkbox(&mut shelf, state.t_id(text_id::SETTINGS_SHOW_SHELF))
         .changed()
     {
         state.ui.show_shelf = shelf;
@@ -170,10 +175,13 @@ fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
     ui.add_space(8.0);
 
     ui.horizontal_wrapped(|ui| {
-        if ui.button(state.t("settings.reset_workspace")).clicked() {
+        if ui
+            .button(state.t_id(text_id::SETTINGS_RESET_WORKSPACE))
+            .clicked()
+        {
             reset_workspace_layout(state);
         }
-        if ui.button(state.t("settings.reset_all_layouts")).clicked() {
+        if ui.button(state.t_id(text_id::SETTINGS_RESET_ALL)).clicked() {
             reset_all_layouts(state);
         }
     });
@@ -182,7 +190,7 @@ fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
 // ------------------------------------------- Aba: Importar / Exportar
 fn draw_import_export_tab(ui: &mut Ui, state: &mut AppState) {
     ui.label(
-        RichText::new(state.t("settings.import_export"))
+        RichText::new(state.t_id(text_id::SETTINGS_IMPORT_EXPORT))
             .strong()
             .size(13.0)
             .color(tokens::TEXT_PRIMARY),
@@ -191,8 +199,8 @@ fn draw_import_export_tab(ui: &mut Ui, state: &mut AppState) {
 
     let mut glb = state.project.export_gltf;
     if ui
-        .checkbox(&mut glb, state.t("settings.export_glb"))
-        .on_hover_text(state.t("settings.export_glb_hint"))
+        .checkbox(&mut glb, state.t_id(text_id::SETTINGS_EXPORT_GLB))
+        .on_hover_text(state.t_id(text_id::SETTINGS_EXPORT_GLB_HINT))
         .changed()
     {
         state.project.export_gltf = glb;
@@ -336,7 +344,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
             .color(tokens::TEXT_PRIMARY),
     );
     ui.label(
-        RichText::new("Selecione a família de ícones ativa. Você pode adicionar novos pacotes criando subpastas em 'assets/icons/<pacote>/' com 'manifest.toml' e 'icons.toml'.")
+        RichText::new("O pacote muda os ícones de interface (menus, painéis, transporte); as ferramentas 3D mantêm a arte vetorial Petunia. Pacotes personalizados entram pela via de plugins.")
             .size(11.0)
             .color(tokens::TEXT_SECONDARY),
     );
@@ -347,6 +355,12 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
         .auto_shrink([true, false])
         .show(ui, |ui| {
             for pack in packs {
+                // Wave 6 (§11.3–11.4): só pacotes compilados são selecionáveis.
+                // Pacotes anunciados mas fora do build mostram o motivo real;
+                // pacotes de disco usam a via de plugins (sem botão fictício).
+                let compiled = pack.id == "petunia"
+                    || crate::icon_provider::GenericPack::from_id(&pack.id)
+                        .is_some_and(|p| p.is_enabled());
                 let is_active = state.ui.active_icon_pack_id == pack.id;
                 let (card_bg, border_color) = if is_active {
                     (tokens::BG_SURFACE_ACTIVE, tokens::ACCENT_BLUE)
@@ -376,6 +390,13 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                                 .color(tokens::ACCENT_BLUE),
                                         );
                                     }
+                                    if !compiled {
+                                        ui.label(
+                                            RichText::new("· build sem extended-icon-packs")
+                                                .size(10.5)
+                                                .color(tokens::TEXT_MUTED),
+                                        );
+                                    }
                                 });
                                 if let Some(ref desc) = pack.description {
                                     ui.label(
@@ -387,7 +408,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                             });
 
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                if !is_active {
+                                if !is_active && compiled {
                                     if ui
                                         .button(RichText::new("Usar este Pacote").size(11.0))
                                         .clicked()
@@ -395,7 +416,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                         state.ui.active_icon_pack_id = pack.id.clone();
                                         state.mark_dirty();
                                     }
-                                } else {
+                                } else if is_active {
                                     ui.label(
                                         RichText::new("✔ Selecionado").color(tokens::ACCENT_BLUE),
                                     );
@@ -403,7 +424,9 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                             });
                         });
 
-                        // Pré-visualização de ícones representativos
+                        // Pré-visualização com ícones UTILITÁRIOS (os que o
+                        // pacote realmente fornece — Wave 6): cada pacote muda
+                        // visivelmente estes glifos; ferramentas ficam Petunia.
                         ui.add_space(6.0);
                         ui.horizontal(|ui| {
                             ui.label(
@@ -411,15 +434,17 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                     .size(10.5)
                                     .color(tokens::TEXT_MUTED),
                             );
-                            for (label, icon) in [
-                                ("Mover", PetuniaIcon::Move),
-                                ("Girar", PetuniaIcon::Rotate),
-                                ("Escalar", PetuniaIcon::Scale),
-                                ("Medir", PetuniaIcon::Measure),
-                                ("Anotar", PetuniaIcon::Annotate),
-                                ("Busca", PetuniaIcon::Search),
-                                ("Pasta", PetuniaIcon::Folder),
-                                ("Config", PetuniaIcon::Settings),
+                            for icon in [
+                                PetuniaIcon::Search,
+                                PetuniaIcon::Folder,
+                                PetuniaIcon::Eye,
+                                PetuniaIcon::Lock,
+                                PetuniaIcon::Play,
+                                PetuniaIcon::Trash,
+                                PetuniaIcon::Plus,
+                                PetuniaIcon::Undo,
+                                PetuniaIcon::Settings,
+                                PetuniaIcon::Move,
                             ] {
                                 let (rect, resp) =
                                     ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::hover());
@@ -431,7 +456,8 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                     tokens::TEXT_PRIMARY,
                                     &pack.id,
                                 );
-                                resp.on_hover_text(label);
+                                // Rótulo do preview: id estável (Wave 7 localiza).
+                                resp.on_hover_text(icon.id());
                             }
                         });
                     });

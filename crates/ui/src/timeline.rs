@@ -4,7 +4,10 @@
 use egui::{Sense, Stroke, Ui, vec2};
 use petunia_core::AppState;
 
+use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
+use crate::widgets::PetuniaIconButton;
+use petunia_config::text_id;
 
 /// Conteúdo da Timeline (transporte + régua), sem painel próprio.
 ///
@@ -67,63 +70,53 @@ fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
 
         ui.separator();
 
-        // Botões de Transporte de Animação
-        if ui
-            .small_button("⏮")
-            .on_hover_text("Jump to First Frame · Shift+Left")
+        // Botões de Transporte de Animação (ícones semânticos, Wave 6).
+        let tip_first = state.t_id(text_id::ANIMATE_TIP_FIRST);
+        let tip_prev = state.t_id(text_id::ANIMATE_TIP_PREV);
+        let tip_play = state.t_id(text_id::ANIMATE_TIP_PLAY);
+        let tip_next = state.t_id(text_id::ANIMATE_TIP_NEXT);
+        let tip_last = state.t_id(text_id::ANIMATE_TIP_LAST);
+        if PetuniaIconButton::new(PetuniaIcon::JumpStart, &tip_first, 22.0)
+            .show(ui)
             .clicked()
         {
             state.ui.timeline_frame = state.ui.timeline_start;
             state.mark_dirty();
         }
-        if ui
-            .small_button("◀")
-            .on_hover_text("Step 1 Frame Backward · Left")
+        if PetuniaIconButton::new(PetuniaIcon::StepBackward, &tip_prev, 22.0)
+            .show(ui)
             .clicked()
         {
             state.ui.timeline_frame = (state.ui.timeline_frame - 1).max(state.ui.timeline_start);
             state.mark_dirty();
         }
 
-        let play_icon = if state.ui.timeline_playing {
-            "⏸"
-        } else {
-            "▶"
-        };
-        let play_btn = egui::Button::new(egui::RichText::new(play_icon).size(11.0).color(
+        if PetuniaIconButton::new(
             if state.ui.timeline_playing {
-                tokens::TEXT_ACTIVE
+                PetuniaIcon::Pause
             } else {
-                tokens::TEXT_PRIMARY
+                PetuniaIcon::Play
             },
-        ))
-        .fill(if state.ui.timeline_playing {
-            tokens::ACCENT_BLUE
-        } else {
-            tokens::BG_SURFACE
-        })
-        .corner_radius(tokens::RADIUS_CONTROL);
-
-        if ui
-            .add(play_btn)
-            .on_hover_text("Play / Pause Animation · Space")
-            .clicked()
+            &tip_play,
+            24.0,
+        )
+        .selected(state.ui.timeline_playing)
+        .show(ui)
+        .clicked()
         {
             state.ui.timeline_playing = !state.ui.timeline_playing;
             state.mark_dirty();
         }
 
-        if ui
-            .small_button("▶")
-            .on_hover_text("Step 1 Frame Forward · Right")
+        if PetuniaIconButton::new(PetuniaIcon::StepForward, &tip_next, 22.0)
+            .show(ui)
             .clicked()
         {
             state.ui.timeline_frame = (state.ui.timeline_frame + 1).min(state.ui.timeline_end);
             state.mark_dirty();
         }
-        if ui
-            .small_button("⏭")
-            .on_hover_text("Jump to Last Frame · Shift+Right")
+        if PetuniaIconButton::new(PetuniaIcon::JumpEnd, &tip_last, 22.0)
+            .show(ui)
             .clicked()
         {
             state.ui.timeline_frame = state.ui.timeline_end;

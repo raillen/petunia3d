@@ -57,7 +57,15 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             // 1. Campo de busca
             let hint = state.t("command_palette.placeholder");
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("🔍").size(14.0));
+                let (search_rect, _) =
+                    ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
+                crate::icon_registry::IconRegistry::paint(
+                    ui.ctx(),
+                    ui.painter(),
+                    &crate::icon_registry::PetuniaIcon::Search,
+                    search_rect,
+                    crate::tokens::TEXT_MUTED,
+                );
                 #[cfg(feature = "palette-autocomplete")]
                 let response = {
                     let ids: Vec<String> = state

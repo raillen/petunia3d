@@ -15,7 +15,7 @@ pub fn draw_animation_panel(ui: &mut Ui, state: &mut AppState) {
 
     // 1. Cabeçalho de Armatures / Esqueletos
     CollapsingHeader::new(
-        RichText::new("🦴 Armatures & Esqueletos")
+        RichText::new("Armatures & Esqueletos")
             .size(12.0)
             .color(tokens::TEXT_PRIMARY),
     )
@@ -28,7 +28,7 @@ pub fn draw_animation_panel(ui: &mut Ui, state: &mut AppState) {
 
     // 2. Inspetor do Osso Ativo
     CollapsingHeader::new(
-        RichText::new("🦴 Inspetor de Ossos")
+        RichText::new("Inspetor de Ossos")
             .size(12.0)
             .color(tokens::TEXT_PRIMARY),
     )
@@ -41,7 +41,7 @@ pub fn draw_animation_panel(ui: &mut Ui, state: &mut AppState) {
 
     // 3. Clipes de Animação & Biblioteca
     CollapsingHeader::new(
-        RichText::new("🎬 Clipes & Biblioteca de Animação")
+        RichText::new("Clipes & Biblioteca de Animação")
             .size(12.0)
             .color(tokens::TEXT_PRIMARY),
     )
@@ -75,19 +75,19 @@ fn draw_skeletons_section(ui: &mut Ui, state: &mut AppState) {
                 .color(tokens::TEXT_SECONDARY),
         );
 
-        if ui.button("👤 Humanoide").clicked() {
+        if ui.button("Humanoide").clicked() {
             let skel = RigPreset::humanoid(1.0);
             state.project.add_skeleton(skel);
             dirty = true;
         }
 
-        if ui.button("🐕 Quadrúpede").clicked() {
+        if ui.button("Quadrúpede").clicked() {
             let skel = RigPreset::quadruped(1.0);
             state.project.add_skeleton(skel);
             dirty = true;
         }
 
-        if ui.button("🕷️ Multi-Leg").clicked() {
+        if ui.button("Multi-Leg").clicked() {
             let skel = RigPreset::multi_leg(8, 1.0);
             state.project.add_skeleton(skel);
             dirty = true;
@@ -103,7 +103,7 @@ fn draw_skeletons_section(ui: &mut Ui, state: &mut AppState) {
     if has_mesh {
         ui.horizontal(|ui| {
             if ui
-                .button("✨ Auto-Rig Malha Ativa")
+                .button("Auto-Rig Malha Ativa")
                 .on_hover_text(
                     "Ajusta e dimensiona um esqueleto humanoide às dimensões do modelo ativo",
                 )
@@ -122,7 +122,7 @@ fn draw_skeletons_section(ui: &mut Ui, state: &mut AppState) {
             }
 
             if ui
-                .button("🧬 Auto-Skin")
+                .button("Auto-Skin")
                 .on_hover_text("Calcula pesos automáticos por proximidade geométrica")
                 .clicked()
             {
@@ -163,14 +163,14 @@ fn draw_skeletons_section(ui: &mut Ui, state: &mut AppState) {
     let mut remove_id = None;
     for (idx, skel) in state.project.skeletons.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            ui.label(format!("{}. 🦴", idx + 1));
+            ui.label(format!("{}.", idx + 1));
             ui.text_edit_singleline(&mut skel.name);
             ui.label(
                 RichText::new(format!("({} ossos)", skel.bones.len()))
                     .size(9.5)
                     .color(tokens::TEXT_SECONDARY),
             );
-            if ui.button("🗑").on_hover_text("Excluir esqueleto").clicked() {
+            if ui.button("✕").on_hover_text("Excluir esqueleto").clicked() {
                 remove_id = Some(skel.id);
             }
         });
@@ -298,7 +298,7 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
     let mut dirty = false;
 
     ui.horizontal(|ui| {
-        if ui.button("➕ Novo Clipe").clicked() {
+        if ui.button("+ Novo Clipe").clicked() {
             let clip = AnimationClip::new("New_Animation", 2.0);
             state
                 .project
@@ -310,7 +310,7 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
         }
 
         if !state.project.skeletons.is_empty() {
-            if ui.button("🧘 Carregar Idle").clicked() {
+            if ui.button("Carregar Idle").clicked() {
                 let clip = AnimationLibrary::humanoid_idle(&state.project.skeletons[0]);
                 state
                     .project
@@ -321,7 +321,7 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
                 dirty = true;
             }
 
-            if ui.button("🚶 Carregar Walk").clicked() {
+            if ui.button("Carregar Walk").clicked() {
                 let clip = AnimationLibrary::humanoid_walk(&state.project.skeletons[0]);
                 state
                     .project
@@ -351,7 +351,7 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
     let mut remove_anim_id = None;
     for (idx, asset) in state.project.animations.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            ui.label(format!("{}. 🎬", idx + 1));
+            ui.label(format!("{}.", idx + 1));
             ui.text_edit_singleline(&mut asset.name);
             ui.add(
                 DragValue::new(&mut asset.clip.duration)
@@ -360,7 +360,7 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
                     .suffix("s"),
             );
             ui.checkbox(&mut asset.clip.looping, "Loop");
-            if ui.button("🗑").on_hover_text("Remover clipe").clicked() {
+            if ui.button("✕").on_hover_text("Remover clipe").clicked() {
                 remove_anim_id = Some(asset.id);
             }
         });
@@ -379,9 +379,9 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
 fn draw_transport_section(ui: &mut Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         let (play_label, play_color) = if state.ui.timeline_playing {
-            ("⏸ Pausar", tokens::ACCENT_BLUE)
+            ("Pausar", tokens::ACCENT_BLUE)
         } else {
-            ("▶ Reproduzir", tokens::TEXT_PRIMARY)
+            ("Reproduzir", tokens::TEXT_PRIMARY)
         };
 
         if ui

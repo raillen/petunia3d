@@ -4,6 +4,7 @@
 //! Regra de borrow: rótulos `state.t()` (owned String) são pré-calculados
 //! antes dos closures; mutações via índices, nunca com iterator vivo.
 
+use petunia_config::text_id;
 use petunia_core::Projection;
 use petunia_core::{AppState, ModuleRegistry, ProjectService, RefAxis, Workspace};
 use petunia_module_model::ToolRegistry;
@@ -233,14 +234,14 @@ pub fn right_panel(
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing = dock_spacing;
                     ui.label(
-                        egui::RichText::new("Inspector Flutuante")
+                        egui::RichText::new(state.t_id(text_id::UI_FLOATING_INSPECTOR))
                             .size(11.0)
                             .color(tokens::TEXT_MUTED),
                     );
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
                             .button(egui::RichText::new("Reancorar").size(11.0))
-                            .on_hover_text("Reancorar o Painel de Propriedades na barra lateral")
+                            .on_hover_text(state.t_id(text_id::UI_REDOCK))
                             .clicked()
                         {
                             state.ui.inspector_detached = false;
@@ -348,7 +349,7 @@ fn draw_split_dock(
     );
 
     // 1. Outliner (topo)
-    let out_title = state.t("ui.outliner");
+    let out_title = state.t_id(text_id::UI_OUTLINER);
     let out_tip = state.t(if state.ui.outliner_collapsed {
         "ui.expand"
     } else {
@@ -401,7 +402,7 @@ fn draw_split_dock(
         ],
         egui::Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
     );
-    let split_tip = state.t("ui.dock_split_hint");
+    let split_tip = state.t_id(text_id::UI_DOCK_SPLIT_HINT);
     let sep_resp = sep_resp.on_hover_text(split_tip);
     if sep_resp.hovered() || sep_resp.dragged() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
@@ -420,7 +421,7 @@ fn draw_split_dock(
     }
 
     // 3. Inspector (base)
-    let insp_title = state.t("ui.properties");
+    let insp_title = state.t_id(text_id::UI_PROPERTIES);
     let insp_tip = state.t(if state.ui.inspector_collapsed {
         "ui.expand"
     } else {
@@ -502,12 +503,12 @@ pub fn frame_selection(state: &mut AppState) {
 }
 
 pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
-    let l_refs = state.t("ui.refs");
+    let l_refs = state.t_id(text_id::UI_REFS);
     let l_load = state.t("refs.load");
-    let l_offset = state.t("refs.offset");
-    let l_size = state.t("refs.size");
-    let l_opacity = state.t("refs.opacity");
-    let l_rotation = state.t("refs.rotation");
+    let l_offset = state.t_id(text_id::REFS_OFFSET);
+    let l_size = state.t_id(text_id::REFS_SIZE);
+    let l_opacity = state.t_id(text_id::REFS_OPACITY);
+    let l_rotation = state.t_id(text_id::REFS_ROTATION);
     let l_xray = state.t("refs.xray");
     let l_front = state.t(RefAxis::Front.key());
     let l_back = state.t(RefAxis::Back.key());
@@ -787,8 +788,8 @@ fn uv_workspace_center(ui: &mut egui::Ui, state: &mut AppState) {
     let total = ui.available_rect_before_wrap();
     if total.width() < 760.0 {
         ui.horizontal(|ui| {
-            let editor_label = state.t("uv.title");
-            let preview_label = state.t("uv.preview_3d");
+            let editor_label = state.t_id(text_id::UV_TITLE);
+            let preview_label = state.t_id(text_id::UV_PREVIEW_3D);
             if ui
                 .selectable_label(!state.ui.uv_show_preview, editor_label)
                 .clicked()

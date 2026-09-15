@@ -16,6 +16,7 @@ use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::outliner::add_primitive_to_scene;
 use crate::tokens;
 use crate::widgets::PetuniaMenuItem;
+use petunia_config::text_id;
 
 /// Prioridade do comando para colapso responsivo (Wave 4 — §7.1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,7 +159,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Re
         + gap_total(measured.len())
         + widget_width_sum(&widgets)
         + SHELF_SIDE_PAD * 2.0;
-    let more_w = pill_width(false, measure_text(ui, &state.t("ui.more")));
+    let more_w = pill_width(false, measure_text(ui, &state.t_id(text_id::UI_MORE)));
     let primary_icon_w: f32 = measured
         .iter()
         .filter(|(c, _)| c.priority == ShelfPriority::Primary)
@@ -173,8 +174,8 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Re
         + more_w
         + widget_width_sum(&widgets)
         + SHELF_SIDE_PAD * 2.0;
-    let tools_w =
-        pill_width(false, measure_text(ui, &state.t("ui.tools_menu"))) + SHELF_SIDE_PAD * 2.0;
+    let tools_w = pill_width(false, measure_text(ui, &state.t_id(text_id::UI_TOOLS_MENU)))
+        + SHELF_SIDE_PAD * 2.0;
 
     let mode = if full_w <= avail {
         ShelfMode::Full
@@ -254,12 +255,12 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, viewport_rect: Rect) -> Option<Re
                     .map(|(c, _)| c)
                     .collect();
                 if !overflowed.is_empty() {
-                    draw_more_popover(ui, state, &state.t("ui.more"), &overflowed);
+                    draw_more_popover(ui, state, &state.t_id(text_id::UI_MORE), &overflowed);
                 }
             }
             ShelfMode::Pill => {
                 let all: Vec<&ShelfCommand> = measured.iter().map(|(c, _)| c).collect();
-                draw_more_popover(ui, state, &state.t("ui.tools_menu"), &all);
+                draw_more_popover(ui, state, &state.t_id(text_id::UI_TOOLS_MENU), &all);
             }
             ShelfMode::Hidden => {}
         }
@@ -415,7 +416,7 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                 priority: ShelfPriority::Secondary,
                 action: ShelfAction::DomainOp(DomainOp::MergeCenter),
             });
-            let ref_name = state.t("ui.refs");
+            let ref_name = state.t_id(text_id::UI_REFS);
             cmds.push(ShelfCommand {
                 icon: Some(PetuniaIcon::ReferenceImage),
                 label: ref_name.clone(),
@@ -462,12 +463,12 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                 cmds.push(ShelfCommand {
                     icon: Some(PetuniaIcon::AddPrimitive),
                     label: label.clone(),
-                    tooltip: format!("{} no 3D Cursor", label),
+                    tooltip: format!("{} {}", label, state.t_id(text_id::UI_AT_3D_CURSOR)),
                     priority: ShelfPriority::Secondary,
                     action: ShelfAction::AddPrimitive { kind, name },
                 });
             }
-            let dup_label = state.t("ui.duplicate");
+            let dup_label = state.t_id(text_id::UI_DUPLICATE);
             cmds.push(ShelfCommand {
                 icon: Some(PetuniaIcon::Duplicate),
                 label: dup_label.clone(),
@@ -475,7 +476,7 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                 priority: ShelfPriority::Primary,
                 action: ShelfAction::DomainOp(DomainOp::Duplicate),
             });
-            let ref_label = state.t("ui.refs");
+            let ref_label = state.t_id(text_id::UI_REFS);
             cmds.push(ShelfCommand {
                 icon: Some(PetuniaIcon::ReferenceImage),
                 label: ref_label.clone(),
@@ -530,8 +531,8 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
             (cmds, vec![])
         }
         Workspace::Animate => {
-            let hum_label = state.t("animate.humanoid");
-            let rig_label = state.t("animate.auto_rig");
+            let hum_label = state.t_id(text_id::ANIMATE_HUMANOID);
+            let rig_label = state.t_id(text_id::ANIMATE_AUTO_RIG);
             let play_label = state.t(if state.ui.timeline_playing {
                 "animate.pause"
             } else {
@@ -555,7 +556,7 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                 ShelfCommand {
                     icon: Some(PetuniaIcon::JumpStart),
                     label: String::new(),
-                    tooltip: state.t("animate.first_frame"),
+                    tooltip: state.t_id(text_id::ANIMATE_FIRST_FRAME),
                     priority: ShelfPriority::Primary,
                     action: ShelfAction::TimelineFirst,
                 },
@@ -573,7 +574,7 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                 ShelfCommand {
                     icon: Some(PetuniaIcon::JumpEnd),
                     label: String::new(),
-                    tooltip: state.t("animate.last_frame"),
+                    tooltip: state.t_id(text_id::ANIMATE_LAST_FRAME),
                     priority: ShelfPriority::Primary,
                     action: ShelfAction::TimelineLast,
                 },
@@ -666,7 +667,7 @@ fn draw_shelf_widget(ui: &mut Ui, state: &mut AppState, widget: ShelfWidget) {
     match widget {
         ShelfWidget::PaintRadius => {
             ui.label(
-                RichText::new(state.t("paint.radius"))
+                RichText::new(state.t_id(text_id::PAINT_RADIUS))
                     .size(10.5)
                     .color(tokens::TEXT_SECONDARY),
             );
@@ -679,7 +680,7 @@ fn draw_shelf_widget(ui: &mut Ui, state: &mut AppState, widget: ShelfWidget) {
         }
         ShelfWidget::PaintColor => {
             ui.label(
-                RichText::new(state.t("paint.color"))
+                RichText::new(state.t_id(text_id::PAINT_COLOR))
                     .size(11.0)
                     .color(tokens::TEXT_SECONDARY),
             );
@@ -691,7 +692,7 @@ fn draw_shelf_widget(ui: &mut Ui, state: &mut AppState, widget: ShelfWidget) {
         }
         ShelfWidget::TimelineFrame => {
             ui.label(
-                RichText::new(state.t("animate.frame"))
+                RichText::new(state.t_id(text_id::ANIMATE_FRAME))
                     .size(10.5)
                     .color(tokens::TEXT_SECONDARY),
             );
@@ -740,6 +741,29 @@ mod tests {
                 state.mode = mode;
                 let (cmds, _) = build_shelf(&state);
                 assert!(!cmds.is_empty(), "{workspace:?} sem comandos");
+            }
+        }
+    }
+
+    #[test]
+    fn every_shelf_command_has_label_and_tooltip() {
+        // Descoberta de ações só-ícone (Wave 7 — §13.1/§22.2).
+        for workspace in Workspace::all() {
+            for lang in ["en", "pt-BR"] {
+                let mut state = AppState::new(lang);
+                state.workspace = workspace;
+                for mode in [EditMode::Object, EditMode::Edit] {
+                    state.mode = mode;
+                    let (cmds, _) = build_shelf(&state);
+                    for cmd in &cmds {
+                        assert!(!cmd.tooltip.is_empty(), "{workspace:?} tooltip vazio");
+                        // Rótulo vazio só com ícone (representação icon-only válida).
+                        assert!(
+                            !cmd.label.is_empty() || cmd.icon.is_some(),
+                            "{workspace:?} sem rótulo nem ícone"
+                        );
+                    }
+                }
             }
         }
     }

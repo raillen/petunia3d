@@ -18,7 +18,7 @@ use petunia_render::Shading;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
-use crate::widgets::{PetuniaMenuItem, petunia_menu_separator};
+use crate::widgets::{PetuniaIconButton, PetuniaMenuItem, petunia_menu_separator};
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
@@ -1055,10 +1055,14 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
                     dirty = true;
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui
-                        .selectable_label(show_cfg, "⚙")
-                        .on_hover_text("Configurações da Grade 3D e Guias Isométricas")
-                        .clicked()
+                    if PetuniaIconButton::new(
+                        PetuniaIcon::Settings,
+                        "Configurações da Grade 3D e Guias Isométricas",
+                        20.0,
+                    )
+                    .selected(show_cfg)
+                    .show(ui)
+                    .clicked()
                     {
                         show_cfg = !show_cfg;
                         ui.ctx().data_mut(|d| d.insert_temp(grid_cfg_id, show_cfg));

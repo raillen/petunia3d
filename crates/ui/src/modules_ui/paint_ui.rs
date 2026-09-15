@@ -135,11 +135,11 @@ pub fn draw_paint_panel(
             }
             ui.horizontal_wrapped(|ui| {
                 let brushes = [
-                    (0, "🖌 Pixel"),
-                    (1, "☁ Soft"),
-                    (2, "⌫ Borracha"),
-                    (3, "🪣 Preencher"),
-                    (4, "🔍 Conta-gotas"),
+                    (0, "Pixel"),
+                    (1, "Soft"),
+                    (2, "Borracha"),
+                    (3, "Preencher"),
+                    (4, "Conta-gotas"),
                 ];
                 for (kind, label) in brushes {
                     let sel = state.paint_brush_kind == kind;
@@ -149,7 +149,7 @@ pub fn draw_paint_panel(
                 }
             });
 
-            ui.checkbox(&mut state.paint_isolate_selection, "🔒 Isolar Faces (Mask)")
+            ui.checkbox(&mut state.paint_isolate_selection, "Isolar Faces (Mask)")
                 .on_hover_text("Confinar traço 3D exclusivamente às faces selecionadas");
 
             ui.horizontal(|ui| {

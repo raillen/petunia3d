@@ -821,6 +821,189 @@ fn test_kittest_reference_manager_grid_at_widths() {
 }
 
 #[test]
+fn test_kittest_pseudo_locale_survives_layout() {
+    // Pseudo-locale expande ~40%: nada pode clippar nem sair da viewport (§12.4).
+    for width in [1280.0, 700.0] {
+        let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+        state.borrow_mut().ui.i18n =
+            petunia_config::I18n::pseudo_from(&petunia_config::I18n::load("en"));
+        let tools = ToolRegistry::new();
+        let mut registry = petunia_core::ModuleRegistry::new();
+        let mut action = petunia_ui::UiAction::none();
+        let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+        let seen_clone = seen.clone();
+        let state_clone = state.clone();
+
+        let mut harness = Harness::builder()
+            .with_size(egui::Vec2::new(width, 800.0))
+            .build_ui(move |ui| {
+                petunia_ui::draw(
+                    ui,
+                    &mut state_clone.borrow_mut(),
+                    &tools,
+                    &mut registry,
+                    &mut action,
+                );
+                *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+            });
+        harness.run_steps(6);
+        drop(harness);
+
+        let regions = seen.borrow().clone().expect("regions recorded");
+        assert!(
+            regions.status_overlaps().is_empty(),
+            "pseudo@{width}: {:?}",
+            regions.status_overlaps()
+        );
+        assert!(regions.shelf_within_viewport(), "pseudo@{width}");
+        assert!(regions.dock_sections_disjoint(), "pseudo@{width}");
+    }
+}
+
+#[test]
+fn test_kittest_live_language_switch_relabels() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    let before = state.borrow().t("ui.properties");
+    assert_eq!(before, "Properties");
+    state.borrow_mut().ui.i18n = petunia_config::I18n::load("pt-BR");
+    let after = state.borrow().t("ui.properties");
+    assert_eq!(after, "Propriedades");
+
+    // Redescreve tudo sem pânico e preserva o estado de painéis.
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let state_clone = state.clone();
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+        });
+    harness.run_steps(3);
+    drop(harness);
+    // Troca de volta: rótulos acompanham, painéis preservados.
+    state.borrow_mut().ui.i18n = petunia_config::I18n::load("en");
+    assert_eq!(state.borrow().t("ui.properties"), "Properties");
+}
+
+#[test]
+fn test_kittest_tab_focus_moves_through_settings() {
+    let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+    state.borrow_mut().ui.show_settings = true;
+    let tools = ToolRegistry::new();
+    let mut registry = petunia_core::ModuleRegistry::new();
+    let mut action = petunia_ui::UiAction::none();
+    let ever_focused = std::rc::Rc::new(std::cell::RefCell::new(false));
+    let ever_focused_clone = ever_focused.clone();
+    let state_clone = state.clone();
+
+    let mut harness = Harness::builder()
+        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .build_ui(move |ui| {
+            petunia_ui::draw(
+                ui,
+                &mut state_clone.borrow_mut(),
+                &tools,
+                &mut registry,
+                &mut action,
+            );
+            if ui.ctx().memory(|m| m.focused()).is_some() {
+                *ever_focused_clone.borrow_mut() = true;
+            }
+        });
+    harness.run_steps(2);
+    for _ in 0..12 {
+        harness.key_press(egui::Key::Tab);
+        harness.run_steps(1);
+    }
+    drop(harness);
+    assert!(state.borrow().ui.show_settings);
+    assert!(
+        *ever_focused.borrow(),
+        "Tab deve alcançar controles focáveis do diálogo"
+    );
+}
+
+#[test]
+fn test_kittest_ui_scale_matrix_keeps_regions() {
+    // §14.5: 100%–175% sem pânico e sem invasão da status bar.
+    for scale in [1.0, 1.25, 1.5, 1.75] {
+        let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
+        let tools = ToolRegistry::new();
+        let mut registry = petunia_core::ModuleRegistry::new();
+        let mut action = petunia_ui::UiAction::none();
+        let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+        let seen_clone = seen.clone();
+        let state_clone = state.clone();
+
+        let mut harness = Harness::builder()
+            .with_size(egui::Vec2::new(1280.0, 800.0))
+            .with_pixels_per_point(scale)
+            .build_ui(move |ui| {
+                petunia_ui::draw(
+                    ui,
+                    &mut state_clone.borrow_mut(),
+                    &tools,
+                    &mut registry,
+                    &mut action,
+                );
+                *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
+            });
+        harness.run_steps(4);
+        drop(harness);
+
+        let regions = seen
+            .borrow()
+            .clone()
+            .unwrap_or_else(|| panic!("regions @{scale}"));
+        assert!(
+            regions.status_overlaps().is_empty(),
+            "scale {scale}: {:?}",
+            regions.status_overlaps()
+        );
+    }
+}
+
+#[test]
+fn test_tool_registry_hint_keys_resolve_in_both_locales() {
+    // Cobertura de tooltips da toolbar (§13/§22.2): todo hint_key traduz.
+    let en = petunia_config::I18n::load("en");
+    let pt = petunia_config::I18n::load("pt-BR");
+    let tools = ToolRegistry::with_defaults();
+    assert!(!tools.all().is_empty());
+    for tool in tools.all() {
+        for key in [tool.label_key(), tool.hint_key()] {
+            assert_ne!(en.t(key), key, "{} sem en", tool.id());
+            assert_ne!(pt.t(key), key, "{} sem pt-BR", tool.id());
+        }
+    }
+}
+
+#[test]
+fn test_shelf_commands_all_have_tooltips() {
+    // Toda ação só-ícone da shelf é descobrível (§13.1/§22.2).
+    for workspace in petunia_core::Workspace::all() {
+        let mut state = AppState::new("en");
+        state.workspace = workspace;
+        for mode in [EditMode::Object, EditMode::Edit] {
+            state.mode = mode;
+            let mut harness = Harness::builder().build_ui(|ui| {
+                let rect = ui.max_rect();
+                let _ = petunia_ui::contextual_shelf::draw(ui, &mut state, rect);
+            });
+            harness.run_steps(1);
+            drop(harness);
+        }
+    }
+}
+
+#[test]
 fn test_kittest_animation_workspace_and_rig_panel() {
     let mut state = AppState {
         session: petunia_core::state::EditorSession {

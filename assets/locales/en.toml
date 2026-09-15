@@ -25,6 +25,9 @@ expand = "Expand section"
 dock_split_hint = "Drag to resize panels"
 more = "More…"
 tools_menu = "Tools…"
+floating_inspector = "Floating Inspector"
+redock = "Re-dock the Properties panel into the sidebar"
+at_3d_cursor = "at 3D Cursor"
 
 [animate]
 humanoid = "Humanoid"
@@ -34,6 +37,11 @@ pause = "Pause"
 first_frame = "First frame"
 last_frame = "Last frame"
 frame = "Frame"
+tip_first = "Jump to First Frame · Shift+Left"
+tip_prev = "Step 1 Frame Backward · Left"
+tip_play = "Play / Pause Animation · Space"
+tip_next = "Step 1 Frame Forward · Right"
+tip_last = "Jump to Last Frame · Shift+Right"
 
 [menu]
 file = "File"
