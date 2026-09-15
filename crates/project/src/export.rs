@@ -27,7 +27,7 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
         return Err(ExportError::Empty);
     }
 
-    // achata: por asset, tris (pos, nrm, uv) + índices u32
+    // achata: por asset, tris (pos, nrm, uv) + índices u32 + PNG do Albedo
     struct Part {
         name: String,
         color: [f32; 4],
@@ -38,6 +38,7 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
         nrm: Vec<f32>,
         uv: Vec<f32>,
         idx: Vec<u32>,
+        texture_png: Option<Vec<u8>>,
     }
     let mut parts = Vec::new();
     for a in picked {
@@ -90,6 +91,15 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
             };
 
         let normals = m.compute_normals();
+        // Textura pintada (Albedo): asset.texture ou canal do material.
+        let texture_png = a
+            .texture
+            .as_ref()
+            .or_else(|| {
+                a.material(project)
+                    .and_then(|mat| mat.albedo_texture.as_ref())
+            })
+            .and_then(encode_png);
         let mut p = Part {
             name: a.name.clone(),
             color: base_color_rgba,
@@ -100,6 +110,7 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
             nrm: Vec::new(),
             uv: Vec::new(),
             idx: Vec::new(),
+            texture_png,
         };
         let mut lut: std::collections::HashMap<(u32, u32), u32> = Default::default();
         for f in &m.faces {
@@ -219,17 +230,58 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
         ));
     }
     j.push_str("],\"materials\":[");
+    // Imagens PNG embutidas (uma por parte com textura pintada).
+    let mut part_image: Vec<Option<usize>> = Vec::with_capacity(parts.len());
+    let mut image_views: Vec<usize> = Vec::new();
+    for p in &parts {
+        if let Some(png) = &p.texture_png {
+            while !bin.len().is_multiple_of(4) {
+                bin.push(0);
+            }
+            let off = bin.len();
+            bin.extend_from_slice(png);
+            views.push((off, png.len(), 0));
+            let view_idx = views.len() - 1;
+            image_views.push(view_idx);
+            part_image.push(Some(image_views.len() - 1));
+        } else {
+            part_image.push(None);
+        }
+    }
     for (i, p) in parts.iter().enumerate() {
         if i > 0 {
             j.push(',');
         }
+        let mut pbr = format!(
+            "\"baseColorFactor\":[{:.4},{:.4},{:.4},{:.4}],\"metallicFactor\":{:.4},\"roughnessFactor\":{:.4}",
+            p.color[0], p.color[1], p.color[2], p.color[3], p.metallic, p.roughness,
+        );
+        if let Some(img_idx) = part_image[i] {
+            pbr.push_str(&format!(",\"baseColorTexture\":{{\"index\":{img_idx}}}"));
+        }
         j.push_str(&format!(
-            "{{\"name\":{},\"doubleSided\":true,\"pbrMetallicRoughness\":{{\"baseColorFactor\":[{:.4},{:.4},{:.4},{:.4}],\"metallicFactor\":{:.4},\"roughnessFactor\":{:.4}}},\"emissiveFactor\":[{:.4},{:.4},{:.4}]}}",
+            "{{\"name\":{},\"doubleSided\":true,\"pbrMetallicRoughness\":{{{pbr}}},\"emissiveFactor\":[{:.4},{:.4},{:.4}]}}",
             json_str(&format!("{}_mat", p.name)),
-            p.color[0], p.color[1], p.color[2], p.color[3],
-            p.metallic, p.roughness,
             p.emissive[0], p.emissive[1], p.emissive[2]
         ));
+    }
+    if !image_views.is_empty() {
+        j.push_str("],\"images\":[");
+        for (i, view_idx) in image_views.iter().enumerate() {
+            if i > 0 {
+                j.push(',');
+            }
+            j.push_str(&format!(
+                "{{\"name\":\"petunia_tex_{i}\",\"bufferView\":{view_idx},\"mimeType\":\"image/png\"}}"
+            ));
+        }
+        j.push_str("],\"textures\":[");
+        for (i, _) in image_views.iter().enumerate() {
+            if i > 0 {
+                j.push(',');
+            }
+            j.push_str(&format!("{{\"source\":{i}}}"));
+        }
     }
     j.push_str("],\"accessors\":[");
     for (i, (v, count, ty, comp, mm)) in accs.iter().enumerate() {
@@ -252,9 +304,16 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
         if i > 0 {
             j.push(',');
         }
-        j.push_str(&format!(
-            "{{\"buffer\":0,\"byteOffset\":{off},\"byteLength\":{len},\"target\":{target}}}"
-        ));
+        // Views de imagem não têm target (glTF: só vertex/index têm).
+        if *target == 0 {
+            j.push_str(&format!(
+                "{{\"buffer\":0,\"byteOffset\":{off},\"byteLength\":{len}}}"
+            ));
+        } else {
+            j.push_str(&format!(
+                "{{\"buffer\":0,\"byteOffset\":{off},\"byteLength\":{len},\"target\":{target}}}"
+            ));
+        }
     }
     j.push_str(&format!(
         "],\"buffers\":[{{\"byteLength\":{}}}]}}",
@@ -279,6 +338,25 @@ pub fn export_gltf(project: &Project, indices: &[usize]) -> Result<Vec<u8>, Expo
     out.extend_from_slice(&0x004E4942u32.to_le_bytes()); // 'BIN\0'
     out.extend_from_slice(&bin);
     Ok(out)
+}
+
+/// Codifica um canvas RGBA8 em PNG (textura pintada no GLB).
+/// `None` em canvas vazio ou falha de encoder (export segue sem textura).
+fn encode_png(canvas: &super::Canvas) -> Option<Vec<u8>> {
+    use image::ImageEncoder;
+    if canvas.w == 0 || canvas.h == 0 || canvas.pixels.is_empty() {
+        return None;
+    }
+    let mut out = Vec::new();
+    let enc = image::codecs::png::PngEncoder::new(&mut out);
+    enc.write_image(
+        &canvas.pixels,
+        canvas.w,
+        canvas.h,
+        image::ExtendedColorType::Rgba8,
+    )
+    .ok()?;
+    Some(out)
 }
 
 fn json_str(s: &str) -> String {
@@ -361,6 +439,44 @@ mod tests {
             }
         }
         assert!(n >= 12, "verts insuficientes: {n}");
+    }
+
+    #[test]
+    fn glb_embeds_painted_texture_as_png() {
+        use crate::Canvas;
+        let mut p = sample_project();
+        // Textura pintada no asset 0.
+        p.assets[0].texture = Some(Canvas::new(8, 8, [200, 30, 30, 255]));
+        let bytes = export_gltf(&p, &[0]).expect("glb");
+        let (doc, buffers, _) = gltf::import_slice(&bytes).expect("parse glb");
+        assert_eq!(doc.images().len(), 1);
+        assert_eq!(doc.textures().len(), 1);
+        let img = doc.images().next().unwrap();
+        let (view, mime) = match img.source() {
+            gltf::image::Source::View { view, mime_type } => (view, mime_type),
+            gltf::image::Source::Uri { .. } => panic!("esperava imagem embutida"),
+        };
+        assert_eq!(mime, "image/png");
+        let buf = &buffers[view.buffer().index()];
+        let png = &buf[view.offset()..view.offset() + view.length()];
+        assert_eq!(&png[1..4], b"PNG");
+        let decoded = image::load_from_memory(png).expect("png válido");
+        let px = decoded.to_rgba8();
+        assert_eq!(px.get_pixel(0, 0).0, [200, 30, 30, 255]);
+        // Material referencia a textura.
+        let mat = doc.materials().next().expect("material exists");
+        assert!(mat.pbr_metallic_roughness().base_color_texture().is_some());
+    }
+
+    #[test]
+    fn glb_without_texture_has_no_images() {
+        let p = sample_project();
+        let bytes = export_gltf(&p, &[0]).expect("glb");
+        let (doc, _, _) = gltf::import_slice(&bytes).expect("parse glb");
+        assert_eq!(doc.images().len(), 0);
+        assert_eq!(doc.textures().len(), 0);
+        let mat = doc.materials().next().expect("material exists");
+        assert!(mat.pbr_metallic_roughness().base_color_texture().is_none());
     }
 
     #[test]

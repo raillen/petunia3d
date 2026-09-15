@@ -14,7 +14,7 @@ description: Catálogo canônico de identificadores de ícones IconId (P3D-119)
 > **Single Source of Truth (P3D-086, P3D-119)**
 > Ícones no Petunia3D são estritamente endereçados por tokens semânticos (`IconId`), permitindo substituição de pacotes gráficos em tempo de execução sem afetar a lógica.
 
-Total de tokens declarados em `PetuniaIcon`: **79**.
+Total de tokens declarados em `PetuniaIcon`: **85**.
 
 | Token Enum | Identificador Textual (`IconId`) | Grupo Semântico |
 | :--- | :--- | :--- |
@@ -51,6 +51,12 @@ Total de tokens declarados em `PetuniaIcon`: **79**.
 | `PetuniaIcon::PushPull` | `push_pull` | Ferramentas de Modelagem Poligonal |
 | `PetuniaIcon::Slice` | `slice` | Ferramentas de Modelagem Poligonal |
 | `PetuniaIcon::Subdivide` | `subdivide` | Ferramentas de Modelagem Poligonal |
+| `PetuniaIcon::PaintBrush` | `paint_brush` | Ferramentas de Pintura (Paint) |
+| `PetuniaIcon::PaintEraser` | `paint_eraser` | Ferramentas de Pintura (Paint) |
+| `PetuniaIcon::PaintFill` | `paint_fill` | Ferramentas de Pintura (Paint) |
+| `PetuniaIcon::PaintLine` | `paint_line` | Ferramentas de Pintura (Paint) |
+| `PetuniaIcon::PaintPicker` | `paint_picker` | Ferramentas de Pintura (Paint) |
+| `PetuniaIcon::PaintRect` | `paint_rect` | Ferramentas de Pintura (Paint) |
 | `PetuniaIcon::ShadingMaterial` | `shading_material` | Modos de Sombreamento |
 | `PetuniaIcon::ShadingRendered` | `shading_rendered` | Modos de Sombreamento |
 | `PetuniaIcon::ShadingSolid` | `shading_solid` | Modos de Sombreamento |

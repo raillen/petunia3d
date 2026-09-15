@@ -628,7 +628,7 @@ fn draw_animate_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
 fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
     let active = state.active_tool == "paint";
     let label = state.t("tools.paint");
-    if PetuniaToolbarButton::new(PetuniaIcon::Custom("paint"), &label)
+    if PetuniaToolbarButton::new(PetuniaIcon::PaintBrush, &label)
         .selected(active)
         .compact(compact)
         .tooltip(&label)

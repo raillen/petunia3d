@@ -167,6 +167,7 @@ mod tests {
                 favorite: false,
                 tags: vec![],
                 modifiers: vec![],
+                paint_stack: None,
             }],
             active: 42,
             palette: vec![],

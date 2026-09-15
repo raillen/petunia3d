@@ -79,6 +79,14 @@ pub enum PetuniaIcon {
     Duplicate,
     Delete,
 
+    // ------------------------------------------------- Ferramentas de Pintura (Paint)
+    PaintBrush,
+    PaintEraser,
+    PaintFill,
+    PaintPicker,
+    PaintLine,
+    PaintRect,
+
     // ---------------------------------------------------- Utilitários (Phosphor / Vetoriais)
     Search,
     Folder,
@@ -136,6 +144,12 @@ impl PetuniaIcon {
             PetuniaIcon::Slice => "slice".into(),
             PetuniaIcon::Subdivide => "subdivide".into(),
             PetuniaIcon::DrawProfile => "draw_profile".into(),
+            PetuniaIcon::PaintBrush => "paint_brush".into(),
+            PetuniaIcon::PaintEraser => "paint_eraser".into(),
+            PetuniaIcon::PaintFill => "paint_fill".into(),
+            PetuniaIcon::PaintPicker => "paint_picker".into(),
+            PetuniaIcon::PaintLine => "paint_line".into(),
+            PetuniaIcon::PaintRect => "paint_rect".into(),
 
             PetuniaIcon::PropertyTab(n) => format!("data_tab_{n:02}"),
             PetuniaIcon::PropTool => "data_tab_01".into(),
@@ -231,6 +245,12 @@ impl PetuniaIcon {
             PetuniaIcon::Slice,
             PetuniaIcon::Subdivide,
             PetuniaIcon::DrawProfile,
+            PetuniaIcon::PaintBrush,
+            PetuniaIcon::PaintEraser,
+            PetuniaIcon::PaintFill,
+            PetuniaIcon::PaintPicker,
+            PetuniaIcon::PaintLine,
+            PetuniaIcon::PaintRect,
             PetuniaIcon::PropertyTab(1),
             PetuniaIcon::PropTool,
             PetuniaIcon::PropRender,
@@ -321,6 +341,12 @@ impl PetuniaIcon {
             PetuniaIcon::Slice => Some(egui_phosphor::regular::KNIFE),
             PetuniaIcon::Subdivide => Some(egui_phosphor::regular::GRID_FOUR),
             PetuniaIcon::DrawProfile => Some(egui_phosphor::regular::PEN_NIB),
+            PetuniaIcon::PaintBrush => Some(egui_phosphor::regular::PAINT_BRUSH),
+            PetuniaIcon::PaintEraser => Some(egui_phosphor::regular::ERASER),
+            PetuniaIcon::PaintFill => Some(egui_phosphor::regular::PAINT_BUCKET),
+            PetuniaIcon::PaintPicker => Some(egui_phosphor::regular::EYEDROPPER),
+            PetuniaIcon::PaintLine => Some(egui_phosphor::regular::LINE_SEGMENT),
+            PetuniaIcon::PaintRect => Some(egui_phosphor::regular::SQUARE),
 
             PetuniaIcon::ModeObject => Some(egui_phosphor::regular::CUBE),
             PetuniaIcon::ModeEdit => Some(egui_phosphor::regular::PENCIL_SIMPLE),
@@ -527,7 +553,7 @@ fn discover_icon_packs() -> Vec<IconPackManifest> {
     let mut packs = vec![
         IconPackManifest {
             id: "petunia".into(),
-            name: "Petunia (Padrão)".into(),
+            name: "Petunia (Arte própria)".into(),
             version: "1.0.0".into(),
             author: Some("Petunia3D Team".into()),
             description: Some("Ícones nativos com estilo Blender e renderização vetorial".into()),
@@ -548,7 +574,7 @@ fn discover_icon_packs() -> Vec<IconPackManifest> {
         },
         IconPackManifest {
             id: "iconoir".into(),
-            name: "Iconoir".into(),
+            name: "Iconoir (Padrão)".into(),
             version: "7.7.0".into(),
             author: Some("Damien Erambert".into()),
             description: Some("Visual minimalista e geométrico".into()),

@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **439**.
+Total de chaves de localização cadastradas: **451**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -175,7 +175,7 @@ Total de chaves de localização cadastradas: **439**.
 | `inspector.pin_tip` | Pin Inspector Keep this object visible in the Inspector while selecting other objects. | Fixar Inspector Mantém este objeto visível no Inspector ao selecionar outros objetos. |
 | `inspector.search` | Search properties... | Buscar propriedades... |
 | `inspector.tab_material` | Material | Material |
-| `inspector.tab_modify` | Modify | Modificar |
+| `inspector.tab_modify` | Modifiers | Modificadores |
 | `inspector.tab_object` | Object | Objeto |
 | `inspector.tab_selection` | Selection | Seleção |
 | `inspector.tool_active` | Active Tool | Ferramenta Ativa |
@@ -206,12 +206,24 @@ Total de chaves de localização cadastradas: **439**.
 | `paint.brush` | Brush | Pincel |
 | `paint.canvas` | Albedo canvas | Canvas albedo |
 | `paint.canvas_hint` | Drag to paint. Ctrl+drag erases. Wheel over UV scales it. | Arraste p/ pintar. Ctrl+arraste apaga. Scroll no UV escala. |
+| `paint.canvas_resize` | Resize (keeps content) | Redimensionar (mantém conteúdo) |
+| `paint.canvas_size` | Texture size | Tamanho da textura |
+| `paint.channel` | Channel | Canal |
+| `paint.channel_albedo` | Albedo (Base Color) | Albedo (Cor Base) |
+| `paint.channel_locked_tip` | V1 paints Albedo only. Other channels arrive in V1.x (P3D-062). | V1 pinta só Albedo. Outros canais chegam na V1.x (P3D-062). |
 | `paint.clear` | Clear | Limpar |
 | `paint.color` | Color | Cor |
 | `paint.eraser` | Eraser (hold Ctrl) | Borracha (segure Ctrl) |
 | `paint.eraser_hint` | Hold Ctrl while painting to erase | Segure Ctrl pintando p/ apagar |
 | `paint.fill` | Fill | Preencher |
 | `paint.fill_sel` | Fill sel | Preencher sel |
+| `paint.layer_delete` | Delete layer | Apagar camada |
+| `paint.layer_down` | Move down | Descer |
+| `paint.layer_empty` | Single base layer. Add layers for non-destructive detail. | Camada base única. Adicione camadas p/ detalhe não destrutivo. |
+| `paint.layer_new` | New layer | Nova camada |
+| `paint.layer_opacity` | Opacity | Opacidade |
+| `paint.layer_up` | Move up | Subir |
+| `paint.layers` | Layers | Camadas |
 | `paint.new_canvas` | New 256² | Novo 256² |
 | `paint.pick` | Pick? | Pegar? |
 | `paint.pick_hint` | Alt+click the mesh to pick a color | Alt+clique na malha p/ pegar cor |

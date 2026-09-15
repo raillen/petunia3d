@@ -401,6 +401,7 @@ fn paint_preview(
     let cancelled_id = egui::Id::new("paint.cancelled_until_release");
     if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
         state.finish_paint_stroke(true);
+        ctx.data_mut(|d| d.remove::<([f32; 2], [f32; 2])>(egui::Id::new("paint.shape3d")));
         if let Some((_, radius)) = ctx.data_mut(|d| d.get_temp::<(Pos2, f32)>(radius_id)) {
             state.paint_radius = radius;
             ctx.data_mut(|d| d.remove::<(Pos2, f32)>(radius_id));
@@ -524,25 +525,100 @@ fn paint_preview(
             && ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO))
             || ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
         {
-            state.begin_paint_stroke();
-            state.paint_at(hit.position);
-
             let brush_type = match state.paint_brush_kind {
                 1 => petunia_module_paint::BrushType::Soft,
                 2 => petunia_module_paint::BrushType::Eraser,
                 3 => petunia_module_paint::BrushType::Fill,
                 4 => petunia_module_paint::BrushType::Eyedropper,
+                5 => petunia_module_paint::BrushType::Line,
+                6 => petunia_module_paint::BrushType::Rectangle,
                 _ => petunia_module_paint::BrushType::Pixel,
             };
-            petunia_module_paint::PaintModule::paint_mesh_3d(
-                state,
-                face,
-                hit.position,
+            // Formas 3D: press ancora o UV, release confirma o segmento.
+            // Transação própria (checkpoint no press; sem sessão de stroke
+            // para o finish do topo não carimbar em duplicidade).
+            let shape_brush = matches!(
                 brush_type,
-                state.canvas_brush.max(1),
-                state.paint_strength,
-                state.paint_isolate_selection,
+                petunia_module_paint::BrushType::Line | petunia_module_paint::BrushType::Rectangle
             );
+            if shape_brush {
+                if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary)) {
+                    state.checkpoint("canvas shape");
+                    if let Some(uv) = petunia_module_paint::PaintModule::face_hit_uv(
+                        state,
+                        face,
+                        hit.position,
+                        state.paint_isolate_selection,
+                    ) {
+                        ctx.data_mut(|d| d.insert_temp(egui::Id::new("paint.shape3d"), (uv, uv)));
+                    }
+                }
+                if ctx.input(|i| i.pointer.button_released(PointerButton::Primary))
+                    && let Some((start, _)) = ctx.data(|d| {
+                        d.get_temp::<([f32; 2], [f32; 2])>(egui::Id::new("paint.shape3d"))
+                    })
+                    && let Some(end) = petunia_module_paint::PaintModule::face_hit_uv(
+                        state,
+                        face,
+                        hit.position,
+                        state.paint_isolate_selection,
+                    )
+                {
+                    ctx.data_mut(|d| {
+                        d.remove::<([f32; 2], [f32; 2])>(egui::Id::new("paint.shape3d"))
+                    });
+                    let to_px =
+                        |uv: [f32; 2]| petunia_module_paint::PaintModule::uv_to_px(state, uv);
+                    if let (Some((x0, y0)), Some((x1, y1))) = (to_px(start), to_px(end)) {
+                        petunia_module_paint::PaintModule::commit_shape(
+                            state,
+                            petunia_module_paint::ShapeStroke {
+                                x0,
+                                y0,
+                                x1,
+                                y1,
+                                brush: brush_type,
+                                color: [
+                                    (state.paint_color[0] * 255.0) as u8,
+                                    (state.paint_color[1] * 255.0) as u8,
+                                    (state.paint_color[2] * 255.0) as u8,
+                                    255,
+                                ],
+                                strength: state.paint_strength,
+                            },
+                        );
+                    }
+                }
+                // Atualiza a âncora durante o arrasto (preview = anel do pincel).
+                if ctx.input(|i| i.pointer.button_down(PointerButton::Primary))
+                    && let Some(uv) = petunia_module_paint::PaintModule::face_hit_uv(
+                        state,
+                        face,
+                        hit.position,
+                        state.paint_isolate_selection,
+                    )
+                {
+                    ctx.data_mut(|d| {
+                        if let Some((start, _)) =
+                            d.get_temp::<([f32; 2], [f32; 2])>(egui::Id::new("paint.shape3d"))
+                        {
+                            d.insert_temp(egui::Id::new("paint.shape3d"), (start, uv));
+                        }
+                    });
+                }
+            } else {
+                state.begin_paint_stroke();
+                state.paint_at(hit.position);
+                petunia_module_paint::PaintModule::paint_mesh_3d(
+                    state,
+                    face,
+                    hit.position,
+                    brush_type,
+                    state.canvas_brush.max(1),
+                    state.paint_strength,
+                    state.paint_isolate_selection,
+                );
+            }
         }
     }
     true

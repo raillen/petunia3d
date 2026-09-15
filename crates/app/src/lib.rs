@@ -1014,6 +1014,7 @@ impl WgpuApp {
             self.core.state.shading,
             self.core.state.show_xray,
             self.core.state.show_triangulation,
+            self.core.state.textured,
         );
         gfx.renderer3d
             .set_overlays(self.core.state.show_overlays, self.core.state.show_grid);

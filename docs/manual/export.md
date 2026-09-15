@@ -8,8 +8,8 @@ O Petunia3D oferece exportação nativa direta para formatos padrões da indúst
 
 | Formato | Extensão | Principais Aplicações | Recursos Preservados |
 | :--- | :--- | :--- | :--- |
-| **glTF 2.0 Binary** | `.glb` | **Recomendado para Godot, Unity, Unreal, Web** | Malhas, cores de vértices, coordenadas UV, materiais e hierarquia de nós. |
-| **Wavefront OBJ** | `.obj` + `.mtl` | Compatibilidade universal e impressão 3D | Vértices, normais, coordenadas UV e grupos de faces. |
+| **glTF 2.0 Binary** | `.glb` | **Recomendado para Godot, Unity, Unreal, Web** | Malhas, cores de vértices, coordenadas UV, materiais, **textura Albedo pintada (PNG embutido)** e hierarquia de nós. |
+| **Wavefront OBJ** | `.obj` | Compatibilidade universal e impressão 3D | Vértices, normais, coordenadas UV e grupos de faces (sem materiais/texturas). |
 | **Petunia Nativo** | `.petunia` | Arquivo do projeto para edição contínua | Todos os dados da cena, anotações, medidas, histórico e coleções. |
 
 ---

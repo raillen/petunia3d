@@ -4448,6 +4448,7 @@ dependencies = [
  "glam 0.27.0",
  "gltf",
  "gltf-json",
+ "image",
  "insta",
  "petunia_mesh",
  "postcard",
@@ -4495,6 +4496,7 @@ dependencies = [
  "petunia_project",
  "petunia_render",
  "puffin",
+ "uuid",
  "wgpu",
 ]
 

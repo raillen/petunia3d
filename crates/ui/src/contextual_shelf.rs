@@ -508,9 +508,9 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
                     let label = state.t(&format!("tools.{id}"));
                     ShelfCommand {
                         icon: Some(match id {
-                            "paint" => PetuniaIcon::Custom("paint"),
-                            "eraser" => PetuniaIcon::Custom("delete"),
-                            _ => PetuniaIcon::Cursor3D,
+                            "paint" => PetuniaIcon::PaintBrush,
+                            "eraser" => PetuniaIcon::PaintEraser,
+                            _ => PetuniaIcon::PaintPicker,
                         }),
                         label: label.clone(),
                         tooltip: label,

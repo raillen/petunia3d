@@ -12,5 +12,6 @@ petunia_render = { workspace = true }
 wgpu = { workspace = true }
 glam = { workspace = true }
 bytemuck = "1"
+uuid = { workspace = true }
 petunia_project = { workspace = true }
 puffin = { workspace = true }
