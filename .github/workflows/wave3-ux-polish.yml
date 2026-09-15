@@ -6,6 +6,7 @@ on:
       - ux/modeling-tool-system-convergence
     paths:
       - scripts/apply_wave3_ux_polish.py
+      - scripts/apply_wave3_clippy_fix.py
       - .github/workflows/wave3-ux-polish.yml
 
 permissions:
@@ -45,7 +46,9 @@ jobs:
             libgl1-mesa-dev
 
       - name: Apply Wave 3 implementation
-        run: python3 scripts/apply_wave3_ux_polish.py
+        run: |
+          python3 scripts/apply_wave3_ux_polish.py
+          python3 scripts/apply_wave3_clippy_fix.py
 
       - name: Guard Wave 2 convergence
         run: |
@@ -89,6 +92,7 @@ jobs:
       - name: Remove staging automation
         run: |
           rm -f scripts/apply_wave3_ux_polish.py
+          rm -f scripts/apply_wave3_clippy_fix.py
           rm -f .github/workflows/wave3-ux-polish.yml
 
       - name: Commit validated Wave 3
