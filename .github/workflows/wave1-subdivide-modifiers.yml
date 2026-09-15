@@ -29,6 +29,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y liblzma-dev pkg-config
+
       - name: Apply Wave 1 implementation
         run: python3 scripts/apply_wave1_subdivide_modifiers.py
 
