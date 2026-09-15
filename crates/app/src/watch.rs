@@ -136,11 +136,13 @@ impl WatchService {
 
         let mut reload_themes = false;
         let mut refresh_locales = false;
+        let mut refresh_icon_packs = false;
         for message in &latest {
             if let Some(path) = &message.path {
                 let path = path.to_string_lossy();
                 reload_themes |= path.contains("themes");
                 refresh_locales |= path.contains("locales");
+                refresh_icon_packs |= path.contains("icons");
             }
         }
         if reload_themes {
@@ -148,6 +150,9 @@ impl WatchService {
         }
         if refresh_locales {
             petunia_config::I18n::refresh_available();
+        }
+        if refresh_icon_packs {
+            petunia_ui::icon_registry::IconRegistry::refresh_available_packs();
         }
 
         latest
