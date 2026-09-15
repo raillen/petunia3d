@@ -708,6 +708,7 @@ impl Renderer {
             if !obj.visible {
                 continue;
             }
+            let mesh = obj.evaluated_mesh();
             if !is_wire {
                 let (mat_profile, mat_color, has_emission, emission_color) =
                     if let Some(mat) = obj.material(scene) {
@@ -735,9 +736,9 @@ impl Renderer {
                     || mat_profile == petunia_project::ShaderProfile::Emissive;
 
                 let tris = if obj_unlit {
-                    obj.mesh.to_triangles_unlit()
+                    mesh.to_triangles_unlit()
                 } else {
-                    obj.mesh.to_triangles_smooth(smooth)
+                    mesh.to_triangles_smooth(smooth)
                 };
                 for (pos, n, mut col, _uv) in tris {
                     if (col[0] - 0.72).abs() < 0.02
@@ -762,7 +763,7 @@ impl Renderer {
             }
 
             if is_wire {
-                for (a, b, sel) in obj.mesh.to_edges() {
+                for (a, b, sel) in mesh.to_edges() {
                     let c = if sel {
                         [1.0, 0.3, 0.1]
                     } else {
@@ -773,7 +774,7 @@ impl Renderer {
                 }
             } else {
                 // overlay sutil das arestas (estilo Blender: wire sobre solid)
-                for (a, b, sel) in obj.mesh.to_edges() {
+                for (a, b, sel) in mesh.to_edges() {
                     let c = if sel {
                         [1.0, 0.35, 0.1]
                     } else {
@@ -792,7 +793,7 @@ impl Renderer {
             if show_triangulation {
                 let diag_c = [0.3, 0.65, 0.95];
                 let lift = if is_wire { 0.0 } else { 0.0012 };
-                for (a, b) in obj.mesh.triangulation_wireframe() {
+                for (a, b) in mesh.triangulation_wireframe() {
                     lv.push(LineVertex {
                         pos: [a[0], a[1] + lift, a[2]],
                         color: diag_c,

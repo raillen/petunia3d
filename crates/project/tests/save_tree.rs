@@ -17,7 +17,7 @@ fn save_creates_exact_tree() {
     assert!(target.path().is_file());
     let bytes = std::fs::read(target.path()).unwrap();
     assert!(bytes.starts_with(b"PETUNIA\0"));
-    insta::assert_debug_snapshot!(bytes.len(), @"1179");
+    insta::assert_debug_snapshot!(bytes.len(), @"1181");
 }
 
 #[test]

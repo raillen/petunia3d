@@ -201,9 +201,12 @@ fn display_entries(state: &AppState) -> Vec<ToolbarEntry> {
         .collect()
 }
 
-fn apply_toolbar_entry(state: &mut AppState, entry: &ToolbarEntry) {
+fn apply_toolbar_entry(state: &mut AppState, tools: &ToolRegistry, entry: &ToolbarEntry) {
     state.active_tool = entry.id.into();
     state.pending_modal = None;
+    if let Some(tool) = tools.get(entry.id) {
+        tool.on_activate(state);
+    }
     state.mark_dirty();
 }
 
@@ -260,7 +263,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
     );
 }
 
-fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegistry, compact: bool) {
+fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistry, compact: bool) {
     if state.mode != petunia_core::EditMode::Edit
         && canonical_toolbar_entries()
             .iter()
@@ -299,27 +302,39 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, _tools: &ToolRegist
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing = vec2(3.0, 3.0);
                     for entry in pair {
-                        draw_model_entry(ui, state, entry, true);
+                        draw_model_entry(ui, state, tools, entry, true);
                     }
                 });
             }
         } else {
             for entry in group {
-                draw_model_entry(ui, state, entry, compact);
+                draw_model_entry(ui, state, tools, entry, compact);
             }
         }
     }
 }
 
-fn draw_model_entry(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEntry, compact: bool) {
+fn draw_model_entry(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    tools: &ToolRegistry,
+    entry: &ToolbarEntry,
+    compact: bool,
+) {
     match entry.id {
         "select" => draw_select_group(ui, state, compact),
         "transform" => draw_transform_group(ui, state, compact),
-        _ => draw_entry_button(ui, state, entry, compact),
+        _ => draw_entry_button(ui, state, tools, entry, compact),
     }
 }
 
-fn draw_entry_button(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEntry, compact: bool) {
+fn draw_entry_button(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    tools: &ToolRegistry,
+    entry: &ToolbarEntry,
+    compact: bool,
+) {
     let label = state.t(entry.label_key);
     let hint = if entry.key.is_empty() {
         label.clone()
@@ -333,7 +348,7 @@ fn draw_entry_button(ui: &mut egui::Ui, state: &mut AppState, entry: &ToolbarEnt
         .show(ui)
         .clicked()
     {
-        apply_toolbar_entry(state, entry);
+        apply_toolbar_entry(state, tools, entry);
     }
 }
 

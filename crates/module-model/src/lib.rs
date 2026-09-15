@@ -92,9 +92,7 @@ impl ToolRegistry {
         r.register::<SliceTool>(&enabled);
         r.register::<ConnectTool>(&enabled);
         r.register::<DissolveTool>(&enabled);
-        r.register::<MirrorTool>(&enabled);
         r.register::<MergeTool>(&enabled);
-        r.register::<SymmetrizeTool>(&enabled);
         r.register::<PaintTool>(&enabled);
         r
     }

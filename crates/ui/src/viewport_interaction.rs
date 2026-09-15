@@ -225,41 +225,64 @@ pub fn draw(
     if handle_annotation_gizmo(ctx, state, rect, painter, pointer) {
         return true;
     }
-    if !state.is_active_locked()
+    let transform_tool_active = matches!(
+        state.active_tool.as_str(),
+        "transform" | "move" | "rotate" | "scale"
+    );
+    if transform_tool_active
+        && !state.is_active_locked()
         && let Some(mesh) = state.project.active_mesh().filter(|m| {
             m.has_selection() || state.selection_domain() == petunia_core::SelectionDomain::Object
         })
     {
         let pivot = state.calculate_pivot(state.session.pivot_point);
-        let kind = match state.gizmo_mode {
-            ModalKind::Rotate => GizmoKind::Rotate,
-            ModalKind::Scale => GizmoKind::Scale,
-            _ => GizmoKind::Translate,
-        };
         let axes = if state.transform_orientation == petunia_core::TransformOrientation::Local {
             crate::gizmo::local_axes_for_mesh(mesh)
         } else {
             [Vec3::X, Vec3::Y, Vec3::Z]
         };
-        if let Some(handle) = crate::gizmo::draw_gizmo_oriented(
-            painter,
-            &state.camera,
-            rect,
-            pivot,
-            kind,
-            pointer,
-            axes,
-        ) {
+        let interaction = if state.active_tool == "transform" {
+            crate::gizmo::draw_universal_gizmo_oriented(
+                painter,
+                &state.camera,
+                rect,
+                pivot,
+                pointer,
+                axes,
+            )
+        } else {
+            let kind = match state.active_tool.as_str() {
+                "rotate" => GizmoKind::Rotate,
+                "scale" => GizmoKind::Scale,
+                _ => GizmoKind::Translate,
+            };
+            crate::gizmo::draw_gizmo_oriented(
+                painter,
+                &state.camera,
+                rect,
+                pivot,
+                kind,
+                pointer,
+                axes,
+            )
+            .map(|handle| crate::gizmo::GizmoInteraction { kind, handle })
+        };
+        if let Some(interaction) = interaction {
             ctx.set_cursor_icon(egui::CursorIcon::Grab);
             if ctx.input(|i| i.pointer.button_pressed(PointerButton::Primary))
                 && let Some(pos) = pointer
             {
-                let constraint = match handle {
+                let constraint = match interaction.handle {
                     GizmoHandle::Center => ModalConstraint::Free,
                     GizmoHandle::Axis(a) => ModalConstraint::Axis(a as usize),
                     GizmoHandle::Plane(a) => ModalConstraint::Plane(a as usize),
                 };
-                modal_viewport::start_handle(ctx, state, state.gizmo_mode, constraint, pos);
+                let kind = match interaction.kind {
+                    GizmoKind::Translate => ModalKind::Move,
+                    GizmoKind::Rotate => ModalKind::Rotate,
+                    GizmoKind::Scale => ModalKind::Scale,
+                };
+                modal_viewport::start_handle(ctx, state, kind, constraint, pos);
                 state.ui.box_select_start = None;
                 return true;
             }

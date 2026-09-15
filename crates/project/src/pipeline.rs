@@ -248,7 +248,7 @@ impl FormatExporter for ObjExporter {
         _project: &Project,
         options: &ExportOptions,
     ) -> Result<Vec<u8>, PipelineError> {
-        let mut mesh = asset.mesh.clone();
+        let mut mesh = asset.evaluated_mesh();
         if options.triangulate {
             mesh.triangulate();
         }
@@ -274,7 +274,7 @@ impl FormatExporter for ObjExporter {
         let mut merged = Mesh::default();
         for &idx in indices {
             if let Some(asset) = project.assets.get(idx) {
-                let mut m = asset.mesh.clone();
+                let mut m = asset.evaluated_mesh();
                 if options.triangulate {
                     m.triangulate();
                 }

@@ -458,11 +458,20 @@ pub fn handle_3d_cursor_placement(
         return false;
     };
 
-    if ctx.input(|i| {
+    let cursor_tool_click = state.active_tool == "cursor_3d"
+        && ctx.input(|i| {
+            i.pointer.button_pressed(PointerButton::Primary)
+                || i.pointer.button_clicked(PointerButton::Primary)
+        });
+    let shortcut_click = ctx.input(|i| {
         i.modifiers.shift
             && (i.pointer.button_pressed(PointerButton::Secondary)
                 || i.pointer.button_clicked(PointerButton::Secondary))
-    }) {
+    });
+    if state.active_tool == "cursor_3d" {
+        ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
+    }
+    if cursor_tool_click || shortcut_click {
         let nx = (pos.x - viewport_rect.left()) / viewport_rect.width() * 2.0 - 1.0;
         let ny = 1.0 - (pos.y - viewport_rect.top()) / viewport_rect.height() * 2.0;
 
@@ -520,7 +529,7 @@ pub fn draw_context_menu(ctx: &egui::Context, state: &mut AppState) {
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
             egui::Frame::menu(ui.style()).show(ui, |ui| {
-                ui.set_min_width(190.0);
+                ui.set_min_width(150.0);
 
                 if state.is_active_locked() {
                     ui.horizontal(|ui| {

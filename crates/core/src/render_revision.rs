@@ -95,6 +95,28 @@ pub fn fingerprint_scene(
         h = mix(h, asset.mesh.verts.len() as u64);
         h = mix(h, asset.mesh.faces.len() as u64);
         h = mix(h, asset.mesh.selected_edges.len() as u64);
+        h = mix(h, asset.modifiers.len() as u64);
+        for modifier in &asset.modifiers {
+            h = hash_bytes(h, modifier.id.as_bytes());
+            h = mix(h, modifier.enabled as u64);
+            match modifier.kind {
+                petunia_project::ModifierKind::Mirror { axis, weld } => {
+                    h = mix(h, 1);
+                    h = mix(h, axis as u64);
+                    h = hash_f32(h, weld);
+                }
+                petunia_project::ModifierKind::Symmetry {
+                    axis,
+                    positive_to_negative,
+                    weld,
+                } => {
+                    h = mix(h, 2);
+                    h = mix(h, axis as u64);
+                    h = mix(h, positive_to_negative as u64);
+                    h = hash_f32(h, weld);
+                }
+            }
+        }
         for c in asset.base_color {
             h = hash_f32(h, c);
         }

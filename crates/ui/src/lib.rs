@@ -54,7 +54,8 @@ pub mod settings_modal;
 pub mod status_bar;
 pub mod timeline;
 pub mod tokens;
-mod tool_fields;
+pub mod tool_fields;
+pub mod tool_properties_popover;
 pub mod toolbar;
 pub mod transform_gizmo_integration;
 pub mod twill_bridge;
@@ -1004,6 +1005,7 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
         // Cartão Last Operation da criação ativa (Wave 8).
         let had_primitive_session = state.session.primitive_session.is_some();
         primitive_card::draw_primitive_card(ui, state, rect);
+        tool_properties_popover::draw(ui, state, rect);
         let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
             ui.input(|i| {
                 i.pointer
@@ -1017,12 +1019,14 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
             state.ui.box_select_start = None;
             return;
         }
-        if resp.drag_started_by(egui::PointerButton::Primary)
+        if state.active_tool == "select_box"
+            && resp.drag_started_by(egui::PointerButton::Primary)
             && let Some(pos) = resp.interact_pointer_pos()
         {
             state.ui.box_select_start = Some([pos.x, pos.y]);
         }
-        if resp.dragged_by(egui::PointerButton::Primary)
+        if state.active_tool == "select_box"
+            && resp.dragged_by(egui::PointerButton::Primary)
             && let (Some(start), Some(curr)) =
                 (state.ui.box_select_start, resp.interact_pointer_pos())
         {
@@ -1040,7 +1044,8 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
             );
             state.mark_dirty();
         }
-        if resp.drag_stopped_by(egui::PointerButton::Primary)
+        if state.active_tool == "select_box"
+            && resp.drag_stopped_by(egui::PointerButton::Primary)
             && let (Some(start), Some(curr)) = (
                 state.ui.box_select_start.take(),
                 resp.interact_pointer_pos(),

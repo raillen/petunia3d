@@ -210,7 +210,7 @@ fn draw_overflow_button(ui: &mut Ui, state: &mut AppState, hidden: &[BarCluster]
     PetuniaMenuButton::chevron_only()
         .tooltip(&tip)
         .show(ui, |ui| {
-            ui.set_min_width(210.0);
+            ui.set_min_width(168.0);
             if hidden.contains(&BarCluster::SnapProp) {
                 let snap_label = state.t("viewport.snap_tip");
                 if PetuniaMenuCheckboxItem::new(&snap_label, state.snap_enabled)
@@ -1109,7 +1109,7 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
         }
 
         PetuniaMenuButton::chevron_only().show(ui, |ui| {
-            ui.set_min_width(160.0);
+            ui.set_min_width(144.0);
             ui.label(
                 egui::RichText::new("Opções de Snapping")
                     .strong()

@@ -384,6 +384,18 @@ fn draw_subdivide(ui: &mut Ui, state: &mut AppState) {
     let l_tri = state.t("actions.triangulate");
     ui.label(l_title);
     ui.small(state.t("hints.subdivide"));
+    let mut cuts = state.subdivide_cuts as i64;
+    if ui
+        .add(
+            egui::Slider::new(&mut cuts, 1..=6)
+                .text("Cuts")
+                .step_by(1.0),
+        )
+        .changed()
+    {
+        state.subdivide_cuts = cuts.clamp(1, 6) as u32;
+        state.mark_dirty();
+    }
     let reason = selection_guard(state);
     ui.horizontal(|ui| {
         let r1 = ui
