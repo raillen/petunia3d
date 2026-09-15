@@ -316,9 +316,9 @@ impl PetuniaIcon {
             PetuniaIcon::Inset => Some(egui_phosphor::regular::SQUARES_FOUR),
             PetuniaIcon::Bevel => Some(egui_phosphor::regular::BEZIER_CURVE),
             PetuniaIcon::LoopCut => Some(egui_phosphor::regular::SPLIT_HORIZONTAL),
-            PetuniaIcon::Knife => Some(egui_phosphor::regular::KNIFE),
+            PetuniaIcon::Knife => Some(egui_phosphor::regular::SCISSORS),
             PetuniaIcon::PushPull => Some(egui_phosphor::regular::ARROWS_LEFT_RIGHT),
-            PetuniaIcon::Slice => Some(egui_phosphor::regular::SCISSORS),
+            PetuniaIcon::Slice => Some(egui_phosphor::regular::KNIFE),
             PetuniaIcon::Subdivide => Some(egui_phosphor::regular::GRID_FOUR),
             PetuniaIcon::DrawProfile => Some(egui_phosphor::regular::PEN_NIB),
 
@@ -473,9 +473,7 @@ fn discover_icon_packs() -> Vec<IconPackManifest> {
             name: "Petunia (Padrão)".into(),
             version: "1.0.0".into(),
             author: Some("Petunia3D Team".into()),
-            description: Some(
-                "Ícones nativos com estilo Blender e renderização vetorial".into(),
-            ),
+            description: Some("Ícones nativos com estilo Blender e renderização vetorial".into()),
         },
         IconPackManifest {
             id: "phosphor".into(),
