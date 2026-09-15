@@ -31,7 +31,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install native test dependencies
-        run: sudo apt-get update && sudo apt-get install -y liblzma-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            liblzma-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libx11-dev \
+            libxi-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev
 
       - name: Apply Wave 2 implementation
         run: python3 scripts/run_wave2_tool_properties.py
