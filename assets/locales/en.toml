@@ -106,6 +106,7 @@ axis_unlock = "Unlock axis"
 overflow = "More viewport tools"
 orientation = "Orientation"
 pivot = "Pivot Point"
+drop_to_instantiate = "Drop to Instantiate"
 
 [toolbar]
 configure = "Configure Toolbar"
@@ -199,6 +200,8 @@ add_symmetry = "Add Symmetry"
 title = "Display"
 
 [context]
+modeling = "Modeling"
+object_locked = "Object Locked"
 rename = "Rename"
 export = "Export..."
 show = "Show in 3D Viewport"

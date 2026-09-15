@@ -651,101 +651,115 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
             ui.push_id("modifier_stack_rows", |ui| {
                 for modifier_idx in 0..modifier_count {
                     let snapshot = state.project.assets[asset_idx].modifiers[modifier_idx].clone();
-                    egui::Frame::group(ui.style()).show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            let mut enabled = snapshot.enabled;
-                            if ui
-                                .checkbox(&mut enabled, "")
-                                .on_hover_text(&enable_tip)
-                                .changed()
-                            {
-                                state.project.assets[asset_idx].modifiers[modifier_idx].enabled =
-                                    enabled;
-                                changed = true;
-                            }
-                            let title = match snapshot.kind {
-                                ModifierKind::Mirror { .. } => &mirror_title,
-                                ModifierKind::Symmetry { .. } => &symmetry_title,
-                            };
-                            ui.strong(title);
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    if ui.small_button("×").on_hover_text(&remove_tip).clicked() {
-                                        remove = Some(modifier_idx);
-                                    }
-                                    if ui
-                                        .add_enabled(
-                                            modifier_idx + 1 < modifier_count,
-                                            egui::Button::new("↓"),
-                                        )
-                                        .on_hover_text(&move_down_tip)
-                                        .clicked()
-                                    {
-                                        move_down = Some(modifier_idx);
-                                    }
-                                    if ui
-                                        .add_enabled(modifier_idx > 0, egui::Button::new("↑"))
-                                        .on_hover_text(&move_up_tip)
-                                        .clicked()
-                                    {
-                                        move_up = Some(modifier_idx);
-                                    }
-                                },
-                            );
-                        });
+                    egui::Frame::new()
+                        .fill(tokens::bg_surface(state))
+                        .stroke(tokens::stroke_border_dyn(state))
+                        .corner_radius(tokens::RADIUS_CONTAINER)
+                        .inner_margin(egui::Margin::symmetric(8, 6))
+                        .show(ui, |ui| {
+                            ui.set_min_width(ui.available_width());
+                            ui.horizontal(|ui| {
+                                let mut enabled = snapshot.enabled;
+                                if ui
+                                    .checkbox(&mut enabled, "")
+                                    .on_hover_text(&enable_tip)
+                                    .changed()
+                                {
+                                    state.project.assets[asset_idx].modifiers[modifier_idx]
+                                        .enabled = enabled;
+                                    changed = true;
+                                }
+                                let title = match snapshot.kind {
+                                    ModifierKind::Mirror { .. } => &mirror_title,
+                                    ModifierKind::Symmetry { .. } => &symmetry_title,
+                                };
+                                ui.strong(title);
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui.small_button("×").on_hover_text(&remove_tip).clicked()
+                                        {
+                                            remove = Some(modifier_idx);
+                                        }
+                                        if ui
+                                            .add_enabled(
+                                                modifier_idx + 1 < modifier_count,
+                                                egui::Button::new("↓"),
+                                            )
+                                            .on_hover_text(&move_down_tip)
+                                            .clicked()
+                                        {
+                                            move_down = Some(modifier_idx);
+                                        }
+                                        if ui
+                                            .add_enabled(modifier_idx > 0, egui::Button::new("↑"))
+                                            .on_hover_text(&move_up_tip)
+                                            .clicked()
+                                        {
+                                            move_up = Some(modifier_idx);
+                                        }
+                                    },
+                                );
+                            });
 
-                        match &mut state.project.assets[asset_idx].modifiers[modifier_idx].kind {
-                            ModifierKind::Mirror { axis, weld } => {
-                                ui.horizontal(|ui| {
-                                    ui.label(&axis_label);
-                                    for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
-                                        if ui.selectable_label(*axis == candidate, name).clicked() {
-                                            *axis = candidate;
+                            match &mut state.project.assets[asset_idx].modifiers[modifier_idx].kind
+                            {
+                                ModifierKind::Mirror { axis, weld } => {
+                                    ui.horizontal(|ui| {
+                                        ui.label(&axis_label);
+                                        for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
+                                            if ui
+                                                .selectable_label(*axis == candidate, name)
+                                                .clicked()
+                                            {
+                                                *axis = candidate;
+                                                changed = true;
+                                            }
+                                        }
+                                    });
+                                    changed |= ui
+                                        .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
+                                        .changed();
+                                }
+                                ModifierKind::Symmetry {
+                                    axis,
+                                    positive_to_negative: direction,
+                                    weld,
+                                } => {
+                                    ui.horizontal(|ui| {
+                                        ui.label(&axis_label);
+                                        for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
+                                            if ui
+                                                .selectable_label(*axis == candidate, name)
+                                                .clicked()
+                                            {
+                                                *axis = candidate;
+                                                changed = true;
+                                            }
+                                        }
+                                    });
+                                    ui.horizontal(|ui| {
+                                        if ui
+                                            .selectable_label(*direction, &positive_to_negative)
+                                            .clicked()
+                                        {
+                                            *direction = true;
                                             changed = true;
                                         }
-                                    }
-                                });
-                                changed |= ui
-                                    .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
-                                    .changed();
-                            }
-                            ModifierKind::Symmetry {
-                                axis,
-                                positive_to_negative: direction,
-                                weld,
-                            } => {
-                                ui.horizontal(|ui| {
-                                    ui.label(&axis_label);
-                                    for (candidate, name) in [(0, "X"), (1, "Y"), (2, "Z")] {
-                                        if ui.selectable_label(*axis == candidate, name).clicked() {
-                                            *axis = candidate;
+                                        if ui
+                                            .selectable_label(!*direction, &negative_to_positive)
+                                            .clicked()
+                                        {
+                                            *direction = false;
                                             changed = true;
                                         }
-                                    }
-                                });
-                                ui.horizontal(|ui| {
-                                    if ui
-                                        .selectable_label(*direction, &positive_to_negative)
-                                        .clicked()
-                                    {
-                                        *direction = true;
-                                        changed = true;
-                                    }
-                                    if ui
-                                        .selectable_label(!*direction, &negative_to_positive)
-                                        .clicked()
-                                    {
-                                        *direction = false;
-                                        changed = true;
-                                    }
-                                });
-                                changed |= ui
-                                    .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
-                                    .changed();
+                                    });
+                                    changed |= ui
+                                        .add(egui::Slider::new(weld, 0.0..=0.05).text(&weld_label))
+                                        .changed();
+                                }
                             }
-                        }
-                    });
+                        });
                     ui.add_space(4.0);
                 }
             });
@@ -773,20 +787,36 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                 );
             }
 
-            ui.horizontal(|ui| {
-                if ui.button(add_mirror).clicked() {
+            let narrow_actions = ui.available_width() < 220.0;
+            if narrow_actions {
+                if ui.button(&add_mirror).clicked() {
                     state.project.assets[asset_idx]
                         .modifiers
                         .push(ModifierInstance::mirror(0, 0.001));
                     changed = true;
                 }
-                if ui.button(add_symmetry).clicked() {
+                if ui.button(&add_symmetry).clicked() {
                     state.project.assets[asset_idx]
                         .modifiers
                         .push(ModifierInstance::symmetry(0, true, 0.001));
                     changed = true;
                 }
-            });
+            } else {
+                ui.horizontal(|ui| {
+                    if ui.button(&add_mirror).clicked() {
+                        state.project.assets[asset_idx]
+                            .modifiers
+                            .push(ModifierInstance::mirror(0, 0.001));
+                        changed = true;
+                    }
+                    if ui.button(&add_symmetry).clicked() {
+                        state.project.assets[asset_idx]
+                            .modifiers
+                            .push(ModifierInstance::symmetry(0, true, 0.001));
+                        changed = true;
+                    }
+                });
+            }
 
             if changed {
                 state.emit_mesh_changed();

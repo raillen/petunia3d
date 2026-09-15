@@ -106,6 +106,7 @@ axis_unlock = "Destravar eixo"
 overflow = "Mais ferramentas da viewport"
 orientation = "Orientação"
 pivot = "Ponto de Pivô"
+drop_to_instantiate = "Soltar para Instanciar"
 
 [toolbar]
 configure = "Configurar Barra"
@@ -199,6 +200,8 @@ add_symmetry = "Adicionar Simetria"
 title = "Exibição"
 
 [context]
+modeling = "Modelagem"
+object_locked = "Objeto Bloqueado"
 rename = "Renomear"
 export = "Exportar..."
 show = "Mostrar na Viewport 3D"

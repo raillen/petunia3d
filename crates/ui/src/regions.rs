@@ -25,6 +25,8 @@ pub enum RegionSlot {
     UvEditor,
     Viewport,
     Shelf,
+    ToolProperties,
+    PrimitiveCard,
 }
 
 /// Retângulos do shell no frame corrente. `None` = pane oculto neste frame.
@@ -42,6 +44,8 @@ pub struct UiRegions {
     pub uv_editor: Option<egui::Rect>,
     pub viewport: Option<egui::Rect>,
     pub shelf: Option<egui::Rect>,
+    pub tool_properties: Option<egui::Rect>,
+    pub primitive_card: Option<egui::Rect>,
 }
 
 impl UiRegions {
@@ -59,6 +63,8 @@ impl UiRegions {
             RegionSlot::UvEditor => &mut self.uv_editor,
             RegionSlot::Viewport => &mut self.viewport,
             RegionSlot::Shelf => &mut self.shelf,
+            RegionSlot::ToolProperties => &mut self.tool_properties,
+            RegionSlot::PrimitiveCard => &mut self.primitive_card,
         }
     }
 
@@ -105,6 +111,22 @@ impl UiRegions {
             // Shelf sem viewport conhecida: não verificável.
             (Some(_), None) => false,
         }
+    }
+
+    /// Every interactive overlay owned by the viewport must remain inside its
+    /// canonical safe rectangle. Hidden overlays are ignored.
+    pub fn viewport_overlays_within_viewport(&self) -> bool {
+        let overlays = [self.shelf, self.tool_properties, self.primitive_card];
+        if overlays.iter().all(Option::is_none) {
+            return true;
+        }
+        let Some(viewport) = self.viewport else {
+            return false;
+        };
+        overlays
+            .into_iter()
+            .flatten()
+            .all(|overlay| viewport.contains_rect(overlay))
     }
 
     /// Outliner e Inspector devem ter retângulos independentes e disjuntos.
@@ -208,9 +230,12 @@ pub fn modal_sizes(
         (viewport.width() - 24.0).max(0.0),
         (viewport.height() - 24.0).max(0.0),
     );
+    // Floors themselves are capped by the available size; otherwise a tiny
+    // application window could paradoxically produce a modal larger than its
+    // viewport (the previous `max(200/160)` ordering did exactly that).
     let min = egui::vec2(
-        min_req.x.min(avail.x).max(200.0),
-        min_req.y.min(avail.y).max(160.0),
+        min_req.x.min(avail.x).max(200.0_f32.min(avail.x)),
+        min_req.y.min(avail.y).max(160.0_f32.min(avail.y)),
     );
     let max = egui::vec2(
         avail.x.min(max_cap.x).max(min.x),
@@ -259,6 +284,7 @@ mod tests {
         let regions = UiRegions::default();
         assert!(regions.status_overlaps().is_empty());
         assert!(regions.shelf_within_viewport());
+        assert!(regions.viewport_overlays_within_viewport());
         assert!(regions.dock_sections_disjoint());
     }
 
@@ -374,6 +400,41 @@ mod tests {
             assert!(max.x <= w - 24.0 + 0.01 && max.y <= h - 24.0 + 0.01);
             assert!(min.x <= max.x && min.y <= max.y);
             assert!(def.x >= min.x && def.x <= max.x && def.y >= min.y && def.y <= max.y);
+        }
+    }
+
+    #[test]
+    fn viewport_overlay_invariant_covers_tool_and_primitive_cards() {
+        let viewport = rect(0.0, 0.0, 800.0, 600.0);
+        let valid = UiRegions {
+            viewport: Some(viewport),
+            tool_properties: Some(rect(12.0, 12.0, 280.0, 300.0)),
+            primitive_card: Some(rect(420.0, 180.0, 690.0, 420.0)),
+            ..Default::default()
+        };
+        assert!(valid.viewport_overlays_within_viewport());
+
+        let invalid = UiRegions {
+            primitive_card: Some(rect(700.0, 500.0, 900.0, 650.0)),
+            ..valid
+        };
+        assert!(!invalid.viewport_overlays_within_viewport());
+    }
+
+    #[test]
+    fn modal_sizes_stay_inside_tiny_viewports() {
+        let viewport = rect(0.0, 0.0, 150.0, 120.0);
+        let (default, min, max) = modal_sizes(
+            viewport,
+            egui::vec2(720.0, 560.0),
+            egui::vec2(480.0, 360.0),
+            egui::vec2(860.0, 720.0),
+        );
+        let avail = egui::vec2(126.0, 96.0);
+        for size in [default, min, max] {
+            assert!(size.x <= avail.x + f32::EPSILON);
+            assert!(size.y <= avail.y + f32::EPSILON);
+            assert!(size.x >= 0.0 && size.y >= 0.0);
         }
     }
 }

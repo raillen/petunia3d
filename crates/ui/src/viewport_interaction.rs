@@ -86,7 +86,7 @@ pub fn draw(
             painter.text(
                 sc + egui::vec2(0.0, 18.0),
                 egui::Align2::CENTER_TOP,
-                "Soltar para Instanciar",
+                state.t("viewport.drop_to_instantiate"),
                 egui::FontId::proportional(11.0),
                 tokens::TEXT_PRIMARY,
             );
@@ -288,22 +288,31 @@ pub fn draw(
             }
         }
     }
+    let object_locked_label = state.t("context.object_locked");
+    let modeling_label = state.t("context.modeling");
+    let move_label = state.t("tools.move");
+    let rotate_label = state.t("tools.rotate");
+    let scale_label = state.t("tools.scale");
+    let extrude_label = state.t("tools.extrude");
+    let inset_label = state.t("tools.inset");
+    let pushpull_label = state.t("tools.pushpull");
+    let bevel_label = state.t("tools.bevel");
     response.context_menu(|ui| {
         if state.is_active_locked() {
             ui.label(
-                egui::RichText::new("Objeto Bloqueado")
+                egui::RichText::new(object_locked_label.as_str())
                     .italics()
                     .color(tokens::TEXT_MUTED),
             );
             return;
         }
         ui.label(
-            egui::RichText::new("Modelagem")
+            egui::RichText::new(modeling_label.as_str())
                 .strong()
                 .color(tokens::TEXT_PRIMARY),
         );
         ui.separator();
-        if widgets::PetuniaMenuItem::new("Mover")
+        if widgets::PetuniaMenuItem::new(move_label.as_str())
             .icon(PetuniaIcon::Move)
             .shortcut(Some("G"))
             .show(ui)
@@ -312,7 +321,7 @@ pub fn draw(
             state.pending_modal = Some(ModalKind::Move);
             ui.close();
         }
-        if widgets::PetuniaMenuItem::new("Rotacionar")
+        if widgets::PetuniaMenuItem::new(rotate_label.as_str())
             .icon(PetuniaIcon::Rotate)
             .shortcut(Some("R"))
             .show(ui)
@@ -321,7 +330,7 @@ pub fn draw(
             state.pending_modal = Some(ModalKind::Rotate);
             ui.close();
         }
-        if widgets::PetuniaMenuItem::new("Escalar")
+        if widgets::PetuniaMenuItem::new(scale_label.as_str())
             .icon(PetuniaIcon::Scale)
             .shortcut(Some("S"))
             .show(ui)
@@ -336,7 +345,7 @@ pub fn draw(
             .is_some_and(|m| m.selected_face_count() > 0);
         if faces {
             ui.separator();
-            if widgets::PetuniaMenuItem::new("Extrude")
+            if widgets::PetuniaMenuItem::new(extrude_label.as_str())
                 .icon(PetuniaIcon::Extrude)
                 .shortcut(Some("E"))
                 .show(ui)
@@ -345,7 +354,7 @@ pub fn draw(
                 state.pending_modal = Some(ModalKind::Extrude);
                 ui.close();
             }
-            if widgets::PetuniaMenuItem::new("Inset")
+            if widgets::PetuniaMenuItem::new(inset_label.as_str())
                 .icon(PetuniaIcon::Inset)
                 .shortcut(Some("I"))
                 .show(ui)
@@ -354,7 +363,7 @@ pub fn draw(
                 state.pending_modal = Some(ModalKind::Inset);
                 ui.close();
             }
-            if widgets::PetuniaMenuItem::new("Push / Pull")
+            if widgets::PetuniaMenuItem::new(pushpull_label.as_str())
                 .icon(PetuniaIcon::PushPull)
                 .shortcut(Some("P"))
                 .show(ui)
@@ -368,7 +377,7 @@ pub fn draw(
             .project
             .active_mesh()
             .is_some_and(|m| !m.selected_edges.is_empty())
-            && widgets::PetuniaMenuItem::new("Bevel")
+            && widgets::PetuniaMenuItem::new(bevel_label.as_str())
                 .icon(PetuniaIcon::Bevel)
                 .shortcut(Some("Ctrl+B"))
                 .show(ui)

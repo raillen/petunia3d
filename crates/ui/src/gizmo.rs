@@ -34,6 +34,12 @@ const COLORS: [Color32; 3] = [
 ];
 const AXES: [Vec3; 3] = [Vec3::X, Vec3::Y, Vec3::Z];
 
+/// Visual gizmo extent in logical points. Large viewports retain the familiar
+/// 80pt reach; narrow panes shrink the gizmo instead of covering the model.
+fn gizmo_extent_points(viewport: Rect) -> f32 {
+    (viewport.width().min(viewport.height()) * 0.14).clamp(56.0, 80.0)
+}
+
 /// Calcula eixos de coordenadas locais a partir da seleção da malha.
 pub fn local_axes_for_mesh(mesh: &petunia_mesh::Mesh) -> [Vec3; 3] {
     let mut normal = Vec3::ZERO;
@@ -109,7 +115,7 @@ pub fn draw_gizmo_oriented(
         Projection::Ortho => 2.0 * camera.ortho_half_h / viewport.height(),
         Projection::Perspective => 2.0 * depth * (camera.fov_y * 0.5).tan() / viewport.height(),
     };
-    let length = world_per_point * 80.0;
+    let length = world_per_point * gizmo_extent_points(viewport);
     let project = |point: Vec3| -> Option<Pos2> {
         let clip = camera.view_proj() * point.extend(1.0);
         if !clip.is_finite() || clip.w <= 0.0 || clip.z < 0.0 || clip.z > clip.w {
@@ -260,7 +266,7 @@ pub fn draw_universal_gizmo_oriented(
         Projection::Ortho => 2.0 * camera.ortho_half_h / viewport.height(),
         Projection::Perspective => 2.0 * depth * (camera.fov_y * 0.5).tan() / viewport.height(),
     };
-    let length = world_per_point * 80.0;
+    let length = world_per_point * gizmo_extent_points(viewport);
     let project = |point: Vec3| -> Option<Pos2> {
         let clip = camera.view_proj() * point.extend(1.0);
         if !clip.is_finite() || clip.w <= 0.0 || clip.z < 0.0 || clip.z > clip.w {
@@ -533,5 +539,15 @@ mod tests {
             assert!(!inside_convex(&square, Pos2::new(11.0, 5.0)));
             square.reverse();
         }
+    }
+
+    #[test]
+    fn gizmo_extent_is_responsive_but_keeps_accessible_floor() {
+        let tiny = Rect::from_min_size(Pos2::ZERO, Vec2::new(220.0, 180.0));
+        let medium = Rect::from_min_size(Pos2::ZERO, Vec2::new(520.0, 420.0));
+        let large = Rect::from_min_size(Pos2::ZERO, Vec2::new(1280.0, 800.0));
+        assert_eq!(gizmo_extent_points(tiny), 56.0);
+        assert!(gizmo_extent_points(medium) > gizmo_extent_points(tiny));
+        assert_eq!(gizmo_extent_points(large), 80.0);
     }
 }

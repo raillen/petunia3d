@@ -1003,20 +1003,39 @@ fn viewport_3d(ui: &mut egui::Ui, state: &mut AppState, rect: egui::Rect) {
         if let Some(shelf) = shelf_rect {
             regions::record(&ctx, regions::RegionSlot::Shelf, shelf);
         }
-        // Cartão Last Operation da criação ativa (Wave 8).
+        // Viewport-local interactive chrome. Every surface returns its actual
+        // rect, which becomes both QA evidence and a hit-test exclusion zone.
         let had_primitive_session = state.session.primitive_session.is_some();
-        primitive_card::draw_primitive_card(ui, state, rect);
-        tool_properties_popover::draw(ui, state, rect);
-        let pointer_on_shelf = shelf_rect.is_some_and(|sr| {
-            ui.input(|i| {
-                i.pointer
-                    .interact_pos()
-                    .or(i.pointer.hover_pos())
-                    .is_some_and(|pos| sr.contains(pos))
-            })
+        let primitive_card_rect = primitive_card::draw_primitive_card(ui, state, rect);
+        if let Some(card_rect) = primitive_card_rect {
+            regions::record(&ctx, regions::RegionSlot::PrimitiveCard, card_rect);
+        }
+        // Avoid flashing a second contextual surface on the same frame that a
+        // primitive card confirms/cancels itself.
+        let tool_properties_rect = if had_primitive_session {
+            None
+        } else {
+            tool_properties_popover::draw(ui, state, rect)
+        };
+        if let Some(tool_rect) = tool_properties_rect {
+            regions::record(&ctx, regions::RegionSlot::ToolProperties, tool_rect);
+        }
+
+        let pointer_on_viewport_chrome = ui.input(|i| {
+            i.pointer
+                .interact_pos()
+                .or(i.pointer.hover_pos())
+                .is_some_and(|pos| {
+                    [shelf_rect, primitive_card_rect, tool_properties_rect]
+                        .into_iter()
+                        .flatten()
+                        .any(|overlay| overlay.contains(pos))
+                })
         });
 
-        if pointer_on_shelf {
+        if pointer_on_viewport_chrome {
+            // Critical Wave 3 invariant: buttons, fields and scroll gestures in
+            // viewport chrome must never become box-select starts or GPU picks.
             state.ui.box_select_start = None;
             return;
         }
