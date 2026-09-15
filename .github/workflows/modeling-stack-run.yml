@@ -1,4 +1,4 @@
-name: modeling-stack-run
+name: modeling-convergence-implementation
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  run:
+  implement-and-validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,46 +20,21 @@ jobs:
         with:
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
-      - name: Execute staged modifier and SVG patch
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          src = Path('.github/workflows/modeling-convergence-stack.yml').read_text().splitlines()
-          start = next(i for i, line in enumerate(src) if line.strip() == '- name: Apply modifier, subdivide, performance and SVG patches')
-          run_line = next(i for i in range(start + 1, len(src)) if src[i].strip() == 'run: |')
-          end = next(i for i in range(run_line + 1, len(src)) if src[i].startswith('      - name: Install Linux UI dependencies'))
-          lines = src[run_line + 1:end]
-          shell = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
-
-          old_wgpu = """if target not in text:\n    raise SystemExit('wgpu asset loop not found')\ntext = text.replace(target, repl, 1)"""
-          new_wgpu = """if 'let mesh = obj.evaluated_mesh();' not in text:\n    text, count = re.subn(\n        r'(        for obj in &scene\\.assets \\{\\n            if !obj\\.visible \\{\\n                continue;\\n            \\}\\n)',\n        r'\\1            let mesh = obj.evaluated_mesh();\\n',\n        text,\n        count=1,\n    )\n    if count != 1:\n        raise SystemExit(f'wgpu asset loop patch count: {count}')"""
-          if old_wgpu not in shell:
-              raise SystemExit('could not harden WGPU patch block')
-          shell = shell.replace(old_wgpu, new_wgpu, 1)
-
-          old_gl = """if target not in text:\n    raise SystemExit('gl asset loop not found')\ntext = text.replace(target, target + '            let mesh = obj.evaluated_mesh();\\n', 1)"""
-          new_gl = """if 'let mesh = obj.evaluated_mesh();' not in text:\n    text, count = re.subn(\n        r'(        for obj in &state\\.project\\.assets \\{\\n            if !obj\\.visible \\{\\n                continue;\\n            \\}\\n)',\n        r'\\1            let mesh = obj.evaluated_mesh();\\n',\n        text,\n        count=1,\n    )\n    if count != 1:\n        raise SystemExit(f'gl asset loop patch count: {count}')"""
-          if old_gl not in shell:
-              raise SystemExit('could not harden OpenGL patch block')
-          shell = shell.replace(old_gl, new_gl, 1)
-
-          Path('/tmp/modeling-stack.sh').write_text('set -euo pipefail\n' + shell)
-          PY
-          bash /tmp/modeling-stack.sh
-          rm -f .github/workflows/modeling-stack-run.yml
-          rm -f .github/workflows/modeling-convergence-stack.yml
+      - name: Apply modeling convergence implementation
+        run: python3 scripts/apply_modeling_convergence.py
+      - name: Format
+        run: cargo fmt --all
       - name: Install Linux UI dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libwayland-dev libxkbcommon-dev libgtk-3-dev libegl1-mesa-dev libgl1-mesa-dev
       - name: Format check
         run: cargo fmt --all -- --check
-      - name: Check project and core
+      - name: Check domain and core
         run: |
           cargo check -p petunia_project
           cargo check -p petunia_core
+          cargo check -p petunia_config
       - name: Check renderers
         run: |
           cargo check -p petunia_render_wgpu
@@ -74,12 +49,18 @@ jobs:
         run: |
           cargo test -p petunia_project
           cargo test -p petunia_core --lib
+          cargo test -p petunia_config --lib
           cargo test -p petunia_ui --lib
-      - name: Commit validated stack batch
+      - name: Remove staging automation
+        run: |
+          rm -f scripts/apply_modeling_convergence.py
+          rm -f .github/workflows/modeling-convergence-stack.yml
+          rm -f .github/workflows/modeling-stack-run.yml
+      - name: Commit validated implementation
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'feat: add modifier stack, SVG icons and modeling polish [skip ci]'
+          git commit -m 'feat: converge modeling tools, modifiers and SVG UI [skip ci]'
           git push origin HEAD:ux/modeling-tool-system-convergence
