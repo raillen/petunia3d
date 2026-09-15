@@ -103,6 +103,120 @@ xray_tip = "Modo Raio-X / Transparência de Malha · Alt+Z"
 tri_tip = "Inspeção de triangulação (diagonais internas de quads/n-gons)"
 axis_lock = "Travar eixo"
 axis_unlock = "Destravar eixo"
+overflow = "Mais ferramentas da viewport"
+orientation = "Orientação"
+pivot = "Ponto de Pivô"
+
+[toolbar]
+configure = "Configurar Barra"
+reset = "Redefinir barra"
+columns = "Colunas"
+one_column = "1 coluna"
+two_columns = "2 colunas"
+move_up = "Subir"
+move_down = "Descer"
+visible = "Visível"
+
+[dock]
+side = "Lado do dock"
+left = "Esquerda"
+right = "Direita"
+orientation = "Disposição dos painéis"
+stacked = "Empilhados"
+side_by_side = "Lado a lado"
+
+[inspector]
+add_component = "Adicionar Componente"
+go_material = "Material (abrir aba)"
+go_object = "Transform (abrir aba)"
+tool_bevel = "Ferramenta Bevel"
+tool_mirror = "Ferramenta Mirror"
+tool_subdivide = "Ferramenta Subdivide"
+tab_object = "Objeto"
+tab_modify = "Modificar"
+tab_material = "Material"
+tab_selection = "Seleção"
+search = "Buscar propriedades..."
+no_results = "Nenhuma propriedade correspondente."
+tool_active = "Ferramenta Ativa"
+pin = "Fixar"
+unpin = "Soltar"
+pin_tip = "Fixar Inspector\nMantém este objeto visível no Inspector ao selecionar outros objetos."
+unpin_tip = "Soltar Inspector\nVolta a seguir a seleção atual."
+
+[empty]
+scene_empty = "Cena vazia — adicione algo:"
+no_selection = "Nada selecionado"
+no_selection_hint = "Selecione um objeto para inspecionar suas propriedades."
+
+[scene]
+title = "Cena"
+search = "Buscar objetos..."
+filter = "Filtro"
+reset_split = "Tamanho automático"
+f_collections = "Coleções"
+f_annotations = "Anotações"
+f_measurements = "Medidas"
+f_refs = "Imagens de referência"
+f_state = "Objetos"
+
+[scene_filter]
+all = "Todos"
+visible = "Só visíveis"
+unlocked = "Só desbloqueados"
+
+[transform]
+title = "Transform"
+position = "Posição"
+rotation = "Rotação"
+scale = "Escala"
+dimensions = "Dimensões"
+link = "Ligar eixos"
+unlink = "Desligar eixos"
+reset_origin = "Centralizar na Origem"
+relative_hint = "Rotação é relativa à malha atual."
+
+[selection]
+clear = "Limpar"
+selected = "selecionados"
+
+[geometry]
+title = "Geometria"
+
+[modifiers]
+title = "Modificadores"
+empty = "Sem modificadores na pilha."
+add = "Adicionar"
+
+[display]
+title = "Exibição"
+
+[context]
+rename = "Renomear"
+export = "Exportar..."
+show = "Mostrar na Viewport 3D"
+hide = "Ocultar na Viewport 3D"
+lock = "Bloquear Objeto"
+unlock = "Desbloquear Objeto"
+lock_tip = "Bloquear Objeto (impede transformar)"
+isolate = "Isolar Objeto"
+isolate_exit = "Restaurar Visibilidade (Sair do Isolamento)"
+delete_tip = "Apagar objeto (Delete)"
+move_to_collection = "Mover para Coleção"
+none_root = "Nenhuma (Raiz)"
+rename_collection = "Renomear Coleção"
+delete_collection = "Apagar Coleção"
+toggle_col_vis = "Alternar Visibilidade da Coleção"
+toggle_col_lock = "Alternar Bloqueio da Coleção"
+new_collection_tip = "Criar nova Coleção para organizar modelos"
+isolate_tip = "Isolar Objeto Ativo (Numpad /): Esconder todos os outros e focar no selecionado"
+isolate_tip_on = "Isolar Ativo (Numpad /): Restaurar visibilidade de todos os objetos"
+
+[density]
+label = "Densidade"
+compact = "Compacta"
+comfortable = "Confortável"
+spacious = "Espaçosa"
 
 [view]
 frame = "Enquadrar"
@@ -172,6 +286,8 @@ select_linked = "Conectados (L)"
 move = "Mover"
 scale = "Escala"
 apply_scale = "Aplicar escala"
+apply = "Aplicar"
+cancel = "Cancelar"
 revolve = "Revolver"
 angle = "Ângulo"
 duplicate = "Duplicar"
@@ -214,6 +330,7 @@ cursor_to_origin = "Cursor para origem global"
 name = "Nome"
 verts = "verts"
 faces = "tris"
+edges = "arestas"
 
 [prims]
 cube = "Cubo"
@@ -390,6 +507,7 @@ keymap = "Atalhos"
 interface = "Interface"
 import_export = "Importar / Exportar"
 show_shelf = "Barra contextual sobre a viewport"
+density = "Densidade da interface"
 reset_workspace = "Redefinir Layout do Workspace Atual"
 reset_all_layouts = "Redefinir Todos os Layouts"
 export_glb = "Exportar em GLB (desligado exporta OBJ)"

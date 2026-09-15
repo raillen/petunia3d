@@ -103,6 +103,120 @@ xray_tip = "X-Ray / Mesh transparency mode · Alt+Z"
 tri_tip = "Triangulation inspection (internal diagonals of quads/n-gons)"
 axis_lock = "Lock axis"
 axis_unlock = "Unlock axis"
+overflow = "More viewport tools"
+orientation = "Orientation"
+pivot = "Pivot Point"
+
+[toolbar]
+configure = "Configure Toolbar"
+reset = "Reset toolbar"
+columns = "Columns"
+one_column = "1 column"
+two_columns = "2 columns"
+move_up = "Move up"
+move_down = "Move down"
+visible = "Visible"
+
+[dock]
+side = "Dock side"
+left = "Left"
+right = "Right"
+orientation = "Panels layout"
+stacked = "Stacked"
+side_by_side = "Side by side"
+
+[inspector]
+add_component = "Add Component"
+go_material = "Material (open tab)"
+go_object = "Transform (open tab)"
+tool_bevel = "Bevel tool"
+tool_mirror = "Mirror tool"
+tool_subdivide = "Subdivide tool"
+tab_object = "Object"
+tab_modify = "Modify"
+tab_material = "Material"
+tab_selection = "Selection"
+search = "Search properties..."
+no_results = "No matching properties."
+tool_active = "Active Tool"
+pin = "Pin"
+unpin = "Unpin"
+pin_tip = "Pin Inspector\nKeep this object visible in the Inspector while selecting other objects."
+unpin_tip = "Unpin Inspector\nFollow the current selection again."
+
+[empty]
+scene_empty = "Scene is empty — add something:"
+no_selection = "Nothing selected"
+no_selection_hint = "Select an object to inspect its properties."
+
+[scene]
+title = "Scene"
+search = "Search objects..."
+filter = "Filter"
+reset_split = "Auto size"
+f_collections = "Collections"
+f_annotations = "Annotations"
+f_measurements = "Measurements"
+f_refs = "Reference images"
+f_state = "Objects"
+
+[scene_filter]
+all = "All"
+visible = "Visible only"
+unlocked = "Unlocked only"
+
+[transform]
+title = "Transform"
+position = "Position"
+rotation = "Rotation"
+scale = "Scale"
+dimensions = "Dimensions"
+link = "Link axes"
+unlink = "Unlink axes"
+reset_origin = "Reset to Origin"
+relative_hint = "Rotation is relative to the current mesh."
+
+[selection]
+clear = "Clear"
+selected = "selected"
+
+[geometry]
+title = "Geometry"
+
+[modifiers]
+title = "Modifiers"
+empty = "No modifiers in stack."
+add = "Add"
+
+[display]
+title = "Display"
+
+[context]
+rename = "Rename"
+export = "Export..."
+show = "Show in 3D Viewport"
+hide = "Hide in 3D Viewport"
+lock = "Lock Object"
+unlock = "Unlock Object"
+lock_tip = "Lock Object (prevents transform)"
+isolate = "Isolate Object"
+isolate_exit = "Restore Visibility (Exit Isolate)"
+delete_tip = "Delete object (Delete)"
+move_to_collection = "Move to Collection"
+none_root = "None (Root)"
+rename_collection = "Rename Collection"
+delete_collection = "Delete Collection"
+toggle_col_vis = "Toggle Collection Visibility"
+toggle_col_lock = "Toggle Collection Lock"
+new_collection_tip = "Create a new Collection to organize models"
+isolate_tip = "Isolate Active Object (Numpad /): Hide all others and focus the selected one"
+isolate_tip_on = "Isolate Active (Numpad /): Restore visibility of all objects"
+
+[density]
+label = "Density"
+compact = "Compact"
+comfortable = "Comfortable"
+spacious = "Spacious"
 
 [view]
 frame = "Frame"
@@ -172,6 +286,8 @@ select_linked = "Linked (L)"
 move = "Move"
 scale = "Scale"
 apply_scale = "Apply scale"
+apply = "Apply"
+cancel = "Cancel"
 revolve = "Revolve"
 angle = "Angle"
 duplicate = "Duplicate"
@@ -214,6 +330,7 @@ cursor_to_origin = "Cursor to World Origin"
 name = "Name"
 verts = "verts"
 faces = "tris"
+edges = "edges"
 
 [prims]
 cube = "Cube"
@@ -390,6 +507,7 @@ keymap = "Keymap"
 interface = "Interface"
 import_export = "Import / Export"
 show_shelf = "Contextual shelf over the viewport"
+density = "Interface density"
 reset_workspace = "Reset Current Workspace Layout"
 reset_all_layouts = "Reset All UI Layouts"
 export_glb = "GLB export format (off exports OBJ)"

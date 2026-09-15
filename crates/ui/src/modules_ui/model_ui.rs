@@ -218,11 +218,7 @@ fn draw_extrude(ui: &mut Ui, state: &mut AppState) {
         }
         let resp_ind = ui
             .add_enabled(reason.is_none(), egui::Button::new(l_individual))
-            .on_hover_text(
-                reason
-                    .clone()
-                    .unwrap_or_else(|| "Alt+E".to_string()),
-            );
+            .on_hover_text(reason.clone().unwrap_or_else(|| "Alt+E".to_string()));
         if resp_ind.clicked() {
             petunia_module_model::ExtrudeTool::apply_individual(state);
         }
@@ -334,11 +330,7 @@ fn draw_revolve(ui: &mut Ui, state: &mut AppState) {
         reason.is_none(),
         egui::Button::new(state.t("actions.revolve")),
     );
-    let resp = resp.on_hover_text(
-        reason
-            .clone()
-            .unwrap_or_else(|| state.t("hints.revolve")),
-    );
+    let resp = resp.on_hover_text(reason.clone().unwrap_or_else(|| state.t("hints.revolve")));
     if resp.clicked() {
         let center = state
             .project
@@ -498,19 +490,12 @@ fn draw_merge(ui: &mut Ui, state: &mut AppState) {
     ui.small(state.t("hints.merge"));
     // Merge center exige seleção.
     let center_cmd = MergeCenterCmd;
-    let center_reason = center_cmd
-        .can_execute(state)
-        .err()
-        .map(|e| e.to_string());
+    let center_reason = center_cmd.can_execute(state).err().map(|e| e.to_string());
     let resp = ui.add_enabled(
         center_reason.is_none(),
         egui::Button::new(state.t("actions.merge_center")),
     );
-    let resp = resp.on_hover_text(
-        center_reason
-            .clone()
-            .unwrap_or_else(|| "M".to_string()),
-    );
+    let resp = resp.on_hover_text(center_reason.clone().unwrap_or_else(|| "M".to_string()));
     if resp.clicked() {
         petunia_module_model::MergeTool::apply(state);
     }

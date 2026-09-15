@@ -14,14 +14,16 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **347**.
+Total de chaves de localização cadastradas: **439**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
 | `actions.amount` | Amount | Qtd |
 | `actions.angle` | Angle | Ângulo |
+| `actions.apply` | Apply | Aplicar |
 | `actions.apply_scale` | Apply scale | Aplicar escala |
 | `actions.bevel` | Bevel | Bevel |
+| `actions.cancel` | Cancel | Cancelar |
 | `actions.connect` | Bridge Faces | Conectar Faces |
 | `actions.cursor_to_origin` | Cursor to World Origin | Cursor para origem global |
 | `actions.delete` | Delete | Apagar |
@@ -100,8 +102,41 @@ Total de chaves de localização cadastradas: **347**.
 | `camera.visible_height` | Visible height | Altura visível |
 | `command_palette.no_results` | No commands found | Nenhum comando encontrado |
 | `command_palette.placeholder` | Type a command or search… | Digite um comando ou busque… |
+| `context.delete_collection` | Delete Collection | Apagar Coleção |
+| `context.delete_tip` | Delete object (Delete) | Apagar objeto (Delete) |
+| `context.export` | Export... | Exportar... |
+| `context.hide` | Hide in 3D Viewport | Ocultar na Viewport 3D |
+| `context.isolate` | Isolate Object | Isolar Objeto |
+| `context.isolate_exit` | Restore Visibility (Exit Isolate) | Restaurar Visibilidade (Sair do Isolamento) |
+| `context.isolate_tip` | Isolate Active Object (Numpad /): Hide all others and focus the selected one | Isolar Objeto Ativo (Numpad /): Esconder todos os outros e focar no selecionado |
+| `context.isolate_tip_on` | Isolate Active (Numpad /): Restore visibility of all objects | Isolar Ativo (Numpad /): Restaurar visibilidade de todos os objetos |
+| `context.lock` | Lock Object | Bloquear Objeto |
+| `context.lock_tip` | Lock Object (prevents transform) | Bloquear Objeto (impede transformar) |
+| `context.move_to_collection` | Move to Collection | Mover para Coleção |
+| `context.new_collection_tip` | Create a new Collection to organize models | Criar nova Coleção para organizar modelos |
+| `context.none_root` | None (Root) | Nenhuma (Raiz) |
+| `context.rename` | Rename | Renomear |
+| `context.rename_collection` | Rename Collection | Renomear Coleção |
+| `context.show` | Show in 3D Viewport | Mostrar na Viewport 3D |
+| `context.toggle_col_lock` | Toggle Collection Lock | Alternar Bloqueio da Coleção |
+| `context.toggle_col_vis` | Toggle Collection Visibility | Alternar Visibilidade da Coleção |
+| `context.unlock` | Unlock Object | Desbloquear Objeto |
+| `density.comfortable` | Comfortable | Confortável |
+| `density.compact` | Compact | Compacta |
+| `density.label` | Density | Densidade |
+| `density.spacious` | Spacious | Espaçosa |
+| `display.title` | Display | Exibição |
+| `dock.left` | Left | Esquerda |
+| `dock.orientation` | Panels layout | Disposição dos painéis |
+| `dock.right` | Right | Direita |
+| `dock.side` | Dock side | Lado do dock |
+| `dock.side_by_side` | Side by side | Lado a lado |
+| `dock.stacked` | Stacked | Empilhados |
 | `edit.redo` | Redo | Refazer |
 | `edit.undo` | Undo | Desfazer |
+| `empty.no_selection` | Nothing selected | Nada selecionado |
+| `empty.no_selection_hint` | Select an object to inspect its properties. | Selecione um objeto para inspecionar suas propriedades. |
+| `empty.scene_empty` | Scene is empty — add something: | Cena vazia — adicione algo: |
 | `export.empty` | nothing selected | nada selecionado |
 | `export.format` | Format | Formato |
 | `export.go` | Export… | Exportar… |
@@ -113,6 +148,7 @@ Total de chaves de localização cadastradas: **347**.
 | `file.quit` | Quit | Sair |
 | `file.save` | Save | Salvar |
 | `file.save_as` | Save as… | Salvar como… |
+| `geometry.title` | Geometry | Geometria |
 | `help.body` | MMB orbit • Shift+MMB pan • wheel zoom • Tab mode • Del delete • Home reset • H help • Ctrl+Z/Y undo | MMB orbita • Shift+MMB pan • scroll zoom • Tab modo • Del apaga • Home reseta • H ajuda • Ctrl+Z/Y desfaz |
 | `hints.bevel` | Ctrl+B: interactive bevel of one supported edge. | Ctrl+B: bevel interativo de uma aresta suportada. |
 | `hints.connect` | B: bridge two loops or faces. | B: conecta (bridge) dois loops ou faces. |
@@ -131,6 +167,23 @@ Total de chaves de localização cadastradas: **347**.
 | `hints.subdivide` | W: subdivide (loop cut). Triangulate below. | W: subdivide (loop cut). Triangular abaixo. |
 | `hints.symmetrize` | Alt+M: copy one side across the axis and weld the seam. | Alt+M: copia um lado para o outro no eixo e solda a costura. |
 | `hints.transform` | G/R/S: move, rotate, scale with mouse. Enter applies; Esc cancels. | G/R/S: mover, rotacionar, escalar com mouse. Enter aplica; Esc cancela. |
+| `inspector.add_component` | Add Component | Adicionar Componente |
+| `inspector.go_material` | Material (open tab) | Material (abrir aba) |
+| `inspector.go_object` | Transform (open tab) | Transform (abrir aba) |
+| `inspector.no_results` | No matching properties. | Nenhuma propriedade correspondente. |
+| `inspector.pin` | Pin | Fixar |
+| `inspector.pin_tip` | Pin Inspector Keep this object visible in the Inspector while selecting other objects. | Fixar Inspector Mantém este objeto visível no Inspector ao selecionar outros objetos. |
+| `inspector.search` | Search properties... | Buscar propriedades... |
+| `inspector.tab_material` | Material | Material |
+| `inspector.tab_modify` | Modify | Modificar |
+| `inspector.tab_object` | Object | Objeto |
+| `inspector.tab_selection` | Selection | Seleção |
+| `inspector.tool_active` | Active Tool | Ferramenta Ativa |
+| `inspector.tool_bevel` | Bevel tool | Ferramenta Bevel |
+| `inspector.tool_mirror` | Mirror tool | Ferramenta Mirror |
+| `inspector.tool_subdivide` | Subdivide tool | Ferramenta Subdivide |
+| `inspector.unpin` | Unpin | Soltar |
+| `inspector.unpin_tip` | Unpin Inspector Follow the current selection again. | Soltar Inspector Volta a seguir a seleção atual. |
 | `keymap.capture` | capture… | capturar… |
 | `keymap.unsupported_key` | Key not supported by the keymap | Tecla não suportada pelo keymap |
 | `menu.command_palette` | Command Palette | Paleta de Comandos |
@@ -147,6 +200,9 @@ Total de chaves de localização cadastradas: **347**.
 | `modes.object` | Object | Objeto |
 | `modes.paint` | Texture Paint | Pintura |
 | `modes.vertex` | Vertex | Vértice |
+| `modifiers.add` | Add | Adicionar |
+| `modifiers.empty` | No modifiers in stack. | Sem modificadores na pilha. |
+| `modifiers.title` | Modifiers | Modificadores |
 | `paint.brush` | Brush | Pincel |
 | `paint.canvas` | Albedo canvas | Canvas albedo |
 | `paint.canvas_hint` | Drag to paint. Ctrl+drag erases. Wheel over UV scales it. | Arraste p/ pintar. Ctrl+arraste apaga. Scroll no UV escala. |
@@ -231,6 +287,7 @@ Total de chaves de localização cadastradas: **347**.
 | `profile.snap` | Snap 0.25 | Snap 0.25 |
 | `profile.tris` | tris | tris |
 | `profile.undo_pt` | Undo pt | Desfaz pt |
+| `props.edges` | edges | arestas |
 | `props.faces` | tris | tris |
 | `props.name` | Name | Nome |
 | `props.verts` | verts | verts |
@@ -264,7 +321,22 @@ Total de chaves de localização cadastradas: **347**.
 | `refs.top` | Top | Topo |
 | `refs.visible` | Visible | Visível |
 | `refs.xray` | X-Ray / Overlay | Raio-X / Sobrepor |
+| `scene.f_annotations` | Annotations | Anotações |
+| `scene.f_collections` | Collections | Coleções |
+| `scene.f_measurements` | Measurements | Medidas |
+| `scene.f_refs` | Reference images | Imagens de referência |
+| `scene.f_state` | Objects | Objetos |
+| `scene.filter` | Filter | Filtro |
+| `scene.reset_split` | Auto size | Tamanho automático |
+| `scene.search` | Search objects... | Buscar objetos... |
+| `scene.title` | Scene | Cena |
+| `scene_filter.all` | All | Todos |
+| `scene_filter.unlocked` | Unlocked only | Só desbloqueados |
+| `scene_filter.visible` | Visible only | Só visíveis |
+| `selection.clear` | Clear | Limpar |
+| `selection.selected` | selected | selecionados |
 | `settings.appearance` | Appearance | Aparência |
+| `settings.density` | Interface density | Densidade da interface |
 | `settings.export_glb` | GLB export format (off exports OBJ) | Exportar em GLB (desligado exporta OBJ) |
 | `settings.export_glb_hint` | Default format for the export dialog | Formato padrão do diálogo de exportação |
 | `settings.icons` | Icons | Ícones |
@@ -285,6 +357,14 @@ Total de chaves de localização cadastradas: **347**.
 | `shading.tip_wireframe` | Wireframe (Z 4) | Arame (Z 4) |
 | `shading.unlit` | Unlit | Sem Luz |
 | `shading.wire` | Wireframe | Arame |
+| `toolbar.columns` | Columns | Colunas |
+| `toolbar.configure` | Configure Toolbar | Configurar Barra |
+| `toolbar.move_down` | Move down | Descer |
+| `toolbar.move_up` | Move up | Subir |
+| `toolbar.one_column` | 1 column | 1 coluna |
+| `toolbar.reset` | Reset toolbar | Redefinir barra |
+| `toolbar.two_columns` | 2 columns | 2 colunas |
+| `toolbar.visible` | Visible | Visível |
 | `tools.add_primitive` | Add Primitive | Adicionar primitiva |
 | `tools.annotate` | Annotate | Anotar |
 | `tools.bevel` | Bevel | Bevel |
@@ -320,6 +400,15 @@ Total de chaves de localização cadastradas: **347**.
 | `tools.uv_seam` | Seam | Costura |
 | `tools.uv_select` | UV Select | Seleção UV |
 | `tools.uv_unwrap` | Unwrap | Desdobrar |
+| `transform.dimensions` | Dimensions | Dimensões |
+| `transform.link` | Link axes | Ligar eixos |
+| `transform.position` | Position | Posição |
+| `transform.relative_hint` | Rotation is relative to the current mesh. | Rotação é relativa à malha atual. |
+| `transform.reset_origin` | Reset to Origin | Centralizar na Origem |
+| `transform.rotation` | Rotation | Rotação |
+| `transform.scale` | Scale | Escala |
+| `transform.title` | Transform | Transform |
+| `transform.unlink` | Unlink axes | Desligar eixos |
 | `ui.active_tool` | Active tool | Ferramenta ativa |
 | `ui.assets` | Asset Library | Assets |
 | `ui.at_3d_cursor` | at 3D Cursor | no Cursor 3D |
@@ -355,7 +444,10 @@ Total de chaves de localização cadastradas: **347**.
 | `view.frame_all` | Frame All | Enquadrar tudo |
 | `viewport.axis_lock` | Lock axis | Travar eixo |
 | `viewport.axis_unlock` | Unlock axis | Destravar eixo |
+| `viewport.orientation` | Orientation | Orientação |
+| `viewport.overflow` | More viewport tools | Mais ferramentas da viewport |
 | `viewport.overlays_tip` | Toggle Overlays display | Alternar exibição de Overlays |
+| `viewport.pivot` | Pivot Point | Ponto de Pivô |
 | `viewport.prop_tip` | Proportional Editing · O | Edição Proporcional · O |
 | `viewport.snap_tip` | Magnetic Snapping · Shift+Tab | Snapping Magnético · Shift+Tab |
 | `viewport.tri_tip` | Triangulation inspection (internal diagonals of quads/n-gons) | Inspeção de triangulação (diagonais internas de quads/n-gons) |

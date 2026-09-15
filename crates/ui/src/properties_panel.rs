@@ -2,55 +2,983 @@
 //! Contém a barra vertical de abas canônicas (Tool, Render, Output, Object, Modifiers, Data, Material)
 //! e formulários sanfonados com fidelidade estética ao Blender.svg.
 
-use egui::{Color32, ScrollArea, Ui, vec2};
+use egui::{Color32, RichText, ScrollArea, Ui, vec2};
 use petunia_core::{
-    AppState, DeleteSelectionCmd, DuplicateSelectionCmd, ModuleRegistry, Workspace,
+    AppState, ClearSelectionCmd, DuplicateSelectionCmd, InvertSelectionCmd, ModuleRegistry,
+    PrimitiveKind, SelectAllCmd, SelectLinkedCmd, Workspace,
 };
 use petunia_module_model::ToolRegistry;
 use petunia_project::{AlphaMode, Material, ShaderProfile};
 use uuid::Uuid;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
+use crate::inspector_context::{
+    InspectorContext, InspectorTab, inspected_asset_idx, pinned_asset_idx, toggle_pin,
+};
+use crate::inspector_widgets::{self};
 use crate::tokens;
 use crate::tool_fields;
-use crate::widgets::{self, PetuniaPropertyTabButton};
+use crate::widgets::{self};
 
-/// Renderiza o painel de propriedades completo com abas e seções sanfonadas.
+/// Renderiza o painel de propriedades: barra de contexto + inspector
+/// contextual (abas textuais por contexto, sem rail de ícones).
 pub fn draw(
     ui: &mut Ui,
     state: &mut AppState,
-    tools: &ToolRegistry,
+    _tools: &ToolRegistry,
     _registry: &mut ModuleRegistry,
 ) {
     puffin::profile_function!();
-    // 1. Barra de abas de propriedades (Tool, Render, Object, Modifiers, etc.)
-    draw_property_tabs(ui, state);
+    let context = InspectorContext::resolve(state);
+    match &context {
+        InspectorContext::Annotation(id) => {
+            draw_tab_annotation(ui, state, *id);
+            return;
+        }
+        InspectorContext::Measurement(id) => {
+            draw_tab_measurement(ui, state, *id);
+            return;
+        }
+        _ => {}
+    }
+    if state.workspace != Workspace::Model {
+        draw_workspace_inspector(ui, state);
+        return;
+    }
+    // Barra do objeto ativo (contexto acima das abas, em toda aba).
+    // Mesh: inspecionado (fixado ou ativo). Componentes: sempre o ativo
+    // (a seleção vive na malha ativa; pin não desvia ferramenta).
+    let bar_idx = match &context {
+        InspectorContext::ComponentSelection { .. } => {
+            (!state.project.assets.is_empty()).then(|| {
+                state
+                    .project
+                    .active
+                    .min(state.project.assets.len().saturating_sub(1))
+            })
+        }
+        _ => inspected_asset_idx(state),
+    };
+    draw_object_bar(ui, state, bar_idx);
+    if state.ui.inspector_collapsed {
+        return;
+    }
+    if state.ui.inspector_search_open {
+        ui.add_space(2.0);
+        let search_hint = state.t("inspector.search");
+        let close_tip = state.t("ui.close");
+        ui.horizontal(|ui| {
+            widgets::petunia_search_box(ui, &mut state.ui.inspector_search, &search_hint);
+            if widgets::PetuniaIconButton::new(PetuniaIcon::Close, &close_tip, 20.0)
+                .show(ui)
+                .clicked()
+            {
+                state.ui.inspector_search_open = false;
+                state.ui.inspector_search.clear();
+                state.mark_dirty();
+            }
+        });
+    }
+    ui.add_space(2.0);
+    draw_model_inspector(ui, state, &context);
+}
 
-    ui.separator();
+/// Barra do objeto ativo: colapso + ícone + nome editável + busca + pin +
+/// olho + cadeado.
+///
+/// Substitui a linha de identidade dentro da aba Object (uma fonte única,
+/// visível em qualquer aba, como o cabeçalho do Properties do Blender).
+/// Opera sobre `idx` explícito (inspecionado ou ativo, conforme o contexto).
+fn draw_object_bar(ui: &mut Ui, state: &mut AppState, idx: Option<usize>) {
+    let collapsed = state.ui.inspector_collapsed;
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+        let tip = state.t(if collapsed {
+            "ui.expand"
+        } else {
+            "ui.collapse"
+        });
+        if widgets::chevron_toggle(ui, &tip, !collapsed).clicked() {
+            state.ui.inspector_collapsed = !collapsed;
+            state.mark_dirty();
+        }
+        let (icon_rect, icon_resp) = ui.allocate_exact_size(vec2(14.0, 14.0), egui::Sense::hover());
+        IconRegistry::paint(
+            ui.ctx(),
+            ui.painter(),
+            &PetuniaIcon::ObjectMesh,
+            icon_rect,
+            tokens::ACCENT_BLUE,
+        );
+        if state.project.assets.is_empty() {
+            ui.label(
+                RichText::new(state.t("empty.scene_empty"))
+                    .size(11.0)
+                    .color(tokens::TEXT_MUTED),
+            );
+            return;
+        }
+        // Opera sobre o inspecionado (fixado ou ativo): a barra é o contexto.
+        let idx = idx.filter(|i| *i < state.project.assets.len()).unwrap_or(0);
+        if let Some(asset) = state.project.assets.get(idx) {
+            icon_resp.on_hover_text(format!(
+                "Mesh · {} {} · {} {}",
+                asset.mesh.vert_count(),
+                state.t("props.verts"),
+                asset.mesh.tri_count(),
+                state.t("props.faces")
+            ));
+        }
+        let asset_id = state.project.assets[idx].id;
+        let visible = state.project.assets[idx].visible;
+        let locked = state.project.assets[idx].locked;
 
-    // 2. Área principal com os controles da aba selecionada
+        // Buffer de rename por asset (vazio + dica: sem armadilha de anexar).
+        let id_key = egui::Id::new("petunia_rename_asset_id");
+        let buf_key = egui::Id::new("petunia_rename_asset_buf");
+        let mut buf = ui.ctx().data_mut(|d| {
+            let cur = d.get_temp::<String>(id_key).unwrap_or_default();
+            if cur == asset_id.to_string() {
+                d.get_temp::<String>(buf_key).unwrap_or_default()
+            } else {
+                String::new()
+            }
+        });
+        let edit_w = (ui.available_width() - 108.0).max(60.0);
+        let resp = ui.add_sized(
+            vec2(edit_w, 20.0),
+            egui::TextEdit::singleline(&mut buf).hint_text(state.project.assets[idx].name.clone()),
+        );
+        ui.ctx().data_mut(|d| {
+            d.insert_temp(id_key, asset_id.to_string());
+            d.insert_temp(buf_key, buf.clone());
+        });
+        let commit = resp.lost_focus()
+            || (resp.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)));
+        if commit {
+            let new = buf.trim().to_string();
+            if !new.is_empty() && new != state.project.assets[idx].name {
+                state.checkpoint("rename object");
+                if let Some(a) = state.project.assets.iter_mut().find(|a| a.id == asset_id) {
+                    a.name = new;
+                }
+            }
+        }
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let lock_tip = state.t(if locked {
+                "context.unlock"
+            } else {
+                "context.lock_tip"
+            });
+            let lock_icon = if locked {
+                PetuniaIcon::Lock
+            } else {
+                PetuniaIcon::Unlock
+            };
+            if widgets::PetuniaIconButton::new(lock_icon, &lock_tip, 20.0)
+                .show(ui)
+                .clicked()
+            {
+                if let Some(a) = state.project.assets.get_mut(idx) {
+                    a.locked = !locked;
+                }
+                state.mark_dirty();
+            }
+            let eye_tip = state.t(if visible {
+                "context.hide"
+            } else {
+                "context.show"
+            });
+            let eye_icon = if visible {
+                PetuniaIcon::Eye
+            } else {
+                PetuniaIcon::EyeHidden
+            };
+            if widgets::PetuniaIconButton::new(eye_icon, &eye_tip, 20.0)
+                .show(ui)
+                .clicked()
+            {
+                if let Some(a) = state.project.assets.get_mut(idx) {
+                    a.visible = !visible;
+                }
+                state.mark_dirty();
+            }
+            // Pin: fixa o inspecionado (óbvio: preenchido + tooltip explicativa).
+            let pinned = pinned_asset_idx(state) == Some(idx);
+            if widgets::PetuniaIconButton::new(
+                PetuniaIcon::Pin,
+                &state.t(if pinned {
+                    "inspector.unpin_tip"
+                } else {
+                    "inspector.pin_tip"
+                }),
+                20.0,
+            )
+            .selected(pinned)
+            .show(ui)
+            .clicked()
+            {
+                toggle_pin(state);
+            }
+            // Busca de propriedades (revelação progressiva).
+            if widgets::PetuniaIconButton::new(
+                PetuniaIcon::Search,
+                &state.t("inspector.search"),
+                20.0,
+            )
+            .selected(state.ui.inspector_search_open)
+            .show(ui)
+            .clicked()
+            {
+                state.ui.inspector_search_open = !state.ui.inspector_search_open;
+                if !state.ui.inspector_search_open {
+                    state.ui.inspector_search.clear();
+                }
+                state.mark_dirty();
+            }
+        });
+    });
+}
+
+/// Aba Object: Transform + Geometry + Modifiers + Display (+ refs).
+fn draw_object_sections(ui: &mut Ui, state: &mut AppState) {
+    let gap = inspector_widgets::section_gap(state.ui.density);
+    let idx = inspected_asset_idx(state);
+    draw_transform_section(ui, state, idx, false);
+    ui.add_space(gap);
+    draw_geometry_section(ui, state, idx, false);
+    ui.add_space(gap);
+    draw_modifiers_section(ui, state, false);
+    ui.add_space(gap);
+    draw_display_section(ui, state, idx, false);
+    if !state.project.refs.is_empty() {
+        ui.add_space(gap);
+        crate::refs_section(ui, state);
+    }
+}
+
+/// Limites da malha (todas as verts: dimensões do objeto).
+fn mesh_bounds(verts: &[petunia_mesh::Vertex]) -> ([f32; 3], [f32; 3]) {
+    let mut min = [f32::INFINITY; 3];
+    let mut max = [f32::NEG_INFINITY; 3];
+    for v in verts {
+        for a in 0..3 {
+            min[a] = min[a].min(v.pos[a]);
+            max[a] = max[a].max(v.pos[a]);
+        }
+    }
+    if !min[0].is_finite() {
+        min = [0.0; 3];
+        max = [0.0; 3];
+    }
+    (min, max)
+}
+
+/// Seção Transform redesenhada: Position absoluta, Rotation relativa com
+/// rascunho, Scale por eixo com link, Dimensions absolutas — tudo com undo
+/// por sessão de edição (1 nível por gesto) e layout pela largura real.
+fn draw_transform_section(ui: &mut Ui, state: &mut AppState, idx: Option<usize>, force_open: bool) {
+    let Some(idx) = idx.filter(|i| state.project.assets.len() > *i) else {
+        return;
+    };
+    let axis_names = ["X", "Y", "Z"];
+    let axis_colors = [tokens::AXIS_X, tokens::AXIS_Y, tokens::AXIS_Z];
+    let section_title = state.t("transform.title");
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "transform",
+        inspector_widgets::SectionOpts {
+            title: &section_title,
+            summary: None,
+            default_open: true,
+            force_open,
+        },
+        |ui| {
+            // --- Position (absoluta: centróide da seleção ou malha).
+            ui.label(
+                RichText::new(state.t("transform.position"))
+                    .strong()
+                    .size(11.0),
+            );
+            let center = state
+                .project
+                .assets
+                .get(idx)
+                .map(|a| a.mesh.selection_center())
+                .unwrap_or([0.0; 3]);
+            let mut edit = center;
+            let pos_opts = inspector_widgets::NumericOpts::plain(0.05, 3);
+            let ev = inspector_widgets::Vector3Field {
+                axis_names,
+                axis_colors,
+                values: &mut edit,
+                opts: pos_opts,
+                session_key: "tx_pos",
+                undo_label: "move object",
+            }
+            .show(ui, state);
+            if ev.changed[0] || ev.changed[1] || ev.changed[2] {
+                let delta = [
+                    edit[0] - center[0],
+                    edit[1] - center[1],
+                    edit[2] - center[2],
+                ];
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    asset.mesh.translate_selected(delta);
+                }
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+
+            ui.add_space(4.0);
+
+            // --- Rotation (relativa: rascunho acumulador, sem TRS no modelo).
+            ui.label(
+                RichText::new(state.t("transform.rotation"))
+                    .strong()
+                    .size(11.0),
+            );
+            ui.small(state.t("transform.relative_hint"));
+            let mut scratch = state.transform_rotation;
+            let prev_rot = scratch;
+            let rot_opts = inspector_widgets::NumericOpts {
+                speed: 1.0,
+                decimals: 1,
+                suffix: "°",
+                min: -3600.0,
+                max: 3600.0,
+            };
+            let ev = inspector_widgets::Vector3Field {
+                axis_names,
+                axis_colors,
+                values: &mut scratch,
+                opts: rot_opts,
+                session_key: "tx_rot",
+                undo_label: "rotate object",
+            }
+            .show(ui, state);
+            if ev.changed[0] || ev.changed[1] || ev.changed[2] {
+                let delta_deg = [
+                    scratch[0] - prev_rot[0],
+                    scratch[1] - prev_rot[1],
+                    scratch[2] - prev_rot[2],
+                ];
+                let center = state
+                    .project
+                    .assets
+                    .get(idx)
+                    .map(|a| a.mesh.selection_center())
+                    .unwrap_or([0.0; 3]);
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    asset.mesh.rotate_selected(
+                        [
+                            delta_deg[0].to_radians(),
+                            delta_deg[1].to_radians(),
+                            delta_deg[2].to_radians(),
+                        ],
+                        center,
+                    );
+                }
+                state.transform_rotation = scratch;
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+
+            ui.add_space(4.0);
+
+            // --- Scale (por eixo + link) + Dimensions (bbox absoluta).
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(state.t("transform.scale"))
+                        .strong()
+                        .size(11.0),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let linked = state.scale_linked;
+                    if widgets::PetuniaIconButton::new(
+                        if linked {
+                            PetuniaIcon::Lock
+                        } else {
+                            PetuniaIcon::Unlock
+                        },
+                        &state.t(if linked {
+                            "transform.unlink"
+                        } else {
+                            "transform.link"
+                        }),
+                        20.0,
+                    )
+                    .selected(linked)
+                    .show(ui)
+                    .clicked()
+                    {
+                        state.scale_linked = !linked;
+                        state.mark_dirty();
+                    }
+                });
+            });
+            let mut factors = state.scale_factors;
+            let prev_factors = factors;
+            let scale_opts = inspector_widgets::NumericOpts {
+                speed: 0.01,
+                decimals: 3,
+                suffix: "",
+                min: 0.01,
+                max: 100.0,
+            };
+            let ev = inspector_widgets::Vector3Field {
+                axis_names,
+                axis_colors,
+                values: &mut factors,
+                opts: scale_opts,
+                session_key: "tx_scale",
+                undo_label: "scale object",
+            }
+            .show(ui, state);
+            if ev.changed[0] || ev.changed[1] || ev.changed[2] {
+                let center = state
+                    .project
+                    .assets
+                    .get(idx)
+                    .map(|a| a.mesh.selection_center())
+                    .unwrap_or([0.0; 3]);
+                // Eixo editado (primeiro com mudança) vira referência.
+                let edited = ev.changed.iter().position(|c| *c).unwrap_or(0);
+                let ratio_of = |new_v: f32, old_v: f32| {
+                    if old_v.abs() < 1e-6 {
+                        new_v
+                    } else {
+                        new_v / old_v
+                    }
+                };
+                if state.scale_linked {
+                    let ratio = ratio_of(factors[edited], prev_factors[edited]);
+                    if let Some(asset) = state.project.assets.get_mut(idx) {
+                        asset
+                            .mesh
+                            .scale_selected_factors([ratio, ratio, ratio], center);
+                    }
+                    factors = [factors[edited], factors[edited], factors[edited]];
+                } else {
+                    let ratios = [
+                        ratio_of(factors[0], prev_factors[0]),
+                        ratio_of(factors[1], prev_factors[1]),
+                        ratio_of(factors[2], prev_factors[2]),
+                    ];
+                    if let Some(asset) = state.project.assets.get_mut(idx) {
+                        asset.mesh.scale_selected_factors(ratios, center);
+                    }
+                }
+                state.scale_factors = factors;
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+
+            ui.add_space(2.0);
+            ui.label(
+                RichText::new(state.t("transform.dimensions"))
+                    .strong()
+                    .size(11.0),
+            );
+            let (dims, center) = match state.project.assets.get(idx) {
+                Some(asset) => {
+                    let (min, max) = mesh_bounds(&asset.mesh.verts);
+                    (
+                        [max[0] - min[0], max[1] - min[1], max[2] - min[2]],
+                        asset.mesh.selection_center(),
+                    )
+                }
+                None => ([0.0; 3], [0.0; 3]),
+            };
+            let mut edit_dims = dims;
+            let dims_opts = inspector_widgets::NumericOpts {
+                speed: 0.05,
+                decimals: 3,
+                suffix: "",
+                min: 0.001,
+                max: f32::INFINITY,
+            };
+            let ev = inspector_widgets::Vector3Field {
+                axis_names,
+                axis_colors,
+                values: &mut edit_dims,
+                opts: dims_opts,
+                session_key: "tx_dims",
+                undo_label: "resize object",
+            }
+            .show(ui, state);
+            if ev.changed[0] || ev.changed[1] || ev.changed[2] {
+                let ratios = [
+                    if dims[0].abs() < 1e-6 {
+                        1.0
+                    } else {
+                        edit_dims[0] / dims[0]
+                    },
+                    if dims[1].abs() < 1e-6 {
+                        1.0
+                    } else {
+                        edit_dims[1] / dims[1]
+                    },
+                    if dims[2].abs() < 1e-6 {
+                        1.0
+                    } else {
+                        edit_dims[2] / dims[2]
+                    },
+                ];
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    asset.mesh.scale_selected_factors(ratios, center);
+                }
+                state.emit_mesh_changed();
+                state.mark_dirty();
+            }
+
+            ui.add_space(4.0);
+            ui.horizontal_wrapped(|ui| {
+                if widgets::petunia_action_button(
+                    ui,
+                    Some(PetuniaIcon::Transform),
+                    &state.t("transform.reset_origin"),
+                    false,
+                )
+                .clicked()
+                {
+                    state.checkpoint("reset transform to origin");
+                    if let Some(asset) = state.project.assets.get_mut(idx) {
+                        let center = asset.mesh.selection_center();
+                        for v in &mut asset.mesh.verts {
+                            v.pos[0] -= center[0];
+                            v.pos[1] -= center[1];
+                            v.pos[2] -= center[2];
+                        }
+                    }
+                    state.emit_mesh_changed();
+                    state.mark_dirty();
+                }
+                if widgets::petunia_action_button(
+                    ui,
+                    Some(PetuniaIcon::Duplicate),
+                    &state.t("actions.duplicate"),
+                    false,
+                )
+                .clicked()
+                {
+                    let _ = state.dispatch(&DuplicateSelectionCmd);
+                }
+            });
+        },
+    );
+}
+
+/// Seção Geometry: resumo sempre visível (colapsada mostra contagens).
+fn draw_geometry_section(ui: &mut Ui, state: &mut AppState, idx: Option<usize>, force_open: bool) {
+    let summary = idx.and_then(|i| state.project.assets.get(i)).map(|a| {
+        format!(
+            "{} {} · {} {}",
+            a.mesh.vert_count(),
+            state.t("props.verts"),
+            a.mesh.tri_count(),
+            state.t("props.faces")
+        )
+    });
+    let section_title = state.t("geometry.title");
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "geometry",
+        inspector_widgets::SectionOpts {
+            title: &section_title,
+            summary: summary.as_deref(),
+            default_open: false,
+            force_open,
+        },
+        |ui| {
+            if let Some(i) = idx
+                && let Some(mesh) = state.project.assets.get(i).map(|a| &a.mesh)
+            {
+                ui.label(format!("{}: {}", state.t("props.verts"), mesh.vert_count()));
+                ui.label(format!("{}: {}", state.t("props.faces"), mesh.faces.len()));
+                ui.label(format!("Tris: {}", mesh.tri_count()));
+            }
+        },
+    );
+}
+
+/// Seção Modifiers: pilha real quando existir; hoje, vazio honesto + atalhos
+/// que armam ferramentas existentes (navegação, sem controle fake).
+fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
+    let section_title = state.t("modifiers.title");
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "modifiers",
+        inspector_widgets::SectionOpts {
+            title: &section_title,
+            summary: None,
+            default_open: false,
+            force_open,
+        },
+        |ui| {
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(state.t("modifiers.empty"))
+                        .size(11.0)
+                        .color(tokens::TEXT_MUTED),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let add_label = state.t("modifiers.add");
+                    widgets::PetuniaMenuButton::new(&add_label).show(ui, |ui| {
+                        for (label_key, tool) in [
+                            ("inspector.tool_bevel", "bevel"),
+                            ("inspector.tool_mirror", "mirror"),
+                            ("inspector.tool_subdivide", "subdivide"),
+                        ] {
+                            if widgets::PetuniaMenuItem::new(&state.t(label_key))
+                                .show(ui)
+                                .clicked()
+                            {
+                                state.active_tool = tool.into();
+                                state.pending_modal = None;
+                                state.mark_dirty();
+                                ui.close();
+                            }
+                        }
+                    });
+                });
+            });
+        },
+    );
+}
+
+/// Seção Display: visibilidade + bloqueio (mesma semântica do outliner).
+fn draw_display_section(ui: &mut Ui, state: &mut AppState, idx: Option<usize>, force_open: bool) {
+    let Some(idx) = idx.filter(|i| state.project.assets.len() > *i) else {
+        return;
+    };
+    let section_title = state.t("display.title");
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "display",
+        inspector_widgets::SectionOpts {
+            title: &section_title,
+            summary: None,
+            default_open: false,
+            force_open,
+        },
+        |ui| {
+            let mut visible = state.project.assets[idx].visible;
+            if ui.checkbox(&mut visible, state.t("refs.visible")).changed() {
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    asset.visible = visible;
+                }
+                state.mark_dirty();
+            }
+            let mut locked = state.project.assets[idx].locked;
+            if ui.checkbox(&mut locked, state.t("refs.lock")).changed() {
+                if let Some(asset) = state.project.assets.get_mut(idx) {
+                    asset.locked = locked;
+                }
+                state.mark_dirty();
+            }
+        },
+    );
+}
+
+/// Aba Selection: contagens + operações de seleção + Transform do alvo.
+fn draw_selection_tab(ui: &mut Ui, state: &mut AppState) {
+    let (sv, se, sf) = (
+        state.selection.verts.len(),
+        state.selection.edges.len(),
+        state.selection.faces.len(),
+    );
+    if sv + se + sf == 0 {
+        ui.label(
+            RichText::new(state.t("empty.no_selection"))
+                .size(11.0)
+                .color(tokens::TEXT_MUTED),
+        );
+        ui.small(state.t("empty.no_selection_hint"));
+        return;
+    }
+    ui.label(
+        RichText::new(format!(
+            "{sv} {} · {se} {} · {sf} {} {}",
+            state.t("props.verts"),
+            "edges",
+            state.t("props.faces"),
+            state.t("selection.selected")
+        ))
+        .size(11.5)
+        .strong(),
+    );
+    ui.add_space(4.0);
+    ui.horizontal_wrapped(|ui| {
+        if ui.button(state.t("actions.select_all")).clicked() {
+            let _ = state.dispatch(&SelectAllCmd);
+        }
+        if ui.button(state.t("actions.invert")).clicked() {
+            let _ = state.dispatch(&InvertSelectionCmd);
+        }
+        if ui.button(state.t("selection.clear")).clicked() {
+            let _ = state.dispatch(&ClearSelectionCmd);
+        }
+        if ui.button(state.t("actions.select_linked")).clicked() {
+            let _ = state.dispatch(&SelectLinkedCmd);
+        }
+    });
+    ui.add_space(4.0);
+    let idx = (!state.project.assets.is_empty()).then(|| {
+        state
+            .project
+            .active
+            .min(state.project.assets.len().saturating_sub(1))
+    });
+    draw_transform_section(ui, state, idx, false);
+}
+
+/// Aba Modify: bloco da operação ativa (temporário) + parâmetros da ferramenta.
+fn draw_modify_tab(ui: &mut Ui, state: &mut AppState) {
+    // Bloco da operação modal ativa: some ao confirmar/cancelar.
+    if state.modal.is_some() {
+        let title = state
+            .modal
+            .as_ref()
+            .map(|modal| modal.kind.label().to_string())
+            .unwrap_or_else(|| state.t("inspector.tool_active"));
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(&title).strong().size(12.0));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if widgets::petunia_action_button(ui, None, &state.t("actions.apply"), false)
+                    .clicked()
+                {
+                    state.commit_modal();
+                }
+                if widgets::petunia_action_button(ui, None, &state.t("actions.cancel"), false)
+                    .clicked()
+                {
+                    state.cancel_modal();
+                }
+            });
+        });
+        tool_fields::draw(ui, state);
+        ui.add_space(4.0);
+        ui.separator();
+        ui.add_space(4.0);
+    }
+    draw_modify_tool_panel(ui, state, false);
+}
+
+/// Parâmetros da ferramenta ativa (contextuais por ferramenta/modo).
+fn draw_modify_tool_panel(ui: &mut Ui, state: &mut AppState, force_open: bool) {
+    let active_id = state.active_tool.clone();
+    let label = state.t(&format!("tools.{active_id}"));
+    let title = if label == format!("tools.{active_id}") {
+        active_id.clone()
+    } else {
+        label
+    };
+    let section_title = title;
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "modify_tool",
+        inspector_widgets::SectionOpts {
+            title: &section_title,
+            summary: None,
+            default_open: true,
+            force_open,
+        },
+        |ui| {
+            crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active_id);
+        },
+    );
+}
+
+/// Cena vazia: atalhos reais de criação (operam de imediato).
+pub(crate) fn draw_quick_add(ui: &mut Ui, state: &mut AppState) {
+    ui.label(
+        RichText::new(state.t("empty.scene_empty"))
+            .strong()
+            .size(12.0)
+            .color(tokens::TEXT_PRIMARY),
+    );
+    ui.add_space(4.0);
+    ui.horizontal_wrapped(|ui| {
+        for (label_key, kind) in [
+            ("prims.cube", PrimitiveKind::Cube),
+            ("prims.sphere", PrimitiveKind::Sphere),
+            ("prims.plane", PrimitiveKind::Plane),
+        ] {
+            if ui.button(state.t(label_key)).clicked() {
+                state.begin_primitive(kind, None);
+            }
+        }
+        if ui.button(state.t("file.import_obj")).clicked() {
+            crate::import_obj_dialog(state);
+        }
+    });
+}
+
+/// Conteúdo rolável do inspector no workspace Model (contextual).
+fn draw_model_inspector(ui: &mut Ui, state: &mut AppState, context: &InspectorContext) {
     ScrollArea::vertical()
         .id_salt("properties_content_scroll")
         .auto_shrink([true, false])
         .show(ui, |ui| {
-            let fields = state.workspace == Workspace::Model && tool_fields::draw(ui, state);
-            if fields && state.active_tool == "transform" {
-                ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                    ui.horizontal_wrapped(|ui| {
-                        if ui.button(state.t("actions.duplicate")).clicked() {
-                            let _ = state.dispatch(&DuplicateSelectionCmd);
-                        }
-                        if ui.button(state.t("actions.delete")).clicked() {
-                            let _ = state.dispatch(&DeleteSelectionCmd);
-                        }
-                    });
-                });
-            }
+            ui.add_enabled_ui(!state.is_interacting(), |ui| {
+                match context {
+                    InspectorContext::EmptyScene => draw_empty_scene_inspector(ui, state),
+                    InspectorContext::MeshObject { .. }
+                    | InspectorContext::ComponentSelection { .. } => {
+                        draw_context_inspector(ui, state, context)
+                    }
+                    InspectorContext::Annotation(_) | InspectorContext::Measurement(_) => {}
+                }
 
+                if state.ui.show_help {
+                    ui.add_space(4.0);
+                    egui::CollapsingHeader::new(state.t("ui.help"))
+                        .default_open(false)
+                        .show(ui, |ui| {
+                            #[cfg(feature = "help-markdown")]
+                            crate::help_markdown::render_help(ui, &state.t("help.body"));
+                            #[cfg(not(feature = "help-markdown"))]
+                            ui.label(state.t("help.body"));
+                        });
+                }
+            });
+        });
+}
+
+/// Cena vazia: resumo real + atalhos de criação.
+fn draw_empty_scene_inspector(ui: &mut Ui, state: &mut AppState) {
+    inspector_widgets::block_header(ui, PetuniaIcon::Collection, &state.t("scene.title"));
+    ui.add_space(4.0);
+    ui.label(
+        RichText::new(format!(
+            "{}: {}",
+            state.t("props.faces"),
+            state.scene_tris()
+        ))
+        .size(11.0)
+        .color(tokens::TEXT_SECONDARY),
+    );
+    ui.add_space(4.0);
+    draw_quick_add(ui, state);
+}
+
+/// Inspector do contexto com abas textuais (ou lista plana na busca).
+fn draw_context_inspector(ui: &mut Ui, state: &mut AppState, context: &InspectorContext) {
+    let query = state.ui.inspector_search.trim().to_lowercase();
+    if !query.is_empty() {
+        draw_inspector_search_results(ui, state, context, &query);
+        return;
+    }
+
+    let tabs: Vec<(InspectorTab, String)> = context
+        .tabs()
+        .iter()
+        .map(|tab| (*tab, state.t(tab.key())))
+        .collect();
+    let default_tab = context.default_tab().unwrap_or(InspectorTab::Object);
+    let active_tab = context
+        .sanitize_tab(&state.ui.properties_tab.clone())
+        .unwrap_or(default_tab);
+    if InspectorTab::from_id(&state.ui.properties_tab) != Some(active_tab) {
+        state.ui.properties_tab = active_tab.id().to_string();
+    }
+    if let Some(picked) = inspector_widgets::context_tabs(ui, state.ui.density, &tabs, active_tab) {
+        state.ui.properties_tab = picked.id().to_string();
+        state.mark_dirty();
+        return;
+    }
+
+    ui.add_space(4.0);
+    match active_tab {
+        InspectorTab::Object => draw_object_sections(ui, state),
+        InspectorTab::Modify => draw_modify_tab(ui, state),
+        InspectorTab::Material => draw_tab_material(ui, state),
+        InspectorTab::Selection => draw_selection_tab(ui, state),
+    }
+}
+
+/// Busca achata as seções de todas as abas (só o que casa aparece, aberto).
+fn draw_inspector_search_results(
+    ui: &mut Ui,
+    state: &mut AppState,
+    context: &InspectorContext,
+    query: &str,
+) {
+    // Componentes vivem na malha ativa (pin não desvia ferramenta).
+    let idx = match context {
+        InspectorContext::ComponentSelection { .. } => {
+            (!state.project.assets.is_empty()).then(|| {
+                state
+                    .project
+                    .active
+                    .min(state.project.assets.len().saturating_sub(1))
+            })
+        }
+        _ => inspected_asset_idx(state),
+    };
+    let mut any = false;
+    let mut show_matched = |state: &mut AppState, title_key: &str| -> bool {
+        let hit = query.is_empty() || state.t(title_key).to_lowercase().contains(query);
+        if hit {
+            any = true;
+        }
+        hit
+    };
+    if show_matched(state, "transform.title") {
+        draw_transform_section(ui, state, idx, true);
+    }
+    if show_matched(state, "geometry.title") {
+        draw_geometry_section(ui, state, idx, true);
+    }
+    if show_matched(state, "modifiers.title") {
+        draw_modifiers_section(ui, state, true);
+    }
+    if show_matched(state, "display.title") {
+        draw_display_section(ui, state, idx, true);
+    }
+    let tool_label = state.t(&format!("tools.{}", state.active_tool));
+    if tool_label.to_lowercase().contains(query)
+        || state
+            .t("inspector.tool_active")
+            .to_lowercase()
+            .contains(query)
+    {
+        any = true;
+        draw_modify_tool_panel(ui, state, true);
+    }
+    if state
+        .t("inspector.tab_material")
+        .to_lowercase()
+        .contains(query)
+    {
+        any = true;
+        draw_tab_material(ui, state);
+    }
+    if !any {
+        ui.label(
+            RichText::new(state.t("inspector.no_results"))
+                .size(11.0)
+                .color(tokens::TEXT_MUTED),
+        );
+    }
+}
+
+/// Painel do workspace ativo fora do Model (Paint/UV/Animate), sem rail.
+fn draw_workspace_inspector(ui: &mut Ui, state: &mut AppState) {
+    ScrollArea::vertical()
+        .id_salt("properties_workspace_scroll")
+        .auto_shrink([true, false])
+        .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 let ctx = ui.ctx().clone();
                 match state.workspace {
-                    Workspace::Model => draw_active_tab_content(ui, state, tools, fields),
                     Workspace::Paint => {
                         let mut canvas_tex: Option<egui::TextureHandle> =
                             ctx.data_mut(|d| d.get_temp(egui::Id::new("paint.canvas_tex")));
@@ -66,6 +994,7 @@ pub fn draw(
                     Workspace::Animate => {
                         crate::modules_ui::animation_ui::draw_animation_panel(ui, state);
                     }
+                    Workspace::Model => {}
                 }
 
                 if state.ui.show_help {
@@ -77,383 +1006,6 @@ pub fn draw(
                             #[cfg(not(feature = "help-markdown"))]
                             ui.label(state.t("help.body"));
                         });
-                }
-            });
-        });
-}
-
-fn draw_property_tabs(ui: &mut Ui, state: &mut AppState) {
-    let tabs: [(&str, PetuniaIcon, &str); 5] = [
-        ("tool", PetuniaIcon::PropTool, "Active Tool & Settings"),
-        (
-            "object",
-            PetuniaIcon::PropObject,
-            "Object Transform & Properties",
-        ),
-        (
-            "modifiers",
-            PetuniaIcon::PropModifiers,
-            "Modifiers & Geometry Tools",
-        ),
-        (
-            "data",
-            PetuniaIcon::PropData,
-            "Mesh Data & Reference Images",
-        ),
-        (
-            "material",
-            PetuniaIcon::PropMaterial,
-            "Material & Surface Color",
-        ),
-    ];
-
-    egui::Frame::new()
-        .fill(tokens::BG_PANEL_HEADER)
-        .corner_radius(tokens::RADIUS_CONTAINER)
-        .inner_margin(egui::Margin::symmetric(4, 3))
-        .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
-                for (tab_id, icon, hint) in tabs {
-                    let is_active = state.ui.properties_tab == tab_id;
-                    if PetuniaPropertyTabButton::new(icon, is_active)
-                        .accent_color(tokens::ACCENT_BLUE)
-                        .tooltip(hint)
-                        .show(ui)
-                        .clicked()
-                    {
-                        state.ui.properties_tab = tab_id.to_string();
-                        state.mark_dirty();
-                    }
-                }
-
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if state.ui.inspector_detached {
-                        let dock_resp = ui.button(
-                            egui::RichText::new("Dock")
-                                .size(11.0)
-                                .color(tokens::TEXT_PRIMARY),
-                        );
-                        if dock_resp
-                            .on_hover_text("Ancorar Inspector de volta na barra lateral")
-                            .clicked()
-                        {
-                            state.ui.inspector_detached = false;
-                            state.mark_dirty();
-                        }
-                    } else {
-                        let (rect, resp) =
-                            ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::click());
-                        if ui.is_rect_visible(rect) {
-                            let fill = if resp.hovered() {
-                                tokens::BG_SURFACE_HOVER
-                            } else {
-                                Color32::TRANSPARENT
-                            };
-                            ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
-                            let icon_rect =
-                                egui::Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
-                            IconRegistry::paint(
-                                ui.ctx(),
-                                ui.painter(),
-                                &PetuniaIcon::Maximize,
-                                icon_rect,
-                                tokens::TEXT_SECONDARY,
-                            );
-                        }
-                        if resp
-                            .on_hover_text("Destacar Inspector em Janela Flutuante")
-                            .clicked()
-                        {
-                            state.ui.inspector_detached = true;
-                            state.mark_dirty();
-                        }
-                    }
-                });
-            });
-        });
-}
-
-fn draw_active_tab_content(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry, fields: bool) {
-    match state.ui.properties_tab.as_str() {
-        "tool" => draw_tab_tool(ui, state, tools, fields),
-        "modifiers" => draw_tab_modifiers(ui, state),
-        "data" => draw_tab_data(ui, state),
-        "material" => draw_tab_material(ui, state),
-        _ => draw_tab_object(ui, state),
-    }
-}
-
-fn draw_tab_tool(ui: &mut Ui, state: &mut AppState, _tools: &ToolRegistry, fields: bool) {
-    let active_id = state.active_tool.clone();
-    egui::CollapsingHeader::new(format!("Active Tool: {active_id}"))
-        .default_open(true)
-        .show(ui, |ui| {
-            crate::modules_ui::model_ui::draw_tool_panel(ui, state, &active_id);
-        });
-
-    if !fields && state.modal.is_some() {
-        ui.add_space(4.0);
-        egui::CollapsingHeader::new("Active Transform Operation")
-            .default_open(true)
-            .show(ui, |ui| {
-                tool_fields::draw(ui, state);
-            });
-    }
-}
-
-fn draw_tab_object(ui: &mut Ui, state: &mut AppState) {
-    if let Some(ann_id) = state.selected_annotation {
-        draw_tab_annotation(ui, state, ann_id);
-        return;
-    }
-    if let Some(meas_id) = state.selected_measurement {
-        draw_tab_measurement(ui, state, meas_id);
-        return;
-    }
-
-    if state.project.assets.is_empty() {
-        ui.label("No active object in scene");
-        return;
-    }
-
-    let idx = state.project.active.min(state.project.assets.len() - 1);
-
-    // Identidade do Objeto
-    let asset_name = state.project.assets[idx].name.clone();
-    let visible = state.project.assets[idx].visible;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-        let (icon_rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::hover());
-        IconRegistry::paint(
-            ui.ctx(),
-            ui.painter(),
-            &PetuniaIcon::ObjectMesh,
-            icon_rect,
-            tokens::ACCENT_BLUE,
-        );
-        ui.label(egui::RichText::new(&asset_name).strong().size(12.0));
-
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            let (rect, resp) = ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::click());
-            if ui.is_rect_visible(rect) {
-                let fill = if resp.hovered() {
-                    tokens::BG_SURFACE_HOVER
-                } else {
-                    Color32::TRANSPARENT
-                };
-                ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
-                let (icon, fg) = if visible {
-                    (PetuniaIcon::Eye, tokens::TEXT_PRIMARY)
-                } else {
-                    (PetuniaIcon::EyeHidden, tokens::TEXT_MUTED)
-                };
-                let icon_rect = egui::Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
-                IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
-            }
-            if resp
-                .on_hover_text(if visible {
-                    "Hide Object in 3D Viewport"
-                } else {
-                    "Show Object in 3D Viewport"
-                })
-                .clicked()
-            {
-                if let Some(o) = state.project.assets.get_mut(idx) {
-                    o.visible = !visible;
-                }
-                state.mark_dirty();
-            }
-        });
-    });
-
-    ui.add_space(4.0);
-
-    // Seção de Transform (Location, Rotation, Scale)
-    egui::CollapsingHeader::new("Transform")
-        .default_open(true)
-        .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(
-                    egui::RichText::new("Name")
-                        .size(11.0)
-                        .color(tokens::TEXT_SECONDARY),
-                );
-                if let Some(o) = state.project.assets.get_mut(idx) {
-                    ui.text_edit_singleline(&mut o.name);
-                }
-            });
-
-            ui.add_space(4.0);
-
-            // Location X, Y, Z vinculados ao centróide da malha ativa (P3D-049)
-            let cur_loc = if let Some(asset) = state.project.assets.get(idx) {
-                asset.mesh.selection_center()
-            } else {
-                [0.0, 0.0, 0.0]
-            };
-            let mut edit_loc = cur_loc;
-            let mut loc_changed = false;
-            let mut loc_stopped = false;
-
-            ui.label(egui::RichText::new("Location").strong().size(11.0));
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
-                let rx = ui.add(egui::DragValue::new(&mut edit_loc[0]).speed(0.05));
-                if rx.changed() {
-                    loc_changed = true;
-                }
-                if rx.drag_stopped() {
-                    loc_stopped = true;
-                }
-
-                ui.label(egui::RichText::new("Y").color(tokens::AXIS_Y).strong());
-                let ry = ui.add(egui::DragValue::new(&mut edit_loc[1]).speed(0.05));
-                if ry.changed() {
-                    loc_changed = true;
-                }
-                if ry.drag_stopped() {
-                    loc_stopped = true;
-                }
-
-                ui.label(egui::RichText::new("Z").color(tokens::AXIS_Z).strong());
-                let rz = ui.add(egui::DragValue::new(&mut edit_loc[2]).speed(0.05));
-                if rz.changed() {
-                    loc_changed = true;
-                }
-                if rz.drag_stopped() {
-                    loc_stopped = true;
-                }
-            });
-
-            if loc_changed {
-                let delta = [
-                    edit_loc[0] - cur_loc[0],
-                    edit_loc[1] - cur_loc[1],
-                    edit_loc[2] - cur_loc[2],
-                ];
-                if let Some(asset) = state.project.assets.get_mut(idx) {
-                    let has_sel = asset.mesh.verts.iter().any(|v| v.selected);
-                    for v in &mut asset.mesh.verts {
-                        if !has_sel || v.selected {
-                            v.pos[0] += delta[0];
-                            v.pos[1] += delta[1];
-                            v.pos[2] += delta[2];
-                        }
-                    }
-                }
-                state.emit_mesh_changed();
-                state.mark_dirty();
-            }
-            if loc_stopped {
-                state.checkpoint("transform object location");
-                state.mark_dirty();
-            }
-
-            ui.add_space(2.0);
-
-            // Rotation X, Y, Z (graus)
-            ui.label(egui::RichText::new("Rotation").strong().size(11.0));
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("X").color(tokens::AXIS_X).strong());
-                ui.add(
-                    egui::DragValue::new(&mut state.transform_rotation[0])
-                        .speed(1.0)
-                        .suffix("°"),
-                );
-                ui.label(egui::RichText::new("Y").color(tokens::AXIS_Y).strong());
-                ui.add(
-                    egui::DragValue::new(&mut state.transform_rotation[1])
-                        .speed(1.0)
-                        .suffix("°"),
-                );
-                ui.label(egui::RichText::new("Z").color(tokens::AXIS_Z).strong());
-                ui.add(
-                    egui::DragValue::new(&mut state.transform_rotation[2])
-                        .speed(1.0)
-                        .suffix("°"),
-                );
-            });
-
-            ui.add_space(2.0);
-
-            // Scale uniforme interativo
-            ui.label(egui::RichText::new("Scale").strong().size(11.0));
-            ui.horizontal(|ui| {
-                ui.label(
-                    egui::RichText::new("Uniform")
-                        .size(11.0)
-                        .color(tokens::TEXT_SECONDARY),
-                );
-                let mut s_val = 1.0_f32;
-                let s_resp = ui.add(
-                    egui::DragValue::new(&mut s_val)
-                        .speed(0.01)
-                        .range(0.01..=10.0)
-                        .custom_formatter(|n, _| format!("{:.2}x", n)),
-                );
-                if s_resp.changed() && (s_val - 1.0).abs() > 0.001 {
-                    if let Some(asset) = state.project.assets.get_mut(idx) {
-                        let c = glam::Vec3::from(asset.mesh.selection_center());
-                        for v in &mut asset.mesh.verts {
-                            let p = glam::Vec3::from(v.pos);
-                            let np = c + (p - c) * s_val;
-                            v.pos = np.to_array();
-                        }
-                    }
-                    state.emit_mesh_changed();
-                    state.mark_dirty();
-                }
-                if s_resp.drag_stopped() {
-                    state.checkpoint("scale object");
-                    state.mark_dirty();
-                }
-            });
-
-            ui.add_space(3.0);
-
-            // Botão "Reset Transform" para centralizar na origem do mundo
-            if widgets::petunia_action_button(
-                ui,
-                Some(PetuniaIcon::Transform),
-                "Reset to Origin",
-                false,
-            )
-            .on_hover_text("Centraliza o objeto na origem do mundo (0, 0, 0)")
-            .clicked()
-            {
-                state.checkpoint("reset transform to origin");
-                if let Some(asset) = state.project.assets.get_mut(idx) {
-                    let center = asset.mesh.selection_center();
-                    for v in &mut asset.mesh.verts {
-                        v.pos[0] -= center[0];
-                        v.pos[1] -= center[1];
-                        v.pos[2] -= center[2];
-                    }
-                }
-                state.emit_mesh_changed();
-                state.set_status("Objeto centralizado na origem");
-                state.mark_dirty();
-            }
-
-            ui.separator();
-
-            ui.horizontal(|ui| {
-                if widgets::petunia_action_button(
-                    ui,
-                    Some(PetuniaIcon::Duplicate),
-                    "Duplicate · Shift+D",
-                    false,
-                )
-                .clicked()
-                {
-                    let _ = state.dispatch(&DuplicateSelectionCmd);
-                }
-
-                if widgets::petunia_action_button(ui, Some(PetuniaIcon::Delete), "Delete · X", true)
-                    .clicked()
-                {
-                    let _ = state.dispatch(&DeleteSelectionCmd);
                 }
             });
         });
@@ -563,9 +1115,17 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
     ui.add_space(4.0);
 
     // 3. Aparência do Traço
-    egui::CollapsingHeader::new("Stroke Style")
-        .default_open(true)
-        .show(ui, |ui| {
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "ecs_stroke",
+        inspector_widgets::SectionOpts {
+            title: "Stroke Style",
+            summary: None,
+            default_open: true,
+            force_open: false,
+        },
+        |ui| {
             let ann = &state.project.annotations[ann_idx];
             let mut color = ann
                 .strokes
@@ -611,14 +1171,23 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
                 }
                 state.mark_dirty();
             }
-        });
+        },
+    );
 
     ui.add_space(4.0);
 
     // 4. Seção de Transformação (Location, Rotation, Scale)
-    egui::CollapsingHeader::new("Transform")
-        .default_open(true)
-        .show(ui, |ui| {
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "ecs_annot_transform",
+        inspector_widgets::SectionOpts {
+            title: "Transform",
+            summary: None,
+            default_open: true,
+            force_open: false,
+        },
+        |ui| {
             if is_locked {
                 ui.label(
                     egui::RichText::new("Annotation locked against transformations")
@@ -725,7 +1294,8 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
                     state.checkpoint("transform annotation");
                 }
             });
-        });
+        },
+    );
 
     ui.add_space(8.0);
     ui.separator();
@@ -810,9 +1380,17 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
     ui.add_space(4.0);
 
     // 3. Leituras de Medição (Readouts)
-    egui::CollapsingHeader::new("Measurement Values")
-        .default_open(true)
-        .show(ui, |ui| {
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "ecs_measure",
+        inspector_widgets::SectionOpts {
+            title: "Measurement Values",
+            summary: None,
+            default_open: true,
+            force_open: false,
+        },
+        |ui| {
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("Total Distance:").strong());
                 ui.label(
@@ -853,7 +1431,8 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
                 "End:   ({:.2}, {:.2}, {:.2})",
                 end[0], end[1], end[2]
             ));
-        });
+        },
+    );
 
     ui.add_space(8.0);
     ui.separator();
@@ -871,56 +1450,26 @@ fn draw_tab_measurement(ui: &mut Ui, state: &mut AppState, meas_id: Uuid) {
     });
 }
 
-fn draw_tab_modifiers(ui: &mut Ui, state: &mut AppState) {
-    egui::CollapsingHeader::new("Modifier Stack")
-        .default_open(true)
-        .show(ui, |ui| {
-            ui.menu_button("+ Add Modifier", |ui| {
-                if ui.button("Bevel").clicked() {
-                    state.active_tool = "bevel".into();
-                    ui.close();
-                }
-                if ui.button("Mirror").clicked() {
-                    state.active_tool = "mirror".into();
-                    ui.close();
-                }
-                if ui.button("Subdivision Surface").clicked() {
-                    state.active_tool = "subdivide".into();
-                    ui.close();
-                }
-            });
-
-            ui.separator();
-            ui.label("No active modifiers in stack.");
-        });
-}
-
-fn draw_tab_data(ui: &mut Ui, state: &mut AppState) {
-    if let Some(mesh) = state.project.active_mesh() {
-        egui::CollapsingHeader::new("Estatísticas de Geometria")
-            .default_open(true)
-            .show(ui, |ui| {
-                ui.label(format!("Vértices: {}", mesh.vert_count()));
-                ui.label(format!("Triângulos: {}", mesh.tri_count()));
-                ui.label(format!("Faces: {}", mesh.faces.len()));
-            });
-    }
-
-    crate::refs_section(ui, state);
-}
-
 fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
     if state.project.assets.is_empty() {
-        ui.label("Nenhum modelo ativo para material");
+        draw_quick_add(ui, state);
         return;
     }
 
     let active_idx = state.project.active.min(state.project.assets.len() - 1);
     let active_mat_id = state.project.assets[active_idx].material_id;
 
-    egui::CollapsingHeader::new("Material PBR (P3D-050)")
-        .default_open(true)
-        .show(ui, |ui| {
+    inspector_widgets::section(
+        ui,
+        state.ui.density,
+        "ecs_material",
+        inspector_widgets::SectionOpts {
+            title: "Material PBR (P3D-050)",
+            summary: None,
+            default_open: true,
+            force_open: false,
+        },
+        |ui| {
             // 1. Slot de Material e Seletor
             ui.horizontal(|ui| {
                 ui.label("Material:");
@@ -1206,12 +1755,112 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                     }
                 }
             });
-        });
+        },
+    );
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_inspector_tabs_render_without_panic() {
+        use petunia_core::EditMode;
+        let tools = ToolRegistry::default();
+        let ctx = egui::Context::default();
+        let mut state = AppState::new("en");
+        crate::outliner::add_primitive_to_scene(&mut state, 0, "Cube");
+        let mut registry = ModuleRegistry::new();
+
+        // Modify + Material com objeto.
+        for tab in ["modify", "material"] {
+            state.ui.properties_tab = tab.to_string();
+            ctx.run_ui(egui::RawInput::default(), |ui| {
+                egui::CentralPanel::default().show(ui, |ui| {
+                    draw(ui, &mut state, &tools, &mut registry);
+                });
+            })
+            .textures_delta
+            .clear();
+        }
+
+        // Selection com componentes selecionados no modo de edição.
+        state.mode = EditMode::Edit;
+        let n_verts = state.project.assets[0].mesh.verts.len();
+        state.project.assets[0].mesh.select_all();
+        state.selection.verts = (0..n_verts as u32).collect();
+        state.ui.properties_tab = "selection".to_string();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
+            });
+        })
+        .textures_delta
+        .clear();
+        assert!(!state.selection.is_empty());
+
+        // Bloco da operação modal ativa + todas as densidades.
+        state.mode = petunia_core::EditMode::Object;
+        state.selection.clear();
+        state
+            .begin_modal(petunia_core::ModalKind::Move)
+            .expect("modal abre");
+        for density in petunia_core::UiDensity::all() {
+            state.ui.density = density;
+            state.ui.properties_tab = "modify".to_string();
+            ctx.run_ui(egui::RawInput::default(), |ui| {
+                egui::CentralPanel::default().show(ui, |ui| {
+                    draw(ui, &mut state, &tools, &mut registry);
+                });
+            })
+            .textures_delta
+            .clear();
+        }
+        assert!(state.modal.is_some());
+        assert!(state.cancel_modal());
+        assert!(state.modal.is_none());
+    }
+
+    #[test]
+    fn test_inspector_empty_collapsed_and_object_states_render() {
+        let tools = ToolRegistry::default();
+        // 1. Cena vazia: quick-add, sem pânico.
+        let ctx = egui::Context::default();
+        let mut state = AppState::new("en");
+        state.project.assets.clear();
+        state.project.active = 0;
+        assert!(state.project.assets.is_empty());
+        let mut registry = ModuleRegistry::new();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
+            });
+        })
+        .textures_delta
+        .clear();
+
+        // 2. Com objeto + colapsado: só a barra, sem pânico.
+        crate::outliner::add_primitive_to_scene(&mut state, 0, "Cube");
+        state.ui.inspector_collapsed = true;
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
+            });
+        })
+        .textures_delta
+        .clear();
+
+        // 3. Com objeto expandido: rail + pilha, sem pânico.
+        state.ui.inspector_collapsed = false;
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                draw(ui, &mut state, &tools, &mut registry);
+            });
+        })
+        .textures_delta
+        .clear();
+        assert_eq!(state.project.assets.len(), 1);
+    }
 
     #[test]
     fn test_properties_panel_renders_without_panic() {

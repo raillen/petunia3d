@@ -107,6 +107,7 @@ pub enum PetuniaIcon {
     Settings,
     MoreVert,
     Filter,
+    Pin,
 
     // ------------------------------------------------------------------- Customizado por ID
     Custom(&'static str),
@@ -199,6 +200,7 @@ impl PetuniaIcon {
             PetuniaIcon::Settings => "settings".into(),
             PetuniaIcon::MoreVert => "more_vert".into(),
             PetuniaIcon::Filter => "filter".into(),
+            PetuniaIcon::Pin => "pin".into(),
             PetuniaIcon::Custom(s) => (*s).into(),
         }
     }
@@ -288,6 +290,7 @@ impl PetuniaIcon {
             PetuniaIcon::Settings,
             PetuniaIcon::MoreVert,
             PetuniaIcon::Filter,
+            PetuniaIcon::Pin,
             PetuniaIcon::Custom("merge"),
             PetuniaIcon::Custom("paint"),
             PetuniaIcon::Custom("delete"),
@@ -369,6 +372,7 @@ impl PetuniaIcon {
             PetuniaIcon::Settings => Some(egui_phosphor::regular::GEAR),
             PetuniaIcon::MoreVert => Some(egui_phosphor::regular::DOTS_THREE_VERTICAL),
             PetuniaIcon::Filter => Some(egui_phosphor::regular::FUNNEL),
+            PetuniaIcon::Pin => Some(egui_phosphor::regular::PUSH_PIN),
             _ => None,
         }
     }

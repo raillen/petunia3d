@@ -336,6 +336,10 @@ pub struct ToolState {
     pub revolve_axis: usize,
     pub mirror_axis: usize,
     pub mirror_weld: f32,
+    /// Escala ligada (uniforme) vs eixos independentes no inspector.
+    pub scale_linked: bool,
+    /// Fatores de escala por eixo (rascunho relativo do inspector).
+    pub scale_factors: [f32; 3],
     pub merge_dist: f32,
     pub symmetrize_axis: usize,
     pub symmetrize_pos_to_neg: bool,
@@ -383,6 +387,8 @@ impl ToolState {
             revolve_axis: 1,
             mirror_axis: 0,
             mirror_weld: 0.001,
+            scale_linked: true,
+            scale_factors: [1.0; 3],
             merge_dist: 0.01,
             symmetrize_axis: 0,
             symmetrize_pos_to_neg: true,
@@ -691,6 +697,31 @@ pub struct UiState {
     pub uv_show_preview: bool,
     /// Exibe a shelf contextual sobre a viewport (Wave 5: preferência real).
     pub show_shelf: bool,
+    /// Densidade global da UI (linhas, espaçamentos, hitboxes).
+    pub density: UiDensity,
+    /// Altura do painel Scene automática (conteúdo) vs manual (divisor).
+    pub scene_split_auto: bool,
+    /// Busca do Scene: aberta (campo expandido) e foco pendente (Ctrl+F).
+    pub scene_search_open: bool,
+    pub scene_search_focus_request: bool,
+    /// Filtros do Scene (menu do funil; texto vive em `outliner_search`).
+    pub scene_filter: SceneFilter,
+    /// Ativo inspecionado fixado (pin); `None` = segue a seleção.
+    pub inspector_pinned: Option<Uuid>,
+    /// Busca de propriedades do inspector (aberta + consulta).
+    pub inspector_search_open: bool,
+    pub inspector_search: String,
+    /// Ordem dos atalhos da toolbar esquerda (ids de ferramenta).
+    /// Vazio = ordem canônica de `canonical_toolbar_order`.
+    pub toolbar_order: Vec<String>,
+    /// Atalhos ocultos da toolbar esquerda (ids de ferramenta).
+    pub toolbar_hidden: Vec<String>,
+    /// Colunas de atalhos da toolbar esquerda (1 ou 2).
+    pub toolbar_columns: u8,
+    /// Lado do dock Outliner/Inspector.
+    pub dock_side: DockSide,
+    /// Disposição dos painéis do dock (empilhados ou lado a lado).
+    pub dock_orientation: DockOrientation,
     pub timeline_frame: i32,
     pub timeline_start: i32,
     pub timeline_end: i32,
@@ -731,6 +762,19 @@ impl UiState {
             workspace_memory: Default::default(),
             uv_show_preview: true,
             show_shelf: true,
+            density: UiDensity::Comfortable,
+            scene_split_auto: true,
+            scene_search_open: false,
+            scene_search_focus_request: false,
+            scene_filter: SceneFilter::default(),
+            inspector_pinned: None,
+            inspector_search_open: false,
+            inspector_search: String::new(),
+            toolbar_order: Vec::new(),
+            toolbar_hidden: Vec::new(),
+            toolbar_columns: 1,
+            dock_side: DockSide::Right,
+            dock_orientation: DockOrientation::Stacked,
             timeline_frame: 1,
             timeline_start: 1,
             timeline_end: 250,
@@ -761,6 +805,85 @@ impl Default for UiState {
     }
 }
 
+/// Densidade da interface (preferência global de UI).
+///
+/// Consome os tokens de densidade da UI (altura de linha, espaçamento,
+/// hitbox); não cria segundo sistema de settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum UiDensity {
+    Compact,
+    #[default]
+    Comfortable,
+    Spacious,
+}
+
+impl UiDensity {
+    pub fn key(self) -> &'static str {
+        match self {
+            UiDensity::Compact => "density.compact",
+            UiDensity::Comfortable => "density.comfortable",
+            UiDensity::Spacious => "density.spacious",
+        }
+    }
+
+    pub fn all() -> [UiDensity; 3] {
+        [
+            UiDensity::Compact,
+            UiDensity::Comfortable,
+            UiDensity::Spacious,
+        ]
+    }
+}
+
+/// Filtro de estado de objeto no painel Scene (extensível por tipo futuro).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SceneObjectState {
+    #[default]
+    All,
+    VisibleOnly,
+    UnlockedOnly,
+}
+
+impl SceneObjectState {
+    pub fn key(self) -> &'static str {
+        match self {
+            SceneObjectState::All => "scene_filter.all",
+            SceneObjectState::VisibleOnly => "scene_filter.visible",
+            SceneObjectState::UnlockedOnly => "scene_filter.unlocked",
+        }
+    }
+
+    pub fn all() -> [SceneObjectState; 3] {
+        [
+            SceneObjectState::All,
+            SceneObjectState::VisibleOnly,
+            SceneObjectState::UnlockedOnly,
+        ]
+    }
+}
+
+/// Filtros do painel Scene (menu do funil; busca textual vive em
+/// `UiState::outliner_search`). Tudo default-visível.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SceneFilter {
+    pub show_collections: bool,
+    pub show_annotations: bool,
+    pub show_measurements: bool,
+    pub show_refs: bool,
+    pub object_state: SceneObjectState,
+}
+
+impl Default for SceneFilter {
+    fn default() -> Self {
+        Self {
+            show_collections: true,
+            show_annotations: true,
+            show_measurements: true,
+            show_refs: true,
+            object_state: SceneObjectState::All,
+        }
+    }
+}
 /// Motivo do dirty para rastreio de loops de repaint contínuo (Wave 1 — §16.6).
 /// Usar `mark_dirty_reason` em vez de `mark_dirty` quando o motivo é conhecido;
 /// builds de desenvolvimento registram via `tracing` para identificar poluição.
@@ -777,6 +900,24 @@ pub enum DirtyReason {
     UiInteraction,
     FileEvent,
     Unknown,
+}
+
+/// Lado do dock Outliner/Inspector no shell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DockSide {
+    Left,
+    #[default]
+    Right,
+}
+
+/// Disposição dos painéis Outliner/Inspector dentro do dock.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DockOrientation {
+    /// Empilhados na vertical com divisor arrastável (padrão).
+    #[default]
+    Stacked,
+    /// Lado a lado na horizontal com divisor arrastável.
+    SideBySide,
 }
 
 /// Memória de layout do dock por workspace (Wave 3 — §6.5).

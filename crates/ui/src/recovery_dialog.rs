@@ -115,7 +115,7 @@ pub fn draw(ctx: &Context, state: &mut AppState, info: &RecoveryInfo) -> Option<
 
                     if info.is_newer_than_main {
                         ui.label(
-                            RichText::new("● Snapshot contains changes newer than the saved file")
+                            RichText::new("• Snapshot contains changes newer than the saved file")
                                 .size(10.5)
                                 .color(tokens::ACCENT_GREEN),
                         );

@@ -172,7 +172,7 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 ui.label(
-                    egui::RichText::new("↑↓ Navigate   ↵ Execute   Esc Close")
+                    egui::RichText::new("Up/Down navigate · Enter execute · Esc close")
                         .size(10.0)
                         .color(tokens::TEXT_MUTED),
                 );

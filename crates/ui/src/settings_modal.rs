@@ -148,6 +148,18 @@ fn reset_all_layouts(state: &mut AppState) {
     state.ui.properties_tab = "object".to_string();
     state.ui.uv_show_preview = true;
     state.ui.show_shelf = true;
+    state.ui.toolbar_order.clear();
+    state.ui.toolbar_hidden.clear();
+    state.ui.toolbar_columns = 1;
+    state.ui.dock_side = petunia_core::DockSide::Right;
+    state.ui.dock_orientation = petunia_core::DockOrientation::Stacked;
+    state.ui.density = petunia_core::UiDensity::Comfortable;
+    state.ui.scene_split_auto = true;
+    state.ui.scene_search_open = false;
+    state.ui.scene_filter = petunia_core::SceneFilter::default();
+    state.ui.inspector_pinned = None;
+    state.ui.inspector_search_open = false;
+    state.ui.inspector_search.clear();
     state.mark_dirty();
 }
 
@@ -169,6 +181,24 @@ fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
         state.ui.show_shelf = shelf;
         state.mark_dirty();
     }
+
+    ui.add_space(4.0);
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new(state.t("settings.density"))
+                .size(11.5)
+                .color(tokens::TEXT_SECONDARY),
+        );
+        for density in petunia_core::UiDensity::all() {
+            if ui
+                .selectable_label(state.ui.density == density, state.t(density.key()))
+                .clicked()
+            {
+                state.ui.density = density;
+                state.mark_dirty();
+            }
+        }
+    });
 
     ui.add_space(8.0);
     ui.separator();
@@ -255,7 +285,7 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
                                     );
                                     if is_active {
                                         ui.label(
-                                            RichText::new("● Ativo")
+                                            RichText::new("• Ativo")
                                                 .size(10.5)
                                                 .color(tokens::ACCENT_BLUE),
                                         );
@@ -385,7 +415,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                     );
                                     if is_active {
                                         ui.label(
-                                            RichText::new("● Ativo")
+                                            RichText::new("• Ativo")
                                                 .size(10.5)
                                                 .color(tokens::ACCENT_BLUE),
                                         );
@@ -514,7 +544,7 @@ fn draw_language_tab(ui: &mut Ui, state: &mut AppState) {
                             );
                             if is_active {
                                 ui.label(
-                                    RichText::new("● Idioma Ativo")
+                                    RichText::new("• Idioma Ativo")
                                         .size(10.5)
                                         .color(tokens::ACCENT_BLUE),
                                 );

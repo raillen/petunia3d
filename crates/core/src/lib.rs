@@ -71,10 +71,11 @@ pub use snap::{
     snap_point_to_faces, snap_point_to_grid, snap_point_to_increment, snap_point_to_vertices,
 };
 pub use state::{
-    AnnotationItem, AnnotationStroke, AppState, DirtyReason, DomainState, EditMode, EditorSession,
-    GridSettings, Measurement, MeasurementItem, PivotPoint, ProfileState, ProjectState, RefAxis,
-    ReferenceImage, RenderResources, RenderStats, ToolState, TransformOrientation, UiState,
-    WorkspaceUiMemory, workspace_index,
+    AnnotationItem, AnnotationStroke, AppState, DirtyReason, DockOrientation, DockSide,
+    DomainState, EditMode, EditorSession, GridSettings, Measurement, MeasurementItem, PivotPoint,
+    ProfileState, ProjectState, RefAxis, ReferenceImage, RenderResources, RenderStats, SceneFilter,
+    SceneObjectState, ToolState, TransformOrientation, UiDensity, UiState, WorkspaceUiMemory,
+    workspace_index,
 };
 pub use viewport::{
     LogicalRect, PhysicalViewport, unproject_cursor_or_vertex_snap,

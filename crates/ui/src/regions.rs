@@ -122,47 +122,77 @@ fn overlaps_area(a: egui::Rect, b: egui::Rect) -> bool {
     inter.width() > 0.5 && inter.height() > 0.5
 }
 
-/// Alturas do dock direito (Wave 2 — §4.4).
-pub const DOCK_MIN_OUTLINER: f32 = 150.0;
-pub const DOCK_MIN_INSPECTOR: f32 = 200.0;
+/// Alturas mínimas do dock (colapsos e reservas).
 pub const DOCK_SEPARATOR_H: f32 = 10.0;
+pub const DOCK_SEPARATOR_W: f32 = 10.0;
 pub const DOCK_HEADER_H: f32 = 28.0;
+/// Faixa de seção colapsada no modo lado a lado.
+pub const DOCK_STRIP_W: f32 = 44.0;
 
-/// Alturas (outliner, inspector) do dock para uma altura total dada.
+/// Larguras (outliner, inspector) do dock lado a lado para uma largura dada.
 ///
-/// Pura e total: nunca panica, nunca retorna negativo; em painéis minúsculos
-/// divide o espaço em vez de respeitar mínimos impossíveis.
-pub fn split_heights(
-    total_h: f32,
+/// Espelho horizontal de `split_heights`: nunca panica, nunca negativo; em
+/// docks estreitos divide o espaço em vez de respeitar mínimos impossíveis.
+pub fn split_widths(
+    total_w: f32,
     split: f32,
     outliner_collapsed: bool,
     inspector_collapsed: bool,
 ) -> (f32, f32) {
-    let sep = DOCK_SEPARATOR_H;
+    const MIN_OUT: f32 = 140.0;
+    const MIN_INSP: f32 = 170.0;
+    let sep = DOCK_SEPARATOR_W;
     match (outliner_collapsed, inspector_collapsed) {
-        (true, true) => (DOCK_HEADER_H, DOCK_HEADER_H),
+        (true, true) => (DOCK_STRIP_W, DOCK_STRIP_W),
         (true, false) => (
-            DOCK_HEADER_H,
-            (total_h - DOCK_HEADER_H - sep).max(DOCK_HEADER_H),
+            DOCK_STRIP_W,
+            (total_w - DOCK_STRIP_W - sep).max(DOCK_STRIP_W),
         ),
         (false, true) => (
-            (total_h - DOCK_HEADER_H - sep).max(DOCK_HEADER_H),
-            DOCK_HEADER_H,
+            (total_w - DOCK_STRIP_W - sep).max(DOCK_STRIP_W),
+            DOCK_STRIP_W,
         ),
         (false, false) => {
-            let room = (total_h - sep).max(0.0);
-            if room <= DOCK_HEADER_H * 2.0 {
+            let room = (total_w - sep).max(0.0);
+            if room <= DOCK_STRIP_W * 2.0 {
                 (room * 0.5, room * 0.5)
             } else {
-                let lo = DOCK_MIN_OUTLINER.min(room * 0.5).max(DOCK_HEADER_H);
-                let hi = (room - DOCK_MIN_INSPECTOR).max(lo);
-                let out = (room * split.clamp(0.25, 0.75)).clamp(lo, hi);
-                (out, room - out)
+                let lo = MIN_OUT.min(room * 0.5).max(DOCK_STRIP_W);
+                let hi = (room - MIN_INSP).max(lo);
+                let left = (room * split.clamp(0.25, 0.75)).clamp(lo, hi);
+                (left, room - left)
             }
         }
     }
 }
+/// Altura do painel Scene: automática (conteúdo estimado) ou manual (fração).
+///
+/// AUTO dimensiona pelo conteúdo (sem reservar meio dock p/ 1 objeto);
+/// arrastar o divisor muda p/ manual; duplo-clique volta p/ AUTO.
+/// Nunca negativa; inspector sempre guarda ao menos um cabeçalho.
+pub fn scene_panel_height(
+    total_h: f32,
+    collapsed: bool,
+    auto: bool,
+    manual_frac: f32,
+    content_est: f32,
+) -> f32 {
+    if collapsed {
+        return DOCK_HEADER_H;
+    }
+    if auto {
+        content_est.clamp(96.0, (total_h * 0.38).max(96.0))
+    } else {
+        let room = (total_h - DOCK_SEPARATOR_H - DOCK_HEADER_H).max(DOCK_HEADER_H);
+        (total_h * manual_frac.clamp(0.15, 0.7)).clamp(DOCK_HEADER_H, room)
+    }
+}
 
+/// Estimativa barata de conteúdo do Scene (contagens O(1), sem montar árvore):
+/// cabeçalho + busca + linhas + respiro.
+pub fn estimate_scene_content(rows: usize, row_h: f32) -> f32 {
+    34.0 + 30.0 + rows as f32 * row_h + 12.0
+}
 /// Tamanhos seguros de modal a partir da viewport (Wave 5 — §9.4).
 ///
 /// Nenhum valor excede a viewport útil: `min = min(pedido, disponível)` com
@@ -283,34 +313,47 @@ mod tests {
     }
 
     #[test]
-    fn split_open_uses_fraction() {
-        let (out, insp) = split_heights(600.0, 0.42, false, false);
-        assert!((out - 247.8).abs() < 0.5);
-        assert!((out + insp - (600.0 - DOCK_SEPARATOR_H)).abs() < 0.01);
+    fn split_widths_open_uses_fraction() {
+        let (left, right) = split_widths(600.0, 0.42, false, false);
+        assert!((left - 247.8).abs() < 0.5);
+        assert!((left + right - (600.0 - DOCK_SEPARATOR_W)).abs() < 0.01);
     }
 
     #[test]
-    fn split_collapsed_gives_header() {
-        let (out, insp) = split_heights(600.0, 0.42, true, false);
-        assert_eq!(out, DOCK_HEADER_H);
-        assert!(insp > DOCK_MIN_INSPECTOR);
+    fn split_widths_collapsed_gives_strip() {
+        let (left, right) = split_widths(600.0, 0.42, true, false);
+        assert_eq!(left, DOCK_STRIP_W);
+        assert!(right > left);
     }
 
     #[test]
-    fn split_tiny_panel_never_negative_or_nan() {
+    fn split_widths_tiny_panel_never_negative_or_nan() {
         for total in [0.0, 40.0, 100.0, 200.0] {
-            let (out, insp) = split_heights(total, 0.42, false, false);
-            assert!(out >= 0.0 && insp >= 0.0);
-            assert!((out + insp - (total - DOCK_SEPARATOR_H).max(0.0)).abs() < 0.01);
+            let (left, right) = split_widths(total, 0.42, false, false);
+            assert!(left >= 0.0 && right >= 0.0);
+            assert!(left.is_finite() && right.is_finite());
+            assert!((left + right - (total - DOCK_SEPARATOR_W).max(0.0)).abs() < 0.01);
         }
     }
 
     #[test]
-    fn split_clamps_fraction() {
-        let (out_narrow, _) = split_heights(600.0, 0.0, false, false);
-        let (out_wide, _) = split_heights(600.0, 1.0, false, false);
-        assert!(out_narrow >= DOCK_HEADER_H && out_wide <= 600.0 - DOCK_SEPARATOR_H);
-        assert!(out_narrow < out_wide);
+    fn scene_panel_height_auto_grows_with_content_then_caps() {
+        // 1 objeto: painel pequeno, nunca meio dock.
+        let one = scene_panel_height(600.0, false, true, 0.42, estimate_scene_content(2, 28.0));
+        assert!((96.0..200.0).contains(&one));
+        // 300 objetos: capa em 38%.
+        let many = scene_panel_height(600.0, false, true, 0.42, estimate_scene_content(300, 28.0));
+        assert!((many - 600.0 * 0.38).abs() < 0.01);
+        // Colapsado: só cabeçalho.
+        assert_eq!(
+            scene_panel_height(600.0, true, true, 0.42, 500.0),
+            DOCK_HEADER_H
+        );
+        // Manual respeita limites e deixa cabeçalho ao inspector.
+        let manual = scene_panel_height(600.0, false, false, 0.9, 100.0);
+        assert!(manual <= 600.0 - DOCK_SEPARATOR_H - DOCK_HEADER_H + 0.01);
+        let tiny = scene_panel_height(600.0, false, false, 0.0, 100.0);
+        assert!(tiny >= DOCK_HEADER_H);
     }
 
     #[test]

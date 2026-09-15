@@ -12,6 +12,208 @@ use egui::{
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 
+/// Direção da seta vetorial pintada (sem depender de glifo da fonte).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChevronDir {
+    Up,
+    Down,
+    Right,
+}
+
+/// Pinta uma seta triangular preenchida centrada em `rect`.
+///
+/// Vetorial de propósito: os glifos `▾`/`›`/`↑`/`↓` renderizam como tofu
+/// (quadrado) em pacotes de fonte sem o bloco geométrico, então menus e
+/// indicadores usam isto em vez de texto.
+pub fn paint_chevron(painter: &egui::Painter, rect: Rect, color: Color32, dir: ChevronDir) {
+    let c = rect.center();
+    let (w, h) = match dir {
+        ChevronDir::Down | ChevronDir::Up => (5.0, 3.5),
+        ChevronDir::Right => (3.5, 5.0),
+    };
+    let points = match dir {
+        ChevronDir::Down => vec![
+            egui::pos2(c.x - w, c.y - h * 0.6),
+            egui::pos2(c.x + w, c.y - h * 0.6),
+            egui::pos2(c.x, c.y + h),
+        ],
+        ChevronDir::Up => vec![
+            egui::pos2(c.x - w, c.y + h * 0.6),
+            egui::pos2(c.x + w, c.y + h * 0.6),
+            egui::pos2(c.x, c.y - h),
+        ],
+        ChevronDir::Right => vec![
+            egui::pos2(c.x - w * 0.6, c.y - h),
+            egui::pos2(c.x + w, c.y),
+            egui::pos2(c.x - w * 0.6, c.y + h),
+        ],
+    };
+    painter.add(egui::Shape::convex_polygon(
+        points,
+        color,
+        egui::Stroke::NONE,
+    ));
+}
+
+/// Pinta um "check" vetorial (visto) centrado em `rect`.
+pub fn paint_check(painter: &egui::Painter, rect: Rect, color: Color32) {
+    let c = rect.center();
+    let s = rect.width().min(rect.height()) * 0.5;
+    painter.line_segment(
+        [
+            egui::pos2(c.x - s, c.y + s * 0.1),
+            egui::pos2(c.x - s * 0.1, c.y + s * 0.8),
+        ],
+        egui::Stroke::new(2.0_f32, color),
+    );
+    painter.line_segment(
+        [
+            egui::pos2(c.x - s * 0.1, c.y + s * 0.8),
+            egui::pos2(c.x + s, c.y - s * 0.8),
+        ],
+        egui::Stroke::new(2.0_f32, color),
+    );
+}
+
+/// Botão chevron de colapso (16px, seta pintada, com foco e teclado).
+///
+/// Substitui `small_button("+"/"–")` e textos `↑`/`↓` onde o glifo é risco.
+pub fn chevron_toggle(ui: &mut Ui, tooltip: &str, open: bool) -> Response {
+    chevron_toggle_dir(
+        ui,
+        tooltip,
+        if open {
+            ChevronDir::Down
+        } else {
+            ChevronDir::Right
+        },
+    )
+}
+
+/// Botão de seta pintada em direção explícita (ex. mover ↑/↓ em listas).
+pub fn chevron_toggle_dir(ui: &mut Ui, tooltip: &str, dir: ChevronDir) -> Response {
+    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), Sense::click());
+    resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tooltip));
+    if ui.is_rect_visible(rect) {
+        let painter = ui.painter();
+        if resp.hovered() {
+            painter.rect_filled(rect, tokens::RADIUS_SMALL, tokens::BG_SURFACE_HOVER);
+        }
+        if resp.has_focus() {
+            painter.rect_stroke(
+                rect,
+                tokens::RADIUS_SMALL,
+                tokens::stroke_focus(),
+                StrokeKind::Inside,
+            );
+        }
+        paint_chevron(painter, rect.shrink(4.0), tokens::TEXT_SECONDARY, dir);
+    }
+    resp.on_hover_text(tooltip)
+}
+
+/// Botão de menu com seta vetorial (`PetuniaMenuButton`).
+///
+/// Substitui `ui.menu_button("... ▾")`: o rótulo é texto puro e a seta é
+/// pintada (nunca tofu). `label = None` rende só a seta (chevron de segmento,
+/// ex. Snapping/Overlays). Abre o popup via `egui::Popup::menu`.
+pub struct PetuniaMenuButton<'a> {
+    pub label: Option<&'a str>,
+    pub tooltip: Option<&'a str>,
+    pub height: f32,
+}
+
+impl<'a> PetuniaMenuButton<'a> {
+    pub fn new(label: &'a str) -> Self {
+        Self {
+            label: Some(label),
+            tooltip: None,
+            height: 22.0,
+        }
+    }
+
+    pub fn chevron_only() -> Self {
+        Self {
+            label: None,
+            tooltip: None,
+            height: 22.0,
+        }
+    }
+
+    pub fn tooltip(mut self, tooltip: &'a str) -> Self {
+        self.tooltip = Some(tooltip);
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.height = height;
+        self
+    }
+
+    pub fn show<R>(
+        self,
+        ui: &mut Ui,
+        add_contents: impl FnOnce(&mut Ui) -> R,
+    ) -> Option<egui::InnerResponse<R>> {
+        let label_w = self.label.map(|label| {
+            ui.fonts_mut(|f| {
+                f.layout_no_wrap(label.to_owned(), FontId::proportional(12.0), Color32::WHITE)
+                    .size()
+                    .x
+            })
+        });
+        let chevron_w = 16.0;
+        let width = match label_w {
+            Some(w) => 8.0 + w + 4.0 + chevron_w,
+            None => self.height,
+        };
+        let (rect, resp) = ui.allocate_exact_size(vec2(width, self.height), Sense::click());
+        let acc_label = self.label.unwrap_or("menu");
+        resp.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, acc_label));
+
+        if ui.is_rect_visible(rect) {
+            let painter = ui.painter();
+            if resp.hovered() || resp.has_focus() {
+                painter.rect_filled(rect, tokens::RADIUS_CONTROL, tokens::BG_SURFACE_HOVER);
+            }
+            if resp.has_focus() {
+                painter.rect_stroke(
+                    rect,
+                    tokens::RADIUS_CONTROL,
+                    tokens::stroke_focus(),
+                    StrokeKind::Inside,
+                );
+            }
+            let fg = tokens::TEXT_PRIMARY;
+            match self.label {
+                Some(label) => {
+                    painter.text(
+                        egui::pos2(rect.min.x + 8.0, rect.center().y),
+                        Align2::LEFT_CENTER,
+                        label,
+                        FontId::proportional(12.0),
+                        fg,
+                    );
+                    let chev_rect = Rect::from_center_size(
+                        egui::pos2(rect.max.x - chevron_w * 0.5 - 2.0, rect.center().y),
+                        vec2(chevron_w, 10.0),
+                    );
+                    paint_chevron(painter, chev_rect, tokens::TEXT_SECONDARY, ChevronDir::Down);
+                }
+                None => {
+                    paint_chevron(painter, rect.shrink(5.0), fg, ChevronDir::Down);
+                }
+            }
+        }
+
+        let mut resp = resp;
+        if let Some(tip) = self.tooltip {
+            resp = resp.on_hover_text(tip);
+        }
+        egui::Popup::menu(&resp).show(add_contents)
+    }
+}
+
 /// Botão de ferramenta da Toolbar do Petunia3D.
 ///
 /// Suporta modos compacto (ícone centralizado) e expandido (ícone + rótulo com recorte limpo).
@@ -427,7 +629,8 @@ impl<'a> PetuniaIconButton<'a> {
     }
 }
 
-/// Item padronizado de menu suspenso ou popup do Petunia3D (`[Icon] Label ... [Shortcut] ›`).
+/// Item padronizado de menu suspenso ou popup do Petunia3D (`[Icon] Label ... [Shortcut] + seta`).
+/// A seta de submenu é vetorial (`paint_chevron`), nunca glifo de fonte.
 pub struct PetuniaMenuItem<'a> {
     pub icon: Option<PetuniaIcon>,
     pub label: &'a str,
@@ -554,14 +757,11 @@ impl<'a> PetuniaMenuItem<'a> {
             }
 
             if self.has_submenu {
-                let arrow_pos = egui::pos2(rect.max.x - 8.0, rect.center().y);
-                painter.text(
-                    arrow_pos,
-                    Align2::RIGHT_CENTER,
-                    "›",
-                    FontId::proportional(14.0),
-                    shortcut_color,
+                let arrow_rect = Rect::from_center_size(
+                    egui::pos2(rect.max.x - 9.0, rect.center().y),
+                    vec2(10.0, 12.0),
                 );
+                paint_chevron(&painter, arrow_rect, shortcut_color, ChevronDir::Right);
             }
         }
 
@@ -644,11 +844,9 @@ impl<'a> PetuniaMenuCheckboxItem<'a> {
                 vec2(14.0, 14.0),
             );
             if self.checked {
-                painter.text(
-                    check_rect.center(),
-                    Align2::CENTER_CENTER,
-                    "✓",
-                    FontId::proportional(12.0),
+                paint_check(
+                    &painter,
+                    check_rect,
                     if self.enabled {
                         visuals.selection.stroke.color
                     } else {

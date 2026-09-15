@@ -170,7 +170,7 @@ fn draw_skeletons_section(ui: &mut Ui, state: &mut AppState) {
                     .size(9.5)
                     .color(tokens::TEXT_SECONDARY),
             );
-            if ui.button("✕").on_hover_text("Excluir esqueleto").clicked() {
+            if ui.button("×").on_hover_text("Excluir esqueleto").clicked() {
                 remove_id = Some(skel.id);
             }
         });
@@ -360,7 +360,7 @@ fn draw_animation_clips_section(ui: &mut Ui, state: &mut AppState) {
                     .suffix("s"),
             );
             ui.checkbox(&mut asset.clip.looping, "Loop");
-            if ui.button("✕").on_hover_text("Remover clipe").clicked() {
+            if ui.button("×").on_hover_text("Remover clipe").clicked() {
                 remove_anim_id = Some(asset.id);
             }
         });
@@ -436,7 +436,7 @@ fn draw_transport_section(ui: &mut Ui, state: &mut AppState) {
         );
 
         if ui
-            .button("● Inserir Pose Key")
+            .button("• Inserir Pose Key")
             .on_hover_text("Grava a transformação do osso ativo no frame atual")
             .clicked()
         {

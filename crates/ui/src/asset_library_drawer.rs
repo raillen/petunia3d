@@ -177,7 +177,7 @@ fn draw_contents(ui: &mut Ui, state: &mut AppState) {
                                 );
                                 if is_active {
                                     ui.label(
-                                        RichText::new("● Active")
+                                        RichText::new("• Active")
                                             .size(10.0)
                                             .color(tokens::ACCENT_BLUE),
                                     );

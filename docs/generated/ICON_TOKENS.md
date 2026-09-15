@@ -14,7 +14,7 @@ description: Catálogo canônico de identificadores de ícones IconId (P3D-119)
 > **Single Source of Truth (P3D-086, P3D-119)**
 > Ícones no Petunia3D são estritamente endereçados por tokens semânticos (`IconId`), permitindo substituição de pacotes gráficos em tempo de execução sem afetar a lógica.
 
-Total de tokens declarados em `PetuniaIcon`: **78**.
+Total de tokens declarados em `PetuniaIcon`: **79**.
 
 | Token Enum | Identificador Textual (`IconId`) | Grupo Semântico |
 | :--- | :--- | :--- |
@@ -86,6 +86,7 @@ Total de tokens declarados em `PetuniaIcon`: **78**.
 | `PetuniaIcon::Minimize` | `minimize` | Utilitários (Phosphor / Vetoriais) |
 | `PetuniaIcon::MoreVert` | `more_vert` | Utilitários (Phosphor / Vetoriais) |
 | `PetuniaIcon::Pause` | `pause` | Utilitários (Phosphor / Vetoriais) |
+| `PetuniaIcon::Pin` | `pin` | Utilitários (Phosphor / Vetoriais) |
 | `PetuniaIcon::Play` | `play` | Utilitários (Phosphor / Vetoriais) |
 | `PetuniaIcon::Plus` | `plus` | Utilitários (Phosphor / Vetoriais) |
 | `PetuniaIcon::Redo` | `redo` | Utilitários (Phosphor / Vetoriais) |

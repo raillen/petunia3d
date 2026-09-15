@@ -173,6 +173,32 @@ impl Mesh {
         }
     }
 
+    /// Escala por eixo (selecionados ou tudo, como `translate_selected`).
+    pub fn scale_selected_factors(&mut self, f: [f32; 3], center: [f32; 3]) {
+        let any = self.verts.iter().any(|v| v.selected);
+        for v in &mut self.verts {
+            if v.selected || !any {
+                for ((p, c), s) in v.pos.iter_mut().zip(center.iter()).zip(f.iter()) {
+                    *p = c + (*p - c) * s;
+                }
+            }
+        }
+    }
+
+    /// Rotaciona por ângulos de Euler XYZ (radianos) ao redor de `center`
+    /// (selecionados ou tudo, como `translate_selected`).
+    pub fn rotate_selected(&mut self, euler_rad: [f32; 3], center: [f32; 3]) {
+        use glam::EulerRot;
+        let mat = glam::Mat3::from_euler(EulerRot::XYZ, euler_rad[0], euler_rad[1], euler_rad[2]);
+        let c = Vec3::from(center);
+        let any = self.verts.iter().any(|v| v.selected);
+        for v in &mut self.verts {
+            if v.selected || !any {
+                v.pos = (c + mat * (v.vec() - c)).to_array();
+            }
+        }
+    }
+
     pub fn selection_center(&self) -> [f32; 3] {
         let mut c = Vec3::ZERO;
         let mut n = 0;
@@ -929,9 +955,10 @@ impl Mesh {
         let mut kept: Vec<Face> = Vec::new();
         let mut mirrored: Vec<Face> = Vec::new();
         for f in &self.faces {
-            if f.verts.iter().all(|vi| {
-                (*vi as usize) < n && new_id[*vi as usize].is_some()
-            }) {
+            if f.verts
+                .iter()
+                .all(|vi| (*vi as usize) < n && new_id[*vi as usize].is_some())
+            {
                 let mut nf = Face::with_uv(
                     f.verts
                         .iter()
@@ -942,10 +969,7 @@ impl Mesh {
                 nf.selected = f.selected;
                 nf.material_slot = f.material_slot;
                 kept.push(nf);
-                let touches_source = f
-                    .verts
-                    .iter()
-                    .any(|vi| is_source[*vi as usize]);
+                let touches_source = f.verts.iter().any(|vi| is_source[*vi as usize]);
                 if touches_source {
                     let mut mverts: Vec<u32> = f
                         .verts
@@ -1965,5 +1989,38 @@ mod region_tests {
         let before = format!("{mesh:?}");
         assert_eq!(mesh.symmetrize(0, true, 0.001), 0);
         assert_eq!(format!("{mesh:?}"), before);
+    }
+
+    #[test]
+    fn rotate_selected_quarter_turn_about_z() {
+        let mut mesh = Mesh::cube(2.0);
+        let c = mesh.selection_center();
+        mesh.rotate_selected([0.0, 0.0, std::f32::consts::FRAC_PI_2], c);
+        // (1,1,1) gira para (-1,1,1) em torno do centro.
+        assert!(
+            mesh.verts.iter().any(|v| (v.pos[0] + 1.0).abs() < 1e-4
+                && (v.pos[1] - 1.0).abs() < 1e-4
+                && (v.pos[2] - 1.0).abs() < 1e-4),
+            "rotação Z de 90° esperada"
+        );
+        let report = mesh.validate_topology();
+        assert!(report.is_manifold, "{report:?}");
+    }
+
+    #[test]
+    fn scale_selected_factors_is_per_axis() {
+        let mut mesh = Mesh::cube(2.0);
+        let c = mesh.selection_center();
+        mesh.scale_selected_factors([2.0, 1.0, 0.5], c);
+        let (mut min_x, mut max_x) = (f32::INFINITY, f32::NEG_INFINITY);
+        let (mut min_z, mut max_z) = (f32::INFINITY, f32::NEG_INFINITY);
+        for v in &mesh.verts {
+            min_x = min_x.min(v.pos[0]);
+            max_x = max_x.max(v.pos[0]);
+            min_z = min_z.min(v.pos[2]);
+            max_z = max_z.max(v.pos[2]);
+        }
+        assert!((max_x - min_x - 4.0).abs() < 1e-4);
+        assert!((max_z - min_z - 1.0).abs() < 1e-4);
     }
 }

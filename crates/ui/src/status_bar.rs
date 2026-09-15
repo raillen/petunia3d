@@ -1,8 +1,11 @@
 //! Barra de status inferior do Petunia3D (`Status Bar`).
-//! Estruturada em 3 blocos bem definidos:
-//! 1. Identidade do Projeto (`● Salvo` / `○ Não salvo`), nome do arquivo e atalhos contextuais do mouse/ferramenta;
-//! 2. Mensagem central de status / feedback do sistema;
+//! Estruturada em 3 zonas rígidas (larguras medidas, nunca sobrepostas):
+//! 1. Identidade do Projeto (`Saved` / `Unsaved`), nome do arquivo e dica contextual (truncada);
+//! 2. Mensagem central de status / feedback do sistema (truncada à coluna);
 //! 3. Telemetria agregada de cena (Tris, Vértices, Objetos, Frame Time) e botões de histórico (Undo/Redo).
+//!
+//! Nenhum texto escapa da sua zona: tudo que varia é medido ou truncado, então
+//! as sidebars nunca têm o que cobrir (invariante `status_overlaps` + teste).
 
 use egui::{Align, Layout, RichText, Ui, vec2};
 use petunia_core::AppState;
@@ -65,47 +68,84 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
                 .inner_margin(egui::Margin::symmetric(8, 2)),
         )
         .show(ui, |ui| {
-            ui.horizontal_centered(|ui| {
-                ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+            // Três colunas iguais = três zonas rígidas. Nada é posicionado por
+            // resto de linha: cada zona só pinta dentro da sua coluna.
+            ui.columns(3, |cols| {
+                // ZONA 1 (esquerda): identidade + dica, dica truncada ao resto.
+                cols[0].horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+                    ui.label(
+                        RichText::new(save_indicator)
+                            .size(10.5)
+                            .color(save_color)
+                            .strong(),
+                    )
+                    .on_hover_text(if is_saved {
+                        "Projeto salvo e sincronizado"
+                    } else {
+                        "Alterações não salvas · Ctrl+S para salvar"
+                    });
 
-                // BLOCO 1: Identidade do Projeto e Dicas Contextuais (Esquerda)
-                ui.label(
-                    RichText::new(save_indicator)
-                        .size(10.5)
-                        .color(save_color)
-                        .strong(),
-                )
-                .on_hover_text(if is_saved {
-                    "Projeto salvo e sincronizado"
-                } else {
-                    "Alterações não salvas · Ctrl+S para salvar"
+                    ui.label(
+                        RichText::new(&proj_name)
+                            .size(11.0)
+                            .color(tokens::TEXT_PRIMARY),
+                    );
+
+                    ui.separator();
+
+                    let hint_w = ui.available_width().max(0.0);
+                    ui.add_sized(
+                        vec2(hint_w, 16.0),
+                        egui::Label::new(
+                            RichText::new(&hint).size(10.5).color(tokens::TEXT_MUTED),
+                        )
+                        .truncate(),
+                    )
+                    .on_hover_text(&hint);
                 });
 
-                ui.label(
-                    RichText::new(&proj_name)
-                        .size(11.0)
-                        .color(tokens::TEXT_PRIMARY),
-                );
+                // ZONA 2 (centro): mensagem de status, sempre contida.
+                cols[1].horizontal_centered(|ui| {
+                    let center_w = ui.available_width().max(0.0);
+                    ui.add_sized(
+                        vec2(center_w, 16.0),
+                        egui::Label::new(
+                            RichText::new(&status_text)
+                                .size(11.0)
+                                .color(tokens::TEXT_SECONDARY),
+                        )
+                        .truncate(),
+                    )
+                    .on_hover_text(&status_text);
+                });
 
-                ui.separator();
-
-                ui.label(
-                    RichText::new(&hint)
-                        .size(10.5)
-                        .color(tokens::TEXT_MUTED),
-                );
-
-                ui.separator();
-
-                // BLOCO 3: Telemetria da Cena e Controles de Histórico (Lado Direito)
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                // ZONA 3 (direita): telemetria + undo/redo, alinhados à direita.
+                cols[2].with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
                     let telemetry = format!(
-                        "Tris: {scene_tris} │ Verts: {scene_verts} │ Objs: {obj_count} │ {frame_ms:.1}ms │ v0.6.0"
+                        "Tris: {scene_tris} | Verts: {scene_verts} | Objs: {obj_count} | {frame_ms:.1}ms | v0.6.0"
                     );
-                    ui.monospace(
-                        RichText::new(telemetry)
-                            .size(10.5)
-                            .color(tokens::TEXT_MUTED),
+                    let tele_w = ui
+                        .fonts_mut(|f| {
+                            f.layout_no_wrap(
+                                telemetry.clone(),
+                                egui::FontId::monospace(10.5),
+                                tokens::TEXT_MUTED,
+                            )
+                            .size()
+                            .x
+                        })
+                        .min(ui.available_width().max(0.0));
+                    ui.add_sized(
+                        vec2(tele_w, 16.0),
+                        egui::Label::new(
+                            RichText::new(&telemetry)
+                                .size(10.5)
+                                .color(tokens::TEXT_MUTED)
+                                .monospace(),
+                        )
+                        .truncate(),
                     );
 
                     ui.separator();
@@ -134,21 +174,6 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
                     {
                         state.redo();
                     }
-
-                    ui.separator();
-
-                    // BLOCO 2: Mensagem / Feedback Central (Espaço restante)
-                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                        ui.add(
-                            egui::Label::new(
-                                RichText::new(&status_text)
-                                    .size(11.0)
-                                    .color(tokens::TEXT_SECONDARY),
-                            )
-                            .truncate(),
-                        )
-                        .on_hover_text(&status_text);
-                    });
                 });
             });
         });

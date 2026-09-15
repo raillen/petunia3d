@@ -6,7 +6,9 @@
 
 use petunia_config::text_id;
 use petunia_core::Projection;
-use petunia_core::{AppState, ModuleRegistry, ProjectService, RefAxis, Workspace};
+use petunia_core::{
+    AppState, DockOrientation, DockSide, ModuleRegistry, ProjectService, RefAxis, Workspace,
+};
 use petunia_module_model::ToolRegistry;
 use petunia_project::export;
 
@@ -29,6 +31,8 @@ pub mod icon_registry;
 pub mod icons;
 pub mod image_kit;
 pub mod inbox_bridge;
+pub mod inspector_context;
+pub mod inspector_widgets;
 #[cfg(feature = "keymap-capture")]
 pub mod key_capture;
 pub mod main_header;
@@ -197,13 +201,14 @@ fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
     );
 }
 
-/// Dock direito: Outliner e Inspector como painéis independentes (Wave 2).
+/// Dock Outliner/Inspector: painéis independentes com lado, orientação e
+/// divisor configuráveis (Wave 2 + dock completo).
 ///
-/// Substitui o empilhamento único por split vertical com divisor arrastável,
-/// colapso independente e rolagem própria por seção. A posição do divisor e os
-/// colapsos vivem em `UiState` (dono único, §3.2) e sobrevivem à troca de
-/// workspace. O destacamento do Inspector continua opcional, mas não é mais o
-/// único alívio para o espremedimento.
+/// O dock mora à direita ou à esquerda (painéis `left` ladrilham após a
+/// toolbar) e empilha na vertical ou divide lado a lado, com divisor
+/// arrastável, colapso independente e rolagem própria por seção. Lado e
+/// orientação vivem em `UiState` (dono único, §3.2). O destacamento do
+/// Inspector continua opcional.
 pub fn right_panel(
     ui: &mut egui::Ui,
     state: &mut AppState,
@@ -213,7 +218,11 @@ pub fn right_panel(
     puffin::profile_function!();
     let was_detached = state.ui.inspector_detached;
     let max_width = (ui.ctx().viewport_rect().width() * 0.45).clamp(240.0, 420.0);
-    let dock = egui::Panel::right("props")
+    let panel = match state.ui.dock_side {
+        DockSide::Left => egui::Panel::left("props"),
+        DockSide::Right => egui::Panel::right("props"),
+    };
+    let dock = panel
         .default_size(tokens::PROPERTIES_DEFAULT_WIDTH)
         .size_range(220.0..=max_width)
         .frame(
@@ -228,6 +237,8 @@ pub fn right_panel(
             // bar). Interiores restauram o espaçamento padrão na sua raiz.
             let dock_spacing = ui.spacing().item_spacing;
             ui.spacing_mut().item_spacing.y = 0.0;
+            draw_dock_header(ui, state);
+            ui.separator();
             if was_detached {
                 // Aviso primeiro (altura própria), Outliner preenche o restante.
                 ui.horizontal(|ui| {
@@ -310,24 +321,42 @@ pub fn right_panel(
     }
 }
 
-/// Cabeçalho slim de seção do dock com colapso explícito.
-fn dock_section_header(ui: &mut egui::Ui, title: String, collapsed: bool, tooltip: String) -> bool {
-    let mut clicked = false;
+/// Cabeçalho slim do dock: alterna lado (esquerda/direita) e disposição
+/// (empilhado/lado a lado). Tudo opera de imediato sobre `UiState`.
+fn draw_dock_header(ui: &mut egui::Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(4.0, 0.0);
-        let glyph = if collapsed { "+" } else { "–" };
-        if ui.small_button(glyph).on_hover_text(&tooltip).clicked() {
-            clicked = true;
-        }
+        let side_label = match state.ui.dock_side {
+            DockSide::Left => state.t("dock.left"),
+            DockSide::Right => state.t("dock.right"),
+        };
         if ui
-            .selectable_label(!collapsed, egui::RichText::new(title).size(11.0).strong())
-            .on_hover_text(&tooltip)
+            .small_button(side_label)
+            .on_hover_text(state.t("dock.side"))
             .clicked()
         {
-            clicked = true;
+            state.ui.dock_side = match state.ui.dock_side {
+                DockSide::Left => DockSide::Right,
+                DockSide::Right => DockSide::Left,
+            };
+            state.mark_dirty();
+        }
+        let orient_label = match state.ui.dock_orientation {
+            DockOrientation::Stacked => state.t("dock.stacked"),
+            DockOrientation::SideBySide => state.t("dock.side_by_side"),
+        };
+        if ui
+            .small_button(orient_label)
+            .on_hover_text(state.t("dock.orientation"))
+            .clicked()
+        {
+            state.ui.dock_orientation = match state.ui.dock_orientation {
+                DockOrientation::Stacked => DockOrientation::SideBySide,
+                DockOrientation::SideBySide => DockOrientation::Stacked,
+            };
+            state.mark_dirty();
         }
     });
-    clicked
 }
 
 fn draw_split_dock(
@@ -337,41 +366,42 @@ fn draw_split_dock(
     registry: &mut ModuleRegistry,
     interior_spacing: egui::Vec2,
 ) {
+    if state.ui.dock_orientation == DockOrientation::SideBySide {
+        draw_side_by_side_dock(ui, state, tools, registry, interior_spacing);
+        return;
+    }
     let avail = ui.available_rect_before_wrap();
     let total_h = avail.height();
     let total_w = avail.width();
-    let (out_h, insp_h) = regions::split_heights(
+    // Altura do Scene: AUTO pelo conteúdo (sem reservar meio dock p/ 1 objeto)
+    // ou MANUAL pela fração do divisor. Colapsos encurtam para o cabeçalho.
+    let scene_rows = state.project.assets.len()
+        + state.project.collections.len()
+        + state.project.annotation_groups.len()
+        + state.project.annotations.len()
+        + state.project.measurements.len()
+        + state.project.refs.len()
+        + 4;
+    let out_h = regions::scene_panel_height(
         total_h,
-        state.ui.right_dock_split,
         state.ui.outliner_collapsed,
-        state.ui.inspector_collapsed,
+        state.ui.scene_split_auto,
+        state.ui.right_dock_split,
+        regions::estimate_scene_content(
+            scene_rows,
+            crate::inspector_widgets::row_h(state.ui.density),
+        ),
     );
+    let insp_h = (total_h - regions::DOCK_SEPARATOR_H - out_h).max(regions::DOCK_HEADER_H);
 
-    // 1. Outliner (topo)
-    let out_title = state.t_id(text_id::UI_OUTLINER);
-    let out_tip = state.t(if state.ui.outliner_collapsed {
-        "ui.expand"
-    } else {
-        "ui.collapse"
-    });
+    // 1. Outliner (topo; colapso mora no cabeçalho do próprio outliner)
     let out_resp = ui.allocate_ui_with_layout(
         egui::vec2(total_w, out_h),
         egui::Layout::top_down_justified(egui::Align::LEFT),
         |ui| {
             // Interiores usam espaçamento normal; o empilhamento do dock usa 0.
             ui.spacing_mut().item_spacing = interior_spacing;
-            if dock_section_header(ui, out_title, state.ui.outliner_collapsed, out_tip) {
-                state.ui.outliner_collapsed = !state.ui.outliner_collapsed;
-                state.mark_dirty();
-            }
-            if !state.ui.outliner_collapsed {
-                egui::ScrollArea::vertical()
-                    .id_salt("dock_outliner_scroll")
-                    .auto_shrink([false, false])
-                    .show(ui, |ui| {
-                        outliner::draw_body(ui, state);
-                    });
-            }
+            outliner::draw_body(ui, state);
         },
     );
     regions::record(
@@ -406,38 +436,32 @@ fn draw_split_dock(
     if sep_resp.hovered() || sep_resp.dragged() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
     }
+    // Duplo-clique volta ao dimensionamento automático.
+    if sep_resp.double_clicked() {
+        state.ui.scene_split_auto = true;
+        state.mark_dirty();
+    }
     if sep_resp.dragged()
         && let Some(pos) = ui.input(|i| i.pointer.hover_pos().or(i.pointer.interact_pos()))
     {
         let new_split = ((pos.y - avail.min.y) / total_h.max(1.0)).clamp(0.25, 0.75);
         if (new_split - state.ui.right_dock_split).abs() > f32::EPSILON {
             state.ui.right_dock_split = new_split;
-            // Arrastar reabre ambas as seções: o gesto declara intenção de ver as duas.
+            // Arrastar sai do AUTO e reabre ambas as seções.
+            state.ui.scene_split_auto = false;
             state.ui.outliner_collapsed = false;
             state.ui.inspector_collapsed = false;
             state.mark_dirty();
         }
     }
 
-    // 3. Inspector (base)
-    let insp_title = state.t_id(text_id::UI_PROPERTIES);
-    let insp_tip = state.t(if state.ui.inspector_collapsed {
-        "ui.expand"
-    } else {
-        "ui.collapse"
-    });
+    // 3. Inspector (base; colapso mora na barra do objeto)
     let insp_resp = ui.allocate_ui_with_layout(
         egui::vec2(total_w, insp_h.max(regions::DOCK_HEADER_H)),
         egui::Layout::top_down_justified(egui::Align::LEFT),
         |ui| {
             ui.spacing_mut().item_spacing = interior_spacing;
-            if dock_section_header(ui, insp_title, state.ui.inspector_collapsed, insp_tip) {
-                state.ui.inspector_collapsed = !state.ui.inspector_collapsed;
-                state.mark_dirty();
-            }
-            if !state.ui.inspector_collapsed {
-                properties_panel::draw(ui, state, tools, registry);
-            }
+            properties_panel::draw(ui, state, tools, registry);
         },
     );
     regions::record(
@@ -445,6 +469,97 @@ fn draw_split_dock(
         regions::RegionSlot::RightInspector,
         insp_resp.response.rect,
     );
+}
+
+/// Dock lado a lado: Outliner à esquerda, Inspector à direita, divisor
+/// vertical arrastável. Mesmos slots de região, colapsos e fração do modo
+/// empilhado (a fração é compartilhada entre as orientações).
+fn draw_side_by_side_dock(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    tools: &ToolRegistry,
+    registry: &mut ModuleRegistry,
+    interior_spacing: egui::Vec2,
+) {
+    let avail = ui.available_rect_before_wrap();
+    let total_w = avail.width();
+    let total_h = avail.height();
+    let (left_w, right_w) = regions::split_widths(
+        total_w,
+        state.ui.right_dock_split,
+        state.ui.outliner_collapsed,
+        state.ui.inspector_collapsed,
+    );
+
+    ui.horizontal_top(|ui| {
+        // 1. Outliner (esquerda; colapso no próprio cabeçalho)
+        let out_resp = ui.allocate_ui_with_layout(
+            egui::vec2(left_w, total_h),
+            egui::Layout::top_down_justified(egui::Align::LEFT),
+            |ui| {
+                ui.spacing_mut().item_spacing = interior_spacing;
+                outliner::draw_body(ui, state);
+            },
+        );
+        regions::record(
+            ui.ctx(),
+            regions::RegionSlot::RightOutliner,
+            out_resp.response.rect,
+        );
+
+        // 2. Divisor vertical arrastável
+        let (sep_rect, sep_resp) = ui.allocate_exact_size(
+            egui::vec2(regions::DOCK_SEPARATOR_W, total_h),
+            egui::Sense::drag(),
+        );
+        let sep_fill = if sep_resp.dragged() {
+            tokens::ACCENT_BLUE
+        } else if sep_resp.hovered() {
+            tokens::BG_SURFACE_HOVER
+        } else {
+            egui::Color32::TRANSPARENT
+        };
+        ui.painter().rect_filled(sep_rect, 2.0, sep_fill);
+        let mid_x = sep_rect.center().x;
+        ui.painter().line_segment(
+            [
+                egui::pos2(mid_x, sep_rect.min.y + 10.0),
+                egui::pos2(mid_x, sep_rect.max.y - 10.0),
+            ],
+            egui::Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
+        );
+        let split_tip = state.t_id(text_id::UI_DOCK_SPLIT_HINT);
+        let sep_resp = sep_resp.on_hover_text(split_tip);
+        if sep_resp.hovered() || sep_resp.dragged() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+        }
+        if sep_resp.dragged()
+            && let Some(pos) = ui.input(|i| i.pointer.hover_pos().or(i.pointer.interact_pos()))
+        {
+            let new_split = ((pos.x - avail.min.x) / total_w.max(1.0)).clamp(0.25, 0.75);
+            if (new_split - state.ui.right_dock_split).abs() > f32::EPSILON {
+                state.ui.right_dock_split = new_split;
+                state.ui.outliner_collapsed = false;
+                state.ui.inspector_collapsed = false;
+                state.mark_dirty();
+            }
+        }
+
+        // 3. Inspector (direita; colapso na barra do objeto)
+        let insp_resp = ui.allocate_ui_with_layout(
+            egui::vec2(right_w, total_h),
+            egui::Layout::top_down_justified(egui::Align::LEFT),
+            |ui| {
+                ui.spacing_mut().item_spacing = interior_spacing;
+                properties_panel::draw(ui, state, tools, registry);
+            },
+        );
+        regions::record(
+            ui.ctx(),
+            regions::RegionSlot::RightInspector,
+            insp_resp.response.rect,
+        );
+    });
 }
 
 pub fn new_project(state: &mut AppState) {
@@ -551,7 +666,7 @@ pub fn refs_section(ui: &mut egui::Ui, state: &mut AppState) {
                             r.locked = lock;
                         }
                         ui.label(&r.name);
-                        if ui.small_button("✕").clicked() {
+                        if ui.small_button("×").clicked() {
                             rm = Some(i);
                         }
                     });
@@ -1034,3 +1149,94 @@ mod paint_tests;
 
 #[cfg(test)]
 mod cutting_tests;
+
+#[cfg(test)]
+mod shell_layout_tests {
+    //! Regressão do shell: nenhum painel lateral cobre a status bar em
+    //! nenhuma resolução suportada (zonas rígidas da `status_bar`).
+    use super::*;
+
+    fn draw_shell(w: f32, h: f32) -> Option<regions::UiRegions> {
+        draw_shell_with(w, h, true)
+    }
+
+    fn draw_shell_with(w: f32, h: f32, assets: bool) -> Option<regions::UiRegions> {
+        draw_shell_full(w, h, assets, DockSide::Right, DockOrientation::Stacked)
+    }
+
+    fn draw_shell_full(
+        w: f32,
+        h: f32,
+        assets: bool,
+        side: DockSide,
+        orient: DockOrientation,
+    ) -> Option<regions::UiRegions> {
+        let ctx = egui::Context::default();
+        let mut state = AppState::new("en");
+        state.ui.show_asset_browser = assets;
+        state.ui.dock_side = side;
+        state.ui.dock_orientation = orient;
+        let tools = ToolRegistry::default();
+        let mut registry = ModuleRegistry::new();
+        let mut action = UiAction::none();
+        let raw = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(w, h),
+            )),
+            ..Default::default()
+        };
+        ctx.run_ui(raw, |ui| {
+            draw(ui, &mut state, &tools, &mut registry, &mut action);
+        })
+        .textures_delta
+        .clear();
+        regions::load(&ctx)
+    }
+
+    #[test]
+    fn shell_panels_never_cover_status_bar() {
+        use DockOrientation::{SideBySide, Stacked};
+        use DockSide::{Left, Right};
+        for (side, orient) in [
+            (Right, Stacked),
+            (Left, Stacked),
+            (Right, SideBySide),
+            (Left, SideBySide),
+        ] {
+            let regions = draw_shell_full(1280.0, 800.0, true, side, orient).expect("regions");
+            assert!(
+                regions.status_overlaps().is_empty(),
+                "{side:?}/{orient:?}: painéis sobre a status bar: {:?}",
+                regions.status_overlaps()
+            );
+            assert!(
+                regions.dock_sections_disjoint(),
+                "{side:?}/{orient:?}: outliner/inspector sobrepostos"
+            );
+        }
+        for (w, h) in [(1920.0, 1080.0), (1280.0, 800.0), (1024.0, 700.0)] {
+            let regions = draw_shell(w, h).expect("shell registra regiões do frame corrente");
+            eprintln!("{w}x{h} panes: {:?}", regions.panes());
+            assert!(regions.status_bar.is_some(), "{w}x{h}: status bar ausente");
+            assert!(
+                regions.status_overlaps().is_empty(),
+                "{w}x{h}: painéis sobre a status bar: {:?}",
+                regions.status_overlaps()
+            );
+            assert!(
+                regions.dock_sections_disjoint(),
+                "{w}x{h}: outliner/inspector sobrepostos"
+            );
+            assert!(
+                regions.shelf_within_viewport(),
+                "{w}x{h}: shelf fora da viewport"
+            );
+            let vp = regions.viewport.expect("viewport presente");
+            assert!(
+                vp.width() > 200.0 && vp.height() > 100.0,
+                "{w}x{h}: viewport esmagada ({vp:?})"
+            );
+        }
+    }
+}

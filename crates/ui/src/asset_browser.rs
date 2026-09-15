@@ -8,6 +8,9 @@ use petunia_core::{AppState, DeleteAssetCmd, DuplicateAssetCmd};
 use crate::tokens;
 use crate::widgets;
 
+/// Reserva vertical para separador + rodapé abaixo da lista de cards.
+const FOOTER_RESERVE: f32 = 64.0;
+
 /// Renderiza o painel lateral retrátil do Asset Browser.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
     if !state.ui.show_asset_browser {
@@ -60,7 +63,7 @@ fn draw_header(ui: &mut Ui, state: &mut AppState) {
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             if ui
-                .small_button("✕")
+                .small_button("×")
                 .on_hover_text("Fechar Asset Browser")
                 .clicked()
             {
@@ -171,6 +174,10 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
     ScrollArea::vertical()
         .id_salt("asset_browser_cards_scroll")
         .auto_shrink([true, false])
+        // Altura limitada com reserva do rodapé: sem isto a área de rolagem
+        // ocupa todo o restante do painel e o rodapé estoura o retângulo,
+        // invadindo a status bar (invariante `status_overlaps`).
+        .max_height((ui.available_height() - FOOTER_RESERVE).max(120.0))
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = vec2(0.0, 6.0);
 
@@ -299,7 +306,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                                 if is_active {
                                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                         ui.label(
-                                            RichText::new("● ATIVO")
+                                            RichText::new("• ATIVO")
                                                 .size(9.0)
                                                 .strong()
                                                 .color(tokens::ACCENT_BLUE),
@@ -342,7 +349,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
                                 if is_active {
                                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                         ui.label(
-                                            RichText::new("● ATIVO")
+                                            RichText::new("• ATIVO")
                                                 .size(9.0)
                                                 .strong()
                                                 .color(tokens::ACCENT_BLUE),
@@ -354,7 +361,7 @@ fn draw_asset_cards(ui: &mut Ui, state: &mut AppState) {
 
                         // Linha 2: Métricas de Geometria
                         ui.label(
-                            RichText::new(format!("{tris} tris │ {verts} verts"))
+                            RichText::new(format!("{tris} tris | {verts} verts"))
                                 .size(10.0)
                                 .color(tokens::TEXT_MUTED),
                         );

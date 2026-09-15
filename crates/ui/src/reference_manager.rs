@@ -394,7 +394,7 @@ fn draw_slot_card(
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    if ui.small_button("✕").on_hover_text(remove_tip).clicked() {
+                                    if ui.small_button("×").on_hover_text(remove_tip).clicked() {
                                         *remove_index = Some(idx);
                                     }
                                 },

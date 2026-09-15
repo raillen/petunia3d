@@ -25,53 +25,56 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
         )
         .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                ui.horizontal_centered(|ui| {
-                    ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+                // Três colunas iguais: menus à esquerda, pills de workspace
+                // centralizadas, ações à direita. Sem brand: o header é
+                // navegação, não vitrine.
+                ui.columns(3, |cols| {
+                    cols[0].horizontal_centered(|ui| {
+                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+                        // 1. Menus do sistema (File, Edit, Window, Help)
+                        draw_menus(ui, state, action);
+                    });
+                    cols[1].horizontal_centered(|ui| {
+                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+                        // 2. Abas de Workspaces em pílulas (Model, Paint, UV, Animate)
+                        draw_workspace_pills(ui, state);
+                    });
+                    cols[2].horizontal_centered(|ui| {
+                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+                        // 3. Lado direito: Assets e Configurações
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let pref_resp = widgets::petunia_action_button(
+                                ui,
+                                Some(PetuniaIcon::Settings),
+                                "Config",
+                                false,
+                            );
 
-                    // 1. Logotipo e Identidade visual Petunia
-                    draw_app_brand(ui);
+                            if pref_resp
+                                .on_hover_text(
+                                    "Preferências e Configurações (Tema, Ícones, Idioma, Teclas)",
+                                )
+                                .clicked()
+                            {
+                                state.ui.show_settings = !state.ui.show_settings;
+                                state.mark_dirty();
+                            }
 
-                    // 2. Menus do sistema no padrão de aplicação criativa (File, Edit, Window, Help)
-                    draw_menus(ui, state, action);
+                            let asset_resp = widgets::petunia_action_button(
+                                ui,
+                                Some(PetuniaIcon::Folder),
+                                "Assets",
+                                false,
+                            );
 
-                    ui.separator();
-
-                    // 3. Abas de Workspaces em pílulas elegantes (Model, Paint, UV, Animate)
-                    draw_workspace_pills(ui, state);
-
-                    // Lado direito do header: Assets e Configurações
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let pref_resp = widgets::petunia_action_button(
-                            ui,
-                            Some(PetuniaIcon::Settings),
-                            "Config",
-                            false,
-                        );
-
-                        if pref_resp
-                            .on_hover_text(
-                                "Preferências e Configurações (Tema, Ícones, Idioma, Teclas)",
-                            )
-                            .clicked()
-                        {
-                            state.ui.show_settings = !state.ui.show_settings;
-                            state.mark_dirty();
-                        }
-
-                        let asset_resp = widgets::petunia_action_button(
-                            ui,
-                            Some(PetuniaIcon::Folder),
-                            "Assets",
-                            false,
-                        );
-
-                        if asset_resp
-                            .on_hover_text("Alternar Painel de Assets do Projeto")
-                            .clicked()
-                        {
-                            state.ui.show_asset_browser = !state.ui.show_asset_browser;
-                            state.mark_dirty();
-                        }
+                            if asset_resp
+                                .on_hover_text("Alternar Painel de Assets do Projeto")
+                                .clicked()
+                            {
+                                state.ui.show_asset_browser = !state.ui.show_asset_browser;
+                                state.mark_dirty();
+                            }
+                        });
                     });
                 });
             });
@@ -81,27 +84,6 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
         crate::regions::RegionSlot::Header,
         header_resp.response.rect,
     );
-}
-
-fn draw_app_brand(ui: &mut Ui) {
-    let (rect, response) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::hover());
-    if ui.is_rect_visible(rect) {
-        // Losango geométrico elegante da marca Petunia
-        let center = rect.center();
-        let r = 7.0;
-        let points = [
-            egui::pos2(center.x, center.y - r),
-            egui::pos2(center.x + r, center.y),
-            egui::pos2(center.x, center.y + r),
-            egui::pos2(center.x - r, center.y),
-        ];
-        ui.painter().add(egui::Shape::convex_polygon(
-            points.to_vec(),
-            tokens::ACCENT_BLUE,
-            egui::Stroke::new(1.0_f32, tokens::ACCENT_BORDER),
-        ));
-    }
-    response.on_hover_text("Petunia3D v0.5 — Shape-First 3D Creative Suite");
 }
 
 fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {

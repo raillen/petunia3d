@@ -625,7 +625,12 @@ fn draw_shelf_pill(
         cmd.label.clone()
     };
     resp.widget_info(|| {
-        WidgetInfo::selected(WidgetType::Button, true, is_active, accessible_label.clone())
+        WidgetInfo::selected(
+            WidgetType::Button,
+            true,
+            is_active,
+            accessible_label.clone(),
+        )
     });
     if ui.is_rect_visible(rect) {
         let fill = if is_active {

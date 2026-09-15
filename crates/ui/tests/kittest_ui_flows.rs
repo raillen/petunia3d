@@ -154,13 +154,23 @@ fn test_kittest_properties_panel_tabs_flow() {
     harness.run_steps(2);
     drop(harness);
 
+    // Aba contextual real alterna e persiste.
+    state.ui.properties_tab = "modify".to_string();
+    let mut harness_modify = Harness::builder().build_ui(|ui| {
+        petunia_ui::properties_panel::draw(ui, &mut state, &tools, &mut registry);
+    });
+    harness_modify.run_steps(2);
+    drop(harness_modify);
+    assert_eq!(state.ui.properties_tab, "modify");
+
+    // Aba legada ("tool") é higienizada para o padrão do contexto.
     state.ui.properties_tab = "tool".to_string();
     let mut harness_tool = Harness::builder().build_ui(|ui| {
         petunia_ui::properties_panel::draw(ui, &mut state, &tools, &mut registry);
     });
     harness_tool.run_steps(2);
     drop(harness_tool);
-    assert_eq!(state.ui.properties_tab, "tool");
+    assert_eq!(state.ui.properties_tab, "object");
 }
 
 #[test]
@@ -512,6 +522,7 @@ fn test_kittest_dock_split_fraction_resizes_sections() {
                 .push(petunia_ui::regions::load(ui.ctx()));
         });
     state.borrow_mut().ui.right_dock_split = 0.3;
+    state.borrow_mut().ui.scene_split_auto = false;
     harness.run_steps(6);
     state.borrow_mut().ui.right_dock_split = 0.7;
     harness.run_steps(6);

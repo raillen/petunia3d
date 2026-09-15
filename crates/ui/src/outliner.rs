@@ -41,13 +41,27 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
 
 /// Conteúdo do Outliner sem o cabeçalho colapsável externo.
 ///
-/// O dock direito (Wave 2) usa cabeçalho próprio com colapso explícito em
-/// `UiState`; este corpo preenche a altura que o pai disponibilizar.
+/// O dock usa colapso explícito em `UiState` (chevron no cabeçalho); quando
+/// colapsado, só a linha do cabeçalho rende (faixa de 28px / tira de 44px).
 pub fn draw_body(ui: &mut Ui, state: &mut AppState) {
-    // 1. Cabeçalho do Outliner com contagem, ações e busca
+    // 1. Cabeçalho do Outliner com colapso, contagem, ações e busca
     draw_outliner_header(ui, state);
+    if state.ui.outliner_collapsed {
+        return;
+    }
 
     ui.separator();
+
+    // Cena totalmente vazia: atalhos de criação em vez de árvore vazia.
+    if state.project.assets.is_empty()
+        && state.project.collections.is_empty()
+        && state.project.annotations.is_empty()
+        && state.project.measurements.is_empty()
+    {
+        ui.add_space(6.0);
+        crate::properties_panel::draw_quick_add(ui, state);
+        return;
+    }
 
     // 2. Área de rolagem com a árvore hierárquica completa.
     // Wave 2: sem cap fixo de 280px — o pai (split do dock / tile) limita.
@@ -69,57 +83,109 @@ fn outliner_node_icon(ui: &mut Ui, icon: &PetuniaIcon, fg: Color32) {
 }
 
 fn outliner_icon_button(ui: &mut Ui, icon: &PetuniaIcon, fg: Color32, tooltip: &str) -> Response {
-    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+    outliner_icon_button_selected(ui, icon, fg, tooltip, false)
+}
+
+fn outliner_icon_button_selected(
+    ui: &mut Ui,
+    icon: &PetuniaIcon,
+    fg: Color32,
+    tooltip: &str,
+    selected: bool,
+) -> Response {
+    // Hitbox 24px (alvo acessível) com glifo 14px.
+    let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), egui::Sense::click());
     if ui.is_rect_visible(rect) {
-        let fill = if resp.hovered() {
+        let fill = if selected {
+            tokens::ACCENT_BLUE
+        } else if resp.hovered() {
             tokens::BG_SURFACE_HOVER
         } else {
             Color32::TRANSPARENT
         };
         ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
-        let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
         IconRegistry::paint(ui.ctx(), ui.painter(), icon, icon_rect, fg);
+        if resp.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                tokens::RADIUS_CONTROL,
+                tokens::stroke_focus(),
+                egui::StrokeKind::Inside,
+            );
+        }
     }
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tooltip));
     resp.on_hover_text(tooltip)
 }
 
 fn outliner_eye_button(ui: &mut Ui, visible: bool, tooltip: &str) -> Response {
-    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), egui::Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tooltip));
     if ui.is_rect_visible(rect) {
         let (icon, fg) = if visible {
             (PetuniaIcon::Eye, tokens::TEXT_PRIMARY)
         } else {
             (PetuniaIcon::EyeHidden, tokens::TEXT_MUTED)
         };
-        let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
         IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
+        if resp.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                tokens::RADIUS_CONTROL,
+                tokens::stroke_focus(),
+                egui::StrokeKind::Inside,
+            );
+        }
     }
     resp.on_hover_text(tooltip)
 }
 
 fn outliner_lock_button(ui: &mut Ui, locked: bool, tooltip: &str) -> Response {
-    let (rect, resp) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), egui::Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tooltip));
     if ui.is_rect_visible(rect) {
         let (icon, fg) = if locked {
             (PetuniaIcon::Lock, Color32::from_rgb(0xe6, 0x7e, 0x22))
         } else {
             (PetuniaIcon::Unlock, tokens::TEXT_MUTED)
         };
-        let icon_rect = Rect::from_center_size(rect.center(), vec2(13.0, 13.0));
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
         IconRegistry::paint(ui.ctx(), ui.painter(), &icon, icon_rect, fg);
+        if resp.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                tokens::RADIUS_CONTROL,
+                tokens::stroke_focus(),
+                egui::StrokeKind::Inside,
+            );
+        }
     }
     resp.on_hover_text(tooltip)
 }
 
 fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
     let n_assets = state.project.assets.len();
+    let collapsed = state.ui.outliner_collapsed;
 
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
 
-        // Título de Objetos da Cena com contador
+        // Chevron de colapso do painel (dono: UiState, como no inspector).
+        let tip = state.t(if collapsed {
+            "ui.expand"
+        } else {
+            "ui.collapse"
+        });
+        if widgets::chevron_toggle(ui, &tip, !collapsed).clicked() {
+            state.ui.outliner_collapsed = !collapsed;
+            state.mark_dirty();
+        }
+
+        // Título compacto com contador.
         ui.label(
-            egui::RichText::new("Scene Objects")
+            egui::RichText::new(state.t("scene.title"))
                 .size(11.5)
                 .strong()
                 .color(tokens::TEXT_PRIMARY),
@@ -130,28 +196,64 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
                 .color(tokens::TEXT_MUTED),
         );
 
+        if collapsed {
+            return;
+        }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // Botão Nova Coleção com ícone vetorial
-            let (rect, resp) = ui.allocate_exact_size(vec2(22.0, 20.0), egui::Sense::click());
-            if ui.is_rect_visible(rect) {
-                let fill = if resp.hovered() {
-                    tokens::BG_SURFACE_HOVER
+            // Funil: filtros de seção/estado + voltar ao tamanho automático.
+            draw_scene_filter_menu(ui, state);
+
+            // Busca expansível (ícone → campo inline com ×).
+            let search_tip = state.t("scene.search");
+            if outliner_icon_button(
+                ui,
+                &PetuniaIcon::Search,
+                tokens::TEXT_SECONDARY,
+                &search_tip,
+            )
+            .clicked()
+            {
+                state.ui.scene_search_open = !state.ui.scene_search_open;
+                if state.ui.scene_search_open {
+                    state.ui.scene_search_focus_request = true;
                 } else {
-                    tokens::BG_SURFACE
-                };
-                ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, fill);
-                let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
-                IconRegistry::paint(
-                    ui.ctx(),
-                    ui.painter(),
-                    &PetuniaIcon::Folder,
-                    icon_rect,
-                    tokens::TEXT_SECONDARY,
-                );
+                    state.ui.outliner_search.clear();
+                }
+                state.mark_dirty();
             }
-            if resp
-                .on_hover_text("Criar nova Coleção para organizar modelos")
-                .clicked()
+
+            // Botão de Isolar Objeto Ativo
+            let is_iso = state.isolate_active;
+            let iso_tip = state.t(if is_iso {
+                "context.isolate_tip_on"
+            } else {
+                "context.isolate_tip"
+            });
+            if outliner_icon_button_selected(
+                ui,
+                &PetuniaIcon::Cursor3D,
+                if is_iso {
+                    tokens::TEXT_ACTIVE
+                } else {
+                    tokens::TEXT_SECONDARY
+                },
+                &iso_tip,
+                is_iso,
+            )
+            .clicked()
+            {
+                state.toggle_isolate();
+            }
+
+            // Botão Nova Coleção com ícone vetorial
+            let new_col_tip = state.t("context.new_collection_tip");
+            if outliner_icon_button(
+                ui,
+                &PetuniaIcon::Folder,
+                tokens::TEXT_SECONDARY,
+                &new_col_tip,
+            )
+            .clicked()
             {
                 let mut num = state.project.collections.len() + 1;
                 let mut name = format!("Coleção {num}");
@@ -162,47 +264,382 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
                 state.project.add_collection(&name);
                 state.mark_dirty();
             }
-
-            // Botão de Isolar Objeto Ativo
-            let is_iso = state.isolate_active;
-            let (rect, resp) = ui.allocate_exact_size(vec2(22.0, 20.0), egui::Sense::click());
-            if ui.is_rect_visible(rect) {
-                let bg = if is_iso {
-                    tokens::ACCENT_BLUE
-                } else if resp.hovered() {
-                    tokens::BG_SURFACE_HOVER
-                } else {
-                    tokens::BG_SURFACE
-                };
-                let fg = if is_iso {
-                    Color32::WHITE
-                } else {
-                    tokens::TEXT_SECONDARY
-                };
-                ui.painter().rect_filled(rect, tokens::RADIUS_CONTROL, bg);
-                let icon_rect = Rect::from_center_size(rect.center(), vec2(14.0, 14.0));
-                IconRegistry::paint(
-                    ui.ctx(),
-                    ui.painter(),
-                    &PetuniaIcon::Cursor3D,
-                    icon_rect,
-                    fg,
-                );
-            }
-            if resp.on_hover_text(if is_iso {
-                "Isolar Ativo (Numpad /): Restaurar visibilidade de todos os objetos"
-            } else {
-                "Isolar Objeto Ativo (Numpad /): Esconder todos os outros e focar no selecionado"
-            }).clicked() {
-                state.toggle_isolate();
-            }
         });
     });
 
-    ui.add_space(2.0);
+    if collapsed {
+        return;
+    }
+    // Busca inline expansível (revelação progressiva, sem linha permanente).
+    if state.ui.scene_search_open {
+        ui.add_space(2.0);
+        let search_hint = state.t("scene.search");
+        ui.horizontal(|ui| {
+            let resp = widgets::petunia_search_box(ui, &mut state.ui.outliner_search, &search_hint);
+            if state.ui.scene_search_focus_request {
+                state.ui.scene_search_focus_request = false;
+                resp.request_focus();
+            }
+            if outliner_icon_button(
+                ui,
+                &PetuniaIcon::Close,
+                tokens::TEXT_MUTED,
+                &state.t("ui.close"),
+            )
+            .clicked()
+            {
+                state.ui.scene_search_open = false;
+                state.ui.outliner_search.clear();
+                state.mark_dirty();
+            }
+        });
+    }
+}
 
-    // Campo de busca com ícone e botão de limpar
-    widgets::petunia_search_box(ui, &mut state.ui.outliner_search, "Search...");
+/// Menu do funil: filtros de seção/estado + retorno ao tamanho automático.
+///
+/// Arquitetura extensível: novos tipos de objeto viram novos checkboxes aqui,
+/// sem mexer no cabeçalho.
+fn draw_scene_filter_menu(ui: &mut Ui, state: &mut AppState) {
+    let tip = state.t("scene.filter");
+    let resp = outliner_icon_button(ui, &PetuniaIcon::Filter, tokens::TEXT_SECONDARY, &tip);
+    egui::Popup::menu(&resp).show(|ui| {
+        ui.set_min_width(200.0);
+        let mut dirty = false;
+        for (label_key, field) in [
+            ("scene.f_collections", 0u8),
+            ("scene.f_annotations", 1u8),
+            ("scene.f_measurements", 2u8),
+            ("scene.f_refs", 3u8),
+        ] {
+            let mut on = match field {
+                0 => state.ui.scene_filter.show_collections,
+                1 => state.ui.scene_filter.show_annotations,
+                2 => state.ui.scene_filter.show_measurements,
+                _ => state.ui.scene_filter.show_refs,
+            };
+            if ui.checkbox(&mut on, state.t(label_key)).changed() {
+                match field {
+                    0 => state.ui.scene_filter.show_collections = on,
+                    1 => state.ui.scene_filter.show_annotations = on,
+                    2 => state.ui.scene_filter.show_measurements = on,
+                    _ => state.ui.scene_filter.show_refs = on,
+                }
+                dirty = true;
+            }
+        }
+        ui.separator();
+        ui.label(
+            egui::RichText::new(state.t("scene.f_state"))
+                .size(11.0)
+                .color(tokens::TEXT_SECONDARY),
+        );
+        for kind in petunia_core::SceneObjectState::all() {
+            if ui
+                .selectable_label(
+                    state.ui.scene_filter.object_state == kind,
+                    state.t(kind.key()),
+                )
+                .clicked()
+            {
+                state.ui.scene_filter.object_state = kind;
+                dirty = true;
+            }
+        }
+        ui.separator();
+        if ui.button(state.t("scene.reset_split")).clicked() {
+            state.ui.scene_split_auto = true;
+            dirty = true;
+            ui.close();
+        }
+        if dirty {
+            state.mark_dirty();
+        }
+    });
+}
+
+/// Destinos das ações de uma linha de asset (aplicados após a árvore).
+struct AssetRowSinks<'a> {
+    delete_idx: &'a mut Option<usize>,
+    toggle_lock_idx: &'a mut Option<usize>,
+    toggle_vis_idx: &'a mut Option<usize>,
+    dup_idx: &'a mut Option<usize>,
+    isolate_idx: &'a mut Option<usize>,
+    move_to_col: &'a mut Option<(usize, Option<String>)>,
+    rename_asset: &'a mut Option<(usize, String)>,
+}
+
+/// Inicia rename inline de asset (F2, duplo-clique/Enter, menu).
+/// Buffer começa vazio (original vai de dica): sem armadilha de anexar.
+fn begin_asset_rename(ui: &mut Ui, asset_id: Uuid) {
+    ui.data_mut(|d| {
+        d.insert_temp(egui::Id::new("petunia_rename_asset_id"), asset_id);
+        d.insert_temp(egui::Id::new("petunia_rename_asset_buf"), String::new());
+        d.insert_temp(egui::Id::new("petunia_rename_asset_focus"), true);
+    });
+}
+
+/// Asset em rename inline, se houver.
+fn renaming_asset(ui: &Ui) -> Option<Uuid> {
+    ui.data(|d| d.get_temp::<Uuid>(egui::Id::new("petunia_rename_asset_id")))
+}
+
+/// Filtro de objeto do Scene (busca textual + estado). Hierarquia intacta: o
+/// estado abrir/fechar da árvore persiste por id de nó.
+fn asset_passes_filters(state: &AppState, i: usize, search: &str) -> bool {
+    let Some(asset) = state.project.assets.get(i) else {
+        return false;
+    };
+    if !search.is_empty() && !asset.name.to_lowercase().contains(search) {
+        return false;
+    }
+    match state.ui.scene_filter.object_state {
+        petunia_core::SceneObjectState::All => true,
+        petunia_core::SceneObjectState::VisibleOnly => asset.visible,
+        petunia_core::SceneObjectState::UnlockedOnly => !asset.locked,
+    }
+}
+
+/// Linha de asset (Blender: toggle + ícone + nome; Plasticity: dot de
+/// material; C4D: olho/cadeado à direita). Nome limpo com contagens no
+/// tooltip; Delete só sob demanda; destrutivos no menu de contexto.
+fn draw_asset_row(
+    ui: &mut Ui,
+    state: &mut AppState,
+    i: usize,
+    collections: &[String],
+    renaming: Option<Uuid>,
+    sinks: AssetRowSinks<'_>,
+) {
+    let Some(asset) = state.project.assets.get(i) else {
+        return;
+    };
+    let name = asset.name.clone();
+    let visible = asset.visible;
+    let locked = asset.locked;
+    let asset_id = asset.id;
+    let base_color = asset.base_color;
+    let vc = asset.mesh.vert_count();
+    let fc = asset.mesh.tri_count();
+    let is_selected = i == state.project.active;
+    let AssetRowSinks {
+        delete_idx,
+        toggle_lock_idx,
+        toggle_vis_idx,
+        dup_idx,
+        isolate_idx,
+        move_to_col,
+        rename_asset,
+    } = sinks;
+
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+
+        let fg = if is_selected {
+            tokens::TEXT_ACTIVE
+        } else {
+            tokens::TEXT_PRIMARY
+        };
+
+        outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
+        if renaming == Some(asset_id) {
+            // Edição inline (Enter confirma, Esc cancela, foco automático).
+            // Começa vazia com o original de dica: sem armadilha de anexar.
+            let mut buf = ui
+                .data(|d| d.get_temp::<String>(egui::Id::new("petunia_rename_asset_buf")))
+                .unwrap_or_default();
+            let resp = ui.add_sized(
+                vec2(ui.available_width().max(40.0), 20.0),
+                egui::TextEdit::singleline(&mut buf).hint_text(&name),
+            );
+            if ui.data(|d| {
+                d.get_temp::<bool>(egui::Id::new("petunia_rename_asset_focus"))
+                    .unwrap_or(false)
+            }) {
+                resp.request_focus();
+                ui.data_mut(|d| d.insert_temp(egui::Id::new("petunia_rename_asset_focus"), false));
+            }
+            ui.data_mut(|d| d.insert_temp(egui::Id::new("petunia_rename_asset_buf"), buf.clone()));
+            let commit = resp.lost_focus()
+                || (resp.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)));
+            let cancel = resp.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape));
+            if cancel {
+                ui.data_mut(|d| d.remove_temp::<Uuid>(egui::Id::new("petunia_rename_asset_id")));
+            } else if commit && !buf.trim().is_empty() && buf.trim() != name {
+                *rename_asset = Some((i, buf.trim().to_string()));
+                ui.data_mut(|d| d.remove_temp::<Uuid>(egui::Id::new("petunia_rename_asset_id")));
+            }
+        } else {
+            let label_resp = ui
+                .selectable_label(is_selected, egui::RichText::new(&name).size(11.0).color(fg))
+                .on_hover_text(format!("{name} — {vc} verts, {fc} tris"));
+            if label_resp.clicked() {
+                state.set_active_asset_by_id(asset_id);
+                state.selected_annotation = None;
+                state.selected_measurement = None;
+                state.mark_dirty();
+                // Foco segue para a árvore (teclado exige foco no tree_id).
+                ui.memory_mut(|m| m.request_focus(egui::Id::new("petunia_outliner_ltreeview")));
+            }
+            label_resp.context_menu(|ui| {
+                if widgets::PetuniaMenuItem::new(&state.t("context.rename"))
+                    .shortcut(Some("F2"))
+                    .show(ui)
+                    .clicked()
+                {
+                    begin_asset_rename(ui, asset_id);
+                    ui.close();
+                }
+                if widgets::PetuniaMenuItem::new(&state.t("actions.duplicate"))
+                    .icon(PetuniaIcon::Duplicate)
+                    .shortcut(Some("Shift+D"))
+                    .show(ui)
+                    .clicked()
+                {
+                    *dup_idx = Some(i);
+                    ui.close();
+                }
+                let (lock_txt, lock_icon) = if locked {
+                    (state.t("context.unlock"), PetuniaIcon::Unlock)
+                } else {
+                    (state.t("context.lock"), PetuniaIcon::Lock)
+                };
+                if widgets::PetuniaMenuItem::new(&lock_txt)
+                    .icon(lock_icon)
+                    .show(ui)
+                    .clicked()
+                {
+                    *toggle_lock_idx = Some(i);
+                    ui.close();
+                }
+                let iso_txt = if state.isolate_active && is_selected {
+                    state.t("context.isolate_exit")
+                } else {
+                    state.t("context.isolate")
+                };
+                if widgets::PetuniaMenuItem::new(&iso_txt)
+                    .icon(PetuniaIcon::Eye)
+                    .shortcut(Some("Numpad /"))
+                    .show(ui)
+                    .clicked()
+                {
+                    *isolate_idx = Some(i);
+                    ui.close();
+                }
+                if !collections.is_empty() {
+                    ui.separator();
+                    let move_label = state.t("context.move_to_collection");
+                    let none_label = state.t("context.none_root");
+                    widgets::PetuniaMenuButton::new(&move_label).show(ui, |ui| {
+                        if widgets::PetuniaMenuItem::new(&none_label)
+                            .show(ui)
+                            .clicked()
+                        {
+                            *move_to_col = Some((i, None));
+                            ui.close();
+                        }
+                        ui.separator();
+                        for col in collections {
+                            let is_cur = state.project.assets[i].collection.as_deref() == Some(col);
+                            let label = if is_cur {
+                                format!("• {col}")
+                            } else {
+                                col.clone()
+                            };
+                            if widgets::PetuniaMenuItem::new(&label)
+                                .icon(PetuniaIcon::Folder)
+                                .show(ui)
+                                .clicked()
+                            {
+                                *move_to_col = Some((i, Some(col.clone())));
+                                ui.close();
+                            }
+                        }
+                    });
+                }
+                ui.separator();
+                let export_label = state.t("context.export");
+                let delete_label = state.t("actions.delete");
+                if widgets::PetuniaMenuItem::new(&export_label)
+                    .show(ui)
+                    .clicked()
+                {
+                    crate::export_dialog(state, &[i]);
+                    ui.close();
+                }
+                if widgets::PetuniaMenuItem::new(&delete_label)
+                    .icon(PetuniaIcon::Trash)
+                    .shortcut(Some("Delete"))
+                    .show(ui)
+                    .clicked()
+                {
+                    *delete_idx = Some(i);
+                    ui.close();
+                }
+            });
+
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // Delete só sob demanda (hover/foco/seleção): menos ruído.
+                let show_delete = label_resp.hovered() || label_resp.has_focus() || is_selected;
+                if show_delete
+                    && outliner_icon_button(
+                        ui,
+                        &PetuniaIcon::Delete,
+                        tokens::TEXT_MUTED,
+                        &state.t("context.delete_tip"),
+                    )
+                    .clicked()
+                {
+                    *delete_idx = Some(i);
+                }
+
+                let lock_tip = state.t(if locked {
+                    "context.unlock"
+                } else {
+                    "context.lock_tip"
+                });
+                if outliner_lock_button(ui, locked, &lock_tip).clicked() {
+                    *toggle_lock_idx = Some(i);
+                }
+
+                let eye_tip = state.t(if visible {
+                    "context.hide"
+                } else {
+                    "context.show"
+                });
+                if outliner_eye_button(ui, visible, &eye_tip).clicked() {
+                    *toggle_vis_idx = Some(i);
+                }
+
+                // Ponto de material (Plasticity): cor-base + salto à aba.
+                let dot_c = egui::Color32::from_rgb(
+                    (base_color[0] * 255.0) as u8,
+                    (base_color[1] * 255.0) as u8,
+                    (base_color[2] * 255.0) as u8,
+                );
+                let mat_tip = state.t("inspector.go_material");
+                let (dot_rect, dot_resp) =
+                    ui.allocate_exact_size(vec2(14.0, 14.0), egui::Sense::click());
+                dot_resp.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::WidgetType::Button, true, mat_tip.clone())
+                });
+                if ui.is_rect_visible(dot_rect) {
+                    ui.painter().circle_filled(dot_rect.center(), 5.0, dot_c);
+                    if dot_resp.hovered() || dot_resp.has_focus() {
+                        ui.painter().circle_stroke(
+                            dot_rect.center(),
+                            6.5,
+                            egui::Stroke::new(1.0_f32, tokens::TEXT_SECONDARY),
+                        );
+                    }
+                }
+                if dot_resp.on_hover_text(&mat_tip).clicked() {
+                    state.ui.properties_tab = "material".into();
+                    state.mark_dirty();
+                }
+            });
+        }
+    });
 }
 
 fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
@@ -215,7 +652,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     let tree = TreeView::new(tree_id)
         .with_settings(TreeViewSettings {
             override_indent: Some(14.0),
-            default_node_height: Some(22.0),
+            default_node_height: Some(crate::inspector_widgets::row_h(state.ui.density)),
             ..Default::default()
         })
         .allow_drag_and_drop(false)
@@ -238,6 +675,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     let mut dup_idx: Option<usize> = None;
     let mut isolate_idx: Option<usize> = None;
     let mut move_to_col: Option<(usize, Option<String>)> = None;
+    let mut rename_asset: Option<(usize, String)> = None;
+    let renaming = renaming_asset(ui);
 
     let mut toggle_col_vis: Option<String> = None;
     let mut toggle_col_lock: Option<String> = None;
@@ -285,13 +724,26 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                 dup_idx = Some(active_idx);
             }
         }
+        // F2 renomeia o ativo; Ctrl+F abre e foca a busca do Scene.
+        if ui.input(|i| i.key_pressed(egui::Key::F2))
+            && let Some(asset) = state.project.assets.get(active_idx)
+        {
+            begin_asset_rename(ui, asset.id);
+        }
+        if ui.input(|i| i.modifiers.command && i.key_pressed(egui::Key::F)) {
+            state.ui.scene_search_open = true;
+            state.ui.scene_search_focus_request = true;
+            state.mark_dirty();
+        }
     }
 
-    let show_ann_collection = !state.project.annotations.is_empty()
+    let show_ann_collection = (!state.project.annotations.is_empty()
         || !state.project.annotation_groups.is_empty()
-        || state.active_tool == "annotate";
-    let show_meas_collection =
-        !state.project.measurements.is_empty() || state.active_tool == "measure";
+        || state.active_tool == "annotate")
+        && state.ui.scene_filter.show_annotations;
+    let show_meas_collection = (!state.project.measurements.is_empty()
+        || state.active_tool == "measure")
+        && state.ui.scene_filter.show_measurements;
 
     let (_, actions) = tree.show(ui, |builder| {
         // =========================================================================
@@ -449,19 +901,21 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             );
 
                                             label_resp.context_menu(|ui| {
-                                                ui.menu_button("Move to Subgroup ›", |ui| {
-                                                    if ui.button("None (Root)").clicked() {
-                                                        ann_move_to_group = Some((ann_id, None));
-                                                        ui.close();
-                                                    }
-                                                    for g in &state.project.annotation_groups {
-                                                        if ui.button(g).clicked() {
+                                                widgets::PetuniaMenuButton::new("Move to Subgroup")
+                                                    .show(ui, |ui| {
+                                                        if ui.button("None (Root)").clicked() {
                                                             ann_move_to_group =
-                                                                Some((ann_id, Some(g.clone())));
+                                                                Some((ann_id, None));
                                                             ui.close();
                                                         }
-                                                    }
-                                                });
+                                                        for g in &state.project.annotation_groups {
+                                                            if ui.button(g).clicked() {
+                                                                ann_move_to_group =
+                                                                    Some((ann_id, Some(g.clone())));
+                                                                ui.close();
+                                                            }
+                                                        }
+                                                    });
                                                 ui.separator();
                                                 let lock_txt =
                                                     if locked { "Unlock" } else { "Lock" };
@@ -550,15 +1004,18 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                                 label_resp.context_menu(|ui| {
                                     if !state.project.annotation_groups.is_empty() {
-                                        ui.menu_button("Move to Subgroup ›", |ui| {
-                                            for g in &state.project.annotation_groups {
-                                                if ui.button(g).clicked() {
-                                                    ann_move_to_group =
-                                                        Some((ann_id, Some(g.clone())));
-                                                    ui.close();
+                                        widgets::PetuniaMenuButton::new("Move to Subgroup").show(
+                                            ui,
+                                            |ui| {
+                                                for g in &state.project.annotation_groups {
+                                                    if ui.button(g).clicked() {
+                                                        ann_move_to_group =
+                                                            Some((ann_id, Some(g.clone())));
+                                                        ui.close();
+                                                    }
                                                 }
-                                            }
-                                        });
+                                            },
+                                        );
                                         ui.separator();
                                     }
                                     let lock_txt = if locked { "Unlock" } else { "Lock" };
@@ -714,13 +1171,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             toggle_meas_vis = Some(m_id);
                                         }
 
-                                        if outliner_icon_button(
-                                            ui,
-                                            &PetuniaIcon::Delete,
-                                            tokens::TEXT_MUTED,
-                                            "Delete measurement",
-                                        )
-                                        .clicked()
+                                        if (label_resp.hovered()
+                                            || label_resp.has_focus()
+                                            || is_selected)
+                                            && outliner_icon_button(
+                                                ui,
+                                                &PetuniaIcon::Delete,
+                                                tokens::TEXT_MUTED,
+                                                "Delete measurement",
+                                            )
+                                            .clicked()
                                         {
                                             delete_meas = Some(m_id);
                                         }
@@ -755,8 +1215,12 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         );
 
         if open_scene {
-            // 1. Coleções personalizadas de geometria
+            // 1. Coleções personalizadas de geometria (funil pode ocultar;
+            // os assets caem para a raiz, nunca somem).
             for col_name in &collections {
+                if !state.ui.scene_filter.show_collections {
+                    continue;
+                }
                 let assets_in_col: Vec<usize> = (0..n_assets)
                     .filter(|&i| state.project.assets[i].collection.as_deref() == Some(col_name))
                     .collect();
@@ -828,10 +1292,12 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             .color(tokens::TEXT_PRIMARY),
                                     );
                                     col_resp.context_menu(|ui| {
-                                        if widgets::PetuniaMenuItem::new("Rename Collection")
-                                            .icon(PetuniaIcon::Folder)
-                                            .show(ui)
-                                            .clicked()
+                                        if widgets::PetuniaMenuItem::new(
+                                            &state.t("context.rename_collection"),
+                                        )
+                                        .icon(PetuniaIcon::Folder)
+                                        .show(ui)
+                                        .clicked()
                                         {
                                             ui.data_mut(|d| {
                                                 d.insert_temp(rename_id, col_for_closure.clone());
@@ -842,26 +1308,28 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                             });
                                             ui.close();
                                         }
-                                        if widgets::PetuniaMenuItem::new("Delete Collection")
-                                            .icon(PetuniaIcon::Trash)
-                                            .show(ui)
-                                            .clicked()
+                                        if widgets::PetuniaMenuItem::new(
+                                            &state.t("context.delete_collection"),
+                                        )
+                                        .icon(PetuniaIcon::Trash)
+                                        .show(ui)
+                                        .clicked()
                                         {
                                             delete_col = Some(col_for_closure.clone());
                                             ui.close();
                                         }
                                         ui.separator();
-                                        if widgets::PetuniaMenuItem::new(
-                                            "Toggle Collection Visibility",
-                                        )
-                                        .icon(PetuniaIcon::Eye)
-                                        .show(ui)
-                                        .clicked()
+                                        let toggle_vis_label = state.t("context.toggle_col_vis");
+                                        let toggle_lock_label = state.t("context.toggle_col_lock");
+                                        if widgets::PetuniaMenuItem::new(&toggle_vis_label)
+                                            .icon(PetuniaIcon::Eye)
+                                            .show(ui)
+                                            .clicked()
                                         {
                                             toggle_col_vis = Some(col_for_closure.clone());
                                             ui.close();
                                         }
-                                        if widgets::PetuniaMenuItem::new("Toggle Collection Lock")
+                                        if widgets::PetuniaMenuItem::new(&toggle_lock_label)
                                             .icon(PetuniaIcon::Lock)
                                             .show(ui)
                                             .clicked()
@@ -875,22 +1343,16 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        if outliner_eye_button(
-                                            ui,
-                                            all_visible,
-                                            "Toggle visibility of all objects in collection",
-                                        )
-                                        .clicked()
+                                        let col_eye_tip = state.t("context.toggle_col_vis");
+                                        let col_lock_tip = state.t("context.toggle_col_lock");
+                                        if outliner_eye_button(ui, all_visible, &col_eye_tip)
+                                            .clicked()
                                         {
                                             toggle_col_vis = Some(col_for_closure.clone());
                                         }
 
-                                        if outliner_lock_button(
-                                            ui,
-                                            all_locked,
-                                            "Toggle lock of all objects in collection",
-                                        )
-                                        .clicked()
+                                        if outliner_lock_button(ui, all_locked, &col_lock_tip)
+                                            .clicked()
                                         {
                                             toggle_col_lock = Some(col_for_closure.clone());
                                         }
@@ -902,165 +1364,28 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
 
                 if open_col {
                     for i in assets_in_col {
-                        let name = state.project.assets[i].name.clone();
-                        if !search.is_empty() && !name.to_lowercase().contains(&search) {
+                        if !asset_passes_filters(state, i, &search) {
                             continue;
                         }
-
-                        let is_selected = i == active_idx;
-                        let (vc, fc) = (
-                            state.project.assets[i].mesh.vert_count(),
-                            state.project.assets[i].mesh.tri_count(),
-                        );
-                        let visible = state.project.assets[i].visible;
-                        let locked = state.project.assets[i].locked;
                         let asset_id = state.project.assets[i].id;
                         builder.node(NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(
                             |ui| {
-                                ui.horizontal(|ui| {
-                                    ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
-
-                                    let fg = if is_selected {
-                                        tokens::TEXT_ACTIVE
-                                    } else {
-                                        tokens::TEXT_PRIMARY
-                                    };
-
-                                    outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
-                                    let item_label = format!("{name} ({vc}v, {fc}f)");
-                                    let label_resp = ui.selectable_label(
-                                        is_selected,
-                                        egui::RichText::new(item_label).size(11.0).color(fg),
-                                    );
-                                    if label_resp.clicked() {
-                                        state.set_active_asset_by_id(asset_id);
-                                        state.selected_annotation = None;
-                                        state.selected_measurement = None;
-                                        state.mark_dirty();
-                                    }
-
-                                    label_resp.context_menu(|ui| {
-                                        ui.menu_button("Move to Collection ›", |ui| {
-                                            if widgets::PetuniaMenuItem::new("None (Root)")
-                                                .show(ui)
-                                                .clicked()
-                                            {
-                                                move_to_col = Some((i, None));
-                                                ui.close();
-                                            }
-                                            ui.separator();
-                                            for col in &collections {
-                                                let is_cur =
-                                                    state.project.assets[i].collection.as_deref()
-                                                        == Some(col);
-                                                let label = if is_cur {
-                                                    format!("✓ {col}")
-                                                } else {
-                                                    col.clone()
-                                                };
-                                                if widgets::PetuniaMenuItem::new(&label)
-                                                    .icon(PetuniaIcon::Folder)
-                                                    .show(ui)
-                                                    .clicked()
-                                                {
-                                                    move_to_col = Some((i, Some(col.clone())));
-                                                    ui.close();
-                                                }
-                                            }
-                                        });
-                                        ui.separator();
-                                        let (lock_txt, lock_icon) = if locked {
-                                            ("Unlock Object", PetuniaIcon::Unlock)
-                                        } else {
-                                            ("Lock Object", PetuniaIcon::Lock)
-                                        };
-                                        if widgets::PetuniaMenuItem::new(lock_txt)
-                                            .icon(lock_icon)
-                                            .show(ui)
-                                            .clicked()
-                                        {
-                                            toggle_lock_idx = Some(i);
-                                            ui.close();
-                                        }
-                                        let iso_txt = if state.isolate_active && is_selected {
-                                            "Restore Visibility (Exit Isolate)"
-                                        } else {
-                                            "Isolate Object"
-                                        };
-                                        if widgets::PetuniaMenuItem::new(iso_txt)
-                                            .icon(PetuniaIcon::Eye)
-                                            .shortcut(Some("Numpad /"))
-                                            .show(ui)
-                                            .clicked()
-                                        {
-                                            isolate_idx = Some(i);
-                                            ui.close();
-                                        }
-                                        ui.separator();
-                                        if widgets::PetuniaMenuItem::new("Duplicate")
-                                            .icon(PetuniaIcon::Duplicate)
-                                            .shortcut(Some("Shift+D"))
-                                            .show(ui)
-                                            .clicked()
-                                        {
-                                            dup_idx = Some(i);
-                                            ui.close();
-                                        }
-                                        if widgets::PetuniaMenuItem::new("Delete")
-                                            .icon(PetuniaIcon::Trash)
-                                            .shortcut(Some("Delete"))
-                                            .show(ui)
-                                            .clicked()
-                                        {
-                                            delete_idx = Some(i);
-                                            ui.close();
-                                        }
-                                    });
-
-                                    ui.with_layout(
-                                        egui::Layout::right_to_left(egui::Align::Center),
-                                        |ui| {
-                                            if outliner_icon_button(
-                                                ui,
-                                                &PetuniaIcon::Delete,
-                                                tokens::TEXT_MUTED,
-                                                "Delete object (Delete)",
-                                            )
-                                            .clicked()
-                                            {
-                                                delete_idx = Some(i);
-                                            }
-
-                                            if outliner_lock_button(
-                                                ui,
-                                                locked,
-                                                if locked {
-                                                    "Unlock Object (currently fixed)"
-                                                } else {
-                                                    "Lock Object (prevents transform)"
-                                                },
-                                            )
-                                            .clicked()
-                                            {
-                                                toggle_lock_idx = Some(i);
-                                            }
-
-                                            if outliner_eye_button(
-                                                ui,
-                                                visible,
-                                                if visible {
-                                                    "Hide in 3D Viewport"
-                                                } else {
-                                                    "Show in 3D Viewport"
-                                                },
-                                            )
-                                            .clicked()
-                                            {
-                                                toggle_vis_idx = Some(i);
-                                            }
-                                        },
-                                    );
-                                });
+                                draw_asset_row(
+                                    ui,
+                                    state,
+                                    i,
+                                    &collections,
+                                    renaming,
+                                    AssetRowSinks {
+                                        delete_idx: &mut delete_idx,
+                                        toggle_lock_idx: &mut toggle_lock_idx,
+                                        toggle_vis_idx: &mut toggle_vis_idx,
+                                        dup_idx: &mut dup_idx,
+                                        isolate_idx: &mut isolate_idx,
+                                        move_to_col: &mut move_to_col,
+                                        rename_asset: &mut rename_asset,
+                                    },
+                                );
                             },
                         ));
                     }
@@ -1069,160 +1394,41 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
             }
 
             // 2. Objetos na raiz da cena (sem coleção ou com coleção inexistente)
+            // 2. Objetos na raiz da cena (sem coleção, coleção inexistente
+            // ou coleções ocultas pelo filtro).
             for i in 0..n_assets {
-                let has_valid_collection = state.project.assets[i]
-                    .collection
-                    .as_ref()
-                    .is_some_and(|c| collections.contains(c));
-                if has_valid_collection {
+                let show_at_root = {
+                    let has_valid = state.project.assets[i]
+                        .collection
+                        .as_ref()
+                        .is_some_and(|c| collections.contains(c));
+                    !has_valid || !state.ui.scene_filter.show_collections
+                };
+                if !show_at_root {
                     continue;
                 }
-
-                let name = state.project.assets[i].name.clone();
-                if !search.is_empty() && !name.to_lowercase().contains(&search) {
+                if !asset_passes_filters(state, i, &search) {
                     continue;
                 }
-
-                let is_selected = i == active_idx;
-                let (vc, fc) = (
-                    state.project.assets[i].mesh.vert_count(),
-                    state.project.assets[i].mesh.tri_count(),
-                );
-                let visible = state.project.assets[i].visible;
-                let locked = state.project.assets[i].locked;
                 let asset_id = state.project.assets[i].id;
                 builder.node(
                     NodeBuilder::leaf(OutlinerNodeId::Asset(asset_id)).label_ui(|ui| {
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
-
-                            let fg = if is_selected {
-                                tokens::TEXT_ACTIVE
-                            } else {
-                                tokens::TEXT_PRIMARY
-                            };
-
-                            outliner_node_icon(ui, &PetuniaIcon::ObjectMesh, fg);
-                            let item_label = format!("{name} ({vc}v, {fc}f)");
-                            let label_resp = ui.selectable_label(
-                                is_selected,
-                                egui::RichText::new(item_label).size(11.0).color(fg),
-                            );
-                            if label_resp.clicked() {
-                                state.set_active_asset_by_id(asset_id);
-                                state.selected_annotation = None;
-                                state.selected_measurement = None;
-                                state.mark_dirty();
-                            }
-
-                            label_resp.context_menu(|ui| {
-                                if !collections.is_empty() {
-                                    ui.menu_button("Move to Collection ›", |ui| {
-                                        for col in &collections {
-                                            if widgets::PetuniaMenuItem::new(col)
-                                                .icon(PetuniaIcon::Folder)
-                                                .show(ui)
-                                                .clicked()
-                                            {
-                                                move_to_col = Some((i, Some(col.clone())));
-                                                ui.close();
-                                            }
-                                        }
-                                    });
-                                    ui.separator();
-                                }
-                                let (lock_txt, lock_icon) = if locked {
-                                    ("Unlock Object", PetuniaIcon::Unlock)
-                                } else {
-                                    ("Lock Object", PetuniaIcon::Lock)
-                                };
-                                if widgets::PetuniaMenuItem::new(lock_txt)
-                                    .icon(lock_icon)
-                                    .show(ui)
-                                    .clicked()
-                                {
-                                    toggle_lock_idx = Some(i);
-                                    ui.close();
-                                }
-                                let iso_txt = if state.isolate_active && is_selected {
-                                    "Restore Visibility (Exit Isolate)"
-                                } else {
-                                    "Isolate Object"
-                                };
-                                if widgets::PetuniaMenuItem::new(iso_txt)
-                                    .icon(PetuniaIcon::Eye)
-                                    .shortcut(Some("Numpad /"))
-                                    .show(ui)
-                                    .clicked()
-                                {
-                                    isolate_idx = Some(i);
-                                    ui.close();
-                                }
-                                ui.separator();
-                                if widgets::PetuniaMenuItem::new("Duplicate")
-                                    .icon(PetuniaIcon::Duplicate)
-                                    .shortcut(Some("Shift+D"))
-                                    .show(ui)
-                                    .clicked()
-                                {
-                                    dup_idx = Some(i);
-                                    ui.close();
-                                }
-                                if widgets::PetuniaMenuItem::new("Delete")
-                                    .icon(PetuniaIcon::Trash)
-                                    .shortcut(Some("Delete"))
-                                    .show(ui)
-                                    .clicked()
-                                {
-                                    delete_idx = Some(i);
-                                    ui.close();
-                                }
-                            });
-
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    if outliner_icon_button(
-                                        ui,
-                                        &PetuniaIcon::Delete,
-                                        tokens::TEXT_MUTED,
-                                        "Delete object (Delete)",
-                                    )
-                                    .clicked()
-                                    {
-                                        delete_idx = Some(i);
-                                    }
-
-                                    if outliner_lock_button(
-                                        ui,
-                                        locked,
-                                        if locked {
-                                            "Unlock Object (currently fixed)"
-                                        } else {
-                                            "Lock Object (prevents transform)"
-                                        },
-                                    )
-                                    .clicked()
-                                    {
-                                        toggle_lock_idx = Some(i);
-                                    }
-
-                                    if outliner_eye_button(
-                                        ui,
-                                        visible,
-                                        if visible {
-                                            "Hide in 3D Viewport"
-                                        } else {
-                                            "Show in 3D Viewport"
-                                        },
-                                    )
-                                    .clicked()
-                                    {
-                                        toggle_vis_idx = Some(i);
-                                    }
-                                },
-                            );
-                        });
+                        draw_asset_row(
+                            ui,
+                            state,
+                            i,
+                            &collections,
+                            renaming,
+                            AssetRowSinks {
+                                delete_idx: &mut delete_idx,
+                                toggle_lock_idx: &mut toggle_lock_idx,
+                                toggle_vis_idx: &mut toggle_vis_idx,
+                                dup_idx: &mut dup_idx,
+                                isolate_idx: &mut isolate_idx,
+                                move_to_col: &mut move_to_col,
+                                rename_asset: &mut rename_asset,
+                            },
+                        );
                     }),
                 );
             }
@@ -1233,7 +1439,7 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         // =========================================================================
         // SEÇÃO 4: IMAGENS DE REFERÊNCIA
         // =========================================================================
-        if !state.project.refs.is_empty() {
+        if !state.project.refs.is_empty() && state.ui.scene_filter.show_refs {
             let open_refs = builder.node(
                 NodeBuilder::dir(OutlinerNodeId::ReferenceImages)
                     .default_open(true)
@@ -1507,6 +1713,15 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         }
         state.mark_dirty();
     }
+    if let Some((idx, new_name)) = rename_asset
+        && let Some(asset) = state.project.assets.get(idx)
+        && asset.name != new_name
+    {
+        state.checkpoint("rename object");
+        if let Some(asset) = state.project.assets.get_mut(idx) {
+            asset.name = new_name;
+        }
+    }
 
     // Ações de referências
     if let Some(idx) = ref_toggle_vis
@@ -1531,6 +1746,10 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         let _ = state.dispatch(&DeleteAssetCmd {
             asset_index: Some(idx),
         });
+        // Pin nunca retém inválido: fixado removido solta com fallback.
+        if crate::inspector_context::pinned_asset_idx(state).is_none() {
+            state.ui.inspector_pinned = None;
+        }
     }
     if let Some(idx) = dup_idx {
         let _ = state.dispatch(&DuplicateAssetCmd {
@@ -1542,6 +1761,9 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
     for action in actions {
         match action {
             Action::SetSelected(nodes) => {
+                // O foco segue a seleção: só assim as setas do teclado
+                // (ltreeview exige foco na árvore) funcionam após o clique.
+                ui.memory_mut(|m| m.request_focus(tree_id));
                 for node in nodes {
                     match node {
                         OutlinerNodeId::Asset(id) => {
@@ -1570,6 +1792,10 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
                             state.set_active_asset_by_id(id);
                             state.selected_annotation = None;
                             state.selected_measurement = None;
+                            // Duplo-clique/Enter renomeia (a seleção já ocorreu).
+                            if state.project.assets.iter().any(|a| a.id == id) {
+                                begin_asset_rename(ui, id);
+                            }
                         }
                         OutlinerNodeId::Annotation(id) => {
                             state.selected_annotation = Some(id);

@@ -2,13 +2,15 @@
 //! Organizada em 7 clusters semânticos coerentes:
 //! 1. Seletor de Modo (`Object` vs `Edit`) com dropdown estilizado e ícone vetorial;
 //! 2. Alvos de Seleção de Malha segmentados (`Vértice`, `Aresta`, `Face`) exibidos exclusivamente em Edit Mode;
-//! 3. Menus Rápidos Padronizados (`View ▾`, `Select ▾`, `Add ▾`, `Mesh ▾` / `Object ▾`) com atalhos dinâmicos;
+//! 3. Menus Rápidos Padronizados (`View`, `Select`, `Add`, `Mesh` / `Object`) com seta vetorial e atalhos dinâmicos;
 //! 4. Orientação de Transformação, Ponto de Pivô e Travamento de Eixos [X][Y][Z];
 //! 5. Auxiliares de Edição (Snapping Magnético e Edição Proporcional com ícones canônicos);
 //! 6. Diagnóstico de Cena (Overlays e X-Ray com ícones vetoriais dedicados);
 //! 7. 4 Esferas de Sombreamento no estilo canônico do Blender (Wireframe, Solid, Material, Rendered).
 
-use egui::{Color32, CornerRadius, Rect, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2};
+use egui::{
+    Color32, CornerRadius, FontId, Rect, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2,
+};
 use petunia_core::{
     AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode, InvertSelectionCmd,
     MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff, SelectAllCmd, SelectionDomain,
@@ -18,12 +20,145 @@ use petunia_render::Shading;
 
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
-use crate::widgets::{PetuniaIconButton, PetuniaMenuItem, petunia_menu_separator};
+use crate::widgets::{
+    PetuniaIconButton, PetuniaMenuButton, PetuniaMenuCheckboxItem, PetuniaMenuItem,
+    PetuniaMenuRadioItem, petunia_menu_separator,
+};
+
+/// Cluster da barra da viewport, em ordem de prioridade (mantidos primeiro).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BarCluster {
+    Domain,
+    Menus,
+    Transform,
+    SnapProp,
+    Display,
+}
+
+/// Largura de texto em px (galley real, nunca `len() * k`).
+fn text_w(ui: &Ui, label: &str, size: f32) -> f32 {
+    ui.fonts_mut(|f| {
+        f.layout_no_wrap(label.to_owned(), FontId::proportional(size), Color32::WHITE)
+            .size()
+            .x
+    })
+}
+
+/// Larguras REAIS dos clusters no estado corrente: botões fixos somados +
+/// rótulos medidos por galley. O overflow decide pelo espaço livre de verdade,
+/// sem estimativa folgada que esconda ferramenta com tela sobrando.
+fn measured_widths(ui: &Ui, state: &AppState) -> [(BarCluster, f32); 5] {
+    // Domínio: 28 + 24*3 + 3 gaps de 2px.
+    let domain = 28.0 + 24.0 * 3.0 + 3.0 * 2.0;
+    // Menus: 4 botões (8 pad + texto 12px + 4 + seta 16) + 3 gaps de 6px.
+    let menu_labels = [
+        state.t("menu.view"),
+        state.t("tools.select"),
+        state.t("tools.primitives"),
+        if state.mode == EditMode::Object {
+            state.t("modes.object")
+        } else {
+            state.t("ui.mesh")
+        },
+    ];
+    let menus: f32 = menu_labels
+        .iter()
+        .map(|l| 8.0 + text_w(ui, l, 12.0) + 4.0 + 16.0)
+        .sum::<f32>()
+        + 3.0 * 6.0;
+    // Transform: ícones 14 + combos 62/88 + travas 3x24 + gaps internos.
+    let axis_btn = 3.0 * 24.0 + 2.0 * 3.0;
+    let mut transform = 14.0 + 3.0 + 62.0 + 2.0 + 14.0 + 3.0 + 88.0 + 2.0 + 14.0 + 3.0 + axis_btn;
+    if state.is_axis_locked(0) || state.is_axis_locked(1) || state.is_axis_locked(2) {
+        transform += 70.0; // badge de restrição ativa
+    }
+    // Snap/Prop: 24+22+3+24+22 + gaps de 1px.
+    let snap_prop = 24.0 + 22.0 + 3.0 + 24.0 + 22.0 + 4.0 * 1.0;
+    // Display: overlays 24+22 + xray 26 + tri 26 + shading 4x22 + seps/gaps.
+    let display = 24.0 + 22.0 + 3.0 * 1.0 + 26.0 + 26.0 + 8.0 + 8.0 + 4.0 * 22.0 + 3.0 * 3.0;
+    // Margem de segurança fina (variância de raster, não chute).
+    let m = 8.0;
+    [
+        (BarCluster::Domain, domain + m),
+        (BarCluster::Menus, menus + m),
+        (BarCluster::Transform, transform + m),
+        (BarCluster::SnapProp, snap_prop + m),
+        (BarCluster::Display, display + m),
+    ]
+}
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
+///
+/// Responsiva em duas dimensões (padrões CSS traduzidos p/ egui built-in):
+/// largura decide o conjunto visível (excedente vai ao overflow sob a seta,
+/// sempre alcançável); altura > 40px (painel arrastado) divide em 2 linhas.
 pub fn draw(ui: &mut Ui, state: &mut AppState) {
     // Interceptação defensiva de atalhos globais de modo se nenhum campo de texto estiver focado
     handle_keyboard_shortcuts(ui, state);
+
+    let avail_w = ui.available_width();
+    // Conjunto oculto pelo espaço livre REAL (menor prioridade primeiro;
+    // Domínio/Menus/Display nunca escondem: núcleo sempre visível).
+    let widths = measured_widths(ui, state);
+    let width_of = |c: BarCluster| {
+        widths
+            .iter()
+            .find(|(k, _)| *k == c)
+            .map(|(_, w)| *w)
+            .unwrap_or(0.0)
+    };
+    let mut hidden = Vec::new();
+    let mut used = width_of(BarCluster::Domain)
+        + width_of(BarCluster::Menus)
+        + width_of(BarCluster::Display)
+        + 3.0 * 16.0
+        + 30.0;
+    for cluster in [BarCluster::SnapProp, BarCluster::Transform] {
+        if used + width_of(cluster) + 16.0 > avail_w {
+            hidden.push(cluster);
+        } else {
+            used += width_of(cluster) + 16.0;
+        }
+    }
+
+    if ui.available_height() > 40.0 {
+        // Duas linhas: navegação em cima, edição/visualização embaixo.
+        ui.horizontal_centered(|ui| {
+            ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+            draw_selection_domain_cluster(ui, state);
+            cluster_sep(ui);
+            draw_viewport_actions_cluster(ui, state);
+        });
+        ui.horizontal_centered(|ui| {
+            ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+            let mut first = true;
+            for cluster in [BarCluster::Transform, BarCluster::SnapProp] {
+                if hidden.contains(&cluster) {
+                    continue;
+                }
+                if !first {
+                    cluster_sep(ui);
+                }
+                first = false;
+                match cluster {
+                    BarCluster::Transform => draw_transform_cluster(ui, state),
+                    BarCluster::SnapProp => draw_snap_and_prop_cluster(ui, state),
+                    _ => {}
+                }
+            }
+            if !first {
+                cluster_sep(ui);
+            }
+            draw_display_toggles_cluster(ui, state);
+            ui.add_space(4.0);
+            draw_shading_spheres_cluster(ui, state);
+            if !hidden.is_empty() {
+                ui.add_space(2.0);
+                draw_overflow_button(ui, state, &hidden);
+            }
+        });
+        return;
+    }
 
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
@@ -31,40 +166,119 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
         // CLUSTER 1 & 2: Domínio Unificado de Seleção (Object / Vertex / Edge / Face) (P3D-015)
         draw_selection_domain_cluster(ui, state);
 
-        ui.add_space(2.0);
-        ui.separator();
-        ui.add_space(2.0);
+        cluster_sep(ui);
 
         // CLUSTER 3: Menus Rápidos Padronizados com Ícones (View, Select, Add, Objeto/Malha)
         draw_viewport_actions_cluster(ui, state);
 
-        ui.add_space(2.0);
-        ui.separator();
-        ui.add_space(2.0);
+        if !hidden.contains(&BarCluster::Transform) {
+            cluster_sep(ui);
+            // CLUSTER 4: Orientação, Ponto de Pivô e Travamento de Eixos
+            draw_transform_cluster(ui, state);
+        }
 
-        // CLUSTER 4: Orientação, Ponto de Pivô e Travamento de Eixos
-        draw_transform_cluster(ui, state);
+        if !hidden.contains(&BarCluster::SnapProp) {
+            cluster_sep(ui);
+            // CLUSTER 5: Snapping Magnético e Edição Proporcional
+            draw_snap_and_prop_cluster(ui, state);
+        }
 
-        ui.add_space(2.0);
-        ui.separator();
-        ui.add_space(2.0);
+        if !hidden.is_empty() {
+            cluster_sep(ui);
+            draw_overflow_button(ui, state, &hidden);
+        }
 
-        // CLUSTER 5: Snapping Magnético e Edição Proporcional
-        draw_snap_and_prop_cluster(ui, state);
-
-        // CLUSTERS 6 & 7: Controles do lado direito (Overlays, X-Ray e 4 Esferas de Sombreamento)
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            // CLUSTER 7: 4 Modos de Sombreamento no Estilo Canônico do Blender
-            draw_shading_spheres_cluster(ui, state);
-
-            ui.add_space(4.0);
-            ui.separator();
-            ui.add_space(4.0);
-
-            // CLUSTER 6: Diagnóstico de Visualização (Overlays e X-Ray)
-            draw_display_toggles_cluster(ui, state);
-        });
+        // CLUSTERS 6 & 7 no mesmo fluxo centralizado (Overlays, X-Ray e
+        // Esferas de Sombreamento): nada ancorado à direita, sem vão morto.
+        cluster_sep(ui);
+        draw_display_toggles_cluster(ui, state);
+        ui.add_space(4.0);
+        draw_shading_spheres_cluster(ui, state);
     });
+}
+
+/// Separador entre clusters (espaço + linha + espaço).
+fn cluster_sep(ui: &mut Ui) {
+    ui.add_space(2.0);
+    ui.separator();
+    ui.add_space(2.0);
+}
+
+/// Seta de overflow: clusters ocultos por falta de largura, sempre operáveis.
+fn draw_overflow_button(ui: &mut Ui, state: &mut AppState, hidden: &[BarCluster]) {
+    let tip = state.t("viewport.overflow");
+    PetuniaMenuButton::chevron_only()
+        .tooltip(&tip)
+        .show(ui, |ui| {
+            ui.set_min_width(210.0);
+            if hidden.contains(&BarCluster::SnapProp) {
+                let snap_label = state.t("viewport.snap_tip");
+                if PetuniaMenuCheckboxItem::new(&snap_label, state.snap_enabled)
+                    .show(ui)
+                    .clicked()
+                {
+                    state.snap_enabled = !state.snap_enabled;
+                    state.snap_settings.enabled = state.snap_enabled;
+                    state.mark_dirty();
+                }
+                let prop_label = state.t("viewport.prop_tip");
+                if PetuniaMenuCheckboxItem::new(&prop_label, state.proportional_editing)
+                    .show(ui)
+                    .clicked()
+                {
+                    state.proportional_editing = !state.proportional_editing;
+                    state.proportional_settings.enabled = state.proportional_editing;
+                    state.mark_dirty();
+                }
+                petunia_menu_separator(ui);
+            }
+            if hidden.contains(&BarCluster::Transform) {
+                ui.label(
+                    egui::RichText::new(state.t("viewport.orientation"))
+                        .strong()
+                        .size(12.0)
+                        .color(tokens::TEXT_PRIMARY),
+                );
+                for orient in TransformOrientation::all() {
+                    if PetuniaMenuRadioItem::new(
+                        orient.as_str(),
+                        state.transform_orientation == orient,
+                    )
+                    .show(ui)
+                    .clicked()
+                    {
+                        state.transform_orientation = orient;
+                        state.mark_dirty();
+                    }
+                }
+                petunia_menu_separator(ui);
+                ui.label(
+                    egui::RichText::new(state.t("viewport.pivot"))
+                        .strong()
+                        .size(12.0)
+                        .color(tokens::TEXT_PRIMARY),
+                );
+                for pivot in PivotPoint::all() {
+                    if PetuniaMenuRadioItem::new(pivot.as_str(), state.pivot_point == pivot)
+                        .show(ui)
+                        .clicked()
+                    {
+                        state.pivot_point = pivot;
+                        state.mark_dirty();
+                    }
+                }
+                petunia_menu_separator(ui);
+                for (axis_idx, label) in [(0, "X"), (1, "Y"), (2, "Z")] {
+                    let lock_label = format!("{} {label}", state.t("viewport.axis_lock"));
+                    if PetuniaMenuCheckboxItem::new(&lock_label, state.is_axis_locked(axis_idx))
+                        .show(ui)
+                        .clicked()
+                    {
+                        state.toggle_axis_lock(axis_idx);
+                    }
+                }
+            }
+        });
 }
 
 /// Grupos canônicos do menu Add (§36): três famílias, dez espécies, sem
@@ -192,9 +406,7 @@ fn draw_selection_domain_cluster(ui: &mut Ui, state: &mut AppState) {
                 24.0
             };
             let (rect, resp) = ui.allocate_exact_size(vec2(width, 22.0), egui::Sense::click());
-            resp.widget_info(|| {
-                WidgetInfo::selected(WidgetType::Button, true, is_active, &name)
-            });
+            resp.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, is_active, &name));
             if ui.is_rect_visible(rect) {
                 let painter = ui.painter();
                 let fill = if is_active {
@@ -237,7 +449,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     visuals.widgets.active.weak_bg_fill = tokens::ACCENT_BLUE;
 
     // Menu View
-    ui.menu_button(format!("{} ▾", state.t("menu.view")), |ui| {
+    let view_label = state.t("menu.view");
+    PetuniaMenuButton::new(&view_label).show(ui, |ui| {
         let sc_frame = state
             .ui
             .keybinds
@@ -358,7 +571,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
         petunia_menu_separator(ui);
 
-        ui.menu_button(format!("{} ▾", state.t("camera.isometric")), |ui| {
+        let iso_label = state.t("camera.isometric");
+        PetuniaMenuButton::new(&iso_label).show(ui, |ui| {
             if PetuniaMenuItem::new(&state.t("camera.iso_ne"))
                 .show(ui)
                 .clicked()
@@ -421,7 +635,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
     });
 
     // Menu Select
-    ui.menu_button(format!("{} ▾", state.t("tools.select")), |ui| {
+    let select_label = state.t("tools.select");
+    PetuniaMenuButton::new(&select_label).show(ui, |ui| {
         if PetuniaMenuItem::new(&state.t("actions.select_all"))
             .shortcut(Some("A"))
             .show(ui)
@@ -450,7 +665,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
     // Menu Add: três famílias de formas (§36), caminho único via sessão.
     let mut spawn_kind: Option<PrimitiveKind> = None;
-    ui.menu_button(format!("{} ▾", state.t("tools.primitives")), |ui| {
+    let add_label = state.t("tools.primitives");
+    PetuniaMenuButton::new(&add_label).show(ui, |ui| {
         for (group, kinds) in primitive_menu_groups() {
             ui.label(
                 egui::RichText::new(state.t_id(group))
@@ -491,7 +707,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
 
     // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
     if state.mode == EditMode::Object {
-        ui.menu_button(format!("{} ▾", state.t("modes.object")), |ui| {
+        let object_label = state.t("modes.object");
+        PetuniaMenuButton::new(&object_label).show(ui, |ui| {
             let sc_dup = state
                 .ui
                 .keybinds
@@ -533,7 +750,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
             }
         });
     } else {
-        ui.menu_button(format!("{} ▾", state.t("ui.mesh")), |ui| {
+        let mesh_label = state.t("ui.mesh");
+        PetuniaMenuButton::new(&mesh_label).show(ui, |ui| {
             let sc_ext = state
                 .ui
                 .keybinds
@@ -890,7 +1108,7 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
         }
 
-        ui.menu_button("▾", |ui| {
+        PetuniaMenuButton::chevron_only().show(ui, |ui| {
             ui.set_min_width(160.0);
             ui.label(
                 egui::RichText::new("Opções de Snapping")
@@ -1006,7 +1224,7 @@ fn draw_snap_and_prop_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
         }
 
-        ui.menu_button("▾", |ui| {
+        PetuniaMenuButton::chevron_only().show(ui, |ui| {
             ui.set_min_width(160.0);
             ui.label(
                 egui::RichText::new("Edição Proporcional")
@@ -1116,7 +1334,7 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
             state.mark_dirty();
         }
 
-        ui.menu_button("▾", |ui| {
+        PetuniaMenuButton::chevron_only().show(ui, |ui| {
             ui.set_min_width(180.0);
             ui.label(
                 egui::RichText::new("Opções de Overlay")
@@ -1278,12 +1496,7 @@ fn draw_display_toggles_cluster(ui: &mut Ui, state: &mut AppState) {
     let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 22.0), egui::Sense::click());
     let xray_tip = state.t("viewport.xray_tip");
     resp.widget_info(|| {
-        WidgetInfo::selected(
-            WidgetType::Button,
-            true,
-            state.show_xray,
-            xray_tip.clone(),
-        )
+        WidgetInfo::selected(WidgetType::Button, true, state.show_xray, xray_tip.clone())
     });
     if ui.is_rect_visible(rect) {
         let is_active = state.show_xray;
