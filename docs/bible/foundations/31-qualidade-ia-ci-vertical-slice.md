@@ -1,6 +1,11 @@
 # 31 — Qualidade, IA, CI e Vertical Slice de Conformance da Stack Rust
 
-> A stack Rust e a UI Baseline V1 estão congeladas; este capítulo define a **fatia vertical de conformance** que deve provar, em implementação real, que os contratos dos capítulos 27–36 funcionam juntos com qualidade mensurável. Desenvolvimento assistido por IA continua sendo processo verificável, não geração de código sem feedback.
+<aside>
+🧪
+
+A stack Rust e a UI Baseline V1 estão congeladas; este capítulo define a **fatia vertical de conformance** que deve provar, em implementação real, que os contratos dos capítulos 27–36 funcionam juntos com qualidade mensurável. Desenvolvimento assistido por IA continua sendo processo verificável, não geração de código sem feedback.
+
+</aside>
 
 # Objetivo
 
@@ -10,7 +15,7 @@ A principal vantagem esperada de Rust/egui/wgpu não é apenas segurança ou per
 
 Baseline de qualidade:
 
-```plain text
+```
 cargo fmt
 cargo check
 cargo clippy
@@ -59,7 +64,7 @@ Petunia Components sobre egui, keyboard/focus, AccessKit tree, `egui_kittest`, s
 
 Em debug/tests verificar sistematicamente:
 
-```plain text
+```
 half-edge cycles close
 twin relation is symmetric
 next/previous coherent
@@ -75,7 +80,7 @@ triangulation triangles map to valid source FaceId
 
 Exemplos de propriedades:
 
-```plain text
+```
 valid Profile → Extrude → valid manifold/open mesh according to contract
 valid mesh → Weld allowed points → invariants hold
 Connect → Undo → semantic equality with original
@@ -103,7 +108,7 @@ Prioridade:
 
 Jobs carregam base revision. Testar explicitamente resultado stale:
 
-```plain text
+```
 revision 10 snapshot → start job
 main document becomes revision 11
 job 10 returns
@@ -116,7 +121,7 @@ Não testar apenas o happy path.
 
 A stack deve aproveitar `egui_kittest`, `egui_inspection` e `egui_mcp` em builds de desenvolvimento:
 
-```plain text
+```
 read Figma/Notion spec
 → implement/reuse Petunia Component
 → cargo xtask ui-test
@@ -176,7 +181,7 @@ A arquitetura de código completa é definida no capítulo 34.
 
 Usar `tracing` com spans por command/job/provider. Em debug, conseguir responder:
 
-```plain text
+```
 qual command rodou?
 qual revision iniciou?
 qual provider foi usado?
@@ -190,14 +195,14 @@ qual transaction foi commitada?
 
 Matrix obrigatória:
 
-```plain text
+```
 Windows x86_64
 Linux x86_64
 ```
 
 Stages:
 
-```plain text
+```
 format
 → clippy
 → unit/command/property tests
@@ -214,7 +219,7 @@ format
 
 Implementar na mesma arquitetura para provar a baseline final:
 
-```plain text
+```
 launch Petunia egui/eframe shell
 → egui-wgpu custom viewport rendering
 → create cube primitive
@@ -253,7 +258,7 @@ O vertical slice não pode usar uma UI genérica temporária como única prova. 
 
 Uma falha só pode disparar **novo ADR de reabertura** se o vertical slice demonstrar bloqueadores graves/estruturais reproduzíveis em:
 
-```plain text
+```
 focus/keyboard routing
 menus/popups
 Parts tree
@@ -281,7 +286,7 @@ Reabrir provider, não a linguagem inteira, se manifold/xatlas/adapters falharem
 
 Registrar no vertical slice:
 
-```plain text
+```
 tempo de implementação
 build incremental
 LOC própria
@@ -300,7 +305,7 @@ Essas métricas servem como evidência de conformance e, somente diante de bloqu
 
 Não usar um único `AGENTS.md` gigantesco como depósito da especificação. O repositório deve possuir um mapa hierárquico, por exemplo:
 
-```plain text
+```
 AGENTS.md
   → architecture map
   → build/test commands

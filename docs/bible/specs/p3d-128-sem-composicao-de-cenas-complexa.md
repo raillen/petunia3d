@@ -1,12 +1,5 @@
 # P3D-128 — Sem composição de cenas complexa
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Transversal
-- **Status Canônico**: `COMPLIANT (Invariantes de Filosofia do Projeto)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

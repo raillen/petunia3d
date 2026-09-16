@@ -16,13 +16,13 @@ O Petunia3D possui uma suíte concisa e poderosa de 19 ferramentas dedicadas par
 
 ---
 
-## 🛠️ Ferramentas de Modelagem de Malha (Modo de Edição)
+## 🛠️ Ferramentas de Modelagem de Malha (componentes: Face / Edge / Point)
 
 | Ferramenta | Atalho | Descrição |
 | :--- | :--- | :--- |
 | **[Extrusão (Extrude)](./extrude)** | `E` | Projeta faces ou arestas ao longo de normais ou eixos travados. |
 | **[Inserção (Inset)](./inset)** | `I` | Cria anéis de faces recuadas interiormente. |
-| **[Chanfro (Bevel)](./bevel)** | `Ctrl+B` | Chanfra quinas e arestas com chanfros facetados limpos. |
+| **[Round Edge (Bevel)](./bevel)** | `Ctrl+B` | Arredonda quinas e arestas com facetas limpas (1 segmento no Core V1). |
 | **[Corte em Anel (Loop Cut)](./loop-cut)** | `Ctrl+R` | Insere loops de arestas contínuos com deslizamento interativo. |
 | **[Faca (Knife)](./knife)** | `K` | Desenha cortes livres conectando vértices e arestas. |
 | **[Push / Pull](./push-pull)** | `Shift+P` | Empurra ou puxa faces preservando a orientação original. |

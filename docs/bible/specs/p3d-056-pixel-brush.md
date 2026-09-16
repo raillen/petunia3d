@@ -1,12 +1,5 @@
 # P3D-056 — Pixel Brush
 
-::: warning STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 7
-- **Status Canônico**: `ACTIVE / PRÓXIMA (Materials, Texture, UV & Paint)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

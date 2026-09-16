@@ -1,6 +1,11 @@
 # 25 — Biblioteca de Componentes e Contratos de Interação
 
-> Esta página define a biblioteca conceitual de UI que o framework deve gerar/implementar antes de criar telas isoladas. O objetivo é evitar o problema já experimentado no projeto: muitas telas “parecidas” com a referência, mas sem consistência de comportamento e acabamento.
+<aside>
+🧩
+
+Esta página define a biblioteca conceitual de UI que o framework deve gerar/implementar antes de criar telas isoladas. O objetivo é evitar o problema já experimentado no projeto: muitas telas “parecidas” com a referência, mas sem consistência de comportamento e acabamento.
+
+</aside>
 
 # Regra de implementação
 
@@ -8,7 +13,7 @@
 
 # Primitives mínimas
 
-```plain text
+```
 Surface
 Divider
 Text
@@ -23,7 +28,7 @@ Primitives não devem vazar diretamente por todo o produto quando um componente 
 
 # Componentes básicos
 
-```plain text
+```
 Button
 IconButton
 ToggleButton
@@ -47,7 +52,7 @@ A escolha do toolkit final pode fornecer muitos deles, mas Petunia deve envolvê
 
 # Componentes estruturais
 
-```plain text
+```
 PetuniaPanel
 PanelHeader
 CollapsiblePanel
@@ -94,7 +99,7 @@ Apresenta poucos contextos principais e mantém um selecionado.
 
 Baseline:
 
-```plain text
+```
 MODEL
 PAINT
 UV
@@ -108,7 +113,7 @@ Toolbar vertical/flutuante. Recebe comandos disponíveis do contexto atual, não
 
 Fluxo recomendado:
 
-```plain text
+```
 Selection/Tool Context
 → Command Registry
 → toolbar model
@@ -163,7 +168,7 @@ Componente especializado contendo:
 
 Segmented control específico:
 
-```plain text
+```
 Wireframe
 Solid
 Textured
@@ -188,7 +193,7 @@ Também é candidato natural a SplitButton. A ação principal liga/desliga Smar
 
 Uma ferramenta ativa pode fornecer:
 
-```plain text
+```
 name
 icon
 command id
@@ -208,7 +213,7 @@ Operações como Extrude/Connect/Fuse/Projection devem oferecer feedback visual 
 
 O padrão preferido é:
 
-```plain text
+```
 preview in viewport
 +
 compact parameters in Context/floating HUD

@@ -142,7 +142,7 @@ impl AppState {
         if transform {
             self.gizmo_mode = kind;
         }
-        if transform && self.mode == EditMode::Object {
+        if transform && self.edit_mode() == EditMode::Object {
             source.select_all();
         } else {
             // Face and edge selection must transform their vertices too.
@@ -441,7 +441,7 @@ impl AppState {
         let changed = !same_geometry(&mesh, &modal.source);
         // Preserve selection flags for object transforms and identity previews.
         if (!changed
-            || (self.mode == EditMode::Object
+            || (self.edit_mode() == EditMode::Object
                 && matches!(
                     modal.kind,
                     ModalKind::Move | ModalKind::Rotate | ModalKind::Scale
@@ -557,7 +557,7 @@ mod tests {
 
     fn selected_face() -> AppState {
         let mut state = AppState::new("en");
-        state.mode = EditMode::Edit;
+        state.set_edit_mode(EditMode::Edit);
         let mesh = state.project.active_mesh_mut().unwrap();
         mesh.deselect_all();
         mesh.faces[0].selected = true;
@@ -871,12 +871,12 @@ mod tests {
     fn empty_selection_rejected_in_edit_mode_and_object_mode_transforms_whole_mesh() {
         let mut state = AppState::new("en");
         state.project.active_mesh_mut().unwrap().deselect_all();
-        state.mode = EditMode::Edit;
+        state.set_edit_mode(EditMode::Edit);
         assert_eq!(
             state.begin_modal(ModalKind::Move),
             Err(ModalError::NoSelection)
         );
-        state.mode = EditMode::Object;
+        state.set_edit_mode(EditMode::Object);
         let original = state.project.active_mesh().unwrap().clone();
         state.begin_modal(ModalKind::Move).unwrap();
         state.update_modal(Vec3::Y, 1.0).unwrap();

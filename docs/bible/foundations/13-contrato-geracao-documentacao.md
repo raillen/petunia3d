@@ -1,6 +1,11 @@
 # 13 — Contrato para Geração de Documentação pelo Framework
 
-> Este capítulo define **como o Project/Prumo Framework deve interpretar o Livro Vivo do Petunia3D** ao gerar documentação, especificações, planos de implementação, tarefas e validações. O objetivo é evitar que hipóteses antigas, itens experimentais ou termos técnicos internos sejam promovidos acidentalmente a requisitos do produto.
+<aside>
+📚
+
+Este capítulo define **como o Project/Prumo Framework deve interpretar o Livro Vivo do Petunia3D** ao gerar documentação, especificações, planos de implementação, tarefas e validações. O objetivo é evitar que hipóteses antigas, itens experimentais ou termos técnicos internos sejam promovidos acidentalmente a requisitos do produto.
+
+</aside>
 
 # Fonte canônica
 
@@ -96,7 +101,7 @@ O framework **pode derivar tarefas técnicas** de uma decisão normativa, mas n�
 
 Exemplo permitido:
 
-```plain text
+```
 Decisão: toda mutação é transacional.
 
 Tarefas derivadas:
@@ -108,7 +113,7 @@ Tarefas derivadas:
 
 Exemplo proibido:
 
-```plain text
+```
 Decisão: Paint on Model simples.
 
 Inferência indevida:
@@ -166,7 +171,7 @@ Toda arquitetura proposta pelo framework deve respeitar:
 
 A documentação deve ensinar o fluxo mais simples primeiro:
 
-```plain text
+```
 Reference
 → Draw/Create
 → Shape
@@ -183,7 +188,7 @@ Sempre deixar claro que Petunia não é um editor 2D que adivinha 3D. Profiles s
 
 A documentação deve destacar dois caminhos igualmente válidos:
 
-```plain text
+```
 Profile → Extrude/Shape
 Primitive → Direct Edit
 ```
@@ -290,3 +295,35 @@ Ao gerar o projeto, o framework deve:
 # Regra final
 
 **O caderno descreve intenção e contratos; o framework transforma isso em implementação sem aumentar silenciosamente o produto.**
+
+# Consolidação — Readiness, backlog e completude documental
+
+Esta seção absorve as regras operacionais antes duplicadas entre o Livro Vivo e a antiga Implementation Bible.
+
+## Gates de readiness
+
+Para P3D P0/P1, `SPEC READY` exige, conforme aplicável: objetivo; escopo e non-goals; auditoria do código; dependências; estado/modelo de dados; boundaries Core/Application/UI/Renderer; Commands/TextIds/IconIds/ThemeTokens/keymap; Undo/persistência; erros/invalid states; performance; segurança; testes; documentação; acceptance criteria; riscos de migração/rollback.
+
+`IMPLEMENTATION READY` exige adicionalmente: baseline tests executados; bloqueadores conhecidos; arquivos/módulos reais mapeados; architecture checks relevantes definidos; nenhuma decisão estrutural crítica deixada implícita.
+
+## Estados canônicos de maturidade
+
+`IDEA/ROADMAP → SPEC DRAFT → SPEC READY → AUDITED → IMPLEMENTATION READY → IN PROGRESS → VALIDATION → DONE`.
+
+Também existem `ABSORBED` para itens preservados historicamente mas incorporados por outra especificação e `RULE` para invariantes transversais. `DONE` só pode ser atribuído com evidência.
+
+## Governança do backlog
+
+- IDs P3D existentes não são renumerados.
+- Requisitos absorvidos permanecem registrados para rastreabilidade.
+- Novas funcionalidades recebem IDs novos.
+- Itens pós-GA não entram no GA sem decisão explícita.
+- Dependências locais de uma P3D não substituem a ordem global das Gauntlet Waves.
+
+## Documentação como parte da feature
+
+Mudança user-facing deve avaliar manual, documentação pública, screenshots reais, changelog e referências geradas. Commands, keybinds, `IconId`, `TextId` e `ThemeToken` devem ser gerados/validados automaticamente quando possível, e CI deve detectar drift. Mockup não constitui evidência de implementação.
+
+## Fonte única após o merge
+
+O único caderno canônico é **Petunia3D — Livro Vivo**. O antigo caderno “Implementation Bible” foi absorvido como [Especificações P3D — Readiness e Gauntlet Waves](../especificacoes-p3d-readiness-gauntlet-waves.md). Referências antigas ao nome continuam válidas como alias histórico, mas não criam uma segunda autoridade documental.

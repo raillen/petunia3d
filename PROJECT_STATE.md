@@ -201,6 +201,23 @@ Executar a **Wave 11 (Extensibility, Plugins & Automation)** cobrindo P3D-110, P
 4. P3D-142: Pipeline de Modelagem Assistida por IA (`AI-Assisted Modeling Pipeline`).
 5. P3D-154: Gravador e executor de macros/receitas de comandos (`Command Recipes / Macros`).
 
+## Política de modelos por função (OpenCode Go — obrigatório)
+
+Ver `AGENTS.md` §6 (normativo) e agentes fixados em `.opencode/agent/`.
+Resumo operacional para o plano Paint + Wave 11:
+
+| Fase / frente | Função | Modelo | Agente |
+|---|---|---|---|
+| F1–F3 Paint core (brush engine, effects, graph headless) | engenharia | `opencode-go/deepseek-v4-pro` | `math-core` |
+| F4 Paint UI (anel honesto, HUD, painel, shelf, i18n) | UI/UX | `opencode-go/grok-4.6` | `ui-ux` |
+| Review de screenshots/aparência | visual | `opencode-go/minimax-m3` | `vision` |
+| Testes, migrações, gates locais | mecânica | `opencode-go/deepseek-v4-flash` | `worker` |
+| Auditoria de diffs e DoD | revisão | `opencode-go/gpt-5.6-luna` | `reviewer` |
+| Emenda canônica, changelog, doc delta | docs | `opencode-go/qwen3.7-plus` | `docs` |
+
+MODEL GATE: modelo divergente da função → parar, avisar, só continuar após
+a troca confirmada. `preferred_models` em `prumo.json` espelha esta tabela.
+
 ## Recovery order
 
 1. `ENTRYPOINT.md` or platform adapter.

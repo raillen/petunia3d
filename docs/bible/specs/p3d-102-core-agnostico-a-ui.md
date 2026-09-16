@@ -1,12 +1,5 @@
 # P3D-102 — Core agnóstico à UI
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 1
-- **Status Canônico**: `COMPLIANT (Core Agnóstico à UI)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

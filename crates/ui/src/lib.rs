@@ -6,12 +6,11 @@
 
 use petunia_config::text_id;
 use petunia_core::Projection;
-use petunia_core::{
-    AppState, DockOrientation, DockSide, ModuleRegistry, ProjectService, RefAxis, Workspace,
-};
+use petunia_core::{AppState, ModuleRegistry, ProjectService, RefAxis, Workspace};
 use petunia_module_model::ToolRegistry;
 use petunia_project::export;
 
+pub mod adapters;
 pub mod annotation;
 pub mod asset_browser;
 pub mod asset_library_drawer;
@@ -22,7 +21,10 @@ mod cutting;
 #[cfg(feature = "devtools")]
 pub mod devtools;
 pub mod file_dialog_service;
-pub mod flex_layout;
+pub mod foundation;
+/// Vitrine executável dos componentes (`cargo run -p petunia_ui --example component_gallery`).
+/// Não é caminho de produto: nenhum painel do shell importa este módulo.
+pub mod gallery;
 pub mod gizmo;
 #[cfg(feature = "help-markdown")]
 pub mod help_markdown;
@@ -30,7 +32,6 @@ pub mod icon_provider;
 pub mod icon_registry;
 pub mod icons;
 pub mod image_kit;
-pub mod inbox_bridge;
 pub mod inspector_context;
 pub mod inspector_widgets;
 #[cfg(feature = "keymap-capture")]
@@ -52,14 +53,16 @@ pub mod recovery_dialog;
 pub mod reference_manager;
 pub mod regions;
 pub mod settings_modal;
+/// Composição do shell por regiões (Wave 5b — §31, §47).
+pub mod shell;
 pub mod status_bar;
+#[cfg(feature = "animation-workspace")]
 pub mod timeline;
 pub mod tokens;
 pub mod tool_fields;
 pub mod tool_properties_popover;
 pub mod toolbar;
 pub mod transform_gizmo_integration;
-pub mod twill_bridge;
 pub mod viewport_bar;
 mod viewport_interaction;
 pub mod widgets;
@@ -162,16 +165,13 @@ pub fn draw(
     // Wave 2: reseta as regiões do shell; cada painel registra a sua ao desenhar.
     regions::reset(ui.ctx());
 
+    // O chrome (header, status e barra de assets) é de largura total e continua
+    // em painéis próprios; o macro-layout (paleta · centro · dock · faixa
+    // inferior) é resolvido pela árvore do `PetuniaLayoutAdapter` (Wave 5b).
     main_header::draw(ui, state, action);
-    // A status bar é o ÚNICO `Panel::bottom` do shell: dois painéis bottom
-    // empilhados deslocam o segundo em ~11px. A Timeline do Animate vive como
-    // faixa fixa dentro da área central (ver `animate_workspace_center`).
     status_bar::draw(ui, state, tools);
     asset_browser::draw(ui, state);
-    toolbar::draw(ui, state, tools);
-    right_panel(ui, state, tools, registry);
-    viewport_bar_panel(ui, state);
-    viewport(ui, state);
+    shell::draw(ui, state, tools, registry);
     let ctx = ui.ctx().clone();
     asset_library_drawer::draw(&ctx, state);
     settings_modal::draw(&ctx, state);
@@ -180,7 +180,11 @@ pub fn draw(
     file_dialog_service::draw(&ctx, state);
 }
 
-fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
+/// Barra de contexto da viewport (`ViewportBar`, §46).
+///
+/// Vive dentro do paine central (Wave 5b): o `Panel::top` é relativo ao `Ui` do
+/// tile, então a barra nunca atravessa o dock nem a paleta.
+pub(crate) fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
     let bar = egui::Panel::top("viewport_context_bar")
         .default_size(tokens::VIEWPORT_BAR_HEIGHT)
         .size_range(tokens::VIEWPORT_BAR_HEIGHT..=tokens::VIEWPORT_BAR_MAX_HEIGHT)
@@ -201,367 +205,6 @@ fn viewport_bar_panel(ui: &mut egui::Ui, state: &mut AppState) {
         regions::RegionSlot::ViewportToolbar,
         bar.response.rect,
     );
-}
-
-/// Dock Outliner/Inspector: painéis independentes com lado, orientação e
-/// divisor configuráveis (Wave 2 + dock completo).
-///
-/// O dock mora à direita ou à esquerda (painéis `left` ladrilham após a
-/// toolbar) e empilha na vertical ou divide lado a lado, com divisor
-/// arrastável, colapso independente e rolagem própria por seção. Lado e
-/// orientação vivem em `UiState` (dono único, §3.2). O destacamento do
-/// Inspector continua opcional.
-pub fn right_panel(
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    tools: &ToolRegistry,
-    registry: &mut ModuleRegistry,
-) {
-    puffin::profile_function!();
-    let was_detached = state.ui.inspector_detached;
-    let max_width = (ui.ctx().viewport_rect().width() * 0.45).clamp(240.0, 420.0);
-    let panel = match state.ui.dock_side {
-        DockSide::Left => egui::Panel::left("props"),
-        DockSide::Right => egui::Panel::right("props"),
-    };
-    let dock = panel
-        .default_size(tokens::PROPERTIES_DEFAULT_WIDTH)
-        .size_range(220.0..=max_width)
-        .frame(
-            egui::Frame::new()
-                .fill(tokens::bg_panel(state))
-                .stroke(tokens::stroke_border_dyn(state))
-                .inner_margin(egui::Margin::symmetric(6, 4)),
-        )
-        .show(ui, |ui| {
-            // Wave 2: zera o espaçamento vertical entre alocações do dock para que
-            // as seções somem exatamente à altura do painel (sem invadir a status
-            // bar). Interiores restauram o espaçamento padrão na sua raiz.
-            let dock_spacing = ui.spacing().item_spacing;
-            ui.spacing_mut().item_spacing.y = 0.0;
-            draw_dock_header(ui, state);
-            ui.separator();
-            if was_detached {
-                // Aviso primeiro (altura própria), Outliner preenche o restante.
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing = dock_spacing;
-                    ui.label(
-                        egui::RichText::new(state.t_id(text_id::UI_FLOATING_INSPECTOR))
-                            .size(11.0)
-                            .color(tokens::TEXT_MUTED),
-                    );
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui
-                            .button(egui::RichText::new("Reancorar").size(11.0))
-                            .on_hover_text(state.t_id(text_id::UI_REDOCK))
-                            .clicked()
-                        {
-                            state.ui.inspector_detached = false;
-                            state.mark_dirty();
-                        }
-                    });
-                });
-                ui.separator();
-                let rest = ui.available_rect_before_wrap();
-                let body = ui.allocate_ui_with_layout(
-                    rest.size(),
-                    egui::Layout::top_down_justified(egui::Align::LEFT),
-                    |ui| {
-                        ui.spacing_mut().item_spacing = dock_spacing;
-                        egui::ScrollArea::vertical()
-                            .id_salt("dock_outliner_full_scroll")
-                            .auto_shrink([false, false])
-                            .show(ui, |ui| {
-                                outliner::draw_body(ui, state);
-                            });
-                    },
-                );
-                regions::record(
-                    ui.ctx(),
-                    regions::RegionSlot::RightOutliner,
-                    body.response.rect,
-                );
-            } else {
-                draw_split_dock(ui, state, tools, registry, dock_spacing);
-            }
-            // Restaura o espaçamento do painel (higiene; nada mais aloca abaixo).
-            ui.spacing_mut().item_spacing = dock_spacing;
-        });
-    regions::record(ui.ctx(), regions::RegionSlot::RightDock, dock.response.rect);
-
-    if was_detached && state.ui.inspector_detached {
-        let mut is_open = true;
-        let ctx = ui.ctx().clone();
-        // Wave 2 (§9.4): máximo nunca excede a viewport útil.
-        let screen_rect = ctx.viewport_rect();
-        let avail_w = (screen_rect.width() - 24.0).clamp(240.0, 640.0);
-        let avail_h = (screen_rect.height() - 24.0).clamp(240.0, 760.0);
-        let win = egui::Window::new("Properties Inspector")
-            .open(&mut is_open)
-            .default_size([280.0, 420.0])
-            .min_width(220.0_f32.min(avail_w))
-            .min_height(200.0_f32.min(avail_h))
-            .max_size(egui::vec2(avail_w, avail_h))
-            .frame(
-                egui::Frame::new()
-                    .fill(tokens::bg_panel(state))
-                    .stroke(tokens::stroke_border_dyn(state))
-                    .inner_margin(egui::Margin::symmetric(6, 4)),
-            )
-            .show(&ctx, |ui| {
-                ui.push_id("detached_inspector", |ui| {
-                    properties_panel::draw(ui, state, tools, registry);
-                });
-            });
-        if let Some(win) = win {
-            regions::record(&ctx, regions::RegionSlot::RightInspector, win.response.rect);
-        }
-        if !is_open {
-            state.ui.inspector_detached = false;
-            state.mark_dirty();
-        }
-    }
-}
-
-/// Cabeçalho slim do dock: alterna lado (esquerda/direita) e disposição
-/// (empilhado/lado a lado). Tudo opera de imediato sobre `UiState`.
-fn draw_dock_header(ui: &mut egui::Ui, state: &mut AppState) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = egui::vec2(4.0, 0.0);
-        let side_label = match state.ui.dock_side {
-            DockSide::Left => state.t("dock.left"),
-            DockSide::Right => state.t("dock.right"),
-        };
-        if ui
-            .small_button(side_label)
-            .on_hover_text(state.t("dock.side"))
-            .clicked()
-        {
-            state.ui.dock_side = match state.ui.dock_side {
-                DockSide::Left => DockSide::Right,
-                DockSide::Right => DockSide::Left,
-            };
-            state.mark_dirty();
-        }
-        let orient_label = match state.ui.dock_orientation {
-            DockOrientation::Stacked => state.t("dock.stacked"),
-            DockOrientation::SideBySide => state.t("dock.side_by_side"),
-        };
-        if ui
-            .small_button(orient_label)
-            .on_hover_text(state.t("dock.orientation"))
-            .clicked()
-        {
-            state.ui.dock_orientation = match state.ui.dock_orientation {
-                DockOrientation::Stacked => DockOrientation::SideBySide,
-                DockOrientation::SideBySide => DockOrientation::Stacked,
-            };
-            state.mark_dirty();
-        }
-    });
-}
-
-fn draw_split_dock(
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    tools: &ToolRegistry,
-    registry: &mut ModuleRegistry,
-    interior_spacing: egui::Vec2,
-) {
-    if state.ui.dock_orientation == DockOrientation::SideBySide {
-        draw_side_by_side_dock(ui, state, tools, registry, interior_spacing);
-        return;
-    }
-    let avail = ui.available_rect_before_wrap();
-    let total_h = avail.height();
-    let total_w = avail.width();
-    // Altura do Scene: AUTO pelo conteúdo (sem reservar meio dock p/ 1 objeto)
-    // ou MANUAL pela fração do divisor. Colapsos encurtam para o cabeçalho.
-    let scene_rows = state.project.assets.len()
-        + state.project.collections.len()
-        + state.project.annotation_groups.len()
-        + state.project.annotations.len()
-        + state.project.measurements.len()
-        + state.project.refs.len()
-        + 4;
-    let out_h = regions::scene_panel_height(
-        total_h,
-        state.ui.outliner_collapsed,
-        state.ui.scene_split_auto,
-        state.ui.right_dock_split,
-        regions::estimate_scene_content(
-            scene_rows,
-            crate::inspector_widgets::row_h(state.ui.density),
-        ),
-    );
-    let insp_h = (total_h - regions::DOCK_SEPARATOR_H - out_h).max(regions::DOCK_HEADER_H);
-
-    // 1. Outliner (topo; colapso mora no cabeçalho do próprio outliner)
-    let out_resp = ui.allocate_ui_with_layout(
-        egui::vec2(total_w, out_h),
-        egui::Layout::top_down_justified(egui::Align::LEFT),
-        |ui| {
-            // Interiores usam espaçamento normal; o empilhamento do dock usa 0.
-            ui.spacing_mut().item_spacing = interior_spacing;
-            outliner::draw_body(ui, state);
-        },
-    );
-    regions::record(
-        ui.ctx(),
-        regions::RegionSlot::RightOutliner,
-        out_resp.response.rect,
-    );
-
-    // 2. Divisor arrastável
-    let (sep_rect, sep_resp) = ui.allocate_exact_size(
-        egui::vec2(total_w, regions::DOCK_SEPARATOR_H),
-        egui::Sense::drag(),
-    );
-    let sep_fill = if sep_resp.dragged() {
-        tokens::ACCENT_BLUE
-    } else if sep_resp.hovered() {
-        tokens::BG_SURFACE_HOVER
-    } else {
-        egui::Color32::TRANSPARENT
-    };
-    ui.painter().rect_filled(sep_rect, 2.0, sep_fill);
-    let mid_y = sep_rect.center().y;
-    ui.painter().line_segment(
-        [
-            egui::pos2(sep_rect.min.x + 10.0, mid_y),
-            egui::pos2(sep_rect.max.x - 10.0, mid_y),
-        ],
-        egui::Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
-    );
-    let split_tip = state.t_id(text_id::UI_DOCK_SPLIT_HINT);
-    let sep_resp = sep_resp.on_hover_text(split_tip);
-    if sep_resp.hovered() || sep_resp.dragged() {
-        ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
-    }
-    // Duplo-clique volta ao dimensionamento automático.
-    if sep_resp.double_clicked() {
-        state.ui.scene_split_auto = true;
-        state.mark_dirty();
-    }
-    if sep_resp.dragged()
-        && let Some(pos) = ui.input(|i| i.pointer.hover_pos().or(i.pointer.interact_pos()))
-    {
-        let new_split = ((pos.y - avail.min.y) / total_h.max(1.0)).clamp(0.25, 0.75);
-        if (new_split - state.ui.right_dock_split).abs() > f32::EPSILON {
-            state.ui.right_dock_split = new_split;
-            // Arrastar sai do AUTO e reabre ambas as seções.
-            state.ui.scene_split_auto = false;
-            state.ui.outliner_collapsed = false;
-            state.ui.inspector_collapsed = false;
-            state.mark_dirty();
-        }
-    }
-
-    // 3. Inspector (base; colapso mora na barra do objeto)
-    let insp_resp = ui.allocate_ui_with_layout(
-        egui::vec2(total_w, insp_h.max(regions::DOCK_HEADER_H)),
-        egui::Layout::top_down_justified(egui::Align::LEFT),
-        |ui| {
-            ui.spacing_mut().item_spacing = interior_spacing;
-            properties_panel::draw(ui, state, tools, registry);
-        },
-    );
-    regions::record(
-        ui.ctx(),
-        regions::RegionSlot::RightInspector,
-        insp_resp.response.rect,
-    );
-}
-
-/// Dock lado a lado: Outliner à esquerda, Inspector à direita, divisor
-/// vertical arrastável. Mesmos slots de região, colapsos e fração do modo
-/// empilhado (a fração é compartilhada entre as orientações).
-fn draw_side_by_side_dock(
-    ui: &mut egui::Ui,
-    state: &mut AppState,
-    tools: &ToolRegistry,
-    registry: &mut ModuleRegistry,
-    interior_spacing: egui::Vec2,
-) {
-    let avail = ui.available_rect_before_wrap();
-    let total_w = avail.width();
-    let total_h = avail.height();
-    let (left_w, right_w) = regions::split_widths(
-        total_w,
-        state.ui.right_dock_split,
-        state.ui.outliner_collapsed,
-        state.ui.inspector_collapsed,
-    );
-
-    ui.horizontal_top(|ui| {
-        // 1. Outliner (esquerda; colapso no próprio cabeçalho)
-        let out_resp = ui.allocate_ui_with_layout(
-            egui::vec2(left_w, total_h),
-            egui::Layout::top_down_justified(egui::Align::LEFT),
-            |ui| {
-                ui.spacing_mut().item_spacing = interior_spacing;
-                outliner::draw_body(ui, state);
-            },
-        );
-        regions::record(
-            ui.ctx(),
-            regions::RegionSlot::RightOutliner,
-            out_resp.response.rect,
-        );
-
-        // 2. Divisor vertical arrastável
-        let (sep_rect, sep_resp) = ui.allocate_exact_size(
-            egui::vec2(regions::DOCK_SEPARATOR_W, total_h),
-            egui::Sense::drag(),
-        );
-        let sep_fill = if sep_resp.dragged() {
-            tokens::ACCENT_BLUE
-        } else if sep_resp.hovered() {
-            tokens::BG_SURFACE_HOVER
-        } else {
-            egui::Color32::TRANSPARENT
-        };
-        ui.painter().rect_filled(sep_rect, 2.0, sep_fill);
-        let mid_x = sep_rect.center().x;
-        ui.painter().line_segment(
-            [
-                egui::pos2(mid_x, sep_rect.min.y + 10.0),
-                egui::pos2(mid_x, sep_rect.max.y - 10.0),
-            ],
-            egui::Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
-        );
-        let split_tip = state.t_id(text_id::UI_DOCK_SPLIT_HINT);
-        let sep_resp = sep_resp.on_hover_text(split_tip);
-        if sep_resp.hovered() || sep_resp.dragged() {
-            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
-        }
-        if sep_resp.dragged()
-            && let Some(pos) = ui.input(|i| i.pointer.hover_pos().or(i.pointer.interact_pos()))
-        {
-            let new_split = ((pos.x - avail.min.x) / total_w.max(1.0)).clamp(0.25, 0.75);
-            if (new_split - state.ui.right_dock_split).abs() > f32::EPSILON {
-                state.ui.right_dock_split = new_split;
-                state.ui.outliner_collapsed = false;
-                state.ui.inspector_collapsed = false;
-                state.mark_dirty();
-            }
-        }
-
-        // 3. Inspector (direita; colapso na barra do objeto)
-        let insp_resp = ui.allocate_ui_with_layout(
-            egui::vec2(right_w, total_h),
-            egui::Layout::top_down_justified(egui::Align::LEFT),
-            |ui| {
-                ui.spacing_mut().item_spacing = interior_spacing;
-                properties_panel::draw(ui, state, tools, registry);
-            },
-        );
-        regions::record(
-            ui.ctx(),
-            regions::RegionSlot::RightInspector,
-            insp_resp.response.rect,
-        );
-    });
 }
 
 pub fn new_project(state: &mut AppState) {
@@ -845,53 +488,25 @@ fn export_dialog(state: &mut AppState, sel: &[usize]) {
 
 // ------------------------------------------------------------- viewport
 
-fn viewport(ui: &mut egui::Ui, state: &mut AppState) {
+/// Centro do workspace: viewport 3D ou editor UV + prévia.
+///
+/// Wave 5b: a faixa inferior (Timeline) saiu daqui — ela é o paine `Bottom` da
+/// árvore do shell, e a viewport fica com toda a altura restante do paine.
+///
+/// FUNDO TRANSPARENTE: o 3D é desenhado por baixo (wgpu/GL) e o egui compõe por
+/// cima. Um fill opaco aqui ESCONDE a cena inteira.
+pub(crate) fn viewport(ui: &mut egui::Ui, state: &mut AppState) {
     puffin::profile_function!();
-    // FUNDO TRANSPARENTE: o 3D é desenhado por baixo (wgpu/GL) e o egui
-    // compõe por cima. Um fill opaco aqui ESCONDE a cena inteira.
     egui::CentralPanel::default()
         .frame(egui::Frame::new().fill(egui::Color32::TRANSPARENT))
         .show(ui, |ui| {
             if state.workspace == Workspace::Uv {
                 uv_workspace_center(ui, state);
-            } else if state.workspace == Workspace::Animate
-                && workspaces::profile_for(state.workspace).bottom
-                    == workspaces::BottomPaneKind::Timeline
-            {
-                animate_workspace_center(ui, state);
             } else {
                 let rect = ui.available_rect_before_wrap();
                 viewport_3d(ui, state, rect);
             }
         });
-}
-
-/// Centro do workspace Animate (Wave 3 — §6.4): viewport 3D + faixa real de
-/// Timeline abaixo. Faixa com altura fixa canônica; a viewport 3D registra o
-/// retângulo restante (a superfície GPU segue `viewport_rect`).
-fn animate_workspace_center(ui: &mut egui::Ui, state: &mut AppState) {
-    puffin::profile_function!();
-    let total = ui.available_rect_before_wrap();
-    let strip_h = tokens::TIMELINE_HEIGHT;
-    let vp_rect = egui::Rect::from_min_max(
-        total.min,
-        egui::pos2(total.max.x, (total.max.y - strip_h).max(total.min.y)),
-    );
-    viewport_3d(ui, state, vp_rect);
-    // Faixa posicionada explicitamente (não via cursor): soma exata ao total.
-    let strip_rect = egui::Rect::from_min_max(egui::pos2(total.min.x, vp_rect.max.y), total.max);
-    regions::record(ui.ctx(), regions::RegionSlot::BottomDock, strip_rect);
-    ui.painter()
-        .rect_filled(strip_rect, 0.0, tokens::bg_panel(state));
-    ui.painter().rect_stroke(
-        strip_rect,
-        0.0,
-        tokens::stroke_border_dyn(state),
-        egui::StrokeKind::Inside,
-    );
-    let inner = strip_rect.shrink2(egui::vec2(8.0, 4.0));
-    let mut strip_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner));
-    timeline::draw_contents(&mut strip_ui, state);
 }
 
 /// Centro do workspace UV (Wave 3 — §6.3): editor UV 2D + prévia 3D.
@@ -1180,6 +795,7 @@ mod shell_layout_tests {
     //! Regressão do shell: nenhum painel lateral cobre a status bar em
     //! nenhuma resolução suportada (zonas rígidas da `status_bar`).
     use super::*;
+    use petunia_core::{DockOrientation, DockSide};
 
     fn draw_shell(w: f32, h: f32) -> Option<regions::UiRegions> {
         draw_shell_with(w, h, true)

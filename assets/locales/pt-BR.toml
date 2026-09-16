@@ -4,6 +4,7 @@
 title = "Petunia3D"
 
 [ui]
+more_actions = "Mais ações"
 tools = "Ferramentas"
 assets = "Assets"
 search = "Buscar"
@@ -69,19 +70,19 @@ quit = "Sair"
 undo = "Desfazer"
 redo = "Refazer"
 
+# Os rótulos das pílulas de workspace são canônicos (capítulos 23 e 36):
+# MODEL / PAINT / UV — nunca traduzidos, nunca com um workspace extra.
 [ws]
 model = "MODEL"
-paint = "PINTURA"
+paint = "PAINT"
 uv = "UV"
-animate = "ANIMATE"
-export = "EXPORT"
 
 [modes]
 object = "Objeto"
 edit = "Edição"
 paint = "Pintura"
-vertex = "Vértice"
-edge = "Aresta"
+vertex = "Point"
+edge = "Edge"
 face = "Face"
 
 [shading]
@@ -110,6 +111,7 @@ drop_to_instantiate = "Soltar para Instanciar"
 
 [toolbar]
 configure = "Configurar Barra"
+family_hint = "Clique com o botão direito para o menu da família"
 reset = "Redefinir barra"
 columns = "Colunas"
 one_column = "1 coluna"
@@ -271,22 +273,22 @@ uv_project = "Projetar"
 uv_seam = "Costura"
 
 [hints]
-select = "Clique p/ selecionar. 1/2/3: vértice/aresta/face."
+select = "Clique p/ selecionar. 1/2/3: point/edge/face."
 transform = "G/R/S: mover, rotacionar, escalar com mouse. Enter aplica; Esc cancela."
 primitives = "A: adiciona primitiva low-poly."
 draw_profile = "Shift+P: clique na vista ortográfica p/ pontos. Perto do 1º fecha."
 extrude = "E: extruda as faces selecionadas."
 pushpull = "P: empurra/puxa ao longo das normais."
 inset = "I: inset nas faces selecionadas."
-bevel = "Ctrl+B: bevel interativo de uma aresta suportada."
+bevel = "Ctrl+B: bevel interativo de um edge suportado."
 subdivide = "W: subdivide (loop cut). Triangular abaixo."
 slice = "Shift+K: arraste o plano de corte; Enter aplica, Esc cancela."
 connect = "B: conecta (bridge) dois loops ou faces."
-dissolve = "X: dissolve arestas/vértices sem deixar buracos."
+dissolve = "X: dissolve edges/points sem deixar buracos."
 mirror = "Ctrl+M: espelha + solda."
 merge = "M: funde a seleção no centro."
 symmetrize = "Alt+M: copia um lado para o outro no eixo e solda a costura."
-revolve = "Selecione arestas conectadas e revolva ao redor de um eixo."
+revolve = "Selecione edges conectados e revolva ao redor de um eixo."
 paint = "B: clique na malha p/ pintar. Alt+clique: conta-gotas."
 
 [actions]
@@ -330,12 +332,19 @@ slice_x = "Fatiar X"
 slice_y = "Fatiar Y"
 slice_z = "Fatiar Z"
 slice_cap = "Fatiar (tampa)"
-need_edit = "Requer modo Edição"
+need_edit = "Requer um domínio de componente (Point / Edge / Face)"
 need_selection = "Selecione a geometria primeiro"
 no_mesh = "Sem malha ativa"
 revolve_open_hint = "Ângulos abaixo de 360° deixam o perfil aberto."
-revolve_need_edges = "Selecione ao menos 2 arestas conectadas."
+revolve_need_edges = "Selecione ao menos 2 edges conectados."
 cursor_to_origin = "Cursor para origem global"
+cursor_to_origin_status = "Cursor 3D centralizado na origem"
+
+# Menu de contexto do viewport (RMB). O título do bloco vem de `[modes]`
+# (Object / Point / Edge / Face) — o domínio de seleção é a única autoridade.
+[ctx]
+extrude_region = "Extrudar Região"
+separate = "Separar Seleção"
 
 [tool_properties]
 title = "Propriedades da ferramenta"
@@ -353,7 +362,7 @@ bevel_width = "Largura do bevel"
 pushpull_distance = "Distância de Push/Pull"
 preview_hint = "As alterações são pré-visualizadas em tempo real. Enter aplica; Esc cancela."
 rotation_hint = "Ângulos em graus, Euler XYZ, em torno do centro da seleção."
-bevel_hint = "Suporta uma aresta convexa manifold com cantos simples; um segmento."
+bevel_hint = "Suporta um edge convexo manifold com cantos simples; um segmento."
 cuts = "Cortes"
 profile_usage = "Clique em uma vista ortográfica para adicionar pontos. Clique perto do primeiro ponto para fechar o perfil."
 
@@ -361,7 +370,7 @@ profile_usage = "Clique em uma vista ortográfica para adicionar pontos. Clique 
 name = "Nome"
 verts = "verts"
 faces = "tris"
-edges = "arestas"
+edges = "edges"
 
 [prims]
 cube = "Cubo"
@@ -393,7 +402,7 @@ top_radius = "Raio do Topo"
 bottom_radius = "Raio da Base"
 major_radius = "Raio Maior"
 minor_radius = "Raio Menor"
-vertices = "Vértices"
+vertices = "Segmentos"
 fill = "Preenchimento"
 cap = "Tampa"
 subdivision = "Nível de Subdivisão"
@@ -413,13 +422,13 @@ tip_major_radius = "Distância do centro do Toro ao centro do tubo."
 tip_minor_radius = "Raio do tubo do Toro."
 tip_segments = "Segmentos ao redor da forma. Menos segmentos, mais low-poly."
 tip_rings = "Anéis da base ao topo. Menos anéis, mais low-poly."
-tip_vertices = "Vértices ao redor do círculo."
+tip_vertices = "Segmentos ao redor do círculo."
 tip_fill = "Preenche o círculo com leque de triângulos ou mantém só o contorno."
 tip_caps = "Fecha topo e base com tampas planas."
 tip_body_length = "Comprimento do corpo reto entre as calotas."
 
 [paint]
-vertex = "Pintura vértice"
+vertex = "Pintura no modelo"
 radius = "Raio"
 color = "Cor"
 strength = "Força"
@@ -603,3 +612,5 @@ pack_desc_lucide = "Traço vetorial refinado de 2px"
 [keymap]
 capture = "capturar…"
 unsupported_key = "Tecla não suportada pelo keymap"
+conflict_title = "Conflito de atalhos detectado"
+conflict_shared = "compartilha o atalho com"

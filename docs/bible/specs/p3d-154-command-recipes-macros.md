@@ -1,12 +1,5 @@
 # P3D-154 — Command Recipes / Macros
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 11 (Pós-GA)
-- **Status Canônico**: `ROADMAP PÓS-GA (Plugins, Automation & AI)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 ## Objetivo
 
 Registrar/salvar/reproduzir sequências semânticas de Commands para automação do usuário.

@@ -3,7 +3,7 @@
 A ferramenta **Fatiamento** corta o modelo através de um plano linear contínuo definido pelo usuário na tela.
 
 - **Atalho de Ativação**: `Shift+K`
-- **Modos Suportados**: Modo de Edição (`EditMode::Edit`).
+- **Disponível em**: componentes da malha (`Face` / `Edge` / `Point`); detalhe técnico: `EditMode::Edit`.
 
 ## Como Usar
 1. Pressione `Shift+K`;

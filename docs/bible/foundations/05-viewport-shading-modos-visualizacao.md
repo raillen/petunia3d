@@ -50,7 +50,7 @@ A apresentação dos modos de viewport deve seguir a linguagem de controles comp
 
 Preferir um **segmented control único** para os quatro modos mutuamente exclusivos:
 
-```plain text
+```
 Wireframe | Solid | Textured | Silhouette/Reference
 ```
 

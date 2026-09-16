@@ -1,12 +1,5 @@
 # P3D-105 — Renderer desacoplado da UI
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 1
-- **Status Canônico**: `COMPLIANT (Renderer Boundary WGPU / GL)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

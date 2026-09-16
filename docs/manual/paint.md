@@ -1,13 +1,13 @@
 # Pintura & Cores
 
-O workspace **PAINT** do Petunia3D foi desenhado para pintura rápida de texturas estilizadas e atribuição direta de paletas de cores a vértices e faces.
+O workspace **PAINT** do Petunia3D foi desenhado para **Paint on Model**: pintura rápida sobre a superfície do modelo, com paletas simples e Pixel Grid contextual. A prioridade da V1 é `Base Color` (Albedo).
 
 ---
 
 ## 1. Modos de Coloração
 
-1. **Pintura por Vértice (Vertex Color)**: As cores são interpoladas diretamente pela malha entre os vértices, sem necessidade de mapas de textura adicionais — perfeito para estilos low-poly minimalistas e otimização máxima de draw-calls.
-2. **Pintura de Textura**: Pintura sobre mapas de pixel mapeados nas coordenadas UV da malha.
+1. **Paint on Model (cor por ponto)**: as cores são interpoladas diretamente pela malha entre os pontos, sem mapas de textura adicionais — ideal para estilos low-poly minimalistas e para reduzir draw-calls. O termo técnico é *Vertex Color*.
+2. **Pintura de textura**: pintura sobre mapas de pixel mapeados nas coordenadas UV da malha, no canal **Albedo**.
 
 ---
 

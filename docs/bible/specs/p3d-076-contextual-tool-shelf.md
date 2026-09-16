@@ -1,12 +1,5 @@
 # P3D-076 — Contextual Tool Shelf
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 6
-- **Status Canônico**: `COMPLIANT (Scene, Assets, Outliner & Inspector)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

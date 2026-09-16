@@ -1,12 +1,5 @@
 # P3D-012 — Shading Modes
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 4
-- **Status Canônico**: `COMPLIANT (Viewport, Navigation & Reference Workflow)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

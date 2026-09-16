@@ -231,9 +231,11 @@ Security considerations
 - **Definition of integrated:** dependency/version resolved; ownership boundary implemented; at least one real call path or intentionally default-off feature path compiles; relevant tests exist; architecture checks pass; documentation states why/where it is used; there is no unused dependency or direct third-party leakage across forbidden layers.
 
 ### P1-15 — `egui_taffy`
-- **Adoption class:** BASELINE CANDIDATE / advanced responsive sublayout
+- **Adoption class:** BASELINE / advanced responsive sublayout
 - **Intended owner/boundary:** `petunia-ui/adapters/layout`
-- **Required integration contract:** Pilot Flex/Grid/Block for complex responsive sublayouts. It must not replace egui_tiles as the controlled macro-layout engine unless an ADR proves the need.
+- **Required integration contract:** Flex/Block/Grid responsivo dentro de painéis, painéis-flutuantes e sublayouts complexos, sempre atrás de `PetuniaTaffyLayout`. Responsividade manual em product code (`available_width() < N`, divisão manual de largura) é proibida.
+- **Revisão (2026-09-16):** a formulação anterior — "pilot" e "não substitui `egui_tiles` sem ADR" — foi **substituída** pela *Egui Ecosystem Final Push Directive* (§14, §15, §17, §44). Taffy e Tiles resolvem problemas **diferentes** e ambos são baseline: Tiles faz o macro-layout controlado, Taffy faz o layout responsivo dentro de um painel. Não são alternativas.
+- **Exceção legítima:** viewport, canvas UV, régua da timeline, gizmo e visualização de dados podem calcular geometria próprios (ver §36).
 - **Definition of integrated:** dependency/version resolved; ownership boundary implemented; at least one real call path or intentionally default-off feature path compiles; relevant tests exist; architecture checks pass; documentation states why/where it is used; there is no unused dependency or direct third-party leakage across forbidden layers.
 
 ### P1-16 — `egui_inbox`

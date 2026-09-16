@@ -1,6 +1,11 @@
 # 29 — Geometry Core, Renderer, UV e Painting na Stack Rust
 
-> Esta página detalha como a stack Rust implementa as funcionalidades centrais do Petunia sem usar uma engine completa. O authoring core é nosso; bibliotecas externas resolvem problemas especializados atrás de providers.
+<aside>
+📐
+
+Esta página detalha como a stack Rust implementa as funcionalidades centrais do Petunia sem usar uma engine completa. O authoring core é nosso; bibliotecas externas resolvem problemas especializados atrás de providers.
+
+</aside>
 
 # PetuniaMesh próprio
 
@@ -8,7 +13,7 @@ O authoring mesh é uma estrutura half-edge própria e não um wrapper direto de
 
 Estrutura conceitual:
 
-```plain text
+```
 Mesh
 ├ SlotMap<VertexId, VertexTopology>
 ├ SlotMap<HalfEdgeId, HalfEdgeTopology>
@@ -24,7 +29,7 @@ Mesh
 
 A conectividade deve permanecer mínima e independente dos atributos sempre que isso simplificar lifecycle e DOD:
 
-```plain text
+```
 VertexTopology
 └ outgoing_half_edge
 
@@ -49,7 +54,7 @@ Position, UV, material e sharpness não são obrigatoriamente campos desses stru
 
 Não inflar os elementos topológicos com todos os dados possíveis. Attributes e dados deriváveis ficam separados quando apropriado:
 
-```plain text
+```
 Topology
 VertexPositions
 CornerUV0 / HalfEdgeUV0
@@ -70,7 +75,7 @@ IDs antigos nunca devem resolver silenciosamente para elementos novos. Edits des
 
 Authoring aceita triangles/quads/n-gons; renderer e export usam triangles derivados.
 
-```plain text
+```
 PetuniaMesh
     ↓
 TriangulationCache
@@ -86,7 +91,7 @@ Cada triangle derivado mantém o `FaceId` de origem para seleção e diagnostics
 
 Cada mesh possui revision. Caches registram a revisão fonte:
 
-```plain text
+```
 TriangulationCache
 NormalCache
 GpuMeshCache
@@ -100,7 +105,7 @@ Se a revisão relevante mudou, o cache é reconstruído/refeito. Preferir revisi
 
 Distinguir ao menos:
 
-```plain text
+```
 TopologyDirty
 PositionsDirty
 UVDirty
@@ -116,7 +121,7 @@ Mover um objeto não deve invalidar triangulation; pintar uma textura não deve 
 
 Profiles pertencem a um domínio 2D localizado em 3D:
 
-```plain text
+```
 Profile
 ├ WorkPlane
 ├ contours
@@ -139,7 +144,7 @@ Usar `geo` somente onde remove complexidade concreta: predicates, intersections 
 
 Fluxo:
 
-```plain text
+```
 Petunia Profile
 → adapter geo::Polygon
 → operation
@@ -158,7 +163,7 @@ Extrude, Push/Pull, Inset, Slice, Connect, Weld, Bevel 1 segment e Revolve são 
 
 `manifold-rust` é provider para operações volumétricas que realmente exigem Boolean.
 
-```plain text
+```
 Fuse/Cut command
 → tentar operação local quando apropriado
 → se interseção volumétrica arbitrária: triangulation snapshot
@@ -176,7 +181,7 @@ Não aplicar remesh global. Cleanup permitido continua restrito a degenerates, c
 
 Auto UV possui três rotas:
 
-```plain text
+```
 Known generator?
   yes → deterministic native UV
   no ↓
@@ -198,7 +203,7 @@ O provider recebe uma mesh/snapshot convertida e retorna islands/UVs em tipos Pe
 
 Não usar Bevy/Fyrox/engine. Renderer mínimo:
 
-```plain text
+```
 PetuniaRenderer
 ├ GpuContext
 ├ ViewportRenderer
@@ -229,7 +234,7 @@ Não criar GI, shadow system avançado, path tracing ou pós-processamento de en
 
 Shaders versionados pelo projeto:
 
-```plain text
+```
 mesh.wgsl
 grid.wgsl
 wireframe.wgsl
@@ -244,7 +249,7 @@ uv_checker.wgsl
 
 A integração deve permanecer isolada entre `petunia-ui` e `petunia-render`. A estratégia preferida é **custom rendering direto via `egui-wgpu`**:
 
-```plain text
+```
 egui layout
 → allocate viewport Rect
 → Petunia viewport adapter
@@ -259,7 +264,7 @@ egui controla layout, clipping e input da região; `PetuniaRenderer` continua re
 
 Começar com a solução mais simples que satisfaz low-poly:
 
-```plain text
+```
 screen cursor
 → camera ray
 → iterate/render triangles
@@ -274,7 +279,7 @@ Não adicionar BVH antes de profiling indicar necessidade. Quando necessário, i
 
 `TextureBitmap` é tipo de domínio próprio:
 
-```plain text
+```
 width
 height
 pixel format
@@ -286,7 +291,7 @@ Não usar `wgpu::Texture`, `egui::TextureHandle` ou um tipo da crate `image` com
 
 # Paint on Model pipeline
 
-```plain text
+```
 pointer
 → raycast
 → triangle
@@ -319,7 +324,7 @@ Ferramentas mínimas próprias sobre `TextureBitmap`:
 
 O editor 2D opcional e o Paint on Model são duas apresentações do mesmo domínio:
 
-```plain text
+```
 Paint 3D ─┐
           ├→ Paint Commands → TextureBitmap → Undo tile diffs → DirtyRect → GPU upload
 Paint 2D ─┘

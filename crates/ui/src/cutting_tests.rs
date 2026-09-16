@@ -45,7 +45,7 @@ fn frame(ctx: &egui::Context, state: &mut AppState, events: Vec<Event>) {
 fn state(tool: &str) -> AppState {
     let mut state = AppState::new("en");
     *state.project.active_mesh_mut().unwrap() = Mesh::cube(2.0);
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
     state.active_tool = tool.into();
     state.camera.set_preset(ViewPreset::Front);
     state.camera.aspect = rect().aspect_ratio();

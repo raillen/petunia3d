@@ -1,6 +1,8 @@
 # Visão de Produto — Petunia3D
 
-Modelador 3D nativo, leve e focado em criação ultra-rápida de assets low-poly com estética retrô (PS1, N64, Nintendo DS e jogos indie nostálgicos).
+Modelador 3D nativo, leve e focado em **transformar referências e ideias visuais em modelos low-poly** com o menor atrito possível, mantendo um core pequeno e uma superfície avançada extensível por módulos/plugins.
+
+> O Petunia3D **não** é um DCC genérico e não tenta substituir Blender/Maya. A meta é a ergonomia de workflows shape-first sobre um núcleo poligonal adequado a jogos.
 
 ## 1. Problem and Users (Problema e Usuários)
 
@@ -9,13 +11,15 @@ Modelador 3D nativo, leve e focado em criação ultra-rápida de assets low-poly
 
 ## 2. Product Outcome (Resultado e Proposta de Valor)
 
-- **Shape-First Workflow**: O usuário desenha o contorno da silhueta 2D sobre referências ortográficas e obtém imediatamente a malha gerada (extrusão ou revolução radial), permitindo modelagem estrutural sem manipulação tediosa de vértices individuais soltos.
-- **Suíte Integrada de 4 Workspaces**:
-  1. **MODEL**: Primitivas, Draw Profile, Extrude, Push/Pull, Inset, Bevel, Subdivide, Mirror e Merge.
-  2. **PAINT**: Vertex painting direto e pintura albedo 2D com visualização texturizada em tempo real.
-  3. **UV**: Editor sincronizado com seleção 3D, projeção planar e empacotamento de ilhas.
-  4. **EXPORT**: Validação game-ready e exportação em lote OBJ ou GLB limpo e autocontido.
-- **Desempenho Nativo em Hardware Antigo**: Renderizador OpenGL 3.3 Core via `glow` com fallback transparente a partir do `wgpu`, funcionando com menos de 80 MB de memória RAM idle e 0 frames renderizados quando ocioso (render-on-demand).
+- **Fluxo canônico**: `Reference → Draw/Create → Shape → Paint/Project → Check → Export`. Topologia, triangulação e UV continuam acessíveis, mas não são pré-requisito para o primeiro asset.
+- **Dois caminhos igualmente válidos**: `Profile → Extrude/Shape` (desenhar sobre referência) e `Primitive → Direct Edit` (começar por uma primitiva). Desenhar nunca é obrigatório quando a primitiva resolve mais rápido.
+- **Três workspaces V1** (UI Baseline Final, capítulo 36):
+  1. **MODEL**: primitivas, Draw Profile, Extrude, Push/Pull, Inset, Round Edge (1 segmento), Subdivide, Mirror, Merge e Combine (`Keep Parts / Join / Fuse / Connect`).
+  2. **PAINT**: Paint on Model sobre Albedo, com paleta simples, Pixel Grid contextual e editor 2D opcional (fechado por padrão).
+  3. **UV**: split 2D + viewport 3D com seleção sincronizada, `55/45` por padrão.
+  
+  A checagem game-readiness e a exportação acontecem por comandos e painéis — **não** existe um workspace `EXPORT` na V1, e `Animation` pertence a pós-V1.
+- **Desempenho nativo em hardware modesto**: viewport integrado por **egui-wgpu/wgpu** (stack final do capítulo 27), render **event-driven** — em idle não há renderização contínua — e orçamento de memória baixo por design.
 
 ## 3. Success Boundaries (Critérios de Sucesso e Limites)
 

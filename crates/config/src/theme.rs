@@ -1,6 +1,12 @@
 //! Tema externo (TOML) e registro centralizado de temas do Petunia3D.
-//! Suporta tokens semânticos (`ThemeToken`), múltiplos temas embutidos e temas personalizados
-//! criados por usuários em subpastas contendo `manifest.toml` e `theme.toml`.
+//! Suporta tokens semânticos (`ThemeToken`), os temas oficiais embutidos de V1 e
+//! temas personalizados criados por usuários em subpastas contendo
+//! `manifest.toml` e `theme.toml`.
+//!
+//! **Conjunto oficial de V1 (capítulo 36):** `petunia-dark` é o tema completo
+//! oficial e `petunia-high-contrast` é a variação oficial de acessibilidade.
+//! Qualquer outro tema é declaração externa — pack em `themes/<id>/` do diretório
+//! do usuário ou `.petunia-theme` — nunca código embutido (P3D-085).
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -434,8 +440,12 @@ impl ThemeRegistry {
         self.themes.insert(manifest.id, theme);
     }
 
+    /// IDs oficiais de V1 (capítulo 36). Nenhum outro tema é embutido: temas
+    /// adicionais são declarações externas carregadas do diretório do usuário.
+    pub const OFFICIAL_V1_THEME_IDS: [&'static str; 2] = ["petunia-dark", "petunia-high-contrast"];
+
     fn register_builtin_themes(&mut self) {
-        // Petunia Dark
+        // Petunia Dark — tema completo oficial da V1 (default).
         let dark_manifest = ThemeManifest {
             id: "petunia-dark".into(),
             name: "Petunia Dark".into(),
@@ -450,103 +460,47 @@ impl ThemeRegistry {
         self.manifests.push(dark_manifest.clone());
         self.themes.insert("petunia-dark".into(), dark_theme);
 
-        // Petunia Light
-        let light_manifest = ThemeManifest {
-            id: "petunia-light".into(),
-            name: "Petunia Light".into(),
+        // Petunia High Contrast — variação oficial de acessibilidade da V1.
+        let hc_manifest = ThemeManifest {
+            id: "petunia-high-contrast".into(),
+            name: "Petunia High Contrast".into(),
             version: "1.0.0".into(),
             author: Some("Petunia3D Team".into()),
-            description: Some("Tema claro técnico e limpo".into()),
+            description: Some("Variação oficial de acessibilidade com contraste máximo".into()),
         };
-        let light_colors = ThemeColors {
-            bg_canvas: "#eaecef".into(),
-            bg_header: "#f3f4f6".into(),
-            bg_panel: "#f8f9fa".into(),
-            bg_panel_header: "#e9ebed".into(),
-            bg_surface: "#ffffff".into(),
-            bg_surface_hover: "#e2e5e9".into(),
-            bg_surface_active: "#d1d5db".into(),
-            text_primary: "#1f2937".into(),
-            text_secondary: "#4b5563".into(),
-            text_muted: "#9ca3af".into(),
-            text_active: "#111827".into(),
-            accent_blue: "#2563eb".into(),
-            border_subtle: "#e5e7eb".into(),
-            border_strong: "#cbd5e1".into(),
+        let hc_colors = ThemeColors {
+            bg_canvas: "#000000".into(),
+            bg_header: "#0a0a0a".into(),
+            bg_panel: "#121212".into(),
+            bg_panel_header: "#1a1a1a".into(),
+            bg_surface: "#1f1f1f".into(),
+            bg_surface_hover: "#2e2e2e".into(),
+            bg_surface_active: "#3d3d3d".into(),
+            text_primary: "#ffffff".into(),
+            text_secondary: "#e6e6e6".into(),
+            text_muted: "#b8b8b8".into(),
+            text_active: "#ffffff".into(),
+            accent_blue: "#00b0ff".into(),
+            accent_orange: "#ffb000".into(),
+            accent_hover: "#4dd0ff".into(),
+            accent_border: "#ffffff".into(),
+            border_subtle: "#6b6b6b".into(),
+            border_strong: "#a0a0a0".into(),
+            border_focus: "#ffd400".into(),
+            status_info: "#57c7ff".into(),
+            status_warning: "#ffd400".into(),
+            status_error: "#ff6b6b".into(),
+            status_success: "#6ee7a8".into(),
             ..Default::default()
         };
 
-        let light_theme = Theme {
-            manifest: Some(light_manifest.clone()),
-            colors: light_colors,
+        let hc_theme = Theme {
+            manifest: Some(hc_manifest.clone()),
+            colors: hc_colors,
             font: ThemeFont::default(),
         };
-        self.manifests.push(light_manifest.clone());
-        self.themes.insert("petunia-light".into(), light_theme);
-
-        // Petunia Capuccino
-        let cap_manifest = ThemeManifest {
-            id: "petunia-capuccino".into(),
-            name: "Petunia Capuccino".into(),
-            version: "1.0.0".into(),
-            author: Some("Petunia3D Team".into()),
-            description: Some("Tons terrosos e aconchegantes de café".into()),
-        };
-        let cap_colors = ThemeColors {
-            bg_canvas: "#231e1c".into(),
-            bg_header: "#2b2522".into(),
-            bg_panel: "#302926".into(),
-            bg_panel_header: "#362e2a".into(),
-            bg_surface: "#3f3631".into(),
-            bg_surface_hover: "#4d423c".into(),
-            bg_surface_active: "#5c4f48".into(),
-            text_primary: "#f5ede8".into(),
-            text_secondary: "#c4b5ac".into(),
-            text_muted: "#8c7e75".into(),
-            accent_blue: "#d97736".into(),
-            ..Default::default()
-        };
-
-        let cap_theme = Theme {
-            manifest: Some(cap_manifest.clone()),
-            colors: cap_colors,
-            font: ThemeFont::default(),
-        };
-        self.manifests.push(cap_manifest.clone());
-        self.themes.insert("petunia-capuccino".into(), cap_theme);
-
-        // Petunia Tokyo Nights
-        let tokyo_manifest = ThemeManifest {
-            id: "petunia-tokyo-nights".into(),
-            name: "Petunia Tokyo Nights".into(),
-            version: "1.0.0".into(),
-            author: Some("Petunia3D Team".into()),
-            description: Some("Deep neon cyberpunk indigo e magenta".into()),
-        };
-        let tokyo_colors = ThemeColors {
-            bg_canvas: "#13141f".into(),
-            bg_header: "#1a1b26".into(),
-            bg_panel: "#1f2335".into(),
-            bg_panel_header: "#24283b".into(),
-            bg_surface: "#292e42".into(),
-            bg_surface_hover: "#3b4261".into(),
-            bg_surface_active: "#414868".into(),
-            text_primary: "#c0caf5".into(),
-            text_secondary: "#9aa5ce".into(),
-            text_muted: "#565f89".into(),
-            accent_blue: "#7aa2f7".into(),
-            accent_orange: "#bb9af7".into(),
-            ..Default::default()
-        };
-
-        let tokyo_theme = Theme {
-            manifest: Some(tokyo_manifest.clone()),
-            colors: tokyo_colors,
-            font: ThemeFont::default(),
-        };
-        self.manifests.push(tokyo_manifest.clone());
-        self.themes
-            .insert("petunia-tokyo-nights".into(), tokyo_theme);
+        self.manifests.push(hc_manifest.clone());
+        self.themes.insert("petunia-high-contrast".into(), hc_theme);
     }
 }
 
@@ -555,22 +509,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_theme_registry_loads_all_4_builtin_themes() {
+    fn test_official_v1_themes_are_registered() {
         let registry = ThemeRegistry::global();
-        let available = registry.available();
-        assert!(available.len() >= 4);
+        let _ = registry.available();
 
-        for id in [
-            "petunia-dark",
-            "petunia-light",
-            "petunia-capuccino",
-            "petunia-tokyo-nights",
-        ] {
+        for id in ThemeRegistry::OFFICIAL_V1_THEME_IDS {
             let theme = registry.get_theme(id);
             assert!(theme.is_some(), "Theme {id} must be registered");
             let theme = theme.unwrap();
             assert_eq!(theme.manifest.as_ref().unwrap().id, id);
         }
+    }
+
+    #[test]
+    fn test_high_contrast_is_a_discoverable_official_theme() {
+        let registry = ThemeRegistry::global();
+        assert!(
+            registry
+                .available()
+                .iter()
+                .any(|m| m.id == "petunia-high-contrast"),
+            "High Contrast must be listed as an official accessibility variation"
+        );
+    }
+
+    #[test]
+    fn test_unknown_theme_id_falls_back_to_petunia_dark() {
+        let theme = Theme::load_by_id("tema-que-nao-existe");
+        assert_eq!(theme.manifest.as_ref().unwrap().id, "petunia-dark");
     }
 
     #[test]

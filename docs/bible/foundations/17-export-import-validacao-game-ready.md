@@ -1,6 +1,11 @@
 # 17 — Export, Import, Validação e Pipeline Game-Ready
 
-> Exportação é uma compilação do documento de authoring para um formato de game. O processo nunca precisa destruir ou simplificar silenciosamente o projeto original.
+<aside>
+🎮
+
+Exportação é uma compilação do documento de authoring para um formato de game. O processo nunca precisa destruir ou simplificar silenciosamente o projeto original.
+
+</aside>
 
 # Formatos V1
 
@@ -18,7 +23,7 @@ Todas as bibliotecas de interchange continuam atrás de contratos próprios; tro
 
 # Export pipeline
 
-```plain text
+```
 Document snapshot
 → resolve procedural generators em cópia temporária
 → validate

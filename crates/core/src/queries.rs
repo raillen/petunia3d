@@ -122,7 +122,7 @@ impl AppState {
             selected_faces_count: f_count,
             selected_edges_count: e_count,
             select_mode: self.select_mode,
-            edit_mode: self.mode,
+            edit_mode: self.edit_mode(),
             selection_center: center,
         }
     }

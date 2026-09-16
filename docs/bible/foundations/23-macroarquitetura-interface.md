@@ -1,12 +1,17 @@
 # 23 — Macroarquitetura da Interface Petunia3D
 
-> Este capítulo registra a **direção adotada para a macroestrutura da UI**. A referência visual principal é o Blender UI Redesign analisado no capítulo 22, mas a organização funcional deve ser Petunia-first e selection/task-centric.
+<aside>
+🧭
+
+Este capítulo registra a **direção adotada para a macroestrutura da UI**. A referência visual principal é o Blender UI Redesign analisado no capítulo 22, mas a organização funcional deve ser Petunia-first e selection/task-centric.
+
+</aside>
 
 # Princípio principal
 
 A interface deve ser organizada em torno de **o que o usuário está tentando fazer agora**, não em torno da taxonomia interna de um DCC generalista.
 
-```plain text
+```
 Blender-like architecture:
 editor categories → modes → data categories → operation
 
@@ -31,7 +36,7 @@ Direção:
 
 Baseline visual/funcional inicial:
 
-```plain text
+```
 [ MODEL ] [ PAINT ] [ UV ]
 ```
 
@@ -43,7 +48,7 @@ Os workspaces devem usar o princípio de pills compactas observado no Figma: tro
 
 # Estrutura conceitual da tela Model
 
-```plain text
+```
 ┌──────────────────────────────────────────────────────────────┐
 │ Application chrome / menus / project                        │
 ├──────────────────────────────────────────────────────────────┤
@@ -76,7 +81,7 @@ Objetivo: mostrar estrutura do asset, não estrutura de uma cena de render.
 
 Exemplo:
 
-```plain text
+```
 PARTS
 ▼ Character
    Head
@@ -95,7 +100,7 @@ O painel direito é **selection-centric**.
 
 Selecionou uma primitiva:
 
-```plain text
+```
 Cylinder
 Radius
 Height
@@ -104,7 +109,7 @@ Sides
 
 Selecionou uma face:
 
-```plain text
+```
 Face
 Material
 Shading
@@ -113,7 +118,7 @@ Sharp
 
 Selecionou uma referência:
 
-```plain text
+```
 Reference
 Image
 Opacity
@@ -123,7 +128,7 @@ Lock
 
 Durante Extrude:
 
-```plain text
+```
 Extrude
 Depth
 Direction
@@ -139,7 +144,7 @@ Exemplos de contexto:
 
 ## Nenhuma seleção
 
-```plain text
+```
 Select
 Draw
 Primitive
@@ -148,7 +153,7 @@ Reference
 
 ## Face
 
-```plain text
+```
 Push
 Draw
 Inset
@@ -158,7 +163,7 @@ Round
 
 ## Edge
 
-```plain text
+```
 Move
 Round
 Split
@@ -167,7 +172,7 @@ Dissolve
 
 ## Point
 
-```plain text
+```
 Move
 Weld
 Delete
@@ -179,7 +184,7 @@ O conjunto exato será validado pelo fluxo de uso; o princípio normativo é **c
 
 Evitar o ritual `Object Mode → Edit Mode → Vertex/Edge/Face`. Petunia deve expor seleção em linguagem direta, potencialmente como segmented control:
 
-```plain text
+```
 [ Object | Face | Edge | Point ]
 ```
 
@@ -189,7 +194,7 @@ A apresentação final pode ser refinada, mas não exigir conhecimento prévio d
 
 Adotar a decomposição conceitual observada na referência:
 
-```plain text
+```
 LEFT    → o que estou editando / ações de contexto
 CENTER  → transform/snap/pivot/orientation quando relevantes
 RIGHT   → como estou vendo o asset
@@ -201,7 +206,7 @@ O conteúdo deve ser reduzido ao Petunia. Não copiar menus redundantes apenas p
 
 O controle compacto deve representar os quatro modos do produto:
 
-```plain text
+```
 Wireframe | Solid | Textured | Silhouette/Reference
 ```
 
@@ -247,7 +252,7 @@ A região deve poder desaparecer para devolver área ao viewport.
 
 A home do Petunia deve ser simples e orientada à continuidade:
 
-```plain text
+```
 New Model / New Project
 Open Project
 Recover Session

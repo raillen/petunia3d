@@ -6,9 +6,13 @@
 #![forbid(unsafe_code)]
 
 use egui::{Color32, Margin, Pos2, Rect, Stroke, Ui, vec2};
+
 use petunia_core::project_service::ProjectService;
 use petunia_core::{AppState, RefAxis, ViewPreset};
 
+use crate::adapters::taffy_layout::{
+    self, PetuniaColumnSpec, PetuniaJustify, PetuniaResponsiveLayout,
+};
 use crate::file_dialog_service;
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
@@ -26,18 +30,31 @@ const SLOTS: [(RefAxis, &str, ViewPreset); 6] = [
     (RefAxis::Bottom, "-Y", ViewPreset::Bottom),
 ];
 
-/// Colunas da grade responsiva a partir da largura disponível (Wave 5 — §9.1).
-fn grid_columns(available_w: f32) -> usize {
-    const GAP: f32 = 14.0;
-    const MIN_CARD: f32 = 230.0;
-    (((available_w + GAP) / (MIN_CARD + GAP)).floor() as usize).clamp(1, 3)
+/// Vão da grade de slots e da linha de cabeçalho.
+const GRID_GAP: f32 = 14.0;
+
+/// Menor largura em que um cartão de slot é utilizável.
+const MIN_CARD: f32 = 230.0;
+
+/// Teto de cartões por linha (os seis slots são pares de eixos opostos).
+const MAX_CARD_COLUMNS: u16 = 3;
+
+/// Esteira da grade de slots (§48).
+///
+/// O número de colunas sai do **mínimo real do cartão**, não de breakpoints na
+/// largura disponível: a divisão é do adapter e a largura chega pronta ao
+/// cartão.
+fn slot_grid(count: usize) -> PetuniaColumnSpec {
+    PetuniaColumnSpec::responsive(count, MIN_CARD, GRID_GAP).with_max_columns(MAX_CARD_COLUMNS)
 }
 
-/// Largura exata do cartão na grade (sem sobra nem falta).
-fn grid_card_width(available_w: f32, columns: usize) -> f32 {
-    const GAP: f32 = 14.0;
-    ((available_w - GAP * (columns as f32 - 1.0)) / columns as f32).max(200.0)
-}
+/// Cabeçalho do gerenciador: descrição + ações, em esteira que quebra.
+///
+/// Uma **única** linha flexível com `SpaceBetween` substitui o antigo par
+/// "empilhado se < 560px, senão descrição à esquerda e ações à direita". Quando
+/// os dois lados não cabem, as ações descem sozinhas para a linha seguinte —
+/// sem breakpoint e sem perder a ordem dos botões.
+const HEADER_ITEMS: usize = 3;
 
 /// Renderiza a janela utilitária do Gerenciador de Referências (P3D-013).
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
@@ -67,69 +84,66 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
         .collapsible(false)
         .resizable(true)
         .show(ctx, |ui| {
-            // Cabeçalho descritivo e ações globais (empilha no estreito).
-            if ui.available_width() < 560.0 {
-                ui.label(
-                    egui::RichText::new(state.t("refs.manager_desc"))
-                        .color(tokens::TEXT_SECONDARY)
-                        .size(12.0),
-                );
-                ui.horizontal(|ui| {
-                    draw_global_actions(ui, state);
+            // Cabeçalho descritivo e ações globais.
+            let header = PetuniaResponsiveLayout::wrap_row()
+                .with_justify(PetuniaJustify::SpaceBetween)
+                .with_gap(taffy_layout::PetuniaGap {
+                    horizontal: GRID_GAP,
+                    vertical: 6.0,
                 });
-            } else {
-                ui.horizontal(|ui| {
-                    ui.label(
-                        egui::RichText::new(state.t("refs.manager_desc"))
-                            .color(tokens::TEXT_SECONDARY)
-                            .size(12.0),
-                    );
-
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        draw_global_actions(ui, state);
-                    });
-                });
-            }
+            taffy_layout::responsive(
+                ui,
+                "refs-manager-header",
+                header,
+                HEADER_ITEMS,
+                |index, ui| match index {
+                    0 => {
+                        ui.label(
+                            egui::RichText::new(state.t("refs.manager_desc"))
+                                .color(tokens::TEXT_SECONDARY)
+                                .size(12.0),
+                        );
+                    }
+                    1 => draw_global_actions(ui, state, GlobalAction::ClearAll),
+                    _ => draw_global_actions(ui, state, GlobalAction::AddCustom),
+                },
+                |_ui| (),
+            );
 
             ui.add_space(8.0);
             ui.separator();
             ui.add_space(8.0);
 
-            // Grade determinística de cartões (Wave 5 — §9.1): colunas pela
-            // largura disponível, cartões com largura exata, linhas alinhadas.
+            // Grade determinística de cartões (§48): a esteira resolve quantas
+            // colunas cabem, entrega a largura do cartão e quebra a linha.
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                    let avail = ui.available_width();
-                    let columns = grid_columns(avail).min(SLOTS.len()).max(1);
-                    let card_w = grid_card_width(avail, columns);
-                    for (row, chunk) in SLOTS.chunks(columns).enumerate() {
-                        if row > 0 {
-                            ui.add_space(14.0);
-                        }
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing = vec2(14.0, 14.0);
-                            for &(axis, tag, preset) in chunk {
-                                let matching_idx = state.project.refs.iter().position(|r| {
-                                    r.axis == axis
-                                        || (axis == RefAxis::Right && r.axis == RefAxis::Side)
-                                });
-
-                                draw_slot_card(
-                                    ui,
-                                    ctx,
-                                    state,
-                                    axis,
-                                    tag,
-                                    card_w,
-                                    preset,
-                                    matching_idx,
-                                    &mut remove_index,
-                                    &mut align_preset,
-                                );
-                            }
-                        });
-                    }
+                    taffy_layout::columns(
+                        ui,
+                        "refs-manager-grid",
+                        slot_grid(SLOTS.len()),
+                        |index, card_w, ui| {
+                            let (axis, tag, preset) = SLOTS[index];
+                            let matching_idx = state.project.refs.iter().position(|r| {
+                                r.axis == axis
+                                    || (axis == RefAxis::Right && r.axis == RefAxis::Side)
+                            });
+                            draw_slot_card(
+                                ui,
+                                ctx,
+                                state,
+                                axis,
+                                tag,
+                                card_w,
+                                preset,
+                                matching_idx,
+                                &mut remove_index,
+                                &mut align_preset,
+                            );
+                        },
+                        |_ui| (),
+                    );
                 });
 
             ui.add_space(10.0);
@@ -163,21 +177,37 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
     }
 }
 
-fn draw_global_actions(ui: &mut Ui, state: &mut AppState) {
-    if ui
-        .button(state.t("refs.clear_all"))
-        .on_hover_text(state.t("refs.clear_all_tooltip"))
-        .clicked()
-    {
-        ProjectService::clear_references(state);
-    }
+/// Ação global do gerenciador.
+///
+/// Cada ação é **um item** da esteira do cabeçalho (§48): em janela estreita as
+/// ações descem sozinhas para a linha seguinte, sem um `if` de largura.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GlobalAction {
+    ClearAll,
+    AddCustom,
+}
 
-    if ui
-        .button(format!("+ {}", state.t("refs.add_custom")))
-        .on_hover_text(state.t("refs.add_custom_tooltip"))
-        .clicked()
-    {
-        crate::pick_and_add_reference_image(state);
+/// Desenha uma ação global do cabeçalho do gerenciador.
+fn draw_global_actions(ui: &mut Ui, state: &mut AppState, action: GlobalAction) {
+    match action {
+        GlobalAction::ClearAll => {
+            if ui
+                .button(state.t("refs.clear_all"))
+                .on_hover_text(state.t("refs.clear_all_tooltip"))
+                .clicked()
+            {
+                ProjectService::clear_references(state);
+            }
+        }
+        GlobalAction::AddCustom => {
+            if ui
+                .button(format!("+ {}", state.t("refs.add_custom")))
+                .on_hover_text(state.t("refs.add_custom_tooltip"))
+                .clicked()
+            {
+                crate::pick_and_add_reference_image(state);
+            }
+        }
     }
 }
 
@@ -538,25 +568,41 @@ fn draw_slot_card(
 
 #[cfg(test)]
 mod grid_tests {
-    use super::{grid_card_width, grid_columns};
+    use super::{GRID_GAP, MAX_CARD_COLUMNS, MIN_CARD, SLOTS, slot_grid};
+    use crate::adapters::taffy_layout::fit_columns;
 
-    #[test]
-    fn columns_follow_available_width() {
-        assert_eq!(grid_columns(1200.0), 3);
-        assert_eq!(grid_columns(800.0), 3);
-        assert_eq!(grid_columns(500.0), 2);
-        assert_eq!(grid_columns(300.0), 1);
-        assert_eq!(grid_columns(0.0), 1);
+    /// O que o produto declara: o adapter deriva as colunas do mínimo do cartão.
+    fn columns_at(available: f32) -> (u16, f32) {
+        fit_columns(available, MAX_CARD_COLUMNS, MIN_CARD, GRID_GAP)
     }
 
     #[test]
-    fn cards_fill_row_exactly() {
-        for avail in [300.0, 500.0, 800.0, 1200.0] {
-            let cols = grid_columns(avail);
-            let card = grid_card_width(avail, cols);
-            let row = card * cols as f32 + 14.0 * (cols as f32 - 1.0);
-            assert!((row - avail).abs() < 1.0, "avail {avail}: row {row}");
-            assert!(card >= 200.0);
+    fn columns_follow_the_card_minimum() {
+        assert_eq!(columns_at(1200.0).0, 3);
+        assert_eq!(columns_at(800.0).0, 3);
+        assert_eq!(columns_at(500.0).0, 2);
+        assert_eq!(columns_at(300.0).0, 1);
+        assert_eq!(columns_at(0.0).0, 1);
+    }
+
+    #[test]
+    fn cards_never_overflow_the_row_and_stay_usable() {
+        for available in [300.0, 500.0, 800.0, 1200.0] {
+            let (columns, card) = columns_at(available);
+            let row = card * f32::from(columns) + GRID_GAP * f32::from(columns - 1);
+            assert!(
+                row <= available + 1.0,
+                "largura {available}: linha de {row} com {columns} colunas"
+            );
+            assert!(card >= MIN_CARD, "largura {available}: cartão de {card}");
         }
+    }
+
+    #[test]
+    fn the_declared_grid_covers_every_slot() {
+        let spec = slot_grid(SLOTS.len());
+        assert_eq!(spec.count, SLOTS.len());
+        assert_eq!(spec.max_columns, MAX_CARD_COLUMNS);
+        assert_eq!(spec.min_item, MIN_CARD);
     }
 }

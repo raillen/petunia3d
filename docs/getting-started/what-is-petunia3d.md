@@ -16,9 +16,28 @@ Para manter a clareza cognitiva e o foco técnico, o Petunia3D deliberadamente n
 - **Um software de escultura hiperdensa**: O foco é low-poly e mid-poly com contagem de polígonos controlada;
 - **Um aplicativo baseado em Electron**: Não há navegador embutido nem consumo desnecessário de gigabytes de RAM.
 
+## Fluxo recomendado
+
+```
+REFERENCE → DRAW/CREATE → SHAPE → PAINT/PROJECT → CHECK → EXPORT
+```
+
+Topologia, triangulação e UV continuam acessíveis, mas **não** são pré-requisito para
+produzir o primeiro asset.
+
 ## Inspirações
 
-O design e os fluxos de trabalho do Petunia3D foram inspirados no melhor de clássicos renomados:
-- **Blender**: Teclas modais fluidas (`G`, `R`, `S`, `E`, `I`), convenções de cores para eixos cartesianos (`X` vermelho, `Y` verde, `Z` azul) e 3D Cursor para posicionamento rápido;
-- **Wings3D**: Modelagem direta de superfícies por seleção contextual de vértices, arestas e faces;
-- **Blockbench / Sprytile**: Agilidade para prototipagem de assets prontos para motores como Godot, Unity e Unreal Engine.
+O Petunia3D é um **modelador low-poly shape-first e direct-mesh**, inspirado em:
+
+- **MoI 3D**: simplicidade conceitual e clareza das operações;
+- **Plasticity**: interação direta com o modelo;
+- **Blockbench**: acessibilidade low-poly e prototipagem de assets para jogos;
+- **Blender**: edição de mesh e ergonomia de transformações modais.
+
+A referência é a **ergonomia** desses workflows sobre um núcleo poligonal — não a
+adoção de um kernel CAD/NURBS (B-Rep) como arquitetura central.
+
+> ⚠️ O Petunia3D **não é um editor 2D que adivinha 3D**. Um profile é uma forma plana
+> localizada em um **Work Plane conhecido no espaço 3D**. Existem dois caminhos
+> igualmente válidos: `Profile → Extrude/Shape` e `Primitive → Direct Edit` — desenhar
+> não é obrigatório quando uma primitiva resolve mais rápido.

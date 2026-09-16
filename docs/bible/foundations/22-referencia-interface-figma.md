@@ -1,6 +1,11 @@
 # 22 — Referência de Interface: Análise do Figma Blender UI Redesign
 
-> Este capítulo registra **o que foi efetivamente observado no arquivo Figma de referência**. Ele é evidência visual e estrutural, não autorização para copiar a arquitetura mental do Blender. Quando uma conclusão for inferência ou adaptação para Petunia3D, ela estará explicitamente marcada.
+<aside>
+🎨
+
+Este capítulo registra **o que foi efetivamente observado no arquivo Figma de referência**. Ele é evidência visual e estrutural, não autorização para copiar a arquitetura mental do Blender. Quando uma conclusão for inferência ou adaptação para Petunia3D, ela estará explicitamente marcada.
+
+</aside>
 
 # Fonte
 
@@ -24,7 +29,7 @@ O Figma MCP atingiu limite de leitura antes que todas as variantes internas do g
 
 O frame principal tem 1920 × 1080 e organiza a interface em quatro regiões de trabalho principais: Outliner à esquerda, 3D View ao centro, Properties à direita e Timeline abaixo, além das barras superiores e Status Bar.
 
-```plain text
+```
 Window bar: 40 px
 Main header: 37 px
 Editor region begins around y=77
@@ -40,18 +45,17 @@ A organização demonstra uma preferência por **canvas central dominante + pain
 
 # Escala dimensional recorrente
 
-<table>
-<tr><td>Elemento observado</td><td>Medida recorrente</td><td>Leitura para o design</td></tr>
-<tr><td>Window bar</td><td>40 px</td><td>Nível de aplicação.</td></tr>
-<tr><td>Main header</td><td>37 px</td><td>Nível global/workspace.</td></tr>
-<tr><td>Panel/editor header</td><td>30 px</td><td>Nível de região.</td></tr>
-<tr><td>Workspace pills</td><td>~20 px</td><td>Context switch compacto.</td></tr>
-<tr><td>Viewport controls</td><td>17 px</td><td>Ferramentas de alta densidade.</td></tr>
-<tr><td>Ícones pequenos</td><td>8–12 px</td><td>Glyphs em controles compactos.</td></tr>
-<tr><td>Ícones gerais</td><td>10–20 px</td><td>Chrome e ações de aplicação.</td></tr>
-<tr><td>Radius interno</td><td>~4 px</td><td>Controles discretos.</td></tr>
-<tr><td>Radius da janela</td><td>~12 px</td><td>Separação entre chrome e controles.</td></tr>
-</table>
+| Elemento observado | Medida recorrente | Leitura para o design |
+| --- | --- | --- |
+| Window bar | 40 px | Nível de aplicação. |
+| Main header | 37 px | Nível global/workspace. |
+| Panel/editor header | 30 px | Nível de região. |
+| Workspace pills | ~20 px | Context switch compacto. |
+| Viewport controls | 17 px | Ferramentas de alta densidade. |
+| Ícones pequenos | 8–12 px | Glyphs em controles compactos. |
+| Ícones gerais | 10–20 px | Chrome e ações de aplicação. |
+| Radius interno | ~4 px | Controles discretos. |
+| Radius da janela | ~12 px | Separação entre chrome e controles. |
 
 A escala visual diminui progressivamente de aplicação → workspace → região → controle. Essa hierarquia é um dos princípios mais valiosos da referência.
 
@@ -63,7 +67,7 @@ Gaps recorrentes incluem 2, 4, 5 e 10 px, com padding horizontal de aproximadame
 
 As superfícies e bordas usam principalmente:
 
-```plain text
+```
 #121212 — fundo profundo / workspace pill inativa
 #1D1D1D — superfícies de campo internas
 #202020 — headers/chrome principal
@@ -77,7 +81,7 @@ As superfícies e bordas usam principalmente:
 
 Accent ativo confirmado:
 
-```plain text
+```
 #3169E3 — background ativo
 #5B8EFF — border ativo
 ```
@@ -133,7 +137,7 @@ Visibility, Gizmo, Overlays, X-Ray e View3D Shading.
 
 A organização pode ser entendida como:
 
-```plain text
+```
 WHAT am I editing?
 HOW am I transforming?
 HOW am I viewing?
@@ -145,7 +149,7 @@ Essa decomposição é altamente reutilizável em Petunia, mesmo com comandos di
 
 Vários controles adotam o padrão:
 
-```plain text
+```
 [ toggle/action ][ dropdown ]
 ```
 

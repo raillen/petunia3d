@@ -46,7 +46,7 @@ fn frame(ctx: &egui::Context, state: &mut AppState, events: Vec<Event>) {
 fn state() -> AppState {
     let mut state = AppState::new("en");
     state.workspace = Workspace::Paint;
-    state.mode = EditMode::TexturePaint;
+    state.set_edit_mode(EditMode::TexturePaint);
     state.active_tool = "paint".into();
     state.camera.set_preset(ViewPreset::Front);
     state.camera.aspect = rect().aspect_ratio();

@@ -1,12 +1,17 @@
 # 28 — Arquitetura Rust, Cargo Workspace e Fronteiras entre Crates
 
-> Esta página define a arquitetura física do repositório Rust. O objetivo é obter modularidade suficiente para testes e agentes de IA sem fragmentar o projeto em dezenas de crates difíceis de navegar. A representação e as regras de implementação dentro dessas fronteiras são normatizadas pelo capítulo 34 — **Explicit Modular Data Architecture**.
+<aside>
+🏗️
+
+Esta página define a arquitetura física do repositório Rust. O objetivo é obter modularidade suficiente para testes e agentes de IA sem fragmentar o projeto em dezenas de crates difíceis de navegar. A representação e as regras de implementação dentro dessas fronteiras são normatizadas pelo capítulo 34 — **Explicit Modular Data Architecture**.
+
+</aside>
 
 # Princípio de dependência
 
 As camadas internas não dependem das externas. UI, renderer, Lua e MCP são adapters/serviços ao redor do domínio.
 
-```plain text
+```
 petunia-ui ─────┐
 petunia-plugins ├→ petunia-core → petunia-geometry
 petunia-mcp ────┘
@@ -19,7 +24,7 @@ apps/petunia = composition root
 
 Regra absoluta:
 
-```plain text
+```
 petunia-core      → NO egui, NO eframe, NO wgpu, NO mlua, NO rmcp
 petunia-geometry  → NO egui, NO eframe, NO wgpu
 petunia-render    → NO egui, NO eframe
@@ -31,7 +36,7 @@ Se egui for substituído no futuro, Geometry, Document, File Format, plugin cont
 
 # Estrutura do workspace
 
-```plain text
+```
 petunia3d/
 ├ Cargo.toml
 ├ Cargo.lock
@@ -77,7 +82,7 @@ Responsável por conceitos de domínio/aplicação sem detalhes gráficos. **Dom
 
 Estrutura interna sugerida:
 
-```plain text
+```
 petunia-core/src/
 ├ domain/
 │  ├ document/
@@ -223,7 +228,7 @@ Não possui o Document.
 
 É o composition root. Deve conter o mínimo possível de lógica:
 
-```plain text
+```
 create application services
 create document/session
 create renderer
@@ -238,7 +243,7 @@ run main loop
 
 Criar tooling Rust próprio para padronizar comandos frequentes:
 
-```plain text
+```
 cargo xtask check
 cargo xtask test
 cargo xtask verify
@@ -256,7 +261,7 @@ O Command Registry é a fronteira comum entre UI, Lua e MCP.
 
 Descriptor conceitual:
 
-```plain text
+```
 command_id
 label_key
 description_key
@@ -286,7 +291,7 @@ pub enum AppCommand {
 
 # Single source para UI/Lua/MCP
 
-```plain text
+```
 Rust command + metadata
           │
           ├→ UI presentation
@@ -300,7 +305,7 @@ Evitar manter três APIs manuais que inevitavelmente divergirão.
 
 Renderer não lê o documento vivo. A Application layer cria uma representação somente de leitura:
 
-```plain text
+```
 RenderSnapshot
 ├ meshes/render buffers source
 ├ transforms
@@ -318,7 +323,7 @@ Isso reduz acoplamento, races e acesso acidental ao authoring state.
 
 Também criar representação explícita de export:
 
-```plain text
+```
 ExportModel
 ├ triangulated meshes
 ├ materials
@@ -341,7 +346,7 @@ Crates de domínio usam `thiserror` para erros tipados. `anyhow` fica restrito a
 
 Nunca mostrar diretamente `Debug`/stack trace técnico ao usuário final. O core deve retornar código/contexto estruturado, por exemplo:
 
-```plain text
+```
 GeometryError::IncompatibleBoundaries
 → error key: geometry.connect.incompatible_boundaries
 → structured context: selected loops/counts
@@ -354,7 +359,7 @@ Isso permite logs técnicos e mensagens amigáveis coexistirem.
 
 Preservar a decisão de internacionalização por tokens JSON:
 
-```plain text
+```
 locales/
 ├ en-US.json
 └ pt-BR.json

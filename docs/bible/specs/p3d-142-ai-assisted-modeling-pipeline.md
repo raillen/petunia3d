@@ -1,12 +1,5 @@
 # P3D-142 — AI-Assisted Modeling Pipeline
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 11 (Pós-GA)
-- **Status Canônico**: `ROADMAP PÓS-GA (Plugins, Automation & AI)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

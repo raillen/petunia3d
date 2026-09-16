@@ -1,6 +1,11 @@
 # 19 — Concorrência, Memória, Caches e Performance
 
-> O escopo low-poly permite uma arquitetura de concorrência muito mais simples que um DCC generalista. A prioridade é evitar races e invalid states, não maximizar paralelismo teórico.
+<aside>
+⚙️
+
+O escopo low-poly permite uma arquitetura de concorrência muito mais simples que um DCC generalista. A prioridade é evitar races e invalid states, não maximizar paralelismo teórico.
+
+</aside>
 
 # Single-writer document
 
@@ -25,7 +30,7 @@ recebem snapshots imutáveis.
 
 Cada job carrega:
 
-```plain text
+```
 document_revision
 source_object_ids
 source_revisions
@@ -65,7 +70,7 @@ Manter posições de authoring em `f64` quando necessário à robustez das opera
 
 Cada domínio mantém revisões/dirty bits suficientemente granulares:
 
-```plain text
+```
 TopologyDirty
 PositionsDirty
 UVDirty
@@ -130,3 +135,39 @@ Este capítulo implementa as regras de ownership/concurrency do capítulo 34. `A
 # Regra final
 
 **Single writer + immutable jobs + revision check** é a política de concorrência oficial. É simples de testar, simples de explicar e suficiente para o escopo.
+
+# Consolidação — Diagnósticos, jobs, segurança e trust boundaries
+
+Esta seção incorpora as regras transversais de robustez que antes estavam separadas na antiga Implementation Bible.
+
+## Lifecycle de jobs
+
+Todo trabalho assíncrono relevante deve declarar `start`, progress quando útil, cancellation, completion, failure e cleanup. Cancelar não pode deixar arquivo parcial, cache inconsistente, transaction incompleta ou resultado aplicado sobre revisão obsoleta.
+
+Workers não mutam Editor/Document state arbitrariamente. Resultados retornam por mensagens/result objects controlados e são aplicados somente após revision/generation checks compatíveis.
+
+## Diagnósticos
+
+Usar categorias coerentes como **Info, Warning, Recoverable Error e Fatal/Crash**. Erros técnicos devem possuir código/categoria/contexto estruturado; `TextId` fornece mensagem user-facing. Logs complementam a UX, não a substituem.
+
+Crash diagnostics podem registrar versão/build, operação ativa e recovery marker local, evitando coletar conteúdo pessoal desnecessário. Telemetria remota não é requisito e não pode ser introduzida silenciosamente.
+
+## Trust boundaries
+
+Arquivos, projetos, imagens, archives, themes, icon packs, translations, keymaps, plugins e entradas MCP são **dados não confiáveis por padrão**.
+
+Validar, conforme a boundary:
+
+- canonicalization/containment de paths e traversal;
+- symlinks quando relevantes;
+- tamanhos/limites razoáveis contra inputs gigantescos e zip bombs;
+- formatos corrompidos/maliciosos;
+- permission denied e arquivos ausentes;
+- stale results/version mismatch;
+- cleanup após cancelamento, crash ou restart.
+
+Theme/icon/translation/keymap packs declarativos não executam código. Plugins/MCP usam capabilities explícitas; nenhum plugin recebe `egui::Context`, `wgpu::Device`, raw window handles ou mutação direta do `Document`.
+
+## Testes mínimos adicionais
+
+Failure injection, cancellation, malformed files, path traversal, permission denied, concurrent completion, stale revision e cleanup/recovery entram nas suites dos subsistemas aplicáveis.

@@ -23,7 +23,7 @@ impl Tool for PaintTool {
         "B"
     }
     fn on_activate(&self, state: &mut AppState) {
-        state.mode = EditMode::TexturePaint;
+        state.set_edit_mode(EditMode::TexturePaint);
         state.mark_dirty();
     }
 }

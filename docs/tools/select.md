@@ -3,7 +3,7 @@
 A ferramenta **Seleção** é a base de todas as interações no Petunia3D.
 
 - **Atalho de Ativação**: `W` (alterna modos) ou `B` para seleção por caixa.
-- **Modos Suportados**: Modo Objeto e Modo de Edição.
+- **Disponível em**: seleção de `Object` e de componentes da malha.
 
 ## Métodos de Seleção
 1. **Clique Simples (`LMB`)**: Seleciona o elemento mais próximo sob o cursor do mouse.

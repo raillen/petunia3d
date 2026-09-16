@@ -20,14 +20,14 @@ As transformações básicas no Petunia3D operam no paradigma *modal*:
 ```mermaid
 graph TD
     Extrude["Extrusão (E)"] --> Inset["Inserção / Inset (I)"]
-    Inset --> Bevel["Chanfro / Bevel (Ctrl+B)"]
+    Inset --> Bevel["Round Edge / Bevel (Ctrl+B)"]
     Bevel --> LoopCut["Corte em Anel / Loop Cut (Ctrl+R)"]
     LoopCut --> Knife["Faca / Knife (K)"]
 ```
 
 - **Extrusão (`E`)**: Duplica os elementos selecionados e os projeta ao longo da normal da face ou de um eixo travado.
 - **Inserção / Inset (`I`)**: Cria um anel de novas faces recuadas dentro da face selecionada, ideal para criar molduras e painéis.
-- **Chanfro / Bevel (`Ctrl+B`)**: Arredonda ou suaviza quinas e arestas vivas.
+- **Round Edge / Bevel (`Ctrl+B`)**: Arredonda ou suaviza quinas e arestas vivas. O Core V1 prioriza **1 segmento**; múltiplos segmentos são recurso avançado.
 - **Corte em Anel / Loop Cut (`Ctrl+R`)**: Insere um anel de arestas contínuo através de faces quadrangulares com deslizamento interativo.
 - **Faca / Knife (`K`)**: Permite desenhar cortes livres conectando vértices e arestas com precisão de clique a clique.
 - **Push / Pull**: Empurra ou puxa a geometria selecionada mantendo a planaridade adjacente.

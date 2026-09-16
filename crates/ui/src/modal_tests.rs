@@ -30,7 +30,7 @@ fn button(pos: Pos2, button: PointerButton, pressed: bool) -> Event {
 
 fn state() -> AppState {
     let mut state = AppState::new("en");
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
     let mesh = state.project.active_mesh_mut().unwrap();
     mesh.deselect_all();
     mesh.faces[0].selected = true;
@@ -271,7 +271,7 @@ fn sidebar_duplicate_button_is_disabled_during_modal_preview() {
                 ..Default::default()
             },
             |ui| {
-                crate::right_panel(ui, state, &tools, &mut registry);
+                crate::shell::draw(ui, state, &tools, &mut registry);
             },
         );
         out.textures_delta.clear();
@@ -283,7 +283,7 @@ fn sidebar_duplicate_button_is_disabled_during_modal_preview() {
         .expect("duplicate button is visible");
     state.begin_modal(ModalKind::Move).unwrap();
     state.update_modal(glam::Vec3::X, 1.0).unwrap();
-    let preview = mesh_snapshot(&state);
+    let assets_before = state.project.assets.len();
     panel_frame(
         &mut state,
         vec![
@@ -292,7 +292,15 @@ fn sidebar_duplicate_button_is_disabled_during_modal_preview() {
         ],
     );
     panel_frame(&mut state, vec![button(pos, PointerButton::Primary, false)]);
-    assert_eq!(mesh_snapshot(&state), preview);
+    // Wave 5b: o shell inteiro está no frame (paleta · viewport · dock), então a
+    // prévia modal segue o ponteiro — comparar a malha com a de antes do clique
+    // mediria o movimento do mouse, não o botão. O que este teste prova é que o
+    // botão não age: nada foi duplicado e o comando continua pendente.
+    assert_eq!(
+        state.project.assets.len(),
+        assets_before,
+        "o botão de duplicar não pode agir durante a prévia modal"
+    );
     assert_eq!(state.project.undo.depth(), (0, 0));
     assert!(state.modal.is_some());
 }

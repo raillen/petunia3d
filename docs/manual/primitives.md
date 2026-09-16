@@ -24,7 +24,7 @@ Cylinder e Plane vivem na shelf do workspace Model.
 
 ## 2. Defaults low-poly
 
-Cube 1×1×1 · Plane 1×1 · Cylinder/Cone 8 lados · Circle 12 vértices ·
+Cube 1×1×1 · Plane 1×1 · Cylinder/Cone 8 lados · Circle 12 segmentos ·
 UV Sphere 12×6 · Icosphere subdiv 1 · Capsule 8 radiais · Torus 12×6.
 Densidade maior é sempre escolha deliberada (limites protegem o hardware).
 
@@ -41,6 +41,8 @@ confirma. Qualquer outra edição converte a primitiva em malha comum.
 
 ## 4. Após confirmar
 
-A primitiva é uma malha Petunia normal: seleção, transform, Edit Mode,
-materiais, pintura, UV, duplicação, save/load e exportação OBJ/GLB funcionam
-sem restrições. Sessões não são persistidas (só a malha final salva).
+A primitiva é uma malha Petunia normal: seleção de componentes (`Face` / `Edge` / `Point`),
+transformações, materiais, pintura, UV, duplicação, save/load e exportação GLB/OBJ
+funcionam sem restrições. Sessões de criação não são persistidas (só a malha final
+salva); para voltar a ser paramétrica, use as propriedades de asset paramétrico
+(pós-V1, P3D-159).

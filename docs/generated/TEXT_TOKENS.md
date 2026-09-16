@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **524**.
+Total de chaves de localização cadastradas: **527**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -26,6 +26,7 @@ Total de chaves de localização cadastradas: **524**.
 | `actions.cancel` | Cancel | Cancelar |
 | `actions.connect` | Bridge Faces | Conectar Faces |
 | `actions.cursor_to_origin` | Cursor to World Origin | Cursor para origem global |
+| `actions.cursor_to_origin_status` | 3D Cursor centered on the origin | Cursor 3D centralizado na origem |
 | `actions.delete` | Delete | Apagar |
 | `actions.deselect` | None | Nada |
 | `actions.dissolve` | Dissolve Selected | Dissolver Seleção |
@@ -41,13 +42,13 @@ Total de chaves de localização cadastradas: **524**.
 | `actions.merge_distance` | Distance | Distância |
 | `actions.mirror` | Mirror | Espelhar |
 | `actions.move` | Move | Mover |
-| `actions.need_edit` | Requires Edit mode | Requer modo Edição |
+| `actions.need_edit` | Requires a component domain (Point / Edge / Face) | Requer um domínio de componente (Point / Edge / Face) |
 | `actions.need_selection` | Select geometry first | Selecione a geometria primeiro |
 | `actions.no_mesh` | No active mesh | Sem malha ativa |
 | `actions.pushpull` | Push/Pull | Push/Pull |
 | `actions.recalculate_normals` | Recalc Normals | Recalcular Normais |
 | `actions.revolve` | Revolve | Revolver |
-| `actions.revolve_need_edges` | Select at least 2 connected edges first. | Selecione ao menos 2 arestas conectadas. |
+| `actions.revolve_need_edges` | Select at least 2 connected edges first. | Selecione ao menos 2 edges conectados. |
 | `actions.revolve_open_hint` | Angles below 360° leave the profile open. | Ângulos abaixo de 360° deixam o perfil aberto. |
 | `actions.scale` | Scale | Escala |
 | `actions.select_all` | All | Tudo |
@@ -123,6 +124,8 @@ Total de chaves de localização cadastradas: **524**.
 | `context.toggle_col_lock` | Toggle Collection Lock | Alternar Bloqueio da Coleção |
 | `context.toggle_col_vis` | Toggle Collection Visibility | Alternar Visibilidade da Coleção |
 | `context.unlock` | Unlock Object | Desbloquear Objeto |
+| `ctx.extrude_region` | Extrude Region | Extrudar Região |
+| `ctx.separate` | Separate Selection | Separar Seleção |
 | `density.comfortable` | Comfortable | Confortável |
 | `density.compact` | Compact | Compacta |
 | `density.label` | Density | Densidade |
@@ -153,9 +156,9 @@ Total de chaves de localização cadastradas: **524**.
 | `geometry.title` | Geometry | Geometria |
 | `geometry.tris` | Triangles | Triângulos |
 | `help.body` | MMB orbit • Shift+MMB pan • wheel zoom • Tab mode • Del delete • Home reset • H help • Ctrl+Z/Y undo | MMB orbita • Shift+MMB pan • scroll zoom • Tab modo • Del apaga • Home reseta • H ajuda • Ctrl+Z/Y desfaz |
-| `hints.bevel` | Ctrl+B: interactive bevel of one supported edge. | Ctrl+B: bevel interativo de uma aresta suportada. |
+| `hints.bevel` | Ctrl+B: interactive bevel of one supported edge. | Ctrl+B: bevel interativo de um edge suportado. |
 | `hints.connect` | B: bridge two loops or faces. | B: conecta (bridge) dois loops ou faces. |
-| `hints.dissolve` | X: dissolve selected edges/vertices cleanly. | X: dissolve arestas/vértices sem deixar buracos. |
+| `hints.dissolve` | X: dissolve selected edges/vertices cleanly. | X: dissolve edges/points sem deixar buracos. |
 | `hints.draw_profile` | Shift+P: click in ortho view to add points. Click near 1st to close. | Shift+P: clique na vista ortográfica p/ pontos. Perto do 1º fecha. |
 | `hints.extrude` | E: extrude selected faces. | E: extruda as faces selecionadas. |
 | `hints.inset` | I: inset selected faces. | I: inset nas faces selecionadas. |
@@ -164,8 +167,8 @@ Total de chaves de localização cadastradas: **524**.
 | `hints.paint` | B: click the mesh to paint vertex colors. Alt+click: pick. | B: clique na malha p/ pintar. Alt+clique: conta-gotas. |
 | `hints.primitives` | A: add low-poly primitive. | A: adiciona primitiva low-poly. |
 | `hints.pushpull` | P: push/pull along normals. | P: empurra/puxa ao longo das normais. |
-| `hints.revolve` | Select connected edges, then revolve them around an axis. | Selecione arestas conectadas e revolva ao redor de um eixo. |
-| `hints.select` | Click to select. 1/2/3: vertex/edge/face. | Clique p/ selecionar. 1/2/3: vértice/aresta/face. |
+| `hints.revolve` | Select connected edges, then revolve them around an axis. | Selecione edges conectados e revolva ao redor de um eixo. |
+| `hints.select` | Click to select. 1/2/3: point/edge/face. | Clique p/ selecionar. 1/2/3: point/edge/face. |
 | `hints.slice` | Shift+K: drag a cutting plane; Enter applies, Esc cancels. | Shift+K: arraste o plano de corte; Enter aplica, Esc cancela. |
 | `hints.subdivide` | W: subdivide (loop cut). Triangulate below. | W: subdivide (loop cut). Triangular abaixo. |
 | `hints.symmetrize` | Alt+M: copy one side across the axis and weld the seam. | Alt+M: copia um lado para o outro no eixo e solda a costura. |
@@ -197,12 +200,12 @@ Total de chaves de localização cadastradas: **524**.
 | `menu.recent_projects` | Recent Projects | Projetos Recentes |
 | `menu.view` | View | Exibir |
 | `menu.window` | Window | Janela |
-| `modes.edge` | Edge | Aresta |
+| `modes.edge` | Edge | Edge |
 | `modes.edit` | Edit | Edição |
 | `modes.face` | Face | Face |
 | `modes.object` | Object | Objeto |
 | `modes.paint` | Texture Paint | Pintura |
-| `modes.vertex` | Vertex | Vértice |
+| `modes.vertex` | Point | Point |
 | `modifiers.add` | Add | Adicionar |
 | `modifiers.add_mirror` | Add Mirror | Adicionar Espelho |
 | `modifiers.add_symmetry` | Add Symmetry | Adicionar Simetria |
@@ -266,7 +269,7 @@ Total de chaves de localização cadastradas: **524**.
 | `paint.radius` | Radius | Raio |
 | `paint.size` | Size px | Tam px |
 | `paint.strength` | Strength | Força |
-| `paint.vertex` | Vertex paint | Pintura vértice |
+| `paint.vertex` | Paint on model | Pintura no modelo |
 | `prims.body_length` | Body Length | Comprimento do Corpo |
 | `prims.bottom_radius` | Bottom Radius | Raio da Base |
 | `prims.cancel` | Cancel | Cancelar |
@@ -313,11 +316,11 @@ Total de chaves de localização cadastradas: **524**.
 | `prims.tip_sides` | Number of sides around the shape. Lower values create a more visibly low-poly result. | Número de lados ao redor da forma. Valores menores deixam o low-poly mais visível. |
 | `prims.tip_subdiv` | Each level significantly increases the number of faces in the Icosphere. | Cada nível aumenta muito o número de faces da Icoesfera. |
 | `prims.tip_top_radius` | Radius of the upper ring. Set it to zero to create a cone. | Raio do anel superior. Zere para criar um cone. |
-| `prims.tip_vertices` | Vertices around the circle. | Vértices ao redor do círculo. |
+| `prims.tip_vertices` | Segments around the circle. | Segmentos ao redor do círculo. |
 | `prims.top_radius` | Top Radius | Raio do Topo |
 | `prims.torus` | Torus | Toro |
 | `prims.tris` | Tris | Tris |
-| `prims.vertices` | Vertices | Vértices |
+| `prims.vertices` | Segments | Segmentos |
 | `prims.wedge` | Wedge | Cunha |
 | `prims.width` | Width | Largura |
 | `profile.clear` | Clear | Limpar |
@@ -334,7 +337,7 @@ Total de chaves de localização cadastradas: **524**.
 | `profile.snap` | Snap 0.25 | Snap 0.25 |
 | `profile.tris` | tris | tris |
 | `profile.undo_pt` | Undo pt | Desfaz pt |
-| `props.edges` | edges | arestas |
+| `props.edges` | edges | edges |
 | `props.faces` | tris | tris |
 | `props.name` | Name | Nome |
 | `props.verts` | verts | verts |
@@ -421,7 +424,7 @@ Total de chaves de localização cadastradas: **524**.
 | `shading.tip_wireframe` | Wireframe (Z 4) | Arame (Z 4) |
 | `shading.unlit` | Unlit | Sem Luz |
 | `shading.wire` | Wireframe | Arame |
-| `tool_properties.bevel_hint` | Supports one manifold convex edge with simple corners; one segment. | Suporta uma aresta convexa manifold com cantos simples; um segmento. |
+| `tool_properties.bevel_hint` | Supports one manifold convex edge with simple corners; one segment. | Suporta um edge convexo manifold com cantos simples; um segmento. |
 | `tool_properties.bevel_width` | Bevel width | Largura do bevel |
 | `tool_properties.blocked` | Confirm or cancel the viewport operation before editing these fields. | Confirme ou cancele a operação na viewport antes de editar estes campos. |
 | `tool_properties.choose_transform` | Choose a transform handle or use G/R/S. | Escolha uma alça de transformação ou use G/R/S. |
@@ -441,6 +444,7 @@ Total de chaves de localização cadastradas: **524**.
 | `tool_properties.value` | Value | Valor |
 | `toolbar.columns` | Columns | Colunas |
 | `toolbar.configure` | Configure Toolbar | Configurar Barra |
+| `toolbar.family_hint` | Right-click for the tool family menu | Clique com o botão direito para o menu da família |
 | `toolbar.move_down` | Move down | Descer |
 | `toolbar.move_up` | Move up | Subir |
 | `toolbar.one_column` | 1 column | 1 coluna |
@@ -507,6 +511,7 @@ Total de chaves de localização cadastradas: **524**.
 | `ui.lock` | Lock | Bloquear |
 | `ui.mesh` | Mesh | Malha |
 | `ui.more` | More… | Mais… |
+| `ui.more_actions` | More actions | Mais ações |
 | `ui.no_tool` | Tool disabled in tools.toml | Ferramenta desligada no tools.toml |
 | `ui.outliner` | Outliner | Outliner |
 | `ui.properties` | Properties | Propriedades |
@@ -537,9 +542,7 @@ Total de chaves de localização cadastradas: **524**.
 | `viewport.snap_tip` | Magnetic Snapping · Shift+Tab | Snapping Magnético · Shift+Tab |
 | `viewport.tri_tip` | Triangulation inspection (internal diagonals of quads/n-gons) | Inspeção de triangulação (diagonais internas de quads/n-gons) |
 | `viewport.xray_tip` | X-Ray / Mesh transparency mode · Alt+Z | Modo Raio-X / Transparência de Malha · Alt+Z |
-| `ws.animate` | ANIMATE | ANIMATE |
-| `ws.export` | EXPORT | EXPORT |
 | `ws.model` | MODEL | MODEL |
-| `ws.paint` | PAINT | PINTURA |
+| `ws.paint` | PAINT | PAINT |
 | `ws.uv` | UV | UV |
 

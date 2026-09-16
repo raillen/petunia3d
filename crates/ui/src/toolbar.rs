@@ -10,6 +10,8 @@ use egui::{ScrollArea, Ui, vec2};
 use petunia_core::{AppState, ModalKind, Workspace};
 use petunia_module_model::ToolRegistry;
 
+use crate::adapters::drag_drop::{PetuniaDragList, PetuniaDragSpec};
+use crate::adapters::tool_grid::{PetuniaToolCell, PetuniaToolGridSpec};
 use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
 use crate::widgets::PetuniaToolbarButton;
@@ -19,6 +21,17 @@ pub enum ToolbarSection {
     Primary,
     Inspect,
     Mesh,
+}
+
+impl ToolbarSection {
+    /// Chave estável de id: cada seção é o escopo dos `Id` da grade de taffy.
+    pub const fn key(self) -> &'static str {
+        match self {
+            ToolbarSection::Primary => "primary",
+            ToolbarSection::Inspect => "inspect",
+            ToolbarSection::Mesh => "mesh",
+        }
+    }
 }
 
 pub struct ToolbarEntry {
@@ -187,7 +200,7 @@ fn display_entries(state: &AppState) -> Vec<ToolbarEntry> {
             }
         }
     }
-    let in_edit = state.mode == petunia_core::EditMode::Edit;
+    let in_edit = state.edit_mode() == petunia_core::EditMode::Edit;
     ordered
         .into_iter()
         .filter(|entry| {
@@ -223,48 +236,73 @@ fn entry_is_active(state: &AppState, entry: &ToolbarEntry) -> bool {
 
 const TOOLBAR_FOOTER: f32 = 44.0;
 
-pub fn draw(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
-    let min_width = tokens::TOOLBAR_MIN_WIDTH;
-    let max_width = tokens::TOOLBAR_MAX_WIDTH;
+/// Grade da paleta lateral (§48).
+///
+/// A linha de base da paleta fica dentro da moldura, então a largura que chega
+/// aqui já é a útil. As duas larguras são **declaradas**: `min_cell` é a célula
+/// só-ícone e `label_min_cell` é a partir de onde o rótulo cabe. Quantas colunas
+/// existem e se cada célula mostra o rótulo sai da medição do adapter — o
+/// produto não compara `available_width()` com número nenhum.
+static TOOL_GRID: PetuniaToolGridSpec = PetuniaToolGridSpec::new(tokens::TOOLBAR_WIDTH, 120.0, 3.0);
 
-    let toolbar_resp = egui::Panel::left("main_toolbar")
-        .default_size(min_width)
-        .size_range(min_width..=max_width)
-        .resizable(true)
-        .frame(
-            egui::Frame::new()
-                .fill(tokens::bg_panel(state))
-                .stroke(tokens::stroke_border_dyn(state))
-                .inner_margin(egui::Margin::symmetric(4, 4)),
-        )
-        .show(ui, |ui| {
-            let compact = ui.available_width() < 90.0;
-            ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                ScrollArea::vertical()
-                    .id_salt("toolbar_scroll_area")
-                    .max_height((ui.available_height() - TOOLBAR_FOOTER).max(80.0))
-                    .show(ui, |ui| {
-                        ui.spacing_mut().item_spacing = vec2(0.0, 3.0);
-                        match state.workspace {
-                            Workspace::Model => draw_model_tools(ui, state, tools, compact),
-                            Workspace::Paint => draw_paint_tools(ui, state, compact),
-                            Workspace::Uv => draw_uv_tools(ui, state, compact),
-                            Workspace::Animate => draw_animate_tools(ui, state, compact),
-                        }
-                    });
-                ui.separator();
-                ui.vertical_centered(|ui| draw_toolbar_config(ui, state));
-            });
+/// Lista reordenável do menu de configuração da paleta (§49).
+///
+/// Wave 7: a ordem das ferramentas é arrasto, não setas. A especificação
+/// declara só o motion e a faixa do grip; o desenho da linha fica no produto.
+static TOOLBAR_ORDER_DRAG: PetuniaDragList = PetuniaDragList::new(PetuniaDragSpec::new());
+
+/// Conteúdo da paleta de ferramentas, sem painel próprio (Wave 5b).
+///
+/// O paine é o tile `Tools` da árvore do shell: a largura, o divisor e a
+/// posição vêm do `PetuniaShellLayout`, não de um `Panel::left` local. A
+/// moldura (fundo, borda e margem) continua aqui — ela é a identidade visual da
+/// paleta, não geometria de layout.
+pub fn draw_contents(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
+    let frame = egui::Frame::new()
+        .fill(tokens::bg_panel(state))
+        .stroke(tokens::stroke_border_dyn(state))
+        .inner_margin(egui::Margin::symmetric(
+            tokens::TOOLBAR_PANEL_MARGIN as i8,
+            tokens::TOOLBAR_PANEL_MARGIN as i8,
+        ));
+    frame.show(ui, |ui| {
+        ui.add_enabled_ui(!state.is_interacting(), |ui| {
+            ScrollArea::vertical()
+                .id_salt("toolbar_scroll_area")
+                .max_height((ui.available_height() - TOOLBAR_FOOTER).max(80.0))
+                .show(ui, |ui| {
+                    ui.spacing_mut().item_spacing = vec2(0.0, 3.0);
+                    draw_palette(ui, state, tools);
+                });
+            ui.separator();
+            ui.vertical_centered(|ui| draw_toolbar_config(ui, state));
         });
-    crate::regions::record(
-        ui.ctx(),
-        crate::regions::RegionSlot::LeftTools,
-        toolbar_resp.response.rect,
-    );
+    });
 }
 
-fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistry, compact: bool) {
-    if state.mode != petunia_core::EditMode::Edit
+/// Paleta do workspace corrente.
+///
+/// O teto de colunas vem da preferência do usuário (`toolbar_columns`: lista ou
+/// par) e o número **efetivo** de colunas, junto com a largura de cada célula,
+/// vem do adapter.
+fn draw_palette(ui: &mut Ui, state: &mut AppState, tools: &ToolRegistry) {
+    let grid = TOOL_GRID.with_max_columns(state.ui.toolbar_columns.clamp(1, 2) as u16);
+    match state.workspace {
+        Workspace::Model => draw_model_tools(ui, state, tools, grid),
+        Workspace::Paint => draw_paint_tools(ui, state, grid),
+        Workspace::Uv => draw_uv_tools(ui, state, grid),
+        #[cfg(feature = "animation-workspace")]
+        Workspace::Animate => draw_animate_tools(ui, state, grid),
+    }
+}
+
+fn draw_model_tools(
+    ui: &mut egui::Ui,
+    state: &mut AppState,
+    tools: &ToolRegistry,
+    grid: PetuniaToolGridSpec,
+) {
+    if state.edit_mode() != petunia_core::EditMode::Edit
         && canonical_toolbar_entries()
             .iter()
             .any(|entry| entry.edit_only && entry.id == state.active_tool)
@@ -274,8 +312,6 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
     }
 
     let entries = display_entries(state);
-    let two_cols = state.ui.toolbar_columns.clamp(1, 2) == 2 && ui.available_width() >= 100.0;
-    let compact = two_cols || compact;
     let mut seen_section = false;
 
     for section in [
@@ -297,20 +333,15 @@ fn draw_model_tools(ui: &mut egui::Ui, state: &mut AppState, tools: &ToolRegistr
         }
         seen_section = true;
 
-        if two_cols {
-            for pair in group.chunks(2) {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing = vec2(3.0, 3.0);
-                    for entry in pair {
-                        draw_model_entry(ui, state, tools, entry, true);
-                    }
-                });
-            }
-        } else {
-            for entry in group {
-                draw_model_entry(ui, state, tools, entry, compact);
-            }
-        }
+        // Cada seção tem a própria grade: a quebra de linha do taffy acontece
+        // por seção, então o separador nunca cai no meio de um grupo.
+        grid.show(
+            ui,
+            egui::Id::new(("petunia-tool-grid", section.key())),
+            group.len(),
+            |index, cell, ui| draw_model_entry(ui, state, tools, group[index], cell),
+            |_ui| (),
+        );
     }
 }
 
@@ -319,12 +350,12 @@ fn draw_model_entry(
     state: &mut AppState,
     tools: &ToolRegistry,
     entry: &ToolbarEntry,
-    compact: bool,
+    cell: PetuniaToolCell,
 ) {
     match entry.id {
-        "select" => draw_select_group(ui, state, compact),
-        "transform" => draw_transform_group(ui, state, compact),
-        _ => draw_entry_button(ui, state, tools, entry, compact),
+        "select" => draw_select_group(ui, state, cell),
+        "transform" => draw_transform_group(ui, state, cell),
+        _ => draw_entry_button(ui, state, tools, entry, cell),
     }
 }
 
@@ -333,7 +364,7 @@ fn draw_entry_button(
     state: &mut AppState,
     tools: &ToolRegistry,
     entry: &ToolbarEntry,
-    compact: bool,
+    cell: PetuniaToolCell,
 ) {
     let label = state.t(entry.label_key);
     let hint = if entry.key.is_empty() {
@@ -343,7 +374,8 @@ fn draw_entry_button(
     };
     if PetuniaToolbarButton::new(entry.icon, &label)
         .selected(entry_is_active(state, entry))
-        .compact(compact)
+        .compact(!cell.labeled)
+        .width(cell.width)
         .tooltip(&hint)
         .show(ui)
         .clicked()
@@ -352,7 +384,55 @@ fn draw_entry_button(
     }
 }
 
-fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+/// Arranjo de uma linha de grupo dentro da célula da grade (§48).
+///
+/// O grupo é botão + seta. Quando a célula comporta os dois, o botão fica com o
+/// que sobra e a seta abre o menu da família pelo clique esquerdo. Quando **não**
+/// comporta, a seta simplesmente não é desenhada e o menu continua acessível
+/// pelo clique secundário no próprio botão — nunca desenhamos um controle para
+/// fora da célula, que era o que acontecia com a seta cortada pelo paine.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GroupRow {
+    /// Largura do botão principal.
+    pub button: f32,
+    /// A seta cabe ao lado do botão?
+    pub chevron: bool,
+}
+
+/// Decide o arranjo do grupo a partir da célula resolvida pelo adapter.
+///
+/// Puro e testável: o produto não mede o container, só repassa a largura que o
+/// adapter já resolveu.
+pub fn plan_group(cell_width: f32) -> GroupRow {
+    let cell_width = cell_width.max(0.0);
+    let both = tokens::TOOLBAR_WIDTH + tokens::TOOLBAR_CONTROL_GAP + tokens::TOOLBAR_CHEVRON_WIDTH;
+    if cell_width >= both {
+        GroupRow {
+            button: (cell_width - tokens::TOOLBAR_CONTROL_GAP - tokens::TOOLBAR_CHEVRON_WIDTH)
+                .max(tokens::TOOLBAR_WIDTH),
+            chevron: true,
+        }
+    } else {
+        GroupRow {
+            button: cell_width.max(tokens::TOOLBAR_WIDTH),
+            chevron: false,
+        }
+    }
+}
+
+/// Dica do botão de um grupo: atalho e, quando a seta não cabe, como abrir o
+/// menu da família.
+fn group_hint(state: &AppState, label: &str, key: &str, chevron: bool) -> String {
+    if chevron {
+        format!("{label} · [{key}]")
+    } else {
+        format!("{label} · [{key}] · {}", state.t("toolbar.family_hint"))
+    }
+}
+
+fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, cell: PetuniaToolCell) {
+    let row = plan_group(cell.width);
+    let compact = !TOOL_GRID.labels_fit(row.button);
     let box_mode = state.active_tool == "select_box";
     let label_key = if box_mode {
         "tools.select_box"
@@ -360,56 +440,79 @@ fn draw_select_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
         "tools.select"
     };
     let label = state.t(label_key);
-    let mut popup_response = None;
+    let hint = group_hint(state, &label, "Q/B", row.chevron);
+    let mut button_response = None;
+    let mut chevron_response = None;
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
-        if PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
+        ui.spacing_mut().item_spacing = vec2(tokens::TOOLBAR_CONTROL_GAP, 0.0);
+        let response = PetuniaToolbarButton::new(PetuniaIcon::SelectBox, &label)
             .selected(matches!(
                 state.active_tool.as_str(),
                 "select" | "select_box"
             ))
             .compact(compact)
-            .tooltip(&format!("{label} · [Q/B]"))
-            .show(ui)
-            .clicked()
-        {
+            .width(row.button)
+            .tooltip(&hint)
+            .show(ui);
+        if response.clicked() {
             state.active_tool = if box_mode { "select_box" } else { "select" }.into();
             state.pending_modal = None;
             state.mark_dirty();
         }
-        popup_response = Some(
-            ui.small_button("▾")
-                .on_hover_text(state.t("toolbar.configure")),
-        );
+        button_response = Some(response);
+        if row.chevron {
+            chevron_response = Some(
+                ui.small_button("▾")
+                    .on_hover_text(state.t("toolbar.configure")),
+            );
+        }
     });
-    if let Some(response) = popup_response {
-        egui::Popup::menu(&response).show(|ui| {
-            ui.set_max_width(190.0);
-            if ui
-                .selectable_label(state.active_tool == "select", state.t("tools.select"))
-                .clicked()
-            {
-                state.active_tool = "select".into();
-                state.ui.box_select_start = None;
-                state.mark_dirty();
-                ui.close();
-            }
-            if ui
-                .selectable_label(
-                    state.active_tool == "select_box",
-                    state.t("tools.select_box"),
-                )
-                .clicked()
-            {
-                state.active_tool = "select_box".into();
-                state.ui.box_select_start = None;
-                state.mark_dirty();
-                ui.close();
-            }
-            ui.add_enabled(false, egui::Button::new(state.t("tools.select_lasso")))
-                .on_hover_text(state.t("toolbar.planned"));
-        });
+    open_family_menu(chevron_response, button_response, state, |ui, state| {
+        draw_select_menu(ui, state)
+    });
+}
+
+/// Abre o menu da família: pela seta quando ela existe, pelo clique secundário
+/// no botão quando não existe.
+fn open_family_menu(
+    chevron: Option<egui::Response>,
+    button: Option<egui::Response>,
+    state: &mut AppState,
+    menu: impl FnOnce(&mut Ui, &mut AppState),
+) {
+    if let Some(anchor) = chevron {
+        egui::Popup::menu(&anchor).show(|ui| menu(ui, state));
+    } else if let Some(response) = button {
+        response.context_menu(|ui| menu(ui, state));
     }
+}
+
+/// Itens do menu da família de seleção.
+fn draw_select_menu(ui: &mut Ui, state: &mut AppState) {
+    ui.set_max_width(190.0);
+    if ui
+        .selectable_label(state.active_tool == "select", state.t("tools.select"))
+        .clicked()
+    {
+        state.active_tool = "select".into();
+        state.ui.box_select_start = None;
+        state.mark_dirty();
+        ui.close();
+    }
+    if ui
+        .selectable_label(
+            state.active_tool == "select_box",
+            state.t("tools.select_box"),
+        )
+        .clicked()
+    {
+        state.active_tool = "select_box".into();
+        state.ui.box_select_start = None;
+        state.mark_dirty();
+        ui.close();
+    }
+    ui.add_enabled(false, egui::Button::new(state.t("tools.select_lasso")))
+        .on_hover_text(state.t("toolbar.planned"));
 }
 
 fn transform_child(state: &AppState) -> (&'static str, PetuniaIcon, &'static str, &'static str) {
@@ -433,47 +536,74 @@ fn activate_transform_child(state: &mut AppState, id: &str) {
     state.mark_dirty();
 }
 
-fn draw_transform_group(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
+fn draw_transform_group(ui: &mut egui::Ui, state: &mut AppState, cell: PetuniaToolCell) {
+    let row = plan_group(cell.width);
+    let compact = !TOOL_GRID.labels_fit(row.button);
     let (current_id, icon, label_key, key) = transform_child(state);
     let label = state.t(label_key);
     let active = matches!(
         state.active_tool.as_str(),
         "transform" | "move" | "rotate" | "scale"
     );
-    let mut popup_response = None;
+    let hint = group_hint(state, &label, key, row.chevron);
+    let mut button_response = None;
+    let mut chevron_response = None;
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(2.0, 0.0);
-        if PetuniaToolbarButton::new(icon, &label)
+        ui.spacing_mut().item_spacing = vec2(tokens::TOOLBAR_CONTROL_GAP, 0.0);
+        let response = PetuniaToolbarButton::new(icon, &label)
             .selected(active)
             .compact(compact)
-            .tooltip(&format!("{label} · [{key}]"))
-            .show(ui)
-            .clicked()
-        {
+            .width(row.button)
+            .tooltip(&hint)
+            .show(ui);
+        if response.clicked() {
             activate_transform_child(state, current_id);
         }
-        popup_response = Some(
-            ui.small_button("▾")
-                .on_hover_text(state.t("tools.transform")),
-        );
+        button_response = Some(response);
+        if row.chevron {
+            chevron_response = Some(
+                ui.small_button("▾")
+                    .on_hover_text(state.t("tools.transform")),
+            );
+        }
     });
-    if let Some(response) = popup_response {
-        egui::Popup::menu(&response).show(|ui| {
-            ui.set_max_width(190.0);
-            for (id, label_key, shortcut) in [
-                ("transform", "tools.transform", "T"),
-                ("move", "tools.move", "G"),
-                ("rotate", "tools.rotate", "R"),
-                ("scale", "tools.scale", "S"),
-            ] {
-                let text = format!("{}    {}", state.t(label_key), shortcut);
-                if ui.selectable_label(state.active_tool == id, text).clicked() {
-                    activate_transform_child(state, id);
-                    ui.close();
-                }
-            }
-        });
+    open_family_menu(chevron_response, button_response, state, |ui, state| {
+        draw_transform_menu(ui, state)
+    });
+}
+
+/// Itens do menu da família de transformação.
+fn draw_transform_menu(ui: &mut Ui, state: &mut AppState) {
+    ui.set_max_width(190.0);
+    for (id, label_key, shortcut) in [
+        ("transform", "tools.transform", "T"),
+        ("move", "tools.move", "G"),
+        ("rotate", "tools.rotate", "R"),
+        ("scale", "tools.scale", "S"),
+    ] {
+        let text = format!("{}    {}", state.t(label_key), shortcut);
+        if ui.selectable_label(state.active_tool == id, text).clicked() {
+            activate_transform_child(state, id);
+            ui.close();
+        }
     }
+}
+
+/// Aplica ao estado a ordem arrastada e a visibilidade marcada (§49).
+///
+/// Escritor único do menu de configuração: comparar antes de escrever evita
+/// `mark_dirty` a cada frame (o arrasto só produz ordem quando termina).
+fn apply_toolbar_config(state: &mut AppState, order: &[String], hidden: &[String]) -> bool {
+    let mut changed = false;
+    if state.ui.toolbar_order != order {
+        state.ui.toolbar_order = order.to_vec();
+        changed = true;
+    }
+    if state.ui.toolbar_hidden != hidden {
+        state.ui.toolbar_hidden = hidden.to_vec();
+        changed = true;
+    }
+    changed
 }
 
 fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
@@ -518,76 +648,48 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
         });
 
         let mut dirty = false;
-        let mut move_up = None;
-        let mut move_down = None;
+        // Wave 7 (§49): a ordem é arrasto, não setas ↑/↓. O adapter é dono do
+        // esqueleto da linha (grip + conteúdo) e da aplicação da nova ordem; a
+        // linha aqui é só caixa de visibilidade + rótulo.
+        let hidden = state.ui.toolbar_hidden.clone();
         egui::ScrollArea::vertical()
             .id_salt("toolbar_config_scroll")
             .max_height(320.0)
             .show(ui, |ui| {
-                for (idx, id) in order.iter().enumerate() {
-                    let label = canonical_toolbar_entries()
-                        .iter()
-                        .find(|entry| entry.id == id.as_str())
-                        .map(|entry| state.t(entry.label_key))
-                        .unwrap_or_else(|| id.clone());
-                    ui.horizontal(|ui| {
-                        let mut visible =
-                            !state.ui.toolbar_hidden.iter().any(|hidden| hidden == id);
+                let mut visible_ids = hidden.clone();
+                TOOLBAR_ORDER_DRAG.show(
+                    ui,
+                    "toolbar_config_order",
+                    &mut order,
+                    |id| egui::Id::new(("toolbar-order", id.as_str())),
+                    |ui, id, row| {
+                        let label = canonical_toolbar_entries()
+                            .iter()
+                            .find(|entry| entry.id == id.as_str())
+                            .map(|entry| state.t(entry.label_key))
+                            .unwrap_or_else(|| id.clone());
+                        let mut visible = !visible_ids.iter().any(|hidden| hidden == id);
                         if ui.checkbox(&mut visible, "").changed() {
                             if visible {
-                                state.ui.toolbar_hidden.retain(|hidden| hidden != id);
-                            } else if !state.ui.toolbar_hidden.iter().any(|hidden| hidden == id) {
-                                state.ui.toolbar_hidden.push(id.clone());
+                                visible_ids.retain(|hidden| hidden != id);
+                            } else if !visible_ids.iter().any(|hidden| hidden == id) {
+                                visible_ids.push(id.clone());
                             }
-                            dirty = true;
                         }
-                        ui.label(
-                            egui::RichText::new(&label)
-                                .size(11.5)
-                                .color(tokens::TEXT_PRIMARY),
-                        );
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if crate::widgets::chevron_toggle_dir(
-                                ui,
-                                &state.t("toolbar.move_down"),
-                                crate::widgets::ChevronDir::Down,
-                            )
-                            .clicked()
-                            {
-                                move_down = Some(idx);
-                            }
-                            if crate::widgets::chevron_toggle_dir(
-                                ui,
-                                &state.t("toolbar.move_up"),
-                                crate::widgets::ChevronDir::Up,
-                            )
-                            .clicked()
-                            {
-                                move_up = Some(idx);
-                            }
-                        });
-                    });
+                        let color = if row.dragging {
+                            tokens::ACCENT_BLUE
+                        } else {
+                            tokens::TEXT_PRIMARY
+                        };
+                        ui.label(egui::RichText::new(&label).size(11.5).color(color));
+                    },
+                );
+                // Escritor único: o adapter só devolve a ordem, a linha só
+                // marca a visibilidade — quem grava no estado é esta função.
+                if apply_toolbar_config(state, &order, &visible_ids) {
+                    dirty = true;
                 }
             });
-
-        if let Some(idx) = move_up
-            && idx > 0
-        {
-            order.swap(idx, idx - 1);
-            state.ui.toolbar_order = order.clone();
-            dirty = true;
-        }
-        if let Some(idx) = move_down
-            && idx + 1 < order.len()
-        {
-            order.swap(idx, idx + 1);
-            state.ui.toolbar_order = order.clone();
-            dirty = true;
-        }
-        if state.ui.toolbar_order != order {
-            state.ui.toolbar_order = order;
-            dirty = true;
-        }
 
         ui.separator();
         ui.horizontal(|ui| {
@@ -620,28 +722,55 @@ fn draw_toolbar_config(ui: &mut egui::Ui, state: &mut AppState) {
     });
 }
 
-fn draw_animate_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
-    draw_select_group(ui, state, compact);
-    draw_transform_group(ui, state, compact);
+#[cfg(feature = "animation-workspace")]
+fn draw_animate_tools(ui: &mut egui::Ui, state: &mut AppState, grid: PetuniaToolGridSpec) {
+    grid.show(
+        ui,
+        "petunia-tool-grid-animate",
+        2,
+        |index, cell, ui| {
+            if index == 0 {
+                draw_select_group(ui, state, cell);
+            } else {
+                draw_transform_group(ui, state, cell);
+            }
+        },
+        |_ui| (),
+    );
 }
 
-fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
-    let active = state.active_tool == "paint";
-    let label = state.t("tools.paint");
-    if PetuniaToolbarButton::new(PetuniaIcon::PaintBrush, &label)
-        .selected(active)
-        .compact(compact)
-        .tooltip(&label)
-        .show(ui)
-        .clicked()
-    {
-        state.active_tool = "paint".into();
-        state.mark_dirty();
-    }
+fn draw_paint_tools(ui: &mut egui::Ui, state: &mut AppState, grid: PetuniaToolGridSpec) {
+    grid.show(
+        ui,
+        "petunia-tool-grid-paint",
+        1,
+        |_index, cell, ui| {
+            let active = state.active_tool == "paint";
+            let label = state.t("tools.paint");
+            if PetuniaToolbarButton::new(PetuniaIcon::PaintBrush, &label)
+                .selected(active)
+                .compact(!cell.labeled)
+                .width(cell.width)
+                .tooltip(&label)
+                .show(ui)
+                .clicked()
+            {
+                state.active_tool = "paint".into();
+                state.mark_dirty();
+            }
+        },
+        |_ui| (),
+    );
 }
 
-fn draw_uv_tools(ui: &mut egui::Ui, state: &mut AppState, compact: bool) {
-    draw_select_group(ui, state, compact);
+fn draw_uv_tools(ui: &mut egui::Ui, state: &mut AppState, grid: PetuniaToolGridSpec) {
+    grid.show(
+        ui,
+        "petunia-tool-grid-uv",
+        1,
+        |_index, cell, ui| draw_select_group(ui, state, cell),
+        |_ui| (),
+    );
 }
 
 #[cfg(test)]
@@ -650,28 +779,52 @@ mod tests {
     use petunia_core::EditMode;
 
     #[test]
+    fn the_drag_order_and_the_visibility_marks_land_in_the_state() {
+        let mut state = AppState::new("en");
+        let order = vec![
+            "rotate".to_string(),
+            "select".to_string(),
+            "move".to_string(),
+        ];
+        let hidden = vec!["move".to_string()];
+        assert!(
+            apply_toolbar_config(&mut state, &order, &hidden),
+            "mudança real precisa reportar dirty"
+        );
+        assert_eq!(state.ui.toolbar_order, order);
+        assert_eq!(state.ui.toolbar_hidden, hidden);
+
+        // Mesma ordem de novo: nada a gravar, nada a marcar.
+        assert!(!apply_toolbar_config(&mut state, &order, &hidden));
+    }
+
+    #[test]
     fn test_toolbar_renders_without_panic_in_all_modes() {
         let ctx = egui::Context::default();
         let tools = ToolRegistry::default();
         for mode in [EditMode::Object, EditMode::Edit, EditMode::TexturePaint] {
             let mut state = AppState::new("en");
-            state.mode = mode;
-            ctx.run_ui(egui::RawInput::default(), |ui| draw(ui, &mut state, &tools))
-                .textures_delta
-                .clear();
+            state.set_edit_mode(mode);
+            ctx.run_ui(egui::RawInput::default(), |ui| {
+                draw_contents(ui, &mut state, &tools);
+            })
+            .textures_delta
+            .clear();
         }
     }
 
     #[test]
     fn mesh_tools_are_hidden_in_object_mode() {
         let mut state = AppState::new("en");
-        state.mode = EditMode::Object;
+        state.set_edit_mode(EditMode::Object);
         state.active_tool = "extrude".into();
         let ctx = egui::Context::default();
         let tools = ToolRegistry::default();
-        ctx.run_ui(egui::RawInput::default(), |ui| draw(ui, &mut state, &tools))
-            .textures_delta
-            .clear();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw_contents(ui, &mut state, &tools);
+        })
+        .textures_delta
+        .clear();
         assert_eq!(state.active_tool, "select");
     }
 
@@ -689,10 +842,60 @@ mod tests {
         assert!(!ids.contains(&"scale"));
     }
 
+    /// A célula mínima que a coluna de ferramentas promete entrega ao adapter.
+    ///
+    /// É o contrato cruzado dos dois módulos: `tokens::TOOLBAR_MIN_WIDTH` é a
+    /// coluna, e a célula é a coluna menos a moldura — medido, não estimado.
+    fn cell_at_minimum_pane() -> f32 {
+        tokens::TOOLBAR_MIN_WIDTH - tokens::TOOLBAR_CHROME_WIDTH
+    }
+
+    #[test]
+    fn the_declared_minimum_fits_a_whole_group_row() {
+        let row = plan_group(cell_at_minimum_pane());
+        assert!(
+            row.chevron,
+            "a coluna mínima precisa comportar botão + seta; célula {:.1}",
+            cell_at_minimum_pane()
+        );
+        assert!(
+            row.button + tokens::TOOLBAR_CONTROL_GAP + tokens::TOOLBAR_CHEVRON_WIDTH
+                <= cell_at_minimum_pane() + f32::EPSILON,
+            "o grupo não pode passar da célula: botão {:.1}",
+            row.button
+        );
+        assert!(
+            !TOOL_GRID.labels_fit(row.button),
+            "a paleta mínima continua sendo trilho de ícones, não de rótulos"
+        );
+    }
+
+    #[test]
+    fn a_cell_too_narrow_for_the_arrow_keeps_the_menu_reachable() {
+        let row = plan_group(tokens::TOOLBAR_WIDTH);
+        assert!(!row.chevron, "não há largura para desenhar a seta");
+        assert_eq!(
+            row.button,
+            tokens::TOOLBAR_WIDTH,
+            "o botão compacto continua inteiro — nenhum controle fora da célula"
+        );
+    }
+
+    #[test]
+    fn a_wide_palette_gives_the_group_button_the_label() {
+        let row = plan_group(240.0);
+        assert!(row.chevron);
+        assert!(
+            TOOL_GRID.labels_fit(row.button),
+            "coluna larga: o botão do grupo cabe com rótulo ({:.1})",
+            row.button
+        );
+    }
+
     #[test]
     fn toolbar_config_filters_legacy_entries() {
         let mut state = AppState::new("en");
-        state.mode = EditMode::Edit;
+        state.set_edit_mode(EditMode::Edit);
         state.ui.toolbar_hidden = vec!["knife".to_string(), "mirror".to_string()];
         state.ui.toolbar_order = vec![
             "symmetrize".to_string(),

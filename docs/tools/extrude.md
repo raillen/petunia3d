@@ -5,7 +5,7 @@ A **Extrusão** é a principal operação para criar novos volumes tridimensiona
 - **Atalhos de Ativação**:
   - `E`: Extrusão de Região (Extrude Region)
   - `Alt+E`: Extrusão de Faces Individuais (Extrude Individual Faces)
-- **Modos Suportados**: Modo de Edição (`EditMode::Edit`).
+- **Disponível em**: componentes da malha (`Face` / `Edge` / `Point`); detalhe técnico: `EditMode::Edit`.
 
 ## Modos de Extrusão
 
@@ -21,7 +21,7 @@ Na extrusão de região, faces adjacentes selecionadas compartilham as novas par
 ### 2. Extrusão de Faces Individuais (`Alt+E`)
 Na extrusão individual, cada face selecionada é projetada isoladamente ao longo de sua própria normal local, gerando anéis de parede independentes e topos disjuntos:
 1. Selecione múltiplas faces (mesmo que sejam adjacentes);
-2. Pressione `Alt+E` ou acione `Mesh ▾ -> Extrude Individual`;
+2. Pressione `Alt+E` ou acione **Extrude Individual** no menu contextual de malha;
 3. Cada face gera seus próprios vértices de topo exclusivos, prevenindo o colapso e a fusão de paredes entre polígonos vizinhos;
 4. Ideal para modelagem de tijolos, escamas, painéis técnicos e padrões geométricos complexos;
 5. Totalmente integrado ao sistema de **Undo/Redo** (`Ctrl+Z` / `Ctrl+Shift+Z`).

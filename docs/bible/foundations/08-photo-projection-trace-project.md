@@ -8,7 +8,7 @@ O desenho não é um rabisco 2D ambíguo a partir do qual o software tenta infer
 
 Fluxo-base:
 
-```plain text
+```
 Reference View / Work Plane
         ↓
 Profile (polygon/polyline/circle/arc; Bézier opcional depois)
@@ -28,7 +28,7 @@ Adicionar uma ferramenta de primeira classe para aplicar a própria foto de refe
 
 Fluxo ideal:
 
-```plain text
+```
 Import Photo
    ↓
 Trace silhouette / shapes
@@ -57,7 +57,7 @@ Feature de identidade proposta: ao importar uma imagem e modelar diretamente sob
 
 Exemplo de prédio:
 
-```plain text
+```
 photo.jpg
   ↓
 trace facade silhouette
@@ -75,7 +75,7 @@ A projeção frontal é excelente para faces quase paralelas ao plano da foto. F
 
 O Reference Set pode evoluir para também dirigir textura:
 
-```plain text
+```
 Front photo → front-facing faces
 Side photo  → side-facing faces
 Top photo   → upper faces
@@ -123,7 +123,7 @@ O usuário não deve precisar recriar câmera, material, Image Texture, UV Proje
 
 Representar uma `ReferenceView` com dados de imagem e projeção. A projeção UV reutiliza a transformação da referência.
 
-```plain text
+```
 ReferenceView
 ├── image
 ├── projectionType (orthographic / perspective)

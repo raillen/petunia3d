@@ -223,6 +223,12 @@ pub struct PetuniaToolbarButton<'a> {
     pub selected: bool,
     pub compact: bool,
     pub tooltip: Option<&'a str>,
+    /// Largura declarada pelo adapter (§48).
+    ///
+    /// `None` deixa o botão medir a faixa do `Ui` que o recebe — usado fora da
+    /// grade da paleta (vitrine, linhas simples). Dentro da grade o adapter já
+    /// resolveu a largura da célula, então o widget **não** mede o container.
+    pub width: Option<f32>,
 }
 
 impl<'a> PetuniaToolbarButton<'a> {
@@ -233,6 +239,7 @@ impl<'a> PetuniaToolbarButton<'a> {
             selected: false,
             compact: true,
             tooltip: None,
+            width: None,
         }
     }
 
@@ -251,11 +258,18 @@ impl<'a> PetuniaToolbarButton<'a> {
         self
     }
 
+    /// Largura resolvida pelo adapter (grade da paleta).
+    pub fn width(mut self, width: f32) -> Self {
+        self.width = Some(width);
+        self
+    }
+
     pub fn show(self, ui: &mut Ui) -> Response {
         let desired_size = if self.compact {
             vec2(tokens::TOOLBAR_WIDTH, tokens::TOOLBAR_WIDTH)
         } else {
-            vec2(ui.available_width().max(tokens::TOOLBAR_WIDTH), 32.0)
+            let width = self.width.unwrap_or_else(|| ui.available_width());
+            vec2(width.max(tokens::TOOLBAR_WIDTH), 32.0)
         };
 
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
@@ -281,7 +295,11 @@ impl<'a> PetuniaToolbarButton<'a> {
             let painter = ui.painter().with_clip_rect(rect);
 
             if bg_fill != Color32::TRANSPARENT {
-                painter.rect_filled(rect, crate::twill_bridge::toolbar_button_radius(), bg_fill);
+                painter.rect_filled(
+                    rect,
+                    crate::adapters::twill_tokens::toolbar_button_radius(),
+                    bg_fill,
+                );
             }
 
             // Indicador de foco acessível
@@ -1003,22 +1021,35 @@ pub fn petunia_action_button(
     let height = 24.0;
     let padding_x = 8.0;
     let icon_size = 14.0;
-    let font_size = 11.5;
 
-    let text_w = ui.fonts_mut(|f| {
-        f.layout_no_wrap(
-            label.to_string(),
-            FontId::proportional(font_size),
-            Color32::WHITE,
-        )
-        .size()
-        .x
+    // Nunca mais largo que o espaço real: o botão elide o rótulo (`…`) em vez
+    // de transbordar — um botão maior que o painel alargava o painel sozinho.
+    let avail = ui.available_width().max(48.0);
+    let icon_extra = if icon.is_some() { icon_size + 6.0 } else { 0.0 };
+    let text_budget = (avail - padding_x * 2.0 - icon_extra).max(16.0);
+    let galley = ui.fonts_mut(|f| {
+        let mut job = egui::text::LayoutJob {
+            wrap: egui::text::TextWrapping {
+                max_width: text_budget,
+                max_rows: 1,
+                break_anywhere: false,
+                overflow_character: Some('…'),
+            },
+            ..Default::default()
+        };
+        job.append(
+            label,
+            0.0,
+            egui::TextFormat {
+                font_id: FontId::proportional(11.5),
+                color: Color32::WHITE,
+                ..Default::default()
+            },
+        );
+        f.layout_job(job)
     });
-    let width = if icon.is_some() {
-        padding_x * 2.0 + icon_size + 6.0 + text_w
-    } else {
-        padding_x * 2.0 + text_w
-    };
+    let text_w = galley.size().x;
+    let width = (padding_x * 2.0 + icon_extra + text_w).min(avail);
 
     let (rect, resp) = ui.allocate_exact_size(vec2(width, height), Sense::click());
 
@@ -1083,11 +1114,9 @@ pub fn petunia_action_button(
             cur_x += icon_size + 6.0;
         }
 
-        ui.painter().text(
-            egui::pos2(cur_x, rect.center().y),
-            Align2::LEFT_CENTER,
-            label,
-            FontId::proportional(font_size),
+        ui.painter().galley(
+            egui::pos2(cur_x, rect.center().y - galley.size().y * 0.5),
+            galley,
             fg,
         );
     }

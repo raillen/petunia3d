@@ -1,12 +1,5 @@
 # P3D-143 — Game Engine Integration / Bridge
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 13 (Pós-GA)
-- **Status Canônico**: `ROADMAP PÓS-GA (Shared 3D Foundation & Engine)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

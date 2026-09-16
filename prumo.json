@@ -4,16 +4,24 @@
     "orchestrator": "native",
     "preferred_models": [
       {
-        "id": "google/gemini-2.5-pro",
-        "provider": "google"
+        "id": "opencode-go/deepseek-v4-pro",
+        "provider": "opencode-go"
       },
       {
-        "id": "anthropic/claude-3-7-sonnet",
-        "provider": "anthropic"
+        "id": "opencode-go/grok-4.6",
+        "provider": "opencode-go"
       },
       {
-        "id": "openai/gpt-4o",
-        "provider": "openai"
+        "id": "opencode-go/qwen3.7-plus",
+        "provider": "opencode-go"
+      },
+      {
+        "id": "opencode-go/deepseek-v4-flash",
+        "provider": "opencode-go"
+      },
+      {
+        "id": "opencode-go/minimax-m3",
+        "provider": "opencode-go"
       }
     ]
   },

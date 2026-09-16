@@ -1,6 +1,11 @@
 # 14 — Modelagem V1: Cut, Slice, Bevel, Revolve e Simple Sweep
 
-> Este capítulo congela as operações de modelagem que ainda estavam pendentes. A regra é manter poucas operações, comportamento determinístico e fallback seguro. Capacidades CAD/generalistas ficam fora.
+<aside>
+🧱
+
+Este capítulo congela as operações de modelagem que ainda estavam pendentes. A regra é manter poucas operações, comportamento determinístico e fallback seguro. Capacidades CAD/generalistas ficam fora.
+
+</aside>
 
 # Cut e Slice são conceitos diferentes
 
@@ -10,7 +15,7 @@
 
 Quando um Profile é desenhado sobre uma face planar e empurrado para dentro sem atravessar outra parte do objeto:
 
-```plain text
+```
 profile on face
 → split local region
 → extrude inward
@@ -85,7 +90,7 @@ Parcial revolve, pitch/helical revolve e perfis variáveis ficam fora da V1.
 
 Contrato deliberadamente limitado:
 
-```plain text
+```
 closed polygon Profile
 +
 open polyline Path

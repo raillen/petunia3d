@@ -11,6 +11,10 @@ use petunia_module_model::ToolRegistry;
 use petunia_project::{AlphaMode, Material, ShaderProfile};
 use uuid::Uuid;
 
+use crate::adapters::taffy_layout::{
+    PetuniaResponsiveLayout, clamped_width, fill_remaining, responsive,
+};
+use crate::foundation::motion::PetuniaMotion;
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::inspector_context::{
     InspectorContext, InspectorTab, inspected_asset_idx, pinned_asset_idx, toggle_pin,
@@ -62,7 +66,10 @@ pub fn draw(
     if state.ui.inspector_collapsed {
         return;
     }
-    if state.ui.inspector_search_open {
+    // Wave 7 (§49): a busca do inspector abre animando a altura, como a do
+    // Outliner — mesmo motivo e mesma duração.
+    let search_open = state.ui.inspector_search_open;
+    PetuniaMotion::section(ui, "inspector-search", search_open, |ui| {
         ui.add_space(2.0);
         let search_hint = state.t("inspector.search");
         let close_tip = state.t("ui.close");
@@ -77,9 +84,26 @@ pub fn draw(
                 state.mark_dirty();
             }
         });
-    }
+    });
     ui.add_space(2.0);
     draw_model_inspector(ui, state, &context);
+}
+
+/// Lado de cada [`widgets::PetuniaIconButton`] da faixa de ações da barra do
+/// objeto (pin, busca, olho, cadeado).
+const OBJECT_BAR_ACTION_BTN: f32 = 20.0;
+/// Quantos botões a faixa de ações tem.
+const OBJECT_BAR_ACTION_COUNT: usize = 4;
+/// Menor largura em que o campo de nome do objeto continua legível.
+const OBJECT_BAR_NAME_MIN_W: f32 = 60.0;
+
+/// Largura reservada à faixa de ações da barra do objeto.
+///
+/// Derivada do tamanho real dos botões e do vão entre eles — não de um número
+/// solto. Era `(largura − 108)`, com o 108 escolhido a dedo.
+const fn object_bar_actions_width() -> f32 {
+    OBJECT_BAR_ACTION_BTN * OBJECT_BAR_ACTION_COUNT as f32
+        + crate::foundation::spacing::RELATED * (OBJECT_BAR_ACTION_COUNT + 1) as f32
 }
 
 /// Barra do objeto ativo: colapso + ícone + nome editável + busca + pin +
@@ -143,7 +167,9 @@ fn draw_object_bar(ui: &mut Ui, state: &mut AppState, idx: Option<usize>) {
                 String::new()
             }
         });
-        let edit_w = (ui.available_width() - 108.0).max(60.0);
+        // O campo de nome recebe o que sobra depois da faixa de ações — quem
+        // mede é o adapter, não o painel (§45, Wave 3).
+        let edit_w = fill_remaining(ui, object_bar_actions_width(), OBJECT_BAR_NAME_MIN_W);
         let resp = ui.add_sized(
             vec2(edit_w, 20.0),
             egui::TextEdit::singleline(&mut buf).hint_text(state.project.assets[idx].name.clone()),
@@ -787,36 +813,36 @@ fn draw_modifiers_section(ui: &mut Ui, state: &mut AppState, force_open: bool) {
                 );
             }
 
-            let narrow_actions = ui.available_width() < 220.0;
-            if narrow_actions {
-                if ui.button(&add_mirror).clicked() {
-                    state.project.assets[asset_idx]
-                        .modifiers
-                        .push(ModifierInstance::mirror(0, 0.001));
-                    changed = true;
-                }
-                if ui.button(&add_symmetry).clicked() {
-                    state.project.assets[asset_idx]
-                        .modifiers
-                        .push(ModifierInstance::symmetry(0, true, 0.001));
-                    changed = true;
-                }
-            } else {
-                ui.horizontal(|ui| {
-                    if ui.button(&add_mirror).clicked() {
+            // O limiar de linha estreita (largura < 220px, com os botões
+            // empilhados à mão) virou arranjo responsivo: os botões mantêm o
+            // tamanho natural e o wrap do layout decide se cabem lado a lado.
+            // Nenhum breakpoint em pixels aqui, e o rótulo traduzido longo (ou
+            // uma escala grande) não estoura mais.
+            let actions_id = ui.id().with("modifier_actions");
+            responsive(
+                ui,
+                actions_id,
+                PetuniaResponsiveLayout::wrap_row(),
+                2,
+                |index, ui| {
+                    let label = if index == 0 {
+                        &add_mirror
+                    } else {
+                        &add_symmetry
+                    };
+                    if ui.button(label).clicked() {
                         state.project.assets[asset_idx]
                             .modifiers
-                            .push(ModifierInstance::mirror(0, 0.001));
+                            .push(if index == 0 {
+                                ModifierInstance::mirror(0, 0.001)
+                            } else {
+                                ModifierInstance::symmetry(0, true, 0.001)
+                            });
                         changed = true;
                     }
-                    if ui.button(&add_symmetry).clicked() {
-                        state.project.assets[asset_idx]
-                            .modifiers
-                            .push(ModifierInstance::symmetry(0, true, 0.001));
-                        changed = true;
-                    }
-                });
-            }
+                },
+                |_ui| (),
+            );
 
             if changed {
                 state.emit_mesh_changed();
@@ -947,7 +973,9 @@ pub(crate) fn draw_quick_add(ui: &mut Ui, state: &mut AppState) {
 fn draw_model_inspector(ui: &mut Ui, state: &mut AppState, context: &InspectorContext) {
     ScrollArea::vertical()
         .id_salt("properties_content_scroll")
-        .auto_shrink([true, false])
+        // Largura cheia: `[true, _]` deixaria o conteúdo ditar a largura do
+        // painel e cada arredondamento de pixel fazia o dock crescer 1px/frame.
+        .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 match context {
@@ -1082,11 +1110,12 @@ fn draw_inspector_search_results(
     }
 }
 
-/// Painel do workspace ativo fora do Model (Paint/UV/Animate), sem rail.
+/// Painel do workspace ativo fora do Model (Paint/UV, mais Animate quando a
+/// feature `animation-workspace` está ligada), sem rail.
 fn draw_workspace_inspector(ui: &mut Ui, state: &mut AppState) {
     ScrollArea::vertical()
         .id_salt("properties_workspace_scroll")
-        .auto_shrink([true, false])
+        .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
                 let ctx = ui.ctx().clone();
@@ -1103,6 +1132,7 @@ fn draw_workspace_inspector(ui: &mut Ui, state: &mut AppState) {
                         // Editor interativo no centro (§6.3); aqui só o resumo.
                         crate::modules_ui::uv_ui::draw_uv_summary(ui, state);
                     }
+                    #[cfg(feature = "animation-workspace")]
                     Workspace::Animate => {
                         crate::modules_ui::animation_ui::draw_animation_panel(ui, state);
                     }
@@ -1202,7 +1232,7 @@ fn draw_tab_annotation(ui: &mut Ui, state: &mut AppState, ann_id: Uuid) {
 
         let groups = state.project.annotation_groups.clone();
         egui::ComboBox::from_id_salt("annotation_group_selector")
-            .width(ui.available_width().clamp(96.0, 180.0))
+            .width(clamped_width(ui, 96.0, 180.0))
             .selected_text(current_label)
             .show_ui(ui, |ui| {
                 if ui
@@ -1595,7 +1625,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                     .unwrap_or_else(|| "Nenhum".to_string());
 
                 egui::ComboBox::from_id_salt("material_picker_dropdown")
-                    .width(ui.available_width().clamp(96.0, 180.0))
+                    .width(clamped_width(ui, 96.0, 180.0))
                     .selected_text(current_name)
                     .show_ui(ui, |ui| {
                         let mats: Vec<(Uuid, String)> = state
@@ -1686,7 +1716,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                 ui.horizontal(|ui| {
                     ui.label("Perfil:");
                     egui::ComboBox::from_id_salt("material_profile_combo")
-                        .width(ui.available_width().clamp(96.0, 180.0))
+                        .width(clamped_width(ui, 96.0, 180.0))
                         .selected_text(mat.profile.label())
                         .show_ui(ui, |ui| {
                             for prof in ShaderProfile::ALL {
@@ -1771,7 +1801,7 @@ fn draw_tab_material(ui: &mut Ui, state: &mut AppState) {
                         AlphaMode::Blend => "Translucidez (Blend)",
                     };
                     egui::ComboBox::from_id_salt("material_alpha_mode_combo")
-                        .width(ui.available_width().clamp(96.0, 180.0))
+                        .width(clamped_width(ui, 96.0, 180.0))
                         .selected_text(mode_lbl)
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut mat.alpha_mode, AlphaMode::Opaque, "Opaco");
@@ -1903,7 +1933,7 @@ mod tests {
         }
 
         // Selection com componentes selecionados no modo de edição.
-        state.mode = EditMode::Edit;
+        state.set_edit_mode(EditMode::Edit);
         let n_verts = state.project.assets[0].mesh.verts.len();
         state.project.assets[0].mesh.select_all();
         state.selection.verts = (0..n_verts as u32).collect();
@@ -1918,7 +1948,7 @@ mod tests {
         assert!(!state.selection.is_empty());
 
         // Bloco da operação modal ativa + todas as densidades.
-        state.mode = petunia_core::EditMode::Object;
+        state.set_edit_mode(petunia_core::EditMode::Object);
         state.selection.clear();
         state
             .begin_modal(petunia_core::ModalKind::Move)

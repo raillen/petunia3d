@@ -1,6 +1,11 @@
 # 30 — I/O, Projeto .petunia, Lua Plugins e MCP na Stack Rust
 
-> Esta página define as fronteiras de persistência e extensibilidade na stack Rust. Save, export, Lua e MCP são adapters em torno da mesma Application API; nenhum deles contorna transactions ou Geometry invariants.
+<aside>
+🔌
+
+Esta página define as fronteiras de persistência e extensibilidade na stack Rust. Save, export, Lua e MCP são adapters em torno da mesma Application API; nenhum deles contorna transactions ou Geometry invariants.
+
+</aside>
 
 # Formato `.petunia`
 
@@ -8,7 +13,7 @@ Container ZIP versionado com authoring data em JSON e assets binários separados
 
 Estrutura V1 conceitual:
 
-```plain text
+```
 character.petunia
 ├ manifest.json
 ├ document.json
@@ -34,7 +39,7 @@ Structs de persistência Rust usam `Serialize`/`Deserialize`, mas devem ser sepa
 
 Manifest contém ao menos:
 
-```plain text
+```
 format = petunia
 version = integer
 application_version
@@ -42,7 +47,7 @@ application_version
 
 Loader:
 
-```plain text
+```
 same version → read
 older version → migration chain
 newer unsupported version → explicit diagnostic
@@ -54,7 +59,7 @@ Migrations são sequenciais e testadas (`v1→v2`, `v2→v3`), nunca uma coleç�
 
 Pipeline:
 
-```plain text
+```
 serialize snapshot
 → write temporary archive
 → flush/validate when appropriate
@@ -74,7 +79,7 @@ O documento persiste conteúdo em representação própria, não em tipos da cra
 
 Usar `gltf`/`gltf-json` para o formato principal. Export recebe `ExportModel` já triangulado/validado:
 
-```plain text
+```
 Document
 → prepare ExportModel
 → validate
@@ -97,7 +102,7 @@ Community Plugins continuam em Lua. `mlua` é o host Rust.
 
 Baseline:
 
-```plain text
+```
 Lua 5.4 vendored
 one Lua State per plugin
 Serde conversion quando útil
@@ -108,7 +113,7 @@ no direct mutable mesh exposure
 
 Bibliotecas permitidas por padrão podem incluir math, table, string, utf8 e coroutine. Bloquear/omitir por default:
 
-```plain text
+```
 os
 io
 debug
@@ -139,7 +144,7 @@ O formato final deve ser versionado e validado por schema.
 
 # Plugin lifecycle
 
-```plain text
+```
 manifest
 → validate
 → create Lua State
@@ -155,13 +160,13 @@ Um plugin com erro não deve destruir states de outros plugins.
 
 Nunca expor:
 
-```plain text
+```
 mesh.vertices[...].x = ...
 ```
 
 Preferir:
 
-```plain text
+```
 petunia.command("model.extrude", args)
 ```
 
@@ -175,7 +180,7 @@ V1 **não permite acesso cru a egui/wgpu, Painter, raw input ou markup arbitrár
 
 Fluxo preferido para operações simples continua sendo:
 
-```plain text
+```
 Command + metadata/argument schema
 → Petunia escolhe apresentação coerente
 ```
@@ -201,7 +206,7 @@ A mudança para Rust elimina o sidecar Go como necessidade arquitetural. `petuni
 
 MCP continua sendo adapter, não dono de estado.
 
-```plain text
+```
 MCP runtime / Tokio
 → validated request
 → flume channel
@@ -219,7 +224,7 @@ Tokio existe em `petunia-mcp`, não no Geometry Core. Core/domain continuam sín
 
 Derivar do Command Registry sempre que possível. Baseline semântica já aprovada inclui:
 
-```plain text
+```
 get_document_summary
 list_objects
 get_object
@@ -253,7 +258,7 @@ Não expor cada half-edge primitive como tool.
 
 # MCP Resources
 
-```plain text
+```
 project://summary
 document://objects
 selection://current
@@ -273,7 +278,7 @@ Command argument/result structs tipados em Rust podem derivar JSON Schema com `s
 
 MCP e plugins têm autorização granular. Exemplos:
 
-```plain text
+```
 read_document
 edit_geometry
 edit_uv
@@ -296,7 +301,7 @@ Tools e plugins validam IDs generacionais. Um handle destruído retorna erro exp
 
 MCP pode solicitar lote de commands autorizados:
 
-```plain text
+```
 begin logical batch
 → A
 → B

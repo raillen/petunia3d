@@ -17,7 +17,7 @@ O **Viewport 3D** é o coração da experiência interativa do Petunia3D. Ele co
 
 ---
 
-## 2. Indicação Visual de Travamento de Eixos & Planos 🔒
+## 2. Indicação Visual de Travamento de Eixos & Planos
 
 Durante qualquer atividade de edição (como Mover `G`, Rotacionar `R`, Escalar `S` ou arrastar eixos de gizmos), você pode restringir o movimento a um eixo cartesiano ou plano coordenado. O Petunia3D fornece **feedback imediato em três camadas visuais coordenadas**:
 
@@ -31,11 +31,11 @@ flowchart TD
     end
 
     subgraph Camada2["2. HUD Flutuante no Cursor"]
-        HUD["Pill Escuro com Borda Colorida: [ 🔒 EIXO X ] / [ 🔒 PLANO XY ]"]
+        HUD["Pill Escuro com Borda Colorida: [ EIXO X ] / [ PLANO XY ]"]
     end
 
     subgraph Camada3["3. Controles na Viewport Bar"]
-        Bar["Botões 🔒 [ X ] [ Y ] [ Z ] + Badge Dinâmico [ 🔒 Eixo X ]"]
+        Bar["Botões [ X ] [ Y ] [ Z ] + Badge Dinâmico [ Eixo X ]"]
     end
 
     Camada1 --- Camada2 --- Camada3
@@ -51,11 +51,14 @@ flowchart TD
 
 ## 3. Modos de Sombreamento (Viewport Shading)
 
-Quatro esferas de visualização compactas estilo Blender estão disponíveis no canto superior direito da Viewport Bar:
-1. **○ Wireframe (`Shift+Z`)**: Renderiza exclusivamente as arestas e vértices poligonais sem preenchimento de faces. Ideal para selecionar componentes internos.
-2. **● Solid (`Alt+Z`)**: Sombreamento padrão opaco com iluminação direcional difusa.
-3. **◐ Material Preview**: Exibe as cores de materiais e texturas atribuídas aos polígonos.
-4. **☼ Rendered**: Pré-visualização final com reflexos de iluminação avançada.
+Os **modos-base** da V1 ficam no canto superior direito da Viewport Bar. Overlays são composição sobre o modo-base, não modos adicionais:
+
+1. **Wireframe (`Z`)**: desenha apenas as arestas da malha, sem preenchimento. Útil para selecionar componentes internos.
+2. **Solid**: sombreamento opaco padrão, com iluminação direcional difusa (Flat por default).
+3. **Textured**: exibe cores de material e texturas atribuídas aos polígonos.
+4. **Silhouette**: comparação direta entre modelo e referência, com a malha em silhueta.
+
+`Unlit` está disponível na V1 como opção secundária de visualização/material. Flat é o default; Smooth é opção secundária.
 
 ---
 
@@ -63,7 +66,7 @@ Quatro esferas de visualização compactas estilo Blender estão disponíveis no
 
 Pressione `Alt+Z` para ativar ou desativar o **Modo Raio-X**:
 - As faces se tornam semitransparentes (`alpha ~ 0.45`), permitindo enxergar a geometria traseira;
-- O algoritmo de picking passa a permitir selecionar vértices e arestas que estejam ocluídos atrás de superfícies sólidas.
+- O algoritmo de picking passa a permitir selecionar `Point` e `Edge` que estejam ocluídos atrás de superfícies sólidas.
 
 ---
 
@@ -81,6 +84,6 @@ O cursor tridimensional é representado por uma mira circular vermelha e branca:
 Mesmo que o Petunia3D adote polígonos quadrangulares e n-gons para modelagem limpa, GPUs exigem triângulos para renderização e exportação.
 
 - **Toggle de Triangulação**: Clique no botão de corte diagonal na Viewport Bar (ao lado do Raio-X) para inspecionar em tempo real as diagonais internas de corte fan de todos os quads e n-gons em tom azul suave (`#4da6f4`);
-- **Inverter Diagonal (`Flip Diagonal`)**: Selecione um quad ou uma aresta compartilhada por dois triângulos e acione `Mesh ▾ -> Flip Diagonal` para inverter a direção do corte mantendo winding, normais e integridade topológica;
-- **Revolução de Perfis (`Revolve`)**: Converta polilinhas 2D ou perfis abertos em sólidos de revolução 360° com subdivisão configurável através de `Mesh ▾ -> Revolve Selection`.
+- **Inverter Diagonal (`Flip Diagonal`)**: Selecione um quad ou uma aresta compartilhada por dois triângulos e acione **Flip Diagonal** no menu contextual de malha para inverter a direção do corte mantendo winding, normais e integridade topológica;
+- **Revolução de Perfis (`Revolve`)**: Converta polilinhas 2D ou perfis abertos em sólidos de revolução 360° com subdivisão configurável através de **Revolve Selection** no menu contextual de malha.
 

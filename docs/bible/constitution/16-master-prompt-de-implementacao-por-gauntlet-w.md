@@ -9,9 +9,9 @@ Prompt canônico para um code agent executar o Petunia3D em waves de Gauntlet Lo
 
 # Master Prompt
 
-Você é o agente principal responsável por levar o Petunia3D do estado atual experimental/rudimentar até uma implementação sólida, modular, testada e documentada. O Notion **Petunia3D — Implementation Bible** é a especificação canônica de intenção; o repositório, testes e comportamento executável são a verdade do estado atual.
+Você é o agente principal responsável por levar o Petunia3D do estado atual experimental/rudimentar até uma implementação sólida, modular, testada e documentada. O **Petunia3D — Livro Vivo** é o único caderno canônico; o hub **Especificações P3D — Readiness e Gauntlet Waves** contém o catálogo operacional de features e execução. O repositório, testes e comportamento executável são a evidência do estado real da implementação.
 
-Antes de qualquer alteração, leia obrigatoriamente: `00 — Constituição`, `01 — Protocolo`, `02 — Gauntlet Loop`, `03 — UI/UX`, `04 — Arquitetura`, `05 — Documentação`, `06 — Governança`, `10 — Convenções Espaciais`, `11 — Mesh/Tools/Undo`, `12 — Material/Texture/UV`, `13 — Jobs/Segurança`, `14 — Release/GA` e `15 — Auditoria Final`. Leia também todas as P3Ds da wave atual e suas dependências.
+Antes de qualquer alteração, leia obrigatoriamente no **Livro Vivo** os capítulos normativos `09 — Arquitetura`, `12 — Escopo`, `13 — Contrato Documental`, `19 — Concorrência/Performance`, `20 — Testes/Conformance`, `34 — Arquitetura Rust` e `36 — UI Baseline`, além do hub `Especificações P3D — Readiness e Gauntlet Waves`. Dentro do hub de Especificações P3D, leia os contratos ativos `10 — Convenções Espaciais`, `11 — Mesh/Tools/Undo`, `12 — Material/Texture/UV`, `13 — Jobs/Segurança`, `14 — Release/GA`, `15 — Readiness Matrix` e todas as P3Ds da wave atual com suas dependências. As antigas páginas 00–07 são fontes históricas absorvidas e não precisam ser lidas como autoridades paralelas.
 
 ## Regras absolutas
 

@@ -1,12 +1,5 @@
 # P3D-055 — Paint Workspace
 
-::: warning STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 7
-- **Status Canônico**: `ACTIVE / PRÓXIMA (Materials, Texture, UV & Paint)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
@@ -39,3 +32,25 @@ P3D-050, P3D-056–062, P3D-132–134.
 ## Testes / DoD
 
 Pintura funcional no modelo, undo, save/load, layers, resize/DPI, seleção de canal e ausência de vazamento de estado entre workspaces.
+
+## Adendo pós-V1 — evolução do toolbox
+
+A baseline V1 `Brush/Pencil/Eraser/Fill/Picker` permanece congelada. Após estabilização do Paint Core, evoluir incrementalmente conforme `44 — Pós-V1: Surface Paint Toolbox além do Brush`:
+
+```
+Decal
+→ Line / Shape
+→ Gradient
+→ Face / UV Island Fill
+→ Projection / Stencil
+→ Clone / Patch
+→ Path Paint após Spline Core
+```
+
+Princípios:
+
+- cada tool reutiliza TextureResources/Layers/Masks/Undo existentes;
+- Decal e Projection reutilizam Surface Manipulator;
+- Path Paint reutiliza Spline Core;
+- nenhuma ferramenta cria scene/world authoring;
+- toolbar e Tool Properties permanecem contextuais para não aumentar carga cognitiva.

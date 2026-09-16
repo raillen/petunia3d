@@ -1,6 +1,11 @@
 # 20 — Testes, Conformance e Qualidade Técnica
 
-> A arquitetura deve ser testável sem a interface, mas a baseline Rust/egui agora também define testes próprios para UI. Geometry, document, renderer, export, plugins, MCP e interface possuem suites independentes e complementares.
+<aside>
+🧪
+
+A arquitetura deve ser testável sem a interface, mas a baseline Rust/egui agora também define testes próprios para UI. Geometry, document, renderer, export, plugins, MCP e interface possuem suites independentes e complementares.
+
+</aside>
 
 # Pirâmide de testes
 
@@ -74,7 +79,7 @@ A mesma suíte deve validar todas as implementações substituíveis. Trocar o v
 
 Exemplo Boolean:
 
-```plain text
+```
 input A/B
 → provider
 → output is structurally valid
@@ -144,7 +149,7 @@ Comparar output com glTF validators quando disponível no CI e carregar fixtures
 
 Baseline Rust:
 
-```plain text
+```
 cargo fmt --check
 → cargo clippy
 → unit/command/property tests
@@ -170,11 +175,11 @@ macOS entra quando plataforma virar target suportado obrigatório.
 
 Além de suites isoladas, manter workflows canônicos que provem composição entre features independentes:
 
-```plain text
+```
 Primitive → Extrude → Bevel → Mirror → Cut → Auto UV → Paint → Save → Reload → Export
 ```
 
-```plain text
+```
 Reference → Profile → Extrude → Project From Reference → Paint → Export
 ```
 
@@ -220,3 +225,27 @@ Aplicar integralmente [34 — Arquitetura Modular Explícita, Rust Safety e Repr
 # Regra final
 
 O framework deve gerar tarefas de implementação acompanhadas de testes de contrato e invariantes. **Uma operação geométrica não está pronta só porque produz uma forma visualmente plausível.**
+
+# Consolidação — Gauntlet Loop e score por evidência
+
+O processo canônico de implementação/validação absorvido do antigo caderno é:
+
+`AUDIT → TARGET → SAFETY TESTS → IMPLEMENT/REFACTOR → BUILD → TEST → VISUAL/BEHAVIOR REVIEW → ARCHITECTURE CHECK → PERFORMANCE CHECK → DOCS CHECK → SCORE → FIX → REPEAT`.
+
+## Regras
+
+- Antes de mudança significativa, reconciliar especificação e implementação real; não assumir que “existente” significa correto nem que “diferente” significa errado.
+- Criar/fortalecer safety tests antes de refactor destrutivo.
+- Executar `cargo fmt --check`, `cargo check`, testes relevantes e `cargo clippy` quando viável, além dos validators específicos do domínio afetado.
+- Mudanças de UI exigem revisão de comportamento real, foco, keyboard navigation, resize/DPI, idiomas longos e screenshots reais.
+- Hot paths exigem baseline e delta mensurável; otimização sem medição não eleva a qualidade.
+- Save/import/autosave/jobs e outras fronteiras críticas devem usar failure injection quando aplicável.
+- Nenhum novo hardcode público de texto, ícone, cor ou shortcut pode ser introduzido quando existir o sistema semântico correspondente.
+
+## Scorecard
+
+Pontuar de 0–10, sem inflação e com evidência, pelo menos: **Functional Correctness, Architecture/Decoupling, Data Integrity, Tests, UX/Accessibility, Performance, Failure Handling/Security e Documentation**. Registrar baseline e delta.
+
+## Condição de saída
+
+Uma feature/wave termina quando seus acceptance criteria estão satisfeitos e não restam P0/P1 dentro do escopo, salvo limitação explicitamente aceita e documentada com impacto, risco e próxima ação. Se uma etapa quebrar comportamento já correto, integridade do projeto ou boundary arquitetural, reverter o menor delta necessário e redimensionar a mudança.

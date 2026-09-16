@@ -23,5 +23,5 @@ Uma distinção crucial no Petunia3D é a diferença entre salvar o projeto inte
 ## Ciclo de Vida do Projeto
 
 1. **Novo Projeto**: Ao abrir o Petunia3D ou pressionar `Ctrl+N`, um novo projeto com um cubo padrão posicionado na origem `(0, 0, 0)` é instanciado.
-2. **Edição e Checkpoints**: Cada ação de modelagem cria um ponto no histórico de Undo (`Ctrl+Z`). A barra de status exibe `○ Não salvo` para indicar alterações pendentes.
-3. **Salvamento Automático e Seguro**: Pressione `Ctrl+S` para gravar. Ao salvar com sucesso, a barra de status transiciona para `● Salvo`.
+2. **Edição e Checkpoints**: Cada ação de modelagem cria um ponto no histórico de Undo (`Ctrl+Z`). A barra de status indica *não salvo* quando há alterações pendentes.
+3. **Salvamento Automático e Seguro**: Pressione `Ctrl+S` para gravar. Ao salvar com sucesso, a barra de status passa a indicar *salvo*.

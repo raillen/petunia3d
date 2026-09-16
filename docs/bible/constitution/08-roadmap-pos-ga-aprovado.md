@@ -17,11 +17,17 @@ Antes de novas features grandes, executar uma fase sem expansão de escopo focad
 
 # Era 1 — The Low-Poly Asset Tool
 
-Prioridade em recursos diretamente ligados ao pipeline de assets de games: Asset Validator, collision authoring, sockets, LODs, palettes, texture atlas, vertex colors, batch processing, portable project packages, tool presets e command recipes/macros.
+Prioridade em recursos diretamente ligados ao pipeline de assets de games: **Decals / Surface Details**, Asset Validator, collision authoring, sockets, LODs, palettes, texture atlas, vertex colors, batch processing, portable project packages, tool presets e command recipes/macros. Decals foram promovidos para esta era por oferecerem alto valor simultaneamente para personagens, roupas, props, veículos e environments com custo de implementação moderado.
+
+# Era 1.5 — Non-Destructive Asset Authoring
+
+Após a base game-ready, introduzir as fundações que multiplicam produtividade sem mudar a identidade do produto: **Modifier Stack**, **Surface Attachment**, **Parametric Asset Properties**, **Bake/Flatten Contract**, **Spline Core**, Parts Hierarchy/Linked Instances e Procedural Path Generators asset-local.
+
+A experiência continua shape-first e direta. Non-destructive authoring é uma camada opcional: ações como Mirror/Array/Bend podem oferecer `Apply Now` ou `Keep Live`. Modifiers deformadores devem ter representação didática no viewport com cage/capture box, eixo/spine, origem, limits e handles diretos. O usuário deve conseguir compreender visualmente onde e como a deformação atua antes de abrir parâmetros avançados.
 
 # Era 2 — Surface & Lookdev
 
-Evoluir Material/Paint/UV com shader profiles, decals, masks, effect stack e baking simples quando custo/benefício justificar. Começar por perfis e efeitos previsíveis; nodes completos continuam posteriores.
+Aprofundar Material/Paint/UV com masks, Surface Paint Toolbox, decal channels avançados, effect stack e baking multi-channel quando custo/benefício justificar. **Surface Recipes** são a evolução controlada de texturing nodes: presets/effects primeiro, graph apenas em Advanced. Generator Recipes somente após Spline Core e Modifier foundation; Geometry Nodes genérico permanece fora.
 
 # Era 3 — Characters & Animation
 
@@ -49,13 +55,27 @@ Petunia3D continua independente. Map Editor e Game Engine devem ser produtos sep
 - P3D-153 — Tool Presets.
 - P3D-154 — Command Recipes / Macros.
 - P3D-155 — Live Asset Link.
+- **P3D-156 — Decals & Surface Details.**
+- **P3D-157 — Modifier Stack & Visual Deformer UX.**
+- **P3D-158 — Surface Attachment Foundation.**
+- **P3D-159 — Parametric Asset Properties.**
+- **P3D-160 — Bake, Flatten & Derived Asset Contract.**
+- **P3D-161 — Spline Core.**
+- **P3D-162 — Simple Morph Targets.**
+- **P3D-163 — Low-Poly Hair Designer.**
+- **P3D-164 — Surface Recipes & Simple Nodes.**
+- **P3D-165 — Surface Paint Toolbox.**
+- **P3D-166 — Parts Hierarchy & Linked Instances.**
+- **P3D-167 — Asset States & Variant Composition.**
+- **P3D-168 — Procedural Path Generators.**
 
 # Recursos complementares aprovados como candidatos
 
-- Origin & Pivot Presets.
-- Bounding Box Tools.
+- **Parametric Decal Sets / Facial Atlases** como evolução de P3D-156 + P3D-159.
+- Origin & Pivot Presets e hinge workflow.
+- Bounding Box / Dimension Tools e Game Scale Guides.
 - Naming Rules para engine/export.
-- Asset Variants.
+- Material Variants integradas às Parametric Asset Properties.
 - Pose Library.
 - Material Presets.
 - Brush Library.
@@ -63,7 +83,8 @@ Petunia3D continua independente. Map Editor e Game Engine devem ser produtos sep
 - Quick Symmetry.
 - Dithering Preview.
 - Retro Renderer Preview Profiles.
-- Baking simples, inicialmente estudando AO/Normal/Curvature/Vertex AO.
+- Baking simples, inicialmente AO/Normal/Curvature/Vertex AO, reutilizado por Surface Recipes.
+- Texture budget, material-slot, alpha/overdraw e draw-call diagnostics dentro do Game Ready Inspector.
 - Package format local para Theme/Icon Pack/Keymap/Plugin/Material Preset/Brush Preset/Rig Preset sem marketplace obrigatório.
 
 # Recursos deliberadamente fora do centro
@@ -97,3 +118,89 @@ Quando detalhar ou implementar qualquer item pós-GA, primeiro confirmar que ele
 [P3D-154 — Command Recipes / Macros](../specs/p3d-154-command-recipes-macros.md)
 
 [P3D-155 — Live Asset Link](../specs/p3d-155-live-asset-link.md)
+
+[P3D-156 — Decals & Surface Details](../specs/p3d-156-decals-surface-details.md)
+
+# Contratos transversais pós-V1
+
+## Visual-first Modifier UX
+
+Modifiers deformadores não podem ser apenas sliders que produzem uma forma inesperada. Quando selecionados, Bend/Twist/Taper/Stretch devem exibir uma **Deformer Cage / Capture Box** ajustada à região afetada, eixo/spine, origin, Start/End bounds e handles próprios. Bend mostra arco-guia; Twist mostra anéis/indicação helicoidal; Stretch mostra handles longitudinais e volume preview; Taper mostra frames de seção; Array mostra ghost copies; Thickness mostra shell/normal offset; Mirror mostra plane + ghost result.
+
+Viewport handles e campos do Inspector operam sobre os mesmos Commands e parâmetros. `Show Guides: Always / When Selected / Never` respeita acessibilidade e preferência do usuário. A referência conceitual vem de deformers visuais usados em DCCs como Houdini e Maya, simplificados para a linguagem visual do Petunia.
+
+## Surface Manipulator
+
+Fundação compartilhável para Decals, Projection e outras operações surface-relative: slide por raycast, tangent-space movement, rotate around normal, scale, mirror, offset e preview.
+
+## Surface Attachment
+
+Uma representação única de attachment evita Decal/Hair/Conform/Path Paint implementarem âncoras incompatíveis. Topology revision invalida de forma explícita e oferece reprojection; nada é reanexado silenciosamente a outra região.
+
+## Parametric Asset Properties
+
+Morph weights, Decal Sets, Material Variants, Modifier/Generator parameters e visibility podem ser expostos por uma interface semântica comum para Inspector, Presets, Animation, MCP e export adapters.
+
+## Apply / Keep Live / Bake / Flatten
+
+Vocabulário uniforme em todo o produto. Preview de operações destrutivas informa impacto e dependências antes do commit.
+
+## Scope Unit anti-bloat
+
+Toda feature declara uma unidade de escopo:
+
+- `Asset-local` → candidato natural ao Petunia;
+- `Project-library` → candidato natural ao Petunia;
+- `Scene/World` → outro produto/editor;
+- `Runtime/Game Logic` → game engine.
+
+Teste de produto: **se o resultado é um asset exportável isoladamente, provavelmente cabe; se o resultado é um level/world, não cabe.**
+
+# Ordem de implementação pós-GA revisada
+
+```
+GA Hardening
+→ Game Ready Inspector + Pivot/Scale/Validator quick wins
+→ Decals M0/M1 + Surface Manipulator
+→ Surface Attachment + Bake/Flatten contracts
+→ Modifier Stack foundation
+→ Mirror Live / Array / Thickness / Simple Deform visual-first
+→ Parts Hierarchy + Linked Instances
+→ Spline Core
+→ Cable / Pipe / Fence / Wall generators
+→ Parametric Asset Properties
+→ Simple Morph Targets
+→ Low-Poly Hair Designer
+→ Surface Paint Toolbox expansion
+→ Surface Recipes / simple nodes
+→ Parametric/animated Decal Sets
+→ Asset States / deeper Character Authoring
+```
+
+# Regra para implementação por agentes
+
+Cada P3D pós-V1 deve passar por `SPEC READY` antes do código e declarar: objetivo, non-goals, data model, dependencies, Commands/API, viewport/Inspector UX, visual feedback, Undo, persistência, invalidation, performance budget, export/bake semantics, accessibility, tests/fixtures e acceptance criteria. Nenhum agente deve criar um sistema paralelo a Geometry Core, Texture/Layer Core, Commands ou project serialization.
+
+[P3D-157 — Modifier Stack & Visual Deformer UX](../specs/p3d-157-modifier-stack-visual-deformer-ux.md)
+
+[P3D-158 — Surface Attachment Foundation](../specs/p3d-158-surface-attachment-foundation.md)
+
+[P3D-159 — Parametric Asset Properties](../specs/p3d-159-parametric-asset-properties.md)
+
+[P3D-160 — Bake, Flatten & Derived Asset Contract](../specs/p3d-160-bake-flatten-derived-asset-contract.md)
+
+[P3D-161 — Spline Core](../specs/p3d-161-spline-core.md)
+
+[P3D-162 — Simple Morph Targets](../specs/p3d-162-simple-morph-targets.md)
+
+[P3D-163 — Low-Poly Hair Designer](../specs/p3d-163-low-poly-hair-designer.md)
+
+[P3D-164 — Surface Recipes & Simple Nodes](../specs/p3d-164-surface-recipes-simple-nodes.md)
+
+[P3D-165 — Surface Paint Toolbox](../specs/p3d-165-surface-paint-toolbox.md)
+
+[P3D-166 — Parts Hierarchy & Linked Instances](../specs/p3d-166-parts-hierarchy-linked-instances.md)
+
+[P3D-167 — Asset States & Variant Composition](../specs/p3d-167-asset-states-variant-composition.md)
+
+[P3D-168 — Procedural Path Generators](../specs/p3d-168-procedural-path-generators.md)

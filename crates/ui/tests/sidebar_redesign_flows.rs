@@ -152,17 +152,32 @@ fn inspector_tabs_and_sections_layout_metrics() {
             .with_size(egui::vec2(w, h))
             .build_ui_state(
                 |ui, state: &mut AppState| {
-                    petunia_ui::right_panel(ui, state, &tools, &mut registry);
+                    petunia_ui::regions::reset(ui.ctx());
+                    petunia_ui::shell::draw(ui, state, &tools, &mut registry);
                 },
                 state,
             );
         harness.run();
 
+        // Wave 5b: o shell inteiro está no frame, e rótulos como "Object"
+        // também aparecem na barra da viewport (modo de edição). A asserção é
+        // sobre as abas **da coluna do inspector**, então a busca é restrita ao
+        // retângulo que o adapter registrou para ela.
+        let inspector = petunia_ui::regions::load(&harness.ctx)
+            .and_then(|regions| regions.right_inspector)
+            .expect("o inspector registra a região ao desenhar");
+
         // Abas na mesma linha, ordenadas, sem sobreposição, altura ≥ 28.
         // ("Modifiers": renomeado de "Modify" na convergência ux/modeling-tool-system-convergence.)
         let rows: Vec<egui::Rect> = ["Object", "Modifiers", "Material"]
             .iter()
-            .map(|label| harness.get_by_label(label).rect())
+            .map(|label| {
+                harness
+                    .get_all_by_label(label)
+                    .find(|node| inspector.contains(node.rect().center()))
+                    .unwrap_or_else(|| panic!("aba {label} ausente no inspector"))
+                    .rect()
+            })
             .collect();
         for rect in &rows {
             assert!(
@@ -179,8 +194,25 @@ fn inspector_tabs_and_sections_layout_metrics() {
             rows[0].max.x <= rows[1].min.x + 0.5 && rows[1].max.x <= rows[2].min.x + 0.5,
             "abas sobrepostas ou fora de ordem: {rows:?}"
         );
-        // Seções alcançáveis por acessibilidade.
-        assert!(harness.query_by_label("Transform").is_some());
-        assert!(harness.query_by_label("Geometry").is_some());
+        // Seções alcançáveis por acessibilidade (dentro da coluna do inspector:
+        // os mesmos nomes também existem na barra da viewport).
+        // A seção pode ficar abaixo da dobra (o conteúdo do inspector rola), e
+        // isso não é falha: o critério é pertencer à coluna do inspector —
+        // mesma faixa horizontal e a partir do topo dela —, não estar visível.
+        let in_inspector_column = |rect: &egui::Rect| {
+            rect.center().x >= inspector.min.x - 0.5
+                && rect.center().x <= inspector.max.x + 0.5
+                && rect.min.y >= inspector.min.y - 1.0
+        };
+        for section in ["Transform", "Geometry"] {
+            let found: Vec<egui::Rect> = harness
+                .query_all_by_label(section)
+                .map(|node| node.rect())
+                .collect();
+            assert!(
+                found.iter().any(in_inspector_column),
+                "seção {section} fora do inspector: {found:?} (inspector {inspector:?})"
+            );
+        }
     }
 }

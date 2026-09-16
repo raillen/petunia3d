@@ -68,7 +68,7 @@ A lição de UX do Shapr3D permanece valiosa: operações contextuais podem mape
 
 Preferir uma abordagem híbrida:
 
-```plain text
+```
 caso simples
 → operação local sobre topology authoring
 

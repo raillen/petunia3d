@@ -1,16 +1,9 @@
 # P3D-138 — Animation Retargeting / External Compatibility
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementado via `RetargetProfile` e `retarget_clip` em `crates/project/src/animation.rs`** · Prioridade: P3.
+Novo item; Mixamo é workflow de referência, não dependência proprietária · Prioridade: P3.
 
 </aside>
 

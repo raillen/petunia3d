@@ -1,12 +1,5 @@
 # P3D-001 — Sistema de Projetos
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 2
-- **Status Canônico**: `COMPLIANT (Sistema de Projetos .petunia Postcard)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 📁
 
@@ -20,10 +13,10 @@ Criar um sistema de projetos confiável, versionável e independente da UI, capa
 
 # Referências canônicas relacionadas
 
-- [16 — Documento, Formato de Projeto, Undo, Autosave e Recovery](https://app.notion.com/p/16-Documento-Formato-de-Projeto-Undo-Autosave-e-Recovery-3d79bb7d023f812e80d2ebd9fe12f7a5?pvs=21)
-- [09 — Arquitetura, Princípios de Decisão e Governança Técnica](https://app.notion.com/p/09-Arquitetura-Princ-pios-de-Decis-o-e-Governan-a-T-cnica-3d79bb7d023f81f084cee41d2e6f2979?pvs=21)
-- [28 — Arquitetura Rust, Cargo Workspace e Fronteiras entre Crates](https://app.notion.com/p/28-Arquitetura-Rust-Cargo-Workspace-e-Fronteiras-entre-Crates-3d89bb7d023f812093add994fa489fda?pvs=21)
-- [23 — Macroarquitetura da Interface Petunia3D](https://app.notion.com/p/23-Macroarquitetura-da-Interface-Petunia3D-3d79bb7d023f8148ad6cff403996f066?pvs=21)
+- [16 — Documento, Formato de Projeto, Undo, Autosave e Recovery](../foundations/16-documento-formato-undo-recovery.md)
+- [09 — Arquitetura, Princípios de Decisão e Governança Técnica](../foundations/09-arquitetura-governanca-tecnica.md)
+- [28 — Arquitetura Rust, Cargo Workspace e Fronteiras entre Crates](../foundations/28-arquitetura-rust-cargo-crates.md)
+- [23 — Macroarquitetura da Interface Petunia3D](../foundations/23-macroarquitetura-interface.md)
 
 # Auditoria obrigatória antes da implementação
 

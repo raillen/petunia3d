@@ -106,7 +106,15 @@ Use as a UI bridge, not as domain ownership.
 
 ### egui_taffy
 
-Use for selected complex sublayouts. Compare complexity and performance against native egui layout before broad adoption.
+Baseline para layout responsivo dentro de um painel: flex, block, wrap e grid.
+Micro-layout simples continua em built-in (`ui.horizontal`, `ui.vertical`) — a
+regra não é "usar Taffy em tudo", é "não resolver problema complexo à mão".
+
+> **Revisão (2026-09-16):** a orientação anterior ("selected complex sublayouts",
+> "compare before broad adoption") era o piloto descrito na *Egui Ecosystem Final
+> Push Directive* §4 e foi substituída por §17/§44: Taffy é fundação de layout
+> complexo, não candidato condicional. Ver
+> `PETUNIA3D_EGUI_ECOSYSTEM_FINAL_PUSH_DIRECTIVE.md`.
 
 ### Twill and theme infrastructure
 

@@ -4,57 +4,30 @@
 //! Regras do sistema: tokens de densidade (sem segundo settings), undo por
 //! sessão de edição (1 nível por gesto), foco visível + `widget_info` em tudo
 //! custom, i18n fora daqui (chamador traduz).
+//!
+//! **Layout responsivo não se calcula aqui.** O componente descreve o arranjo
+//! com o adapter ([`crate::adapters::taffy_layout`]) e recebe a largura já
+//! resolvida de cada coluna. Foi assim que os breakpoints em pixels
+//! (`avail >= 300`, `avail >= 190`) e o cálculo manual de largura de aba
+//! saíram deste arquivo (Wave 3 — §45 da diretriz).
 
-use egui::{Color32, FontId, Rect, Sense, StrokeKind, Ui, WidgetInfo, WidgetType, vec2};
+use egui::{Color32, Rect, Sense, StrokeKind, Ui, WidgetInfo, WidgetType, vec2};
 use petunia_core::{AppState, UiDensity};
 
+use crate::adapters::taffy_layout::{PetuniaColumnSpec, columns};
+use crate::foundation::spacing;
+use crate::foundation::typography::{self, TextRole};
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::inspector_context::InspectorTab;
 use crate::tokens;
 use crate::widgets::{ChevronDir, paint_chevron};
 
 // ---------------------------------------------------------------- densidade
-
-/// Altura de linha (linhas da Scene, cabeçalhos de seção, abas).
-pub fn row_h(density: UiDensity) -> f32 {
-    match density {
-        UiDensity::Compact => 28.0,
-        UiDensity::Comfortable => 32.0,
-        UiDensity::Spacious => 36.0,
-    }
-}
-
-/// Hitbox mínima de botões-ícone (o glifo pode ser 16–20px, o alvo não).
-pub fn hit_size(density: UiDensity) -> f32 {
-    row_h(density)
-}
-
-/// Espaçamento vertical entre propriedades.
-pub fn spacing_y(density: UiDensity) -> f32 {
-    match density {
-        UiDensity::Compact => 2.0,
-        UiDensity::Comfortable => 4.0,
-        UiDensity::Spacious => 6.0,
-    }
-}
-
-/// Altura de campos de entrada.
-pub fn input_h(density: UiDensity) -> f32 {
-    match density {
-        UiDensity::Compact => 22.0,
-        UiDensity::Comfortable => 26.0,
-        UiDensity::Spacious => 30.0,
-    }
-}
-
-/// Folga entre seções.
-pub fn section_gap(density: UiDensity) -> f32 {
-    match density {
-        UiDensity::Compact => 8.0,
-        UiDensity::Comfortable => 10.0,
-        UiDensity::Spacious => 14.0,
-    }
-}
+//
+// As métricas de densidade são **foundation** (`crate::foundation::density`),
+// não do inspector: o shell inteiro depende delas. Reexportadas aqui para não
+// quebrar call sites históricos — a definição vive em um só lugar.
+pub use crate::foundation::density::{hit_size, input_h, row_h, section_gap, spacing_y};
 
 // ------------------------------------------------------- sessão de edição
 
@@ -153,13 +126,21 @@ pub struct NumericField<'a> {
 }
 
 impl<'a> NumericField<'a> {
+    /// Menor largura em que o valor ainda é editável (piso de segurança).
+    /// Público porque quem monta uma linha responsiva precisa do mesmo mínimo
+    /// para decidir quantas cabem — e a decisão não pode divergir daqui.
+    pub const MIN_WIDTH: f32 = 24.0;
+
     pub fn show(self, ui: &mut Ui, state: &mut AppState) -> FieldEvent {
         let session = EditSession::new(self.session_key);
         let decimals = self.opts.decimals;
         let suffix = self.opts.suffix;
         let mut staging = self.value.clamp(self.opts.min, self.opts.max);
+        // Largura inteira: `add_sized` com fração arredonda PARA CIMA e a soma
+        // das linhas ultrapassa o painel (o egui então alarga o dock 1px/frame).
+        let width = self.width.floor().max(Self::MIN_WIDTH);
         let resp = ui.add_sized(
-            vec2(self.width, self.height),
+            vec2(width, self.height),
             egui::DragValue::new(&mut staging)
                 .speed(self.opts.speed)
                 .range(self.opts.min..=self.opts.max)
@@ -184,9 +165,30 @@ pub struct AxisEvent {
     pub finished: bool,
 }
 
-/// Campo vetorial responsivo pela largura DISPONÍVEL (nunca resolução global):
-/// larga (≥300px) uma linha, média uma linha compacta, estreita (<190px) uma
-/// coluna por eixo com campos cheios. Mesma sessão de undo pros 3 eixos.
+/// Largura reservada ao rótulo de eixo (`X`/`Y`/`Z`).
+///
+/// Medida em Petunia: é o rótulo de um caractere no papel de campo, não uma
+/// estimativa de texto arbitrária.
+pub const AXIS_LABEL_W: f32 = 14.0;
+
+/// Vão entre rótulo, campo e entre os próprios eixos ([`spacing::RELATED`]).
+pub const AXIS_GAP: f32 = spacing::RELATED;
+
+/// Menor **unidade de eixo** utilizável: rótulo + vão + campo que ainda permite
+/// ler e arrastar o número.
+///
+/// É o único limite que decide o arranjo do [`Vector3Field`]. Substitui os
+/// breakpoints `avail >= 300` / `avail >= 190`, que eram números escolhidos a
+/// dedo; este é derivado do conteúdo.
+pub const AXIS_UNIT_MIN_W: f32 = AXIS_LABEL_W + AXIS_GAP + 60.0;
+
+/// Campo vetorial responsivo.
+///
+/// O arranjo vem do adapter de layout ([`columns`]): os três eixos ficam em uma
+/// linha quando três unidades de eixo cabem; senão um eixo por linha, com campo
+/// de largura cheia. Nenhum breakpoint em pixels mora aqui — o número de colunas
+/// sai de [`AXIS_UNIT_MIN_W`] e a largura de cada campo é **recebida** já
+/// resolvida. Mesma sessão de undo pros 3 eixos.
 pub struct Vector3Field<'a> {
     pub axis_names: [&'a str; 3],
     pub axis_colors: [Color32; 3],
@@ -199,68 +201,43 @@ pub struct Vector3Field<'a> {
 impl<'a> Vector3Field<'a> {
     pub fn show(self, ui: &mut Ui, state: &mut AppState) -> AxisEvent {
         let density = state.ui.density;
-        let avail = ui.available_width().max(0.0);
         let height = input_h(density);
+        let axis_names = self.axis_names;
+        let axis_colors = self.axis_colors;
+        let opts = self.opts;
+        let session_key = self.session_key;
+        let undo_label = self.undo_label;
+        let values = self.values;
+        let id = ui.id().with("petunia_vector3").with(session_key);
         let mut out = AxisEvent::default();
-        let [vx, vy, vz] = self.values;
-        // (largura do rótulo, vão): larga, média; vazio = coluna por eixo.
-        let row: Option<(f32, f32, f32)> = if avail >= 300.0 {
-            Some((14.0, 6.0, 40.0))
-        } else if avail >= 190.0 {
-            Some((12.0, 4.0, 32.0))
-        } else {
-            None
-        };
-        match row {
-            Some((label_w, gap, min_field)) => {
-                let field_w = ((avail - 3.0 * label_w - 2.0 * gap) / 3.0).max(min_field);
+        columns(
+            ui,
+            id,
+            PetuniaColumnSpec::responsive(values.len(), AXIS_UNIT_MIN_W, AXIS_GAP),
+            |index, column_w, ui| {
                 ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing = vec2(gap, 0.0);
-                    for (i, value) in [vx, vy, vz].into_iter().enumerate() {
-                        ui.label(
-                            egui::RichText::new(self.axis_names[i])
-                                .strong()
-                                .color(self.axis_colors[i]),
-                        );
-                        let ev = NumericField {
-                            value,
-                            opts: self.opts,
-                            session_key: self.session_key,
-                            undo_label: self.undo_label,
-                            width: field_w,
-                            height,
-                        }
-                        .show(ui, state);
-                        out.changed[i] = ev.changed;
-                        out.finished |= ev.finished;
+                    ui.spacing_mut().item_spacing = vec2(AXIS_GAP, 0.0);
+                    ui.label(
+                        egui::RichText::new(axis_names[index])
+                            .strong()
+                            .color(axis_colors[index]),
+                    );
+                    let field_w = (column_w - AXIS_LABEL_W - AXIS_GAP).max(NumericField::MIN_WIDTH);
+                    let ev = NumericField {
+                        value: &mut values[index],
+                        opts,
+                        session_key,
+                        undo_label,
+                        width: field_w,
+                        height,
                     }
+                    .show(ui, state);
+                    out.changed[index] = ev.changed;
+                    out.finished |= ev.finished;
                 });
-            }
-            None => {
-                for (i, value) in [vx, vy, vz].into_iter().enumerate() {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-                        ui.label(
-                            egui::RichText::new(self.axis_names[i])
-                                .strong()
-                                .color(self.axis_colors[i]),
-                        );
-                        let field_w = (ui.available_width()).max(40.0);
-                        let ev = NumericField {
-                            value,
-                            opts: self.opts,
-                            session_key: self.session_key,
-                            undo_label: self.undo_label,
-                            width: field_w,
-                            height,
-                        }
-                        .show(ui, state);
-                        out.changed[i] = ev.changed;
-                        out.finished |= ev.finished;
-                    });
-                }
-            }
-        }
+            },
+            |_ui| (),
+        );
         out
     }
 }
@@ -280,6 +257,14 @@ pub struct SectionOpts<'a> {
     pub default_open: bool,
     pub force_open: bool,
 }
+
+/// Inset do chevron e do título dentro da linha de seção (interno do
+/// componente — §36 permite micro-layout aqui, desde que nomeado).
+const SECTION_CHEVRON_INSET: f32 = 11.0;
+const SECTION_CHEVRON_SIZE: f32 = 12.0;
+const SECTION_TITLE_INSET: f32 = 24.0;
+const SECTION_SUMMARY_INSET: f32 = 6.0;
+const SECTION_BODY_GAP: f32 = spacing::TIGHT;
 
 pub fn section(
     ui: &mut Ui,
@@ -316,8 +301,8 @@ pub fn section(
         paint_chevron(
             painter,
             Rect::from_center_size(
-                egui::pos2(rect.min.x + 11.0, rect.center().y),
-                vec2(12.0, 12.0),
+                egui::pos2(rect.min.x + SECTION_CHEVRON_INSET, rect.center().y),
+                vec2(SECTION_CHEVRON_SIZE, SECTION_CHEVRON_SIZE),
             ),
             tokens::TEXT_SECONDARY,
             if is_open {
@@ -327,18 +312,18 @@ pub fn section(
             },
         );
         painter.text(
-            egui::pos2(rect.min.x + 24.0, rect.center().y),
+            egui::pos2(rect.min.x + SECTION_TITLE_INSET, rect.center().y),
             egui::Align2::LEFT_CENTER,
             opts.title.to_uppercase(),
-            FontId::proportional(11.5),
+            typography::font(TextRole::SectionTitle),
             tokens::TEXT_PRIMARY,
         );
         if !is_open && let Some(summary) = opts.summary {
             painter.text(
-                egui::pos2(rect.max.x - 6.0, rect.center().y),
+                egui::pos2(rect.max.x - SECTION_SUMMARY_INSET, rect.center().y),
                 egui::Align2::RIGHT_CENTER,
                 summary,
-                FontId::proportional(10.5),
+                typography::font(TextRole::Caption),
                 tokens::TEXT_MUTED,
             );
         }
@@ -347,9 +332,9 @@ pub fn section(
         collapsed.toggle(ui);
     }
     if is_open {
-        ui.add_space(2.0);
+        ui.add_space(SECTION_BODY_GAP);
         body(ui);
-        ui.add_space(2.0);
+        ui.add_space(SECTION_BODY_GAP);
     } else {
         collapsed.store(ui.ctx());
     }
@@ -357,10 +342,15 @@ pub fn section(
 
 // -------------------------------------------------------------------- abas
 
+/// Vão entre abas contextuais ([`spacing::RELATED`]).
+const TAB_GAP: f32 = spacing::RELATED;
+
 /// Abas textuais contextuais (texto > memorização de ícones).
 ///
-/// Botões custom de largura igual, altura `row_h`, foco visível e semântica
-/// de seleção. Retorna a aba clicada (teclado Enter/Espaço incluso).
+/// Divisão igual da largura disponível pelo adapter ([`columns`] com mínimo
+/// zero: abas nunca quebram linha). Botões custom de altura `row_h`, foco
+/// visível e semântica de seleção. Retorna a aba clicada (teclado Enter/Espaço
+/// incluso).
 pub fn context_tabs(
     ui: &mut Ui,
     density: UiDensity,
@@ -371,14 +361,15 @@ pub fn context_tabs(
         return None;
     }
     let h = row_h(density);
-    let gap = 4.0;
-    let tab_w = ((ui.available_width() - gap * (tabs.len().saturating_sub(1)) as f32)
-        / tabs.len() as f32)
-        .max(0.0);
+    let id = ui.id().with("petunia_context_tabs");
     let mut picked = None;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(gap, 0.0);
-        for (tab, label) in tabs {
+    // `min_item = 0.0`: abas nunca quebram linha — só a divisão igual interessa.
+    columns(
+        ui,
+        id,
+        PetuniaColumnSpec::fixed(tabs.len(), TAB_GAP),
+        |index, tab_w, ui| {
+            let (tab, label) = &tabs[index];
             let selected = *tab == active;
             let (rect, resp) = ui.allocate_exact_size(vec2(tab_w, h), Sense::click());
             resp.widget_info(|| {
@@ -406,22 +397,23 @@ pub fn context_tabs(
                     rect.center(),
                     egui::Align2::CENTER_CENTER,
                     label,
-                    FontId::proportional(12.0),
+                    typography::font(TextRole::Field),
                     fg,
                 );
             }
             if resp.on_hover_text(label).clicked() {
                 picked = Some(*tab);
             }
-        }
-    });
+        },
+        |_ui| (),
+    );
     picked
 }
 
 /// Linha de cabeçalho de bloco com ícone + título (cabeçalhos de contexto).
 pub fn block_header(ui: &mut Ui, icon: PetuniaIcon, title: &str) {
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
+        ui.spacing_mut().item_spacing = vec2(spacing::CONTROL, 0.0);
         let (icon_rect, _) = ui.allocate_exact_size(vec2(16.0, 16.0), Sense::hover());
         IconRegistry::paint(
             ui.ctx(),
@@ -430,7 +422,7 @@ pub fn block_header(ui: &mut Ui, icon: PetuniaIcon, title: &str) {
             icon_rect,
             tokens::ACCENT_BLUE,
         );
-        ui.label(egui::RichText::new(title).strong().size(12.5));
+        ui.label(typography::rich(title, TextRole::SectionTitle).strong());
     });
 }
 

@@ -1,12 +1,5 @@
 # P3D-003 — Biblioteca de Modelos por Projeto
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 2
-- **Status Canônico**: `COMPLIANT (Biblioteca de Modelos por Projeto)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🗂️
 
@@ -20,10 +13,10 @@ Criar uma biblioteca de modelos/assets por projeto capaz de organizar, pesquisar
 
 # Referências canônicas relacionadas
 
-- [16 — Documento, Formato de Projeto, Undo, Autosave e Recovery](https://app.notion.com/p/16-Documento-Formato-de-Projeto-Undo-Autosave-e-Recovery-3d79bb7d023f812e80d2ebd9fe12f7a5?pvs=21)
-- [23 — Macroarquitetura da Interface Petunia3D](https://app.notion.com/p/23-Macroarquitetura-da-Interface-Petunia3D-3d79bb7d023f8148ad6cff403996f066?pvs=21)
-- [24 — Design System Visual: Tokens, Hierarquia e Estados](https://app.notion.com/p/24-Design-System-Visual-Tokens-Hierarquia-e-Estados-3d79bb7d023f81558f75c53d1092b9e2?pvs=21)
-- [25 — Biblioteca de Componentes e Contratos de Interação](https://app.notion.com/p/25-Biblioteca-de-Componentes-e-Contratos-de-Intera-o-3d79bb7d023f815395c0d4da4adea534?pvs=21)
+- [16 — Documento, Formato de Projeto, Undo, Autosave e Recovery](../foundations/16-documento-formato-undo-recovery.md)
+- [23 — Macroarquitetura da Interface Petunia3D](../foundations/23-macroarquitetura-interface.md)
+- [24 — Design System Visual: Tokens, Hierarquia e Estados](../foundations/24-design-system-tokens-estados.md)
+- [25 — Biblioteca de Componentes e Contratos de Interação](../foundations/25-biblioteca-componentes-interacao.md)
 
 # Distinção fundamental
 

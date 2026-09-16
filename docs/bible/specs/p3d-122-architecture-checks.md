@@ -1,12 +1,5 @@
 # P3D-122 — Architecture Checks
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 0 / Wave 1
-- **Status Canônico**: `COMPLIANT (Architecture Checks Automatizados)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

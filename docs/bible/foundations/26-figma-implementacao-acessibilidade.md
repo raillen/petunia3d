@@ -1,10 +1,15 @@
 # 26 — Figma → Implementação, Assets e Fundamentos de Acessibilidade
 
-> Este capítulo define como transformar o Figma em implementação real sem repetir o problema de interfaces visualmente próximas mas frágeis, difíceis de personalizar ou pouco acessíveis. A regra principal é: **exportar assets do Figma; não exportar a interface como imagem/código descartável.**
+<aside>
+♿
+
+Este capítulo define como transformar o Figma em implementação real sem repetir o problema de interfaces visualmente próximas mas frágeis, difíceis de personalizar ou pouco acessíveis. A regra principal é: **exportar assets do Figma; não exportar a interface como imagem/código descartável.**
+
+</aside>
 
 # Três fontes de verdade
 
-```plain text
+```
 Figma → intenção visual, medidas, tokens, assets
 Notion → comportamento, UX, decisões e estados
 Code → implementação executável e componentes reais
@@ -87,7 +92,7 @@ Não reutilizar branding, logos ou assets proprietários do Blender/design conce
 
 Elementos espaciais devem ser renderizados pelo `ViewportRenderer`:
 
-```plain text
+```
 grid
 mesh
 wireframe
@@ -111,7 +116,7 @@ Não exportar gizmo inteiro como SVG clicável. Pode haver assets auxiliares, ma
 
 Fluxo atual:
 
-```plain text
+```
 Figma styles/variables
 → optional extraction/export tooling
 → audited Petunia token table
@@ -130,7 +135,7 @@ Converter intenção para o toolkit final e componentes do projeto.
 
 # Estrutura recomendada no repositório
 
-```plain text
+```
 design/
   tokens/
     colors
@@ -150,7 +155,7 @@ assets/
 
 Na baseline Rust/egui, complementar com:
 
-```plain text
+```
 crates/petunia-ui/src/
   foundation/
   components/
@@ -165,7 +170,7 @@ A separação conceitual entre design reference, assets e implementation permane
 
 Um desenho de botão exportado não é semanticamente um botão. Um controle real deve expor quando aplicável:
 
-```plain text
+```
 role
 accessible name
 enabled/disabled

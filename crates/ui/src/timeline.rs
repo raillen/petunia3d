@@ -27,26 +27,6 @@ pub fn draw_contents(ui: &mut Ui, state: &mut AppState) {
     });
 }
 
-/// Renderiza o painel inferior de Timeline (pilot, testes e tiles).
-pub fn draw(ui: &mut Ui, state: &mut AppState) {
-    let panel = egui::Panel::bottom("timeline_panel")
-        .exact_size(tokens::TIMELINE_HEIGHT)
-        .frame(
-            egui::Frame::new()
-                .fill(tokens::BG_PANEL)
-                .stroke(tokens::stroke_border())
-                .inner_margin(egui::Margin::symmetric(8, 4)),
-        )
-        .show(ui, |ui| {
-            draw_contents(ui, state);
-        });
-    crate::regions::record(
-        ui.ctx(),
-        crate::regions::RegionSlot::BottomDock,
-        panel.response.rect,
-    );
-}
-
 fn draw_transport_bar(ui: &mut Ui, state: &mut AppState) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
@@ -259,7 +239,7 @@ mod tests {
         let mut state = AppState::new("en");
 
         ctx.run_ui(egui::RawInput::default(), |ui| {
-            draw(ui, &mut state);
+            draw_contents(ui, &mut state);
         })
         .textures_delta
         .clear();

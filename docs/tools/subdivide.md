@@ -3,7 +3,7 @@
 A **Subdivisão** divide as faces e arestas selecionadas adicionando novos vértices intermediários para aumentar a resolução poligonal local.
 
 - **Atalho de Ativação**: `Ctrl+D`
-- **Modos Suportados**: Modo de Edição (`EditMode::Edit`).
+- **Disponível em**: componentes da malha (`Face` / `Edge` / `Point`); detalhe técnico: `EditMode::Edit`.
 
 ## Como Funciona
 - Cada quadrilátero selecionado é dividido em 4 novos quadriláteros uniformes;

@@ -196,8 +196,8 @@ Repository:
 - all workspace `Cargo.toml` files
 - `PROJECT_STATE.md`
 - `CHANGELOG.md`
-- `docs/petunia3d-livro-vivo/27-stack-rust-canonica.md`
-- `docs/petunia3d-livro-vivo/35-egui-components-adapters-tooling.md`
+- `docs/bible/foundations/27-stack-rust-canonica.md`
+- `docs/bible/foundations/35-egui-components-adapters-tooling.md`
 - current architecture audits
 - current implementation plans
 - relevant P3D specification mirrors in the repository

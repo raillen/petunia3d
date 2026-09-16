@@ -1,12 +1,5 @@
 # P3D-132 — Paint Masks / Face & Selection Isolation
 
-::: warning STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 7
-- **Status Canônico**: `ACTIVE / PRÓXIMA (Paint Masks & Isolation)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

@@ -1,12 +1,5 @@
 # P3D-002 — Autosave e Recuperação
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 2
-- **Status Canônico**: `COMPLIANT (Autosave e Recuperação Atômica)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🛟
 
@@ -20,8 +13,8 @@ Proteger projetos contra crash, queda de energia, falha da aplicação e encerra
 
 # Referências canônicas relacionadas
 
-- [16 — Documento, Formato de Projeto, Undo, Autosave e Recovery](https://app.notion.com/p/16-Documento-Formato-de-Projeto-Undo-Autosave-e-Recovery-3d79bb7d023f812e80d2ebd9fe12f7a5?pvs=21)
-- [09 — Arquitetura, Princípios de Decisão e Governança Técnica](https://app.notion.com/p/09-Arquitetura-Princ-pios-de-Decis-o-e-Governan-a-T-cnica-3d79bb7d023f81f084cee41d2e6f2979?pvs=21)
+- [16 — Documento, Formato de Projeto, Undo, Autosave e Recovery](../foundations/16-documento-formato-undo-recovery.md)
+- [09 — Arquitetura, Princípios de Decisão e Governança Técnica](../foundations/09-arquitetura-governanca-tecnica.md)
 
 # Auditoria obrigatória
 

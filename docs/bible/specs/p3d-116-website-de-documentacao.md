@@ -1,16 +1,9 @@
 # P3D-116 — Website de documentação
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 9
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementação verificada e build do VitePress em conformidade** · Prioridade: P1.
+Estado: **política definida; implementação real precisa ser verificada** · Prioridade: P1.
 
 </aside>
 

@@ -1,6 +1,11 @@
 # 11 — MCP API, Automação e Integração com Agentes de IA
 
-> O MCP é um adapter oficial sobre a mesma Application API utilizada pela interface e pelos plugins. Ele não controla o editor por cliques e não recebe acesso irrestrito ao processo. A meta é oferecer automação sem sacrificar previsibilidade, Undo ou segurança.
+<aside>
+🤖
+
+O MCP é um adapter oficial sobre a mesma Application API utilizada pela interface e pelos plugins. Ele não controla o editor por cliques e não recebe acesso irrestrito ao processo. A meta é oferecer automação sem sacrificar previsibilidade, Undo ou segurança.
+
+</aside>
 
 # Princípio estrutural
 
@@ -32,7 +37,7 @@ A mesma operação realizada pela UI, plugin ou agente deve obedecer às mesmas 
 
 Conjunto conceitual de operações de alto nível:
 
-```plain text
+```
 create_primitive
 create_profile
 extrude_profile
@@ -59,7 +64,7 @@ A lista real deve nascer da Application API implementada. Evitar criar tools que
 
 Recursos de leitura podem expor estado estruturado:
 
-```plain text
+```
 scene://objects
 scene://selection
 object://{id}
@@ -89,7 +94,7 @@ Vantagens:
 
 O servidor MCP deve trabalhar com capabilities. Exemplo:
 
-```plain text
+```
 read_scene
 edit_geometry
 edit_uv
@@ -134,7 +139,7 @@ Um plugin pode declarar commands seguros para exposição via MCP. Isso nunca de
 
 Fluxo:
 
-```plain text
+```
 Plugin registers command
 → declares mcp_exposable
 → user allows capability
@@ -191,7 +196,7 @@ A baseline mira a revisão MCP suportada pelo `rmcp` pinado, inicialmente alinha
 
 Tools iniciais devem ser poucas e orientadas a intenção:
 
-```plain text
+```
 get_document_summary
 list_objects
 get_object
@@ -233,7 +238,7 @@ Para sequências dependentes, tools retornam IDs/remap tables quando necessário
 
 Disponibilizar uma operação transacional de batch apenas para commands já autorizados:
 
-```plain text
+```
 begin batch
 → command A
 → command B

@@ -1,40 +1,66 @@
-# Perfis de Mapeamento de Teclado — Petunia3D (`assets/keymaps`)
+# Perfis de Mapeamento de Teclado (`assets/keymaps/`)
 
-Este diretório contém os perfis de keymap e atalhos de teclado do Petunia3D, estruturados em formato TOML.
+Este diretório é a **fonte única** dos perfis de keymap do Petunia3D (P3D-090).
+Não existe um segundo diretório de keybinds: cada perfil é um único `.toml` aqui.
+Perfis editados pelo usuário vivem no diretório de configuração do sistema e têm
+precedência sobre os perfis embarcados.
 
-## Perfis Nativos
+## Perfis nativos
 
-1. **`petunia-default.toml`**: Perfil padrão balanceado e ergonômico do Petunia3D.
-2. **`petunia-simple.toml`**: Perfil simplificado para iniciantes com atalhos intuitivos (W/E/R para ferramentas de transformação).
-3. **`petunia-notebook.toml`**: Perfil adaptado para notebooks sem teclado numérico dedicado.
-4. **`blender.toml`**: Perfil com paridade completa com os atalhos clássicos do Blender (G=Grab, R=Rotate, S=Scale, Tab=Alternar Seleção, Shift+A=Adicionar).
-5. **`blender-notebook.toml`**: Perfil com convenções do Blender adaptado para teclados compactos.
-6. **`maya.toml`**: Perfil com convenções da suíte Autodesk Maya (Q/W/E/R).
-7. **`3ds-max.toml`**: Perfil com convenções da suíte Autodesk 3ds Max.
-8. **`cinema-4d.toml`**: Perfil com convenções do Maxon Cinema 4D.
+1. **`petunia-default.toml`** — perfil canônico do Petunia3D (default).
+2. **`petunia-simple.toml`** — conjunto reduzido para quem está começando.
+3. **`petunia-notebook.toml`** — adaptado para notebooks sem teclado numérico.
+4. **`blender.toml`** — paridade com o padrão clássico do Blender (G/R/S, E, I, Ctrl+B, Shift+A, Tab).
+5. **`blender-notebook.toml`** — padrão Blender adaptado a teclados compactos.
+6. **`maya.toml`** — convenções do Autodesk Maya (Q/W/E/R).
+7. **`3ds-max.toml`** — convenções do Autodesk 3ds Max.
+8. **`cinema-4d.toml`** — convenções do Maxon Cinema 4D.
 
-## Estrutura do Arquivo TOML
+## Estrutura do arquivo
+
+O arquivo tem uma seção `[profile]` com metadados e, em seguida, **uma seção por
+namespace de ação**. A chave completa de uma ação é `<namespace>.<ação>` — é
+essa string que aparece no Command Registry, na Cheat Sheet e no editor de
+atalhos.
 
 ```toml
 [profile]
 id = "petunia-default"
 name = "Petunia Padrão"
-description = "Perfil balanceado padrão do Petunia3D."
-author = "Petunia3D Team"
+description = "Mapa de teclas canônico do Petunia3D."
 
-[bindings]
-select = "B"
-translate = "G"
+[global]
+undo = "Ctrl+Z"
+redo = "Ctrl+Shift+Z"
+save_project = "Ctrl+S"
+cycle_mode = "Tab"
+
+[model]
+select_vertex = "1"
+select_edge = "2"
+select_face = "3"
+select_object = "0"
+move = "G"
 rotate = "R"
 scale = "S"
-delete = "Delete"
-undo = "Ctrl+Z"
-redo = "Ctrl+Y"
-toggle_mode = "Tab"
-measure = "M"
-annotate = "D"
+extrude = "E"
+
+[paint]
+paint = "B"
 ```
 
-## Resolução e Detecção de Conflitos
+Ações desconhecidas são ignoradas; ações ausentes caem no default interno. Isso
+mantém um perfil parcial válido.
 
-O subsistema `petunia_config::keybinds` analisa os perfis e sinaliza colisões ou conflitos de atalhos em tempo de execução através do painel de Configurações (`⚙ Config -> Teclado`).
+## Resolução e conflitos
+
+`petunia_config::keybinds` resolve a precedência na ordem: diretório do usuário →
+`assets/keymaps/` → `keymaps/` → defaults internos. A detecção de conflitos
+(P3D-091) distingue:
+
+- **Exato** — mesmo namespace usando o mesmo atalho;
+- **Sobreposição global** — atalho global sombreando um atalho contextual;
+- **Tecla reservada** — uso de tecla protegida do sistema.
+
+Os resultados aparecem no editor de atalhos de **Configurações → Teclado**, que
+também exporta o mapa atual de volta para TOML.

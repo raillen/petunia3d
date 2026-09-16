@@ -42,8 +42,8 @@ fn primitive_full_pipeline_per_species() {
         let _ = state.dispatch(&SubdivideSelectionCmd);
 
         // Edit Mode sobre a duplicata.
-        state.mode = EditMode::Edit;
-        assert_eq!(state.mode, EditMode::Edit);
+        state.set_edit_mode(EditMode::Edit);
+        assert_eq!(state.edit_mode(), EditMode::Edit);
 
         // Save → Load round-trip.
         let dir = tempfile::tempdir().expect("tempdir");

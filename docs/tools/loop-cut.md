@@ -3,7 +3,7 @@
 O **Loop Cut** analisa as conexões de quadriláteros na malha e insere uma linha contínua de arestas transversais.
 
 - **Atalho de Ativação**: `Ctrl+R`
-- **Modos Suportados**: Modo de Edição (`EditMode::Edit`).
+- **Disponível em**: componentes da malha (`Face` / `Edge` / `Point`); detalhe técnico: `EditMode::Edit`.
 
 ## Como Usar
 1. Pressione `Ctrl+R`;

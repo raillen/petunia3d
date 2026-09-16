@@ -1,16 +1,9 @@
 # P3D-118 — Screenshots atualizados
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 9
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementação verificada e assets canônicos validados** · Prioridade: P1.
+Estado: **processo precisa ser institucionalizado** · Prioridade: P1.
 
 </aside>
 

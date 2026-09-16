@@ -1,35 +1,97 @@
-# Interface & Docking
+# Interface & Layout
 
-A interface do Petunia3D adota uma hierarquia estável e determinística baseada na biblioteca `egui_tiles`, permitindo dividir e reorganizar painéis sem quebrar a coerência espacial da área de trabalho.
+O Petunia3D tem uma hierarquia de painéis estável e determinística. A V1 é
+**viewport-first** e **não** oferece docking irrestrito nem janelas flutuantes
+arbitrárias: o que muda entre usuários é a visibilidade e o tamanho de regiões
+**autorizadas**, sempre dentro de limites explícitos.
 
-## Anatomia dos Painéis
+## Anatomia da V1
+
+Medidas em logical px. O viewport mantém ~`480 × 360` antes de ceder espaço.
 
 ```
-+-----------------------------------------------------------------------------------+
-| 1. Top Header: Menus [Arquivo] [Editar] [Ajuda]       Workspaces: [MODEL] [PAINT] |
-+-----------------------------------------------------------------------------------+
-| 2. Viewport Bar: Modo [Edit]  Seleção [V/E/F]  Add+  Travar: [X][Y][Z]  Shading ○● |
-+--------+-------------------------------------------------------------+------------+
-| 3.     | 4. Viewport 3D                                              | 5.         |
-| Tool-  |                                                             | Outliner   |
-| bar    | [Cena 3D interativa, Gizmos, 3D Cursor]                    | (Coleções) |
-| (40px) |                                                             +------------+
-|        |                                                             | 6.         |
-|        | [Contextual Shelf inferior flutuante]                      | Properties |
-+--------+-------------------------------------------------------------+ (Abas)     |
-| 7. Status Bar: ● Salvo | Dicas de atalho contextuais | Tris: 12  Verts: 8        |
-+-----------------------------------------------------------------------------------+
++------------------------------------------------------------------------------+
+| 1. Top Bar (40): menus/projeto | pills MODEL · PAINT · UV | ações globais     |
++------------------+------------------------------------------+----------------+
+| 2. Parts (248)   | 3. Viewport + toolbar contextual         | 4. Context     |
+| 200–400          |    (Objects / Face / Edge / Point)       | 240–440        |
+| recolhível       |                                          | selection/tool |
+|                  |                                          |                |
++------------------+------------------------------------------+----------------+
+| 5. Asset Library (176; 120–360, collapse)                                    |
++------------------------------------------------------------------------------+
+| 6. Status Strip (~22): hints | save | validação | points/faces/tris          |
++------------------------------------------------------------------------------+
 ```
 
-## Manipulação e Redimensionamento
+Cada painel usa **panel header de `28 px`** e **controls de `28 px`** (30–32 apenas
+quando a hierarquia justificar). O gutter estrutural é de `8 px`.
 
-- **Divisores de Painel (Splitters)**: Ao posicionar o cursor sobre as bordas entre o Viewport e a barra lateral direita, o cursor se transforma em uma seta bidirecional. Clique e arraste para redimensionar a largura do Outliner e Properties (faixa padrão entre 240px e 400px).
-- **Destacar e Reancorar o Inspetor (Floating Window)**:
-  - No cabeçalho das abas do Painel de Propriedades, o botão de maximizar (`⛶`) destaca o Properties Inspector para uma janela flutuante independente.
-  - Enquanto destacado, o Outliner expande verticalmente para ocupar toda a altura da barra lateral direita.
-  - Para retornar o painel ao seu local original, clique no botão proeminente **`⇲ Dock`** no cabeçalho da janela flutuante, ou clique no botão **`[Reancorar]`** exibido no banner de aviso na barra lateral direita.
-- **Outliner & Gerenciamento Rápido de Cena**:
-  - Cada objeto possui um botão direto de exclusão com ícone de lixeira (`Delete`).
-  - O Outliner responde imediatamente aos atalhos de teclado `Delete` e `Backspace` (remover objeto selecionado) e `Shift+D` (duplicar objeto selecionado).
-- **Controle de Escala de Interface (HiDPI)**: O Petunia3D escala perfeitamente em telas 4K e monitores de alta densidade de pixels. O fator de zoom pode ser customizado no modal de configurações (`Ctrl+,`).
-- **Navegação Acessível por Teclado**: Todos os botões e campos de entrada podem ser focados via tecla `Tab` com anel de foco visível de alto contraste (`#5b8eff`).
+## Como o layout é calculado
+
+O grafo das quatro regiões é decidido por um **motor de macro-layout controlado**,
+não por regras soltas em cada painel. Dentro de um painel, o arranjo é responsivo
+por um motor de layout dedicado (`flex`, `wrap`, `grid`) — nunca por comparação de
+largura escrita à mão.
+
+Consequência prática para quem usa o editor: o arranjo dos controles é
+**determinístico** e independente da resolução. Redimensionar a janela reorganiza
+os campos em coluna ou linha por regra declarada, não por ponto de quebra
+improvisado, e nada depende de a janela ter exatamente um certo número de pixels.
+
+## Manipulação de layout
+
+- **Divisores autorizados**: arraste o divisor para redimensionar dentro da faixa
+  permitida (Parts `200–400`, Context `240–440`, Asset Library `120–360`).
+- **Double-click no divisor** restaura a medida default.
+- **Collapse**: Parts e Asset Library podem ser recolhidos; o viewport recupera a área.
+- **Persistência**: o layout é salvo **por workspace** — `MODEL`, `PAINT` e `UV` têm
+  estados independentes.
+- **Densidade e escala**: presets de UI scaling `100% / 125% / 150% / 175% / 200%`,
+  além da escala do sistema/HiDPI. O layout trabalha em unidades lógicas.
+
+### O que a V1 não faz
+
+- não permite remover permanentemente painéis do core;
+- não permite docking livre nem janelas flutuantes arbitrárias;
+- não permite que plugin reposicione o shell — Plugin Panels entram apenas em
+  **extension slots** controlados (`left`, `right`, `bottom`).
+
+Mudanças dessa natureza exigem decisão arquitetural explícita (ADR) porque alteram o
+grafo estrutural do shell.
+
+O detalhamento técnico (motores, adapters e o que é proibido em código de produto)
+está em [`docs/developers/ui-architecture.md`](../developers/ui-architecture.md).
+
+## Painéis e regiões
+
+| Região | Conteúdo do core | Extension slots |
+| :--- | :--- | :--- |
+| Esquerda | Parts (hierarquia da cena) | plugin panels autorizados |
+| Centro | Viewport / editor do workspace | substituir o centro **não** é permitido na V1 |
+| Direita | Context (seleção/ferramenta/material) | plugin panels autorizados |
+| Embaixo | Asset Library | plugin panels autorizados |
+
+O usuário controla visibilidade de painéis em `View → Panels` ou pela Command Palette,
+e pode mover um plugin panel somente entre as regiões permitidas por ele.
+
+## Aparência
+
+Toda aparência vem de tokens semânticos (`ThemeToken`): superfícies, bordas, texto,
+accent, seleção, estado, sombra, radius, tipografia e motion. Trocar de tema — incluindo
+temas criados por usuários via `.petunia-theme` — **nunca** altera o documento.
+
+Tema oficial da V1: **Dark**. **High Contrast** é variação oficial de acessibilidade.
+Semântica de accent: `selected`, `active`, `current`, `focus emphasis`; warning/error/
+success têm famílias próprias.
+
+## Acessibilidade
+
+- Foco sempre visível e navegável por teclado.
+- `F6` / `Shift+F6` navega as regiões principais; `Tab` / `Shift+Tab` navega controles
+  dentro da região; setas navegam listas/segmented; `Space`/`Enter` ativam o controle focado.
+- `reduced-motion` é obrigatório e nenhuma animação é puramente decorativa.
+- Clicar fora **nunca** confirma silenciosamente operação destrutiva.
+
+> Alterações de toolkit, grafo do shell, docking irrestrito ou exposição de UI/GPU a
+> plugins são decisão arquitetural, não tuning. Pequenas calibrações visuais são tuning.

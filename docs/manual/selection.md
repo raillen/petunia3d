@@ -1,40 +1,53 @@
-# Modos de Seleção
+# Seleção
 
-O Petunia3D oferece controle rigoroso sobre os modos de seleção, garantindo que você trabalhe com precisão milimétrica em nível de objeto inteiro ou em subcomponentes geométricos.
+O Petunia3D usa um **modelo de seleção unificado e contextual**: você escolhe o *domínio* da seleção — o objeto inteiro ou os componentes da malha (`Face`, `Edge`, `Point`) — e as ferramentas disponíveis se adaptam a ele. Não existe um "primeiro você precisa entrar no modo certo" obrigatório antes de começar.
 
----
-
-## 1. Modo Objeto vs. Modo de Edição
-
-- **Modo Objeto (`Tab` ou tecla `0`)**: Permite selecionar, mover, rotacionar e escalar malhas inteiras na cena como unidades atômicas.
-  - **Seleção Direta no Viewport**: Clicar com o botão esquerdo (`LMB`) sobre qualquer objeto visível e desbloqueado na cena calcula o raio tridimensional contra a câmera e ativa o objeto mais próximo imediatamente.
-  - **Alternância com Shift**: Segure `Shift` enquanto clica para alternar a seleção de objetos adicionais sem desselecionar os atuais.
-  - **Sincronização com o Outliner**: A seleção na viewport é bidirecional e sincronizada em tempo real com a árvore do Outliner.
-- **Modo de Edição (`Tab` com malha selecionada)**: Entra na malha ativa para editar sua topologia de vértices, arestas e faces.
+> **Vocabulário:** na interface, pontos da malha aparecem como **Point**. Internamente (comandos, código e CHANGELOG) o mesmo conceito é `Vertex`, um detalhe técnico que você não precisa conhecer para modelar.
 
 ---
 
-## 2. Alvos de Seleção de Malha (Em Modo de Edição)
+## 1. Domínios de seleção
 
-Ao entrar no Modo de Edição, três seletores dedicados surgem no Cluster 1 da Viewport Bar:
-
-| Alvo de Seleção | Ícone | Atalho | Descrição |
+| Domínio | O que seleciona | Texto de interface | Comando |
 | :--- | :--- | :--- | :--- |
-| **Vértice** | `⬝ Vértice` | `1` | Seleciona pontos tridimensionais individuais. |
-| **Aresta** | `╱ Aresta` | `2` | Seleciona os segmentos de linha que conectam dois vértices. |
-| **Face** | `▨ Face` | `3` | Seleciona os polígonos planos (triângulos ou quads) formados por arestas. |
+| **Objeto** | Malhas inteiras na cena, como unidades atômicas. | `Object` | `select.domain_object` |
+| **Face** | Polígonos planos (triângulos, quads ou n-gons) delimitados por arestas. | `Face` | `select.domain_face` |
+| **Edge** | Segmentos que conectam dois pontos da malha. | `Edge` | `select.domain_edge` |
+| **Point** | Pontos tridimensionais individuais da malha. | `Point` | `select.domain_vertex` |
 
-### Demarcação Visual de Vértices
-Quando o modo de seleção de vértices (`1`) está ativo:
-- Todos os vértices são demarcados com pequenos pontos;
-- **Hover Dinâmico**: Ao passar o cursor do mouse próximo a um vértice, ele acende com um anel dourado e ciano brilhante (`#64dcff`), garantindo que você tenha certeza visual de qual ponto será capturado antes de clicar.
+- **Alternar o domínio**: `select.cycle_domain` (`Tab` no preset Petunia) alterna entre a seleção de objeto e o último domínio de componente usado.
+- **Selecionar o objeto antes dos componentes**: as ferramentas de malha operam sobre a **malha ativa**; selecione o objeto primeiro (ou clique direto na geometria, que ativa e seleciona).
+
+### Seleção de objetos
+- **Clique direto no viewport (`LMB`)**: o raio tridimensional é testado contra a cena e o objeto mais próximo e visível é ativado imediatamente.
+- **Alternância com `Shift`**: adiciona ou remove objetos da seleção sem descartar os atuais.
+- **Sincronização com o Outliner**: a seleção é bidirecional e reflete em tempo real na árvore de cena.
+
+### Componentes da malha
+Ao trabalhar com `Face`, `Edge` ou `Point`, os alvos de seleção ficam disponíveis na barra do viewport e as ferramentas contextuais de malha passam a operar sobre o que estiver selecionado.
 
 ---
 
-## 3. Comandos de Seleção
+## 2. Feedback visual
 
-- **Selecionar Tudo**: Tecla `A`.
-- **Desmarcar Tudo**: `Alt+A` ou clique no espaço vazio do viewport.
-- **Seleção Múltipla**: Segure `Shift` enquanto clica com `LMB` nos elementos desejados.
-- **Seleção por Caixa (`Box Select`)**: Tecla `B` ou clique e arraste com `LMB` na área vazia da tela.
-- **Inverter Seleção**: `Ctrl+I`.
+- **Pontos**: com o domínio `Point` ativo, os pontos da malha são demarcados por marcadores discretos.
+- **Hover**: o elemento sob o cursor recebe realce antes do clique, para que você confirme visualmente o alvo.
+- **Destaque de seleção**: elementos selecionados usam a cor de destaque do tema; a mesma semântica vale em todos os temas (dark, high contrast e temas do usuário).
+
+Detalhes técnicos como a cor de hover pertencem aos `ThemeToken` — customizar tema não muda o comportamento de seleção.
+
+---
+
+## 3. Comandos de seleção
+
+| Ação | Atalho (preset Petunia) | Comando |
+| :--- | :--- | :--- |
+| Selecionar tudo | `A` | `select.all` |
+| Desmarcar tudo | `Alt+A` | `select.none` |
+| Selecionar conectados | `Ctrl+L` | `select.linked` |
+| Adicionar à seleção | `Shift` + clique | interação de ponteiro |
+| Seleção por caixa (*Box Select*) | arrastar com `LMB` na área vazia do viewport | interação de ponteiro |
+| Inverter seleção | `Ctrl+I` | `select.invert` |
+| Alternar domínio | `Tab` | `select.cycle_domain` |
+
+Todos os atalhos acima pertencem ao **preset de keymap ativo**. Se você usar os presets `Blender-like`, `Maya-like`, `3ds Max-like` ou `Cinema 4D-like`, os binds mudam — consulte [Atalhos](../shortcuts/) e [Keymaps](../input/keymaps.md). Nenhuma ferramenta depende de uma tecla física específica como regra.

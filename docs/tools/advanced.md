@@ -1,6 +1,6 @@
 # Operações Avançadas (Mesh)
 
-Ferramentas de malha que não têm painel próprio no menu principal. Todas operam sobre a seleção atual no Modo de Edição e participam do **Undo/Redo** (`Ctrl+Z` / `Ctrl+Shift+Z`).
+Ferramentas de malha que não têm painel próprio no menu principal. Todas operam sobre a seleção atual de componentes da malha (`Face` / `Edge` / `Point`) e participam do **Undo/Redo** (`Ctrl+Z` / `Ctrl+Shift+Z`).
 
 ## Espelhar (Mirror) — `Ctrl+M`
 

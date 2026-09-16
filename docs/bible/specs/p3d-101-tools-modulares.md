@@ -1,12 +1,5 @@
 # P3D-101 — Tools modulares
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 1
-- **Status Canônico**: `COMPLIANT (Tools Modulares & Intent)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

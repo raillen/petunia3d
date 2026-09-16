@@ -1,0 +1,9 @@
+Pacote de 96 ícones para software 3D
+
+Formato: PNG RGBA
+Tamanho: 64x64 px
+Fundo: transparente
+Quantidade: 96 ícones (6 grupos de 16)
+
+Os arquivos foram nomeados conforme a função visual prevista e organizados por categoria.
+Consulte manifesto.csv para a lista completa.

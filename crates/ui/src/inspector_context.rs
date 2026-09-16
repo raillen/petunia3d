@@ -89,7 +89,7 @@ impl InspectorContext {
             return InspectorContext::EmptyScene;
         }
         // Componentes selecionados no modo de edição têm contexto próprio.
-        if state.mode == EditMode::Edit && !state.selection.is_empty() {
+        if state.edit_mode() == EditMode::Edit && !state.selection.is_empty() {
             return InspectorContext::ComponentSelection {
                 verts: state.selection.verts.len(),
                 edges: state.selection.edges.len(),
@@ -284,7 +284,7 @@ mod tests {
     #[test]
     fn component_selection_context_in_edit_mode() {
         let mut state = state_with_cube();
-        state.mode = EditMode::Edit;
+        state.set_edit_mode(EditMode::Edit);
         state.selection.verts = vec![0, 1, 2];
         let ctx = InspectorContext::resolve(&state);
         assert_eq!(
@@ -304,7 +304,7 @@ mod tests {
             ]
         );
         // Fora do modo de edição, mesmos vértices não viram contexto.
-        state.mode = petunia_core::EditMode::Object;
+        state.set_edit_mode(petunia_core::EditMode::Object);
         assert!(matches!(
             InspectorContext::resolve(&state),
             InspectorContext::MeshObject { .. }

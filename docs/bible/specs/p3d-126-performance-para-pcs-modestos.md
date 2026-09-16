@@ -1,12 +1,5 @@
 # P3D-126 — Performance para PCs modestos
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 0
-- **Status Canônico**: `COMPLIANT (Performance Baseline & PC Modesto)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

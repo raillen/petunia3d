@@ -11,10 +11,27 @@ use egui::{
 use petunia_config::{Keybinds, ThemeRegistry, ThemeToken};
 use petunia_core::AppState;
 
+use crate::adapters::form::{PetuniaForm, PetuniaFormSession, PetuniaValidationReport};
+use crate::adapters::taffy_layout::{self, PetuniaGap, PetuniaJustify, PetuniaResponsiveLayout};
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::widgets;
 use petunia_config::text_id;
+
+/// Formulário das preferências (§48).
+///
+/// Rótulo de 96px e controle nunca menor que 160px: abaixo disso o campo
+/// empilha em vez de espremer o controle. Os dois números são a **única**
+/// política de arranjo de campo da tela — não há breakpoint por aba.
+static SETTINGS_FORM: PetuniaForm = PetuniaForm::new(96.0, 160.0);
+
+/// Vão da esteira de abas (entre e dentro das linhas).
+const TAB_GAP: f32 = 6.0;
+
+/// Esteira das abas de configuração.
+fn tab_strip() -> PetuniaResponsiveLayout {
+    PetuniaResponsiveLayout::wrap_row().with_gap(PetuniaGap::uniform(TAB_GAP))
+}
 
 /// Renderiza a janela modal de preferências quando `state.ui.show_settings` for verdadeiro.
 pub fn draw(ctx: &egui::Context, state: &mut AppState) {
@@ -53,11 +70,10 @@ pub fn draw(ctx: &egui::Context, state: &mut AppState) {
 }
 
 fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
-    // 1. Barra de Abas de Configuração (quebra em janela estreita).
-    // Abas novas usam rótulo traduzido sem emoji (Wave 6/7 convergem as antigas).
-    ui.horizontal_wrapped(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 6.0);
-
+    // 1. Barra de Abas de Configuração (§48): esteira que quebra sozinha, sem
+    // `add_space` somado à mão. Abas novas usam rótulo traduzido sem emoji
+    // (Wave 6/7 convergem as antigas).
+    {
         let interface_label = state.t_id(text_id::SETTINGS_INTERFACE);
         let import_export_label = state.t_id(text_id::SETTINGS_IMPORT_EXPORT);
         let appearance_label = state.t("settings.appearance");
@@ -89,30 +105,38 @@ fn draw_settings_content(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState)
             ("import_export", import_export_label.as_str(), ""),
         ];
 
-        for (tab_id, label, hint) in tabs {
-            let is_selected = state.ui.settings_tab == tab_id;
-            let (bg, fg) = if is_selected {
-                (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
-            } else {
-                (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
-            };
+        taffy_layout::responsive(
+            ui,
+            "settings-tabs",
+            tab_strip(),
+            tabs.len(),
+            |index, ui| {
+                let (tab_id, label, hint) = tabs[index];
+                let is_selected = state.ui.settings_tab == tab_id;
+                let (bg, fg) = if is_selected {
+                    (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
+                } else {
+                    (tokens::BG_SURFACE, tokens::TEXT_SECONDARY)
+                };
 
-            let btn = egui::Button::new(RichText::new(label).size(12.0).color(fg))
-                .fill(bg)
-                .corner_radius(tokens::RADIUS_CONTROL);
+                let btn = egui::Button::new(RichText::new(label).size(12.0).color(fg))
+                    .fill(bg)
+                    .corner_radius(tokens::RADIUS_CONTROL);
 
-            let resp = ui.add(btn);
-            let resp = if hint.is_empty() {
-                resp
-            } else {
-                resp.on_hover_text(hint)
-            };
-            if resp.clicked() {
-                state.ui.settings_tab = tab_id.to_string();
-                state.mark_dirty();
-            }
-        }
-    });
+                let resp = ui.add(btn);
+                let resp = if hint.is_empty() {
+                    resp
+                } else {
+                    resp.on_hover_text(hint)
+                };
+                if resp.clicked() {
+                    state.ui.settings_tab = tab_id.to_string();
+                    state.mark_dirty();
+                }
+            },
+            |_ui| (),
+        );
+    }
 
     ui.add_space(8.0);
     ui.separator();
@@ -165,40 +189,36 @@ fn reset_all_layouts(state: &mut AppState) {
 
 // ------------------------------------------------- Aba: Interface
 fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
-    ui.label(
-        RichText::new(state.t_id(text_id::SETTINGS_INTERFACE))
-            .strong()
-            .size(13.0)
-            .color(tokens::TEXT_PRIMARY),
-    );
-    ui.add_space(8.0);
+    SETTINGS_FORM.section(ui, &state.t_id(text_id::SETTINGS_INTERFACE), None);
 
     let mut shelf = state.ui.show_shelf;
-    if ui
-        .checkbox(&mut shelf, state.t_id(text_id::SETTINGS_SHOW_SHELF))
-        .changed()
-    {
+    if SETTINGS_FORM.toggle(ui, &state.t_id(text_id::SETTINGS_SHOW_SHELF), &mut shelf) {
         state.ui.show_shelf = shelf;
         state.mark_dirty();
     }
 
     ui.add_space(4.0);
-    ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(state.t("settings.density"))
-                .size(11.5)
-                .color(tokens::TEXT_SECONDARY),
-        );
-        for density in petunia_core::UiDensity::all() {
-            if ui
-                .selectable_label(state.ui.density == density, state.t(density.key()))
-                .clicked()
-            {
-                state.ui.density = density;
-                state.mark_dirty();
-            }
-        }
-    });
+    SETTINGS_FORM.field(
+        ui,
+        "settings-density",
+        &state.t("settings.density"),
+        |ui, width| {
+            // O controle recebe a largura do contrato e se limita a ela: em
+            // painel estreito as opções descem em vez de vazar do campo.
+            ui.set_max_width(width);
+            ui.horizontal_wrapped(|ui| {
+                for density in petunia_core::UiDensity::all() {
+                    if ui
+                        .selectable_label(state.ui.density == density, state.t(density.key()))
+                        .clicked()
+                    {
+                        state.ui.density = density;
+                        state.mark_dirty();
+                    }
+                }
+            });
+        },
+    );
 
     ui.add_space(8.0);
     ui.separator();
@@ -219,23 +239,18 @@ fn draw_interface_tab(ui: &mut Ui, state: &mut AppState) {
 
 // ------------------------------------------- Aba: Importar / Exportar
 fn draw_import_export_tab(ui: &mut Ui, state: &mut AppState) {
-    ui.label(
-        RichText::new(state.t_id(text_id::SETTINGS_IMPORT_EXPORT))
-            .strong()
-            .size(13.0)
-            .color(tokens::TEXT_PRIMARY),
-    );
-    ui.add_space(8.0);
+    SETTINGS_FORM.section(ui, &state.t_id(text_id::SETTINGS_IMPORT_EXPORT), None);
 
     let mut glb = state.project.export_gltf;
-    if ui
-        .checkbox(&mut glb, state.t_id(text_id::SETTINGS_EXPORT_GLB))
-        .on_hover_text(state.t_id(text_id::SETTINGS_EXPORT_GLB_HINT))
-        .changed()
-    {
+    if SETTINGS_FORM.toggle(ui, &state.t_id(text_id::SETTINGS_EXPORT_GLB), &mut glb) {
         state.project.export_gltf = glb;
         state.mark_dirty();
     }
+    ui.label(
+        RichText::new(state.t_id(text_id::SETTINGS_EXPORT_GLB_HINT))
+            .size(11.0)
+            .color(tokens::TEXT_SECONDARY),
+    );
 }
 
 // ---------------------------------------------------------------- Aba 1: Aparência e Temas
@@ -243,19 +258,13 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
     let registry = ThemeRegistry::global();
     let themes = registry.available();
 
-    ui.label(
-        RichText::new("Temas do Sistema")
-            .strong()
-            .size(13.0)
-            .color(tokens::TEXT_PRIMARY),
+    SETTINGS_FORM.section(
+        ui,
+        "Temas do Sistema",
+        Some(
+            "O Petunia3D suporta temas personalizados em arquivos TOML. Crie uma pasta em 'assets/themes/<nome>/' contendo 'manifest.toml' e 'theme.toml'.",
+        ),
     );
-    ui.label(
-        RichText::new("O Petunia3D suporta temas personalizados em arquivos TOML. Crie uma pasta em 'assets/themes/<nome>/' contendo 'manifest.toml' e 'theme.toml'.")
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
-    );
-
-    ui.add_space(8.0);
 
     ScrollArea::vertical()
         .auto_shrink([true, false])
@@ -367,19 +376,11 @@ fn draw_appearance_tab(ctx: &egui::Context, ui: &mut Ui, state: &mut AppState) {
 fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
     let packs = IconRegistry::available_packs();
 
-    ui.label(
-        RichText::new(state.t("settings.icons_title"))
-            .strong()
-            .size(13.0)
-            .color(tokens::TEXT_PRIMARY),
+    SETTINGS_FORM.section(
+        ui,
+        &state.t("settings.icons_title"),
+        Some(&state.t("settings.icons_desc")),
     );
-    ui.label(
-        RichText::new(state.t("settings.icons_desc"))
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
-    );
-
-    ui.add_space(8.0);
 
     ScrollArea::vertical()
         .auto_shrink([true, false])
@@ -522,19 +523,14 @@ fn pack_text(state: &AppState, kind: &str, id: &str, fallback: &str) -> String {
 
 // ---------------------------------------------------------------- Aba 3: Idioma e Tradução
 fn draw_language_tab(ui: &mut Ui, state: &mut AppState) {
-    ui.label(
-        RichText::new("Idioma da Interface (i18n)")
-            .strong()
-            .size(13.0)
-            .color(tokens::TEXT_PRIMARY),
+    SETTINGS_FORM.section(
+        ui,
+        "Idioma da Interface (i18n)",
+        Some(
+            "Todo o texto da aplicação é mapeado através de arquivos TOML em 'assets/locales/<idioma>.toml'. Qualquer usuário pode adicionar novos idiomas ou customizar textos com facilidade.",
+        ),
     );
-    ui.label(
-        RichText::new("Todo o texto da aplicação é mapeado através de arquivos TOML em 'assets/locales/<idioma>.toml'. Qualquer usuário pode adicionar novos idiomas ou customizar textos com facilidade.")
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
-    );
-
-    ui.add_space(10.0);
+    ui.add_space(2.0);
 
     let languages = [
         ("pt-BR", "Português do Brasil", "assets/locales/pt-BR.toml"),
@@ -600,25 +596,36 @@ fn draw_language_tab(ui: &mut Ui, state: &mut AppState) {
 // ---------------------------------------------------------------- Aba 4: Keymaps e Atalhos
 fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
     let profiles = Keybinds::available_profiles();
+    let mut profile_switched = false;
 
-    ui.label(
-        RichText::new("Perfis de Teclado (Keymaps)")
-            .strong()
-            .size(13.0)
-            .color(tokens::TEXT_PRIMARY),
-    );
-    ui.label(
-        RichText::new("Alterne entre o mapa nativo do Petunia3D e padrões consagrados da indústria como Blender, Maya, 3ds Max e Cinema 4D.")
-            .size(11.0)
-            .color(tokens::TEXT_SECONDARY),
+    SETTINGS_FORM.section(
+        ui,
+        "Perfis de Teclado (Keymaps)",
+        Some(
+            "Alterne entre o mapa nativo do Petunia3D e padrões consagrados da indústria como Blender, Maya, 3ds Max e Cinema 4D.",
+        ),
     );
 
-    ui.add_space(8.0);
-
-    // Seletor de Perfil Ativo
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("Perfil Ativo:").strong().size(12.0));
-        for profile in &profiles {
+    // Seletor de Perfil Ativo: esteira que quebra (§48). O rótulo é o primeiro
+    // item e cada perfil é um item — em painel estreito os perfis descem
+    // sozinhos, sem perder a ordem.
+    let layout = PetuniaResponsiveLayout::wrap_row()
+        .with_justify(PetuniaJustify::Start)
+        .with_gap(PetuniaGap {
+            horizontal: TAB_GAP,
+            vertical: TAB_GAP,
+        });
+    taffy_layout::responsive(
+        ui,
+        "settings-keymap-profiles",
+        layout,
+        profiles.len() + 1,
+        |index, ui| {
+            if index == 0 {
+                ui.label(RichText::new("Perfil Ativo:").strong().size(12.0));
+                return;
+            }
+            let profile = &profiles[index - 1];
             let is_active = state.ui.active_keymap_id == profile.id;
             let (bg, fg) = if is_active {
                 (tokens::ACCENT_BLUE, tokens::TEXT_ACTIVE)
@@ -634,42 +641,24 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                 state.ui.active_keymap_id = profile.id.clone();
                 state.ui.keybinds = Keybinds::load_profile(&profile.id);
                 state.mark_dirty();
+                // Escolher um perfil é o "confirmar" deste formulário: o perfil
+                // pode chegar com conflitos, e é agora que eles devem aparecer
+                // campo a campo.
+                profile_switched = true;
             }
-        }
-    });
+        },
+        |_ui| (),
+    );
 
     ui.add_space(8.0);
 
-    // Verificação de Conflitos
+    // Validação de Conflitos (Wave 7 — §51). O domínio continua dono da regra
+    // (`Keybinds::detect_conflicts`); o contrato `PetuniaForm` mostra erro por
+    // campo e resumo inline — sem banner com cor literal na tela.
     let conflicts = state.ui.keybinds.detect_conflicts();
-    if !conflicts.is_empty() {
-        egui::Frame::new()
-            .fill(Color32::from_rgba_unmultiplied(239, 83, 80, 30))
-            .stroke(Stroke::new(1.0_f32, Color32::from_rgb(239, 83, 80)))
-            .corner_radius(CornerRadius::same(4))
-            .inner_margin(egui::Margin::symmetric(10, 6))
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new("⚠ Atenção: Conflito de atalhos detectado!")
-                            .strong()
-                            .color(Color32::from_rgb(255, 120, 120)),
-                    );
-                });
-                for conflict in &conflicts {
-                    ui.horizontal(|ui| {
-                        ui.small(format!(
-                            "• '{}' e '{}' compartilham o mesmo atalho: [{}]",
-                            conflict.action_a, conflict.action_b, conflict.shortcut
-                        ));
-                        ui.label(
-                            RichText::new(format!("({})", conflict.kind.description()))
-                                .size(10.0)
-                                .color(tokens::TEXT_MUTED),
-                        );
-                    });
-                }
-            });
+    let mut session = PetuniaFormSession::new(keymap_conflict_report(state, &conflicts));
+    let conflict_title = state.t("keymap.conflict_title");
+    if SETTINGS_FORM.error_summary_titled(ui, &session, Some(&conflict_title)) {
         ui.add_space(8.0);
     }
 
@@ -737,27 +726,31 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                                 .color(tokens::TEXT_PRIMARY),
                         );
 
-                        // Badge de tecla
+                        // Badge de tecla — dentro do campo validado: o atalho
+                        // em conflito recebe a marca do contrato.
                         ui.horizontal(|ui| {
-                            let (badge_rect, _) = ui.allocate_exact_size(
-                                vec2(shortcut.len() as f32 * 7.5 + 14.0, 20.0),
-                                egui::Sense::hover(),
-                            );
-                            ui.painter()
-                                .rect_filled(badge_rect, 3.0, tokens::BG_SURFACE_HOVER);
-                            ui.painter().rect_stroke(
-                                badge_rect,
-                                3.0,
-                                Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
-                                egui::StrokeKind::Inside,
-                            );
-                            ui.painter().text(
-                                badge_rect.center(),
-                                egui::Align2::CENTER_CENTER,
-                                &shortcut,
-                                FontId::monospace(11.0),
-                                tokens::TEXT_ACTIVE,
-                            );
+                            SETTINGS_FORM.validated_control(ui, &mut session, &action, |ui| {
+                                let (badge_rect, response) = ui.allocate_exact_size(
+                                    vec2(shortcut.len() as f32 * 7.5 + 14.0, 20.0),
+                                    egui::Sense::hover(),
+                                );
+                                ui.painter()
+                                    .rect_filled(badge_rect, 3.0, tokens::BG_SURFACE_HOVER);
+                                ui.painter().rect_stroke(
+                                    badge_rect,
+                                    3.0,
+                                    Stroke::new(1.0_f32, tokens::BORDER_SUBTLE),
+                                    egui::StrokeKind::Inside,
+                                );
+                                ui.painter().text(
+                                    badge_rect.center(),
+                                    egui::Align2::CENTER_CENTER,
+                                    &shortcut,
+                                    FontId::monospace(11.0),
+                                    tokens::TEXT_ACTIVE,
+                                );
+                                response
+                            });
                         });
 
                         #[cfg(feature = "keymap-capture")]
@@ -776,6 +769,42 @@ fn draw_keymap_tab(ui: &mut Ui, state: &mut AppState) {
                     }
                 });
         });
+
+    // O gesto de "confirmar" revela os erros campo a campo — os campos já
+    // existem neste ponto do frame, então as marcas aparecem na próxima pintura.
+    if profile_switched {
+        session.reveal_errors(ui);
+    }
+}
+
+/// Relatório de validação do keymap (Wave 7 — §51).
+///
+/// A regra é do domínio (`Keybinds::detect_conflicts`) e já existia; o que muda
+/// é a **forma**: cada conflito vira erro do campo `action_a`, com o atalho e o
+/// outro dono na mensagem. Um campo com mais de um conflito recebe só o primeiro
+/// — o resumo mostra todos.
+fn keymap_conflict_report(
+    state: &AppState,
+    conflicts: &[petunia_config::KeyConflict],
+) -> PetuniaValidationReport {
+    let mut report = PetuniaValidationReport::new();
+    let mut seen: Vec<&str> = Vec::new();
+    for conflict in conflicts {
+        if seen.contains(&conflict.action_a.as_str()) {
+            continue;
+        }
+        seen.push(conflict.action_a.as_str());
+        report = report.with_error(
+            conflict.action_a.clone(),
+            format!(
+                "{} — {} [{}]",
+                state.t("keymap.conflict_shared"),
+                conflict.action_b,
+                conflict.shortcut
+            ),
+        );
+    }
+    report
 }
 
 #[cfg(test)]

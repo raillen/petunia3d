@@ -188,7 +188,6 @@ impl Core {
             self.state.workspace = match ws.to_lowercase().as_str() {
                 "paint" | "pintura" => Workspace::Paint,
                 "uv" => Workspace::Uv,
-                "animate" | "anim" => Workspace::Animate,
                 _ => Workspace::Model,
             };
         }
@@ -387,8 +386,7 @@ impl Core {
             }
             return;
         }
-        if (self.state.workspace == petunia_core::Workspace::Paint
-            || self.state.mode == EditMode::TexturePaint)
+        if self.state.workspace == petunia_core::Workspace::Paint
             && matches!(
                 physical,
                 PhysicalKey::Code(WKey::KeyF | WKey::KeyG | WKey::KeyB)
@@ -410,7 +408,7 @@ impl Core {
         }
         // Tecla 0: Seleção de Objeto
         if physical == PhysicalKey::Code(WKey::Digit0) && !self.ctrl_down && !self.shift_down {
-            self.state.mode = EditMode::Object;
+            self.state.set_edit_mode(EditMode::Object);
             self.state.active_tool = "select".into();
             self.state.mark_dirty();
             return;
@@ -480,17 +478,20 @@ impl Core {
                 self.state.mark_dirty();
             }
             "global.cycle_mode" => {
-                self.state.mode = match self.state.mode {
-                    EditMode::Object => EditMode::Edit,
-                    _ => EditMode::Object,
-                };
+                // Tab nunca entra num "modo" separado: alterna o domínio de seleção (P3D-015).
+                match self.state.selection_domain() {
+                    petunia_core::SelectionDomain::Object => {
+                        self.state.set_edit_mode(EditMode::Edit);
+                    }
+                    _ => self.state.set_edit_mode(EditMode::Object),
+                }
                 self.state.mark_dirty();
             }
             "model.select_vertex" => self.set_tool("select", Some(SelectMode::Vertex)),
             "model.select_edge" => self.set_tool("select", Some(SelectMode::Edge)),
             "model.select_face" => self.set_tool("select", Some(SelectMode::Face)),
             "model.select_object" => {
-                self.state.mode = EditMode::Object;
+                self.state.set_edit_mode(EditMode::Object);
                 self.state.active_tool = "select".into();
                 self.state.mark_dirty();
             }
@@ -568,7 +569,7 @@ impl Core {
     fn set_tool(&mut self, id: &str, select: Option<SelectMode>) {
         self.state.active_tool = id.to_string();
         if let Some(sm) = select {
-            self.state.mode = EditMode::Edit;
+            self.state.set_edit_mode(EditMode::Edit);
             self.state.select_mode = sm;
             match sm {
                 SelectMode::Edge => {
@@ -585,7 +586,7 @@ impl Core {
             }
         }
         if id == "paint" {
-            self.state.mode = EditMode::TexturePaint;
+            self.state.set_edit_mode(EditMode::TexturePaint);
         }
         if let Some(t) = self.tools.get(id) {
             t.on_activate(&mut self.state);
@@ -668,7 +669,8 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
         return;
     }
     let (origin, dir) = core.state.camera.ray(nx, ny);
-    let paint_mode = core.state.mode == EditMode::TexturePaint || core.state.active_tool == "paint";
+    let paint_mode =
+        core.state.workspace == petunia_core::Workspace::Paint || core.state.active_tool == "paint";
     if paint_mode && core.alt_down {
         if let Some((vi, _)) = core.state.pick_vertex(origin, dir) {
             PaintModule::eyedrop_vertex(&mut core.state, vi);
@@ -700,7 +702,7 @@ pub fn handle_pick(core: &mut Core, nx: f32, ny: f32) {
         .unwrap_or(glam::Vec2::new(800.0, 600.0))
         * core.state.ui.viewport_pixels_per_point;
 
-    if core.state.session.mode == EditMode::Object {
+    if core.state.session.edit_mode() == EditMode::Object {
         let is_wire =
             core.state.shading == petunia_render::Shading::Wireframe || core.state.show_xray;
         let mut closest_hit: Option<(usize, f32)> = None;
@@ -2124,7 +2126,7 @@ mod tests {
     #[test]
     fn key_ctrl_z_undoes() {
         let mut core = Core::new();
-        core.state.mode = EditMode::Edit;
+        core.state.set_edit_mode(EditMode::Edit);
         let mesh = core.state.project.active_mesh_mut().unwrap();
         mesh.deselect_all();
         mesh.faces[0].selected = true;
@@ -2161,34 +2163,34 @@ mod tests {
     fn test_tab_and_selection_keys() {
         use winit::keyboard::KeyCode as WKey;
         let mut core = Core::new();
-        assert_eq!(core.state.mode, EditMode::Object);
+        assert_eq!(core.state.edit_mode(), EditMode::Object);
 
         // Tab -> alterna para Edit
         core.on_key(PhysicalKey::Code(WKey::Tab));
-        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.edit_mode(), EditMode::Edit);
 
         // Tab -> alterna de volta para Object
         core.on_key(PhysicalKey::Code(WKey::Tab));
-        assert_eq!(core.state.mode, EditMode::Object);
+        assert_eq!(core.state.edit_mode(), EditMode::Object);
 
         // Tecla 1 -> alterna para Edit + Vertex
         core.on_key(PhysicalKey::Code(WKey::Digit1));
-        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.edit_mode(), EditMode::Edit);
         assert_eq!(core.state.select_mode, SelectMode::Vertex);
 
         // Tecla 2 -> alterna para Edit + Edge
         core.on_key(PhysicalKey::Code(WKey::Digit2));
-        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.edit_mode(), EditMode::Edit);
         assert_eq!(core.state.select_mode, SelectMode::Edge);
 
         // Tecla 3 -> alterna para Edit + Face
         core.on_key(PhysicalKey::Code(WKey::Digit3));
-        assert_eq!(core.state.mode, EditMode::Edit);
+        assert_eq!(core.state.edit_mode(), EditMode::Edit);
         assert_eq!(core.state.select_mode, SelectMode::Face);
 
         // Tecla 0 -> alterna para Object
         core.on_key(PhysicalKey::Code(WKey::Digit0));
-        assert_eq!(core.state.mode, EditMode::Object);
+        assert_eq!(core.state.edit_mode(), EditMode::Object);
     }
 }
 
@@ -2234,7 +2236,7 @@ mod camera_shortcut_tests {
     #[test]
     fn test_pick_multiple_objects_in_object_mode() {
         let mut core = Core::new();
-        core.state.session.mode = EditMode::Object;
+        core.state.set_edit_mode(EditMode::Object);
         assert_eq!(core.state.project.assets.len(), 1);
         assert_eq!(core.state.project.active, 0);
 
@@ -2303,7 +2305,7 @@ mod camera_shortcut_tests {
     fn test_delete_and_duplicate_keys_in_object_mode() {
         use winit::keyboard::KeyCode as WKey;
         let mut core = Core::new();
-        core.state.session.mode = EditMode::Object;
+        core.state.set_edit_mode(EditMode::Object);
         core.state.ui.keybinds = petunia_config::keybinds::Keybinds::defaults();
         assert_eq!(core.state.project.assets.len(), 1);
 

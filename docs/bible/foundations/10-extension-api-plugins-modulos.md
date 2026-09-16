@@ -1,6 +1,11 @@
 # 10 — Extension API, Plugins e Módulos Oficiais
 
-> A extensibilidade faz parte da arquitetura desde a V1, mas a primeira API pública será pequena e guiada por necessidades reais. O objetivo é manter o Petunia3D enxuto sem impor um teto baixo para ferramentas avançadas.
+<aside>
+🧩
+
+A extensibilidade faz parte da arquitetura desde a V1, mas a primeira API pública será pequena e guiada por necessidades reais. O objetivo é manter o Petunia3D enxuto sem impor um teto baixo para ferramentas avançadas.
+
+</aside>
 
 # Modelo de extensibilidade
 
@@ -50,7 +55,7 @@ A API deve permitir extensões em áreas com alto valor e baixo acoplamento:
 
 Namespaces sugeridos, não comprometidos com sintaxe de uma linguagem específica:
 
-```plain text
+```
 petunia.document
 petunia.scene
 petunia.selection
@@ -90,7 +95,7 @@ Toda mutação de plugin ocorre dentro de transaction. Regras:
 
 Plugins devem declarar capacidades necessárias, por exemplo:
 
-```plain text
+```
 read_document
 edit_geometry
 edit_uv
@@ -137,7 +142,7 @@ Desabilitar um módulo opcional deve desregistrar suas contributions e produzir 
 
 Um plugin precisa de um ciclo de vida pequeno e previsível:
 
-```plain text
+```
 manifest
 → load
 → register capabilities / commands / providers
@@ -150,7 +155,7 @@ Evitar callbacks globais excessivos. Preferir eventos de domínio e subscription
 
 # Manifest conceitual
 
-```plain text
+```
 id
 name
 version
@@ -201,14 +206,14 @@ Plugins registram commands e podem, quando autorizados, registrar **Plugin Panel
 
 Preferir para operações simples:
 
-```plain text
+```
 Command + metadata
 → Petunia escolhe apresentação coerente
 ```
 
 Quando um workflow realmente exige superfície própria:
 
-```plain text
+```
 Plugin Panel descriptor
 → allowed extension slot
 → Petunia UI Builder
@@ -228,7 +233,7 @@ Na baseline Rust, `plugin.toml` é preferido por legibilidade e integração sim
 
 Manifest mínimo:
 
-```plain text
+```
 id
 name
 version
@@ -260,7 +265,7 @@ Um erro Lua durante mutação causa rollback da transaction.
 
 Evitar manter três APIs manuais divergentes. Commands públicos registram metadata estruturada:
 
-```plain text
+```
 command_id
 version
 parameters

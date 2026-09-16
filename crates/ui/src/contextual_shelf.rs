@@ -1,6 +1,7 @@
 //! Barra Contextual Horizontal do Viewport (`Contextual Modeling Shelf`).
-//! Posicionada na base inferior do Viewport 3D, reagindo dinamicamente
-//! ao Workspace e ao Modo de Edição ativo (Object, Edit, Paint, UV, Animate).
+//! Posicionada na base inferior do Viewport 3D, reagindo dinamicamente ao
+//! workspace ativo (MODEL / PAINT / UV) e ao domínio de seleção
+//! (`Object` / `Point` / `Edge` / `Face`, P3D-015).
 //!
 //! Arquitetura Wave 4: conteúdo como dados ([`ShelfCommand`] com prioridade),
 //! larguras medidas por galley (nunca `len() * k`), cápsula de fundo com tamanho
@@ -361,7 +362,7 @@ fn tool_cmd(
 /// Constrói comandos + widgets da shelf para o workspace/modo atual.
 fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
     match state.workspace {
-        Workspace::Model if state.mode == EditMode::Edit => {
+        Workspace::Model if state.edit_mode() == EditMode::Edit => {
             let mut cmds = vec![
                 tool_cmd(
                     state,
@@ -545,6 +546,7 @@ fn build_shelf(state: &AppState) -> (Vec<ShelfCommand>, Vec<ShelfWidget>) {
             .collect();
             (cmds, vec![])
         }
+        #[cfg(feature = "animation-workspace")]
         Workspace::Animate => {
             let hum_label = state.t_id(text_id::ANIMATE_HUMANOID);
             let rig_label = state.t_id(text_id::ANIMATE_AUTO_RIG);
@@ -774,7 +776,7 @@ mod tests {
             let mut state = AppState::new("en");
             state.workspace = workspace;
             for mode in [EditMode::Object, EditMode::Edit] {
-                state.mode = mode;
+                state.set_edit_mode(mode);
                 let (cmds, _) = build_shelf(&state);
                 assert!(!cmds.is_empty(), "{workspace:?} sem comandos");
             }
@@ -789,7 +791,7 @@ mod tests {
                 let mut state = AppState::new(lang);
                 state.workspace = workspace;
                 for mode in [EditMode::Object, EditMode::Edit] {
-                    state.mode = mode;
+                    state.set_edit_mode(mode);
                     let (cmds, _) = build_shelf(&state);
                     for cmd in &cmds {
                         assert!(!cmd.tooltip.is_empty(), "{workspace:?} tooltip vazio");

@@ -1,12 +1,5 @@
 # P3D-081 — Command Palette
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 3
-- **Status Canônico**: `COMPLIANT (UI Infrastructure, Customization & Input)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

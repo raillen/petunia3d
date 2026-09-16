@@ -1,16 +1,9 @@
 # P3D-067 — Animação simples
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementado via `AnimationClip`, `BoneTrack`, keyframes e interpolação em `crates/project/src/animation.rs`** · Prioridade: P3.
+Definição original genérica; precisa ser fechada sobre o novo Rig Core · Prioridade: P3.
 
 </aside>
 

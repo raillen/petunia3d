@@ -1,12 +1,5 @@
 # P3D-104 — Headless readiness
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 1
-- **Status Canônico**: `COMPLIANT (Headless Readiness & CLI)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

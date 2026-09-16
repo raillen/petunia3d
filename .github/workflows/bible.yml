@@ -1,0 +1,67 @@
+name: Canonical Notebook Conformance
+
+# Gate de conformidade documental (P3D-120).
+#
+# Valida o caderno canônico em `docs/bible/`, a integridade dos links internos,
+# a ausência de caminhos mortos, o vocabulário de usuário (Point / Round Edge) e
+# o congelamento do site público de documentação (AGENTS.md §1).
+#
+# O workflow de publicação do site (`docs.yml`) é intencionalmente independente:
+# o site está congelado e não faz parte deste gate.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/bible/**'
+      - 'docs/**/*.md'
+      - 'docs/audits/bible-conformance/**'
+      - 'AGENTS.md'
+      - 'ENTRYPOINT.md'
+      - 'GEMINI.md'
+      - 'crates/xtask/**'
+      - '.github/workflows/bible.yml'
+  pull_request:
+    paths:
+      - 'docs/bible/**'
+      - 'docs/**/*.md'
+      - 'docs/audits/bible-conformance/**'
+      - 'AGENTS.md'
+      - 'ENTRYPOINT.md'
+      - 'GEMINI.md'
+      - 'crates/xtask/**'
+      - '.github/workflows/bible.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bible-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bible-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-bible-check-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Verify canonical notebook, links, vocabulary and frozen site
+        run: cargo run -p xtask -- bible-check
+
+      - name: Verify generated references have no drift
+        run: cargo run -p xtask -- docs-generate --check

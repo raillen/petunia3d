@@ -43,7 +43,7 @@ fn test_project_state_isolated_lifecycle() {
 #[test]
 fn test_editor_session_isolated_lifecycle() {
     let mut session = EditorSession::new();
-    assert_eq!(session.mode, EditMode::Object);
+    assert_eq!(session.edit_mode(), EditMode::Object);
     assert_eq!(session.locked_axes, [false; 3]);
     assert!(!session.snap_enabled);
     assert!(!session.isolate_active);
@@ -120,7 +120,7 @@ fn test_app_state_composition_and_deref_coercion() {
     assert_eq!(state.project.assets[0].name, "Cube");
 
     // Acesso transparente via Deref a EditorSession
-    assert_eq!(state.mode, EditMode::Object);
+    assert_eq!(state.edit_mode(), EditMode::Object);
     assert_eq!(state.camera.fov_y, 45.0_f32.to_radians());
 
     // Acesso transparente via Deref transitivo a ToolState

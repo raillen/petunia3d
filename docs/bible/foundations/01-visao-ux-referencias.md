@@ -4,13 +4,12 @@ O usuário deve conseguir começar por uma imagem de referência e sentir que es
 
 ## Câmera contextual
 
-<table>
-<tr><td>Contexto</td><td>Projeção padrão</td><td>Comportamento</td></tr>
-<tr><td>Front / Side / Top</td><td>Ortográfica</td><td>Traçado e alinhamento sem distorção de perspectiva.</td></tr>
-<tr><td>Reference / Trace</td><td>Ortográfica</td><td>Câmera bloqueada ao plano da referência enquanto desenha.</td></tr>
-<tr><td>Orbit</td><td>Perspectiva</td><td>Inspeção natural do volume.</td></tr>
-<tr><td>Draw on Face</td><td>Ortográfica à face</td><td>Face temporariamente tratada como uma folha 2D.</td></tr>
-</table>
+| Contexto | Projeção padrão | Comportamento |
+| --- | --- | --- |
+| Front / Side / Top | Ortográfica | Traçado e alinhamento sem distorção de perspectiva. |
+| Reference / Trace | Ortográfica | Câmera bloqueada ao plano da referência enquanto desenha. |
+| Orbit | Perspectiva | Inspeção natural do volume. |
+| Draw on Face | Ortográfica à face | Face temporariamente tratada como uma folha 2D. |
 
 ## Reference Sets
 

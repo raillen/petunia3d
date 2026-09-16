@@ -122,3 +122,23 @@
 3. `eframe` distribution cutover remains a future host wave (unchanged).
 
 **Phase E (Wave M4) and its hardening pass are 100% COMPLETE and verified.**
+
+## 6. Nota histórica (adicionada em 2026-09-16)
+
+```text
+Historical result: dependency-level integration complete.
+Product-architecture adoption of Taffy/Twill was intentionally pilot-scoped
+and is superseded by the Egui Ecosystem Final Push directive.
+```
+
+O veredito acima está **correto no seu próprio escopo**: as dependências foram
+resolvidas, confinadas ao dono canônico e verificadas pelo `arch-check`. O que ele
+não afirmava — e agora está medido — é que os product paths continuaram resolvendo
+layout à mão: `available_width()`, `spacing_mut()` e `allocate_exact_size`
+proliferaram exatamente onde as bibliotecas especializadas existiam.
+
+Números reais: [`docs/audits/ui-ecosystem-final-push/00-baseline.md`](../ui-ecosystem-final-push/00-baseline.md)
+(`cargo xtask ui-guard`).
+
+Nenhuma data ou conclusão anterior foi reescrita. A evolução do entendimento está
+registrada aqui, não aplicada por cima da história.

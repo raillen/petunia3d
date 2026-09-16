@@ -63,18 +63,32 @@ impl SelectionDomain {
     }
 }
 
-/// Workspaces V1: MODEL / PAINT / UV / ANIMATE.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Workspaces do Petunia3D.
+///
+/// A V1 congela `MODEL / PAINT / UV` (capítulo 36 do Livro Vivo). O workspace de
+/// animação pertence a P3D-066 (prioridade P3) e **não** faz parte da baseline
+/// congelada: ele só é compilado com a feature `animation-workspace`, para que o
+/// build de V1 nunca exponha um workspace fora do escopo aprovado.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum Workspace {
     #[default]
     Model,
     Paint,
     Uv,
+    #[cfg(feature = "animation-workspace")]
     Animate,
 }
 
 impl Workspace {
-    pub fn all() -> [Workspace; 4] {
+    /// Workspaces compilados neste build, na ordem das pílulas do header.
+    #[cfg(not(feature = "animation-workspace"))]
+    pub const fn all() -> [Workspace; 3] {
+        [Workspace::Model, Workspace::Paint, Workspace::Uv]
+    }
+
+    /// Workspaces compilados neste build, na ordem das pílulas do header.
+    #[cfg(feature = "animation-workspace")]
+    pub const fn all() -> [Workspace; 4] {
         [
             Workspace::Model,
             Workspace::Paint,
@@ -82,11 +96,17 @@ impl Workspace {
             Workspace::Animate,
         ]
     }
+
+    /// Quantidade de workspaces deste build (tamanho do array de memória de UI).
+    pub const COUNT: usize = Self::all().len();
+
+    /// Chave de tradução do rótulo do workspace.
     pub fn key(&self) -> &'static str {
         match self {
             Workspace::Model => "ws.model",
             Workspace::Paint => "ws.paint",
             Workspace::Uv => "ws.uv",
+            #[cfg(feature = "animation-workspace")]
             Workspace::Animate => "ws.animate",
         }
     }

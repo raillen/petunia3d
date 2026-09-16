@@ -1,6 +1,11 @@
 # 27 — Stack Rust Canônica: Rust + egui + wgpu
 
-> Esta página define a **technical baseline final do Petunia3D** para implementação: **Rust 2024 + egui + eframe + egui-wgpu + wgpu + Geometry Core próprio em Rust**. A stack substitui a baseline anterior centrada em Odin e adota uma UI Rust-first permissiva, diretamente alinhada ao renderer wgpu. O vertical slice técnico do capítulo 31 é agora um **teste de conformance/integração**; reabrir a stack exige bloqueador estrutural comprovado + ADR explícito.
+<aside>
+🦀
+
+Esta página define a **technical baseline final do Petunia3D** para implementação: **Rust 2024 + egui + eframe + egui-wgpu + wgpu + Geometry Core próprio em Rust**. A stack substitui a baseline anterior centrada em Odin e adota uma UI Rust-first permissiva, diretamente alinhada ao renderer wgpu. O vertical slice técnico do capítulo 31 é agora um **teste de conformance/integração**; reabrir a stack exige bloqueador estrutural comprovado + ADR explícito.
+
+</aside>
 
 # Objetivo da stack
 
@@ -27,7 +32,7 @@ A arquitetura deve minimizar glue entre linguagens. **Rust é a linguagem de pri
 
 Sempre que houver alternativas tecnicamente equivalentes, preferir dependências sob:
 
-```plain text
+```
 MIT
 Apache-2.0
 MIT OR Apache-2.0
@@ -42,38 +47,37 @@ Licenças customizadas, copyleft forte, source-available ou restrições comerci
 
 # Stack resumida
 
-<table>
-<tr><td>Área</td><td>Baseline</td><td>Papel</td></tr>
-<tr><td>Linguagem</td><td>Rust 2024 Edition</td><td>Aplicação, core, geometry, renderer, I/O, plugins host, MCP.</td></tr>
-<tr><td>Build</td><td>Cargo workspace</td><td>Build, testes, dependências, tooling.</td></tr>
-<tr><td>UI</td><td>egui 0.36.x</td><td>Immediate-mode UI, input, layout, painting, accessibility tree e shell desktop.</td></tr>
-<tr><td>Desktop host</td><td>eframe 0.36.x</td><td>Window/app integration e execução desktop.</td></tr>
-<tr><td>UI ↔ GPU</td><td>egui-wgpu 0.36.x</td><td>Integração oficial egui/wgpu e custom rendering dentro de regiões da UI.</td></tr>
-<tr><td>GPU</td><td>wgpu 30.x</td><td>Viewport, overlays, gizmos e uploads de textura.</td></tr>
-<tr><td>Shaders</td><td>WGSL</td><td>Shaders únicos cross-backend.</td></tr>
-<tr><td>Math</td><td>glam</td><td>Vec2/Vec3/Quat/Mat4 e matemática 2D/3D.</td></tr>
-<tr><td>IDs</td><td>slotmap</td><td>Handles generacionais tipados.</td></tr>
-<tr><td>2D Geometry</td><td>geo</td><td>Profile operations e polygon predicates/booleans quando apropriado.</td></tr>
-<tr><td>3D Boolean</td><td>manifold-rust</td><td>Fuse/Cut complexo.</td></tr>
-<tr><td>Auto UV</td><td>Petunia native + xatlas fallback</td><td>UV determinística/projeção + unwrap genérico.</td></tr>
-<tr><td>Picking</td><td>ray/triangle próprio inicialmente</td><td>Seleção e Paint on Model; BVH somente se profiling justificar.</td></tr>
-<tr><td>Images</td><td>image com codecs explícitos</td><td>Decode/encode de texturas/referências.</td></tr>
-<tr><td>Painting</td><td>TextureBitmap próprio</td><td>Buffer CPU, Undo e dirty regions.</td></tr>
-<tr><td>glTF/GLB</td><td>gltf + gltf-json</td><td>Import/export principal.</td></tr>
-<tr><td>OBJ</td><td>writer pequeno próprio + tobj para import</td><td>Formato secundário; export controlado pelo Petunia e import atrás de Importer.</td></tr>
-<tr><td>Serialize</td><td>Serde + serde_json</td><td>Document/project data.</td></tr>
-<tr><td>Container</td><td>zip</td><td>Arquivo de projeto versionado.</td></tr>
-<tr><td>Plugins</td><td>Lua 5.4 + mlua</td><td>Extension API pública.</td></tr>
-<tr><td>MCP</td><td>rmcp + Tokio isolado</td><td>Servidor MCP Rust nativo.</td></tr>
-<tr><td>CPU jobs</td><td>Rayon</td><td>Boolean/UV/validation/export work.</td></tr>
-<tr><td>Channels</td><td>flume</td><td>Comunicação service/worker → single writer.</td></tr>
-<tr><td>Errors</td><td>thiserror; anyhow nas bordas</td><td>Erros de domínio tipados + contexto de app.</td></tr>
-<tr><td>Logging</td><td>tracing</td><td>Observabilidade estruturada.</td></tr>
-<tr><td>Schemas</td><td>schemars + Serde</td><td>Command/MCP/plugin schemas.</td></tr>
-<tr><td>Property tests</td><td>proptest</td><td>Invariantes topológicas e commands.</td></tr>
-<tr><td>Benchmarks</td><td>Criterion</td><td>Performance baseada em fixtures reais.</td></tr>
-<tr><td>Fuzzing</td><td>cargo-fuzz</td><td>Loaders, geometry boundaries e parsers.</td></tr>
-</table>
+| Área | Baseline | Papel |
+| --- | --- | --- |
+| Linguagem | Rust 2024 Edition | Aplicação, core, geometry, renderer, I/O, plugins host, MCP. |
+| Build | Cargo workspace | Build, testes, dependências, tooling. |
+| UI | egui 0.36.x | Immediate-mode UI, input, layout, painting, accessibility tree e shell desktop. |
+| Desktop host | eframe 0.36.x | Window/app integration e execução desktop. |
+| UI ↔ GPU | egui-wgpu 0.36.x | Integração oficial egui/wgpu e custom rendering dentro de regiões da UI. |
+| GPU | wgpu 30.x | Viewport, overlays, gizmos e uploads de textura. |
+| Shaders | WGSL | Shaders únicos cross-backend. |
+| Math | glam | Vec2/Vec3/Quat/Mat4 e matemática 2D/3D. |
+| IDs | slotmap | Handles generacionais tipados. |
+| 2D Geometry | geo | Profile operations e polygon predicates/booleans quando apropriado. |
+| 3D Boolean | manifold-rust | Fuse/Cut complexo. |
+| Auto UV | Petunia native + xatlas fallback | UV determinística/projeção + unwrap genérico. |
+| Picking | ray/triangle próprio inicialmente | Seleção e Paint on Model; BVH somente se profiling justificar. |
+| Images | image com codecs explícitos | Decode/encode de texturas/referências. |
+| Painting | TextureBitmap próprio | Buffer CPU, Undo e dirty regions. |
+| glTF/GLB | gltf + gltf-json | Import/export principal. |
+| OBJ | writer pequeno próprio + tobj para import | Formato secundário; export controlado pelo Petunia e import atrás de Importer. |
+| Serialize | Serde + serde_json | Document/project data. |
+| Container | zip | Arquivo de projeto versionado. |
+| Plugins | Lua 5.4 + mlua | Extension API pública. |
+| MCP | rmcp + Tokio isolado | Servidor MCP Rust nativo. |
+| CPU jobs | Rayon | Boolean/UV/validation/export work. |
+| Channels | flume | Comunicação service/worker → single writer. |
+| Errors | thiserror; anyhow nas bordas | Erros de domínio tipados + contexto de app. |
+| Logging | tracing | Observabilidade estruturada. |
+| Schemas | schemars + Serde | Command/MCP/plugin schemas. |
+| Property tests | proptest | Invariantes topológicas e commands. |
+| Benchmarks | Criterion | Performance baseada em fixtures reais. |
+| Fuzzing | cargo-fuzz | Loaders, geometry boundaries e parsers. |
 
 # Por que egui
 
@@ -93,7 +97,7 @@ Immediate mode não autoriza misturar estado de domínio com estado de apresenta
 
 A regra de dependência é:
 
-```plain text
+```
 Petunia workspaces/screens
         ↓
 Petunia Components
@@ -105,7 +109,7 @@ egui / eframe / selected egui crates
 
 Não espalhar chamadas cruas de egui por todo o projeto. **A UI de produto deve passar por Petunia Components/adapters como regra arquitetural**; egui cru fica restrito à implementação desses boundaries e a devtools explicitamente delimitadas. Componentes próprios incluem:
 
-```plain text
+```
 PetuniaButton
 PetuniaIconButton
 PetuniaSplitButton
@@ -130,7 +134,7 @@ O Design System Petunia é autoridade visual. egui fornece interação/layout/se
 
 A camada `foundation` deve centralizar:
 
-```plain text
+```
 colors
 typography
 spacing
@@ -149,7 +153,7 @@ focus visuals
 
 A arquitetura preferida do viewport é:
 
-```plain text
+```
 egui layout
     ↓ allocate viewport Rect
 Petunia viewport widget/adapter
@@ -169,7 +173,7 @@ Accessibility usa a árvore AccessKit exposta pelo egui/host.
 
 Todo componente Petunia customizado deve publicar semântica apropriada quando aplicável:
 
-```plain text
+```
 role
 accessible name
 description
@@ -366,7 +370,7 @@ Crates auxiliares egui devem ser adicionadas somente quando a feature correspond
 
 Updates de dependência exigem:
 
-```plain text
+```
 read release notes
 → verify egui/eframe/egui-wgpu/wgpu compatibility
 → cargo check/test/clippy
@@ -388,7 +392,7 @@ Versionar `rust-toolchain.toml`. Preferir stable Rust compatível com as crates 
 
 Manter pelo menos:
 
-```plain text
+```
 dev       → debug rápido e assertions/invariants
 release   → distribuição
 profiling → símbolos/instrumentation suficiente para medir hotspots

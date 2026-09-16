@@ -1,26 +1,47 @@
-# Guia de Atalhos para Usuários do Blender
+# Guia para usuários do Blender
 
-Se você já conhece o **Blender**, você se sentirá em casa no Petunia3D! Quase todos os atalhos de modelagem e navegação foram adotados 1:1.
+`Blender-like` é **um dos presets oficiais de keymap** do Petunia3D — um perfil de
+*familiaridade*, não o default do produto. O preset default é **Petunia**.
 
-## Tabela de Equivalência
+> **Regra do caderno:** perfis `-like` aproximam muscle memory onde isso não conflita
+> com a filosofia do Petunia. Comandos que não existem no Petunia **não são inventados**
+> só para completar o perfil, e diferenças materiais precisam estar documentadas.
 
-| Operação | Blender | Petunia3D | Observação |
-| :--- | :--- | :--- | :--- |
-| **Alternar Modo Objeto / Edição** | `Tab` | `Tab` | Idêntico |
-| **Mover (Grab)** | `G` | `G` | Suporta travar `X, Y, Z` e `Shift+X/Y/Z` |
-| **Rotacionar** | `R` | `R` | Suporta travar eixos e entrada em graus |
-| **Escalar** | `S` | `S` | Suporta travar eixos e planos |
-| **Extrusão** | `E` | `E` | Segue a normal da face |
-| **Extrusão Individual de Faces** | `Alt + E` | `Alt + E` | Desacopla paredes laterais e topos |
-| **Inserção (Inset)** | `I` | `I` | Idêntico |
-| **Chanfro (Bevel)** | `Ctrl + B` | `Ctrl + B` | Idêntico |
-| **Corte em Anel (Loop Cut)** | `Ctrl + R` | `Ctrl + R` | Prévia amarela e deslizamento |
-| **Faca (Knife)** | `K` | `K` | Snapping magnético a vértices/arestas |
-| **3D Cursor** | `Shift + RMB` | `Shift + RMB` | Idêntico |
-| **Adicionar Primitiva** | `Shift + A` | `Shift + A` | Instancia no 3D Cursor |
-| **Vistas Ortográficas** | `Numpad 1, 3, 7` | `Numpad 1, 3, 7` | Idêntico |
-| **Perspectiva / Ortográfica** | `Numpad 5` | `Numpad 5` | Idêntico |
-| **Raio-X (X-Ray)** | `Alt + Z` | `Alt + Z` | Idêntico |
-| **Desfazer / Refazer** | `Ctrl+Z` / `Ctrl+Shift+Z` | `Ctrl+Z` / `Ctrl+Shift+Z` | Idêntico |
-| **Isolar Objeto Selecionado** | `Numpad /` | `Numpad /` ou `/` | Visão local temporária |
-| **Configurações** | `Ctrl + Alt + U` | `Ctrl + ,` | Padrão desktop universal |
+## Equivalências mais usadas
+
+| Operação | Blender-like no Petunia3D | Observação |
+| :--- | :--- | :--- |
+| Mover (grab) | `G` | trava de eixos/planos e snap |
+| Rotacionar | `R` | trava de eixos e entrada em graus |
+| Escalar | `S` | trava de eixos e planos |
+| Extrusão | `E` | segue a normal, com opção individual |
+| Inserção (inset) | `I` | — |
+| Round Edge (bevel) | `Ctrl+B` | Core V1 prioriza 1 segmento |
+| Corte em anel (loop cut) | `Ctrl+R` | preview e deslizamento |
+| Faca (knife) | `K` | snapping a pontos/arestas |
+| Vistas ortográficas | `Numpad 1 / 3 / 7` | no preset `Blender-like Notebook`, sem numpad |
+| Perspectiva ↔ ortográfica | `Numpad 5` | — |
+| Desfazer / refazer | `Ctrl+Z` / `Ctrl+Shift+Z` | — |
+
+## Diferenças conscientes
+
+- **Não há um "Edit Mode" rígido como etapa obrigatória.** O Petunia usa **domínios de
+  seleção unificados e contextuais**: `Object`, `Face`, `Edge` e `Point`. Trocar de
+  domínio é uma ação (`select.cycle_domain`), não uma porta de entrada para o produto.
+- **Não existe boolean como paradigma exposto**: as ações de usuário são **Fuse** e
+  **Cut**. Union/Difference são termos técnicos internos.
+- **Vocabulário de usuário:** pontos da malha aparecem como **Point** e o chanfro como
+  **Round Edge**; `Vertex`/`Bevel` são os termos técnicos correspondentes.
+- Menus de um DCC genérico (Sculpt, Geometry Nodes, Compositing, Particles, Physics,
+  Constraints) **não** existem aqui — estão fora do escopo do produto-base.
+- Navegação e foco por teclado (`F6`/`Shift+F6` para regiões, `Tab`/`Shift+Tab` dentro
+  da região) fazem parte do contrato de acessibilidade da UI, não do keymap.
+
+## Perfis relacionados
+
+- **Blender-like Notebook** — mesma memória motora sem numpad, com vistas em
+  combinações alternativas validadas.
+- **Petunia** (default) — o fluxo recomendado para quem está aprendendo o produto.
+
+A tabela completa de binds por perfil, sempre atualizada a partir do código, está em
+[Catálogo de Perfis e Atalhos](../generated/KEYBINDS.md).

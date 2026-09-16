@@ -75,7 +75,7 @@ Selecionar uma face plana e ativar Draw alinha a câmera temporariamente à face
 
 Sem construir uma árvore CAD completa, determinados objetos podem manter uma pequena pilha procedural:
 
-```plain text
+```
 Profile
 ↓
 Extrude

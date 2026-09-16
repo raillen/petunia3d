@@ -105,7 +105,7 @@ fn test_delete_selection_in_edit_and_object_modes() {
     let mut state = AppState::default();
 
     // 1. Em Object Mode, DeleteSelectionCmd remove o asset
-    state.mode = EditMode::Object;
+    state.set_edit_mode(EditMode::Object);
     let add_cyl = AddPrimitiveCmd::new(PrimitiveKind::Cylinder);
     state.dispatch(&add_cyl).expect("adiciona cilindro");
     assert_eq!(state.project.assets.len(), 2);
@@ -118,7 +118,7 @@ fn test_delete_selection_in_edit_and_object_modes() {
     assert_eq!(state.project.assets.len(), 2);
 
     // 2. Em Edit Mode, DeleteSelectionCmd remove sub-elementos da malha
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
     let initial_verts = state.project.active_mesh().unwrap().verts.len();
     assert!(initial_verts > 0);
 
@@ -141,7 +141,7 @@ fn test_delete_selection_in_edit_and_object_modes() {
 #[test]
 fn test_duplicate_selection_in_edit_mode() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     let initial_verts = state.project.active_mesh().unwrap().verts.len();
     assert_eq!(initial_verts, 8); // Cubo
@@ -168,7 +168,7 @@ fn test_duplicate_selection_in_edit_mode() {
 #[test]
 fn test_selection_commands_are_non_destructive() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     let mesh = state.project.active_mesh_mut().unwrap();
     mesh.deselect_all();
@@ -241,7 +241,7 @@ fn test_headless_full_modeling_session() {
     assert_eq!(state.project.assets.len(), 2);
 
     // 2. Entra em modo de edição
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     // 3. Seleciona toda a malha e duplica
     state.dispatch(&SelectAllCmd).expect("seleciona");
@@ -282,7 +282,7 @@ fn test_headless_full_modeling_session() {
 #[test]
 fn test_mesh_editing_commands_subdivide_merge_flip() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     // Subdivisão da malha ativa
     state.dispatch(&SelectAllCmd).expect("seleciona tudo");
@@ -324,7 +324,7 @@ fn test_mesh_editing_commands_subdivide_merge_flip() {
 #[test]
 fn test_flip_diagonal_command_and_undo() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     // Seleciona a primeira face (quad do cubo)
     state.project.active_mesh_mut().unwrap().faces[0].selected = true;
@@ -347,7 +347,7 @@ fn test_flip_diagonal_command_and_undo() {
 #[test]
 fn test_revolve_command_and_undo() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     // Cria perfil aberto no mesh ativo
     let mesh = state.project.active_mesh_mut().unwrap();
@@ -384,7 +384,7 @@ fn test_revolve_command_and_undo() {
 #[test]
 fn test_extrude_individual_command_and_undo() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     // Seleciona duas faces do cubo
     state.project.active_mesh_mut().unwrap().faces[0].selected = true;
@@ -411,7 +411,7 @@ fn test_extrude_individual_command_and_undo() {
 #[test]
 fn test_select_linked_and_box_select_commands() {
     let mut state = AppState::default();
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
 
     // Deseleciona tudo
     state.dispatch(&ClearSelectionCmd).expect("clear");
@@ -576,7 +576,7 @@ fn test_canonical_command_dispatcher_metadata_and_categories() {
     assert_eq!(undo_cmd.disabled_reason, Some("Nothing to undo"));
 
     // 2. Extrude should require Edit mode
-    assert_eq!(state.mode, EditMode::Object);
+    assert_eq!(state.edit_mode(), EditMode::Object);
     let extrude_items = dispatcher.query("extrude", &state);
     assert!(!extrude_items.is_empty());
     let extrude_cmd = extrude_items
@@ -587,7 +587,7 @@ fn test_canonical_command_dispatcher_metadata_and_categories() {
     assert_eq!(extrude_cmd.disabled_reason, Some("Requires Edit mode"));
 
     // 3. Switch to Edit mode - now requires face selection
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
     let extrude_items_edit = dispatcher.query("extrude", &state);
     let extrude_cmd_edit = extrude_items_edit
         .iter()

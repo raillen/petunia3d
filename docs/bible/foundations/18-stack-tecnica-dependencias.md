@@ -1,6 +1,11 @@
 # 18 — Stack Técnica, Dependências e Fronteiras de Integração
 
-> Esta página é o **índice normativo da stack atual**. A baseline Odin registrada anteriormente foi substituída pelo ADR do capítulo 32. A stack final vigente é **Rust 2024 + egui + eframe + egui-wgpu + wgpu + Geometry Core próprio em Rust**; detalhes completos ficam nos capítulos 27–36.
+<aside>
+🛠️
+
+Esta página é o **índice normativo da stack atual**. A baseline Odin registrada anteriormente foi substituída pelo ADR do capítulo 32. A stack final vigente é **Rust 2024 + egui + eframe + egui-wgpu + wgpu + Geometry Core próprio em Rust**; detalhes completos ficam nos capítulos 27–36.
+
+</aside>
 
 # Status atual
 
@@ -8,7 +13,7 @@
 
 # Stack principal
 
-```plain text
+```
 Rust 2024
 ├ egui 0.36.x
 ├ eframe 0.36.x

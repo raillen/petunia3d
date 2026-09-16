@@ -1056,6 +1056,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "concat-idents"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f76990911f2267d837d9d0ad060aa63aaad170af40904b29461734c339030d4d"
+dependencies = [
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1727,6 +1737,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_animation"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79145d8ffdabf3f75d662969cbe264171027b26c50e07ad05bcde8a119c8229c"
+dependencies = [
+ "egui",
+ "hello_egui_utils",
+ "simple-easing",
+]
+
+[[package]]
 name = "egui_autocomplete"
 version = "15.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1760,6 +1781,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_dnd"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dac264b017f2e4466cd7c1e11b757fe3dd7cffff17607f6da2a7817ef25c97d8"
+dependencies = [
+ "egui",
+ "egui_animation",
+ "simple-easing",
+ "web-time",
+]
+
+[[package]]
 name = "egui_extras"
 version = "0.36.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1774,6 +1807,15 @@ dependencies = [
  "mime_guess2",
  "profiling",
  "resvg",
+]
+
+[[package]]
+name = "egui_form"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68f2cd853970027f80a5e17168ded297a3d276f7e318a036d32db929d11b92bc"
+dependencies = [
+ "egui",
 ]
 
 [[package]]
@@ -1867,6 +1909,18 @@ dependencies = [
  "parking_lot",
  "stackbox",
  "taffy",
+]
+
+[[package]]
+name = "egui_tiles"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87147a0a2f03415a3082a92dba79062912d70d555f2495a54d16a7be2c81ac55"
+dependencies = [
+ "ahash",
+ "egui",
+ "itertools 0.15.0",
+ "log",
 ]
 
 [[package]]
@@ -2786,6 +2840,16 @@ checksum = "0bfb9eb618601c89945a70e254898da93b13be0388091d42117462b265bb3fad"
 dependencies = [
  "hash32 0.3.1",
  "stable_deref_trait",
+]
+
+[[package]]
+name = "hello_egui_utils"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d0485a9204e5b0ac282b381e041e97333ebbd1fb3ec374c0a1e67be2221d171"
+dependencies = [
+ "concat-idents",
+ "egui",
 ]
 
 [[package]]
@@ -4504,19 +4568,24 @@ dependencies = [
 name = "petunia_ui"
 version = "0.1.0"
 dependencies = [
+ "eframe",
  "egui",
  "egui-file-dialog",
  "egui-phosphor",
  "egui-probe",
+ "egui_animation",
  "egui_autocomplete",
  "egui_commonmark",
+ "egui_dnd",
  "egui_extras",
+ "egui_form",
  "egui_inbox",
  "egui_inspection",
  "egui_kittest",
  "egui_ltreeview",
  "egui_mcp",
  "egui_taffy",
+ "egui_tiles",
  "glam 0.27.0",
  "iconflow",
  "image",
@@ -5704,6 +5773,12 @@ name = "similar"
 version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
+
+[[package]]
+name = "simple-easing"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c82d449ab1bccfeec125893c6875008206f038d4eb8a09e1e10caf86f44d574e"
 
 [[package]]
 name = "simplecss"

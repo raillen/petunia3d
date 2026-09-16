@@ -1,12 +1,17 @@
 # 12 — Baseline Funcional, Roadmap e Contrato de Escopo
 
-> Este capítulo é o contrato de escopo usado para impedir feature creep. Itens podem mudar por decisão explícita de produto, mas não devem migrar silenciosamente entre Core, V1.x e Experimental.
+<aside>
+📌
+
+Este capítulo é o contrato de escopo usado para impedir feature creep. Itens podem mudar por decisão explícita de produto, mas não devem migrar silenciosamente entre Core, V1.x e Experimental.
+
+</aside>
 
 # Modelo mental do produto
 
 O usuário deve aprender poucos conceitos:
 
-```plain text
+```
 REFERENCE
     ↓
 DRAW / CREATE
@@ -221,3 +226,17 @@ A plataforma tecnológica e a experiência-base de UI estão congeladas: **Rust 
 O capítulo 36 é a autoridade para composição do shell, layout/medidas, gestures, design tokens finais, shortcuts UX, focus/keyboard navigation, accessibility semantics, viewport adapter, Theme Extensions e Plugin Panels. Pequenas calibrações posteriores são `TUNING`; mudanças estruturais exigem decisão explícita/ADR quando aplicável.
 
 A documentação gerada pelo framework deve tratar decisões explicitamente marcadas como Core/V1 e UI Baseline Final como normativas, e itens Experimental como não comprometidos.
+
+# Consolidação — Autoridade do roadmap pós-GA
+
+A partir do merge documental de **2026-09-15**, este capítulo continua sendo a autoridade de **escopo V1/Core/V1.x/Experimental**, enquanto as promoções e a sequência **pós-GA** são detalhadas em [08 — Roadmap Pós-GA Aprovado](../constitution/08-roadmap-pos-ga-aprovado.md) dentro do hub **Especificações P3D — Readiness e Gauntlet Waves**.
+
+## Regra de precedência
+
+Quando uma feature aparecer aqui como candidato antigo de V1.x/Experimental e posteriormente tiver sido **explicitamente promovida/reclassificada** no roadmap pós-GA, vale a classificação posterior. Isso corrige duplicidades históricas sem apagar o rationale original.
+
+## Catálogo pós-GA vigente
+
+O catálogo aprovado atualmente se estende até **P3D-168**. P3D-144–155 cobrem a primeira expansão game-ready; P3D-156–168 acrescentam Decals & Surface Details, Modifier Stack, Surface Attachment, Parametric Asset Properties, Bake/Flatten, Spline Core, Simple Morph Targets, Low-Poly Hair Designer, Surface Recipes, Surface Paint Toolbox, Parts Hierarchy & Linked Instances, Asset States & Variant Composition e Procedural Path Generators.
+
+A existência desses itens no roadmap **não os transforma em requisitos do GA**. O GA continua condicionado aos gates de confiabilidade, UX, performance, compatibilidade, documentação e ausência de P0/P1 no escopo aprovado.

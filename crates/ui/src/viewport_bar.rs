@@ -7,10 +7,14 @@
 //! 5. Auxiliares de Edição (Snapping Magnético e Edição Proporcional com ícones canônicos);
 //! 6. Diagnóstico de Cena (Overlays e X-Ray com ícones vetoriais dedicados);
 //! 7. 4 Esferas de Sombreamento no estilo canônico do Blender (Wireframe, Solid, Material, Rendered).
+//!
+//! A barra **não** decide mais o que cabe (§46, Wave 4): ela declara as faixas
+//! em [`VIEWPORT_BAR`] (quem existe, quem pode cair, o que a seta esconde) e o
+//! `adapters::toolbar` mede, decide e desenha. O que morava aqui — somas de
+//! `28.0 + 24.0 * 3.0`, `text_w`, breakpoint de 40px de altura — era álgebra de
+//! layout refazendo à mão o que o adapter resolve com medidas reais.
 
-use egui::{
-    Color32, CornerRadius, FontId, Rect, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2,
-};
+use egui::{Color32, CornerRadius, Rect, StrokeKind, Ui, WidgetInfo, WidgetType, pos2, vec2};
 use petunia_core::{
     AppState, ClearSelectionCmd, DeleteAssetCmd, DuplicateAssetCmd, EditMode, InvertSelectionCmd,
     MergeCenterCmd, PivotPoint, PrimitiveKind, ProportionalFalloff, SelectAllCmd, SelectionDomain,
@@ -18,6 +22,11 @@ use petunia_core::{
 };
 use petunia_render::Shading;
 
+use crate::adapters::toolbar::{
+    PetuniaResponsiveToolbar, PetuniaToolbarCluster, PetuniaToolbarId, PetuniaToolbarPlan,
+    PetuniaToolbarSlot, PetuniaToolbarSpec,
+};
+use crate::foundation::spacing;
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::widgets::{
@@ -25,193 +34,83 @@ use crate::widgets::{
     PetuniaMenuRadioItem, petunia_menu_separator,
 };
 
-/// Cluster da barra da viewport, em ordem de prioridade (mantidos primeiro).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BarCluster {
-    Domain,
-    Menus,
-    Transform,
-    SnapProp,
-    Display,
-}
+/// Identificador da barra (raiz dos ids internos do adapter).
+const TOOLBAR_ID: &str = "viewport-context-bar";
 
-/// Largura de texto em px (galley real, nunca `len() * k`).
-fn text_w(ui: &Ui, label: &str, size: f32) -> f32 {
-    ui.fonts_mut(|f| {
-        f.layout_no_wrap(label.to_owned(), FontId::proportional(size), Color32::WHITE)
-            .size()
-            .x
-    })
-}
+/// Faixas da barra (§46). O adapter mede e decide; aqui existe só a semântica
+/// de produto: quais faixas existem, qual pode cair e o que a seta esconde.
+const SLOT_DOMAIN: PetuniaToolbarId = "viewport.domain";
+const SLOT_MENUS: PetuniaToolbarId = "viewport.menus";
+const SLOT_TRANSFORM: PetuniaToolbarId = "viewport.transform";
+const SLOT_SNAP_PROP: PetuniaToolbarId = "viewport.snap-prop";
+const SLOT_DISPLAY: PetuniaToolbarId = "viewport.display";
+const SLOT_OVERFLOW: PetuniaToolbarId = "viewport.overflow";
 
-/// Larguras REAIS dos clusters no estado corrente: botões fixos somados +
-/// rótulos medidos por galley. O overflow decide pelo espaço livre de verdade,
-/// sem estimativa folgada que esconda ferramenta com tela sobrando.
-fn measured_widths(ui: &Ui, state: &AppState) -> [(BarCluster, f32); 5] {
-    // Domínio: 28 + 24*3 + 3 gaps de 2px.
-    let domain = 28.0 + 24.0 * 3.0 + 3.0 * 2.0;
-    // Menus: 4 botões (8 pad + texto 12px + 4 + seta 16) + 3 gaps de 6px.
-    let menu_labels = [
-        state.t("menu.view"),
-        state.t("tools.select"),
-        state.t("tools.primitives"),
-        if state.mode == EditMode::Object {
-            state.t("modes.object")
-        } else {
-            state.t("ui.mesh")
-        },
-    ];
-    let menus: f32 = menu_labels
-        .iter()
-        .map(|l| 8.0 + text_w(ui, l, 12.0) + 4.0 + 16.0)
-        .sum::<f32>()
-        + 3.0 * 6.0;
-    // Transform: ícones 14 + combos 62/88 + travas 3x24 + gaps internos.
-    let axis_btn = 3.0 * 24.0 + 2.0 * 3.0;
-    let mut transform = 14.0 + 3.0 + 62.0 + 2.0 + 14.0 + 3.0 + 88.0 + 2.0 + 14.0 + 3.0 + axis_btn;
-    if state.is_axis_locked(0) || state.is_axis_locked(1) || state.is_axis_locked(2) {
-        transform += 70.0; // badge de restrição ativa
-    }
-    // Snap/Prop: 24+22+3+24+22 + gaps de 1px.
-    let snap_prop = 24.0 + 22.0 + 3.0 + 24.0 + 22.0 + 4.0 * 1.0;
-    // Display: overlays 24+22 + xray 26 + tri 26 + shading 4x22 + seps/gaps.
-    let display = 24.0 + 22.0 + 3.0 * 1.0 + 26.0 + 26.0 + 8.0 + 8.0 + 4.0 * 22.0 + 3.0 * 3.0;
-    // Margem de segurança fina (variância de raster, não chute).
-    let m = 8.0;
-    [
-        (BarCluster::Domain, domain + m),
-        (BarCluster::Menus, menus + m),
-        (BarCluster::Transform, transform + m),
-        (BarCluster::SnapProp, snap_prop + m),
-        (BarCluster::Display, display + m),
-    ]
-}
+/// Declaração da barra: linha principal (navegação) e linha secundária
+/// (edição/visualização), com os ranks de queda.
+///
+/// `snap-prop` tem rank maior que `transform`: com pouco espaço é a orientação
+/// de transformação que vai para a seta primeiro — comportamento preservado da
+/// barra original, agora declarado em vez de implícito numa ordem de `for`.
+/// Domínio, Menus e Display são núcleo: nunca saem da barra.
+static VIEWPORT_BAR: PetuniaToolbarSpec = PetuniaToolbarSpec {
+    primary: &[
+        PetuniaToolbarCluster::pinned(SLOT_DOMAIN),
+        PetuniaToolbarCluster::pinned(SLOT_MENUS),
+    ],
+    secondary: &[
+        PetuniaToolbarCluster::overflowable(SLOT_TRANSFORM, 10),
+        PetuniaToolbarCluster::overflowable(SLOT_SNAP_PROP, 20),
+        PetuniaToolbarCluster::pinned(SLOT_DISPLAY),
+    ],
+    max_rows: 2,
+    overflow: Some(SLOT_OVERFLOW),
+};
 
 /// Renderiza a barra de contexto horizontal do Viewport 3D.
 ///
-/// Responsiva em duas dimensões (padrões CSS traduzidos p/ egui built-in):
-/// largura decide o conjunto visível (excedente vai ao overflow sob a seta,
-/// sempre alcançável); altura > 40px (painel arrastado) divide em 2 linhas.
-pub fn draw(ui: &mut Ui, state: &mut AppState) {
+/// Responsiva em duas dimensões, sem nenhuma conta local: a largura decide o
+/// que fica visível (o excedente vai para a seta, sempre alcançável) e a altura
+/// decide uma ou duas linhas. Quem mede e decide é
+/// [`PetuniaResponsiveToolbar`] — larguras reais de sonda, gaps e divisores
+/// medidos do tema, distribuição no `taffy`.
+pub fn draw(ui: &mut Ui, state: &mut AppState) -> PetuniaToolbarPlan {
     // Interceptação defensiva de atalhos globais de modo se nenhum campo de texto estiver focado
     handle_keyboard_shortcuts(ui, state);
 
-    let avail_w = ui.available_width();
-    // Conjunto oculto pelo espaço livre REAL (menor prioridade primeiro;
-    // Domínio/Menus/Display nunca escondem: núcleo sempre visível).
-    let widths = measured_widths(ui, state);
-    let width_of = |c: BarCluster| {
-        widths
-            .iter()
-            .find(|(k, _)| *k == c)
-            .map(|(_, w)| *w)
-            .unwrap_or(0.0)
-    };
-    let mut hidden = Vec::new();
-    let mut used = width_of(BarCluster::Domain)
-        + width_of(BarCluster::Menus)
-        + width_of(BarCluster::Display)
-        + 3.0 * 16.0
-        + 30.0;
-    for cluster in [BarCluster::SnapProp, BarCluster::Transform] {
-        if used + width_of(cluster) + 16.0 > avail_w {
-            hidden.push(cluster);
-        } else {
-            used += width_of(cluster) + 16.0;
-        }
-    }
-
-    if ui.available_height() > 40.0 {
-        // Duas linhas: navegação em cima, edição/visualização embaixo.
-        ui.horizontal_centered(|ui| {
-            ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-            draw_selection_domain_cluster(ui, state);
-            cluster_sep(ui);
-            draw_viewport_actions_cluster(ui, state);
-        });
-        ui.horizontal_centered(|ui| {
-            ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-            let mut first = true;
-            for cluster in [BarCluster::Transform, BarCluster::SnapProp] {
-                if hidden.contains(&cluster) {
-                    continue;
-                }
-                if !first {
-                    cluster_sep(ui);
-                }
-                first = false;
-                match cluster {
-                    BarCluster::Transform => draw_transform_cluster(ui, state),
-                    BarCluster::SnapProp => draw_snap_and_prop_cluster(ui, state),
-                    _ => {}
-                }
-            }
-            if !first {
-                cluster_sep(ui);
-            }
-            draw_display_toggles_cluster(ui, state);
-            ui.add_space(4.0);
-            draw_shading_spheres_cluster(ui, state);
-            if !hidden.is_empty() {
-                ui.add_space(2.0);
-                draw_overflow_button(ui, state, &hidden);
-            }
-        });
-        return;
-    }
-
-    ui.horizontal_centered(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-
-        // CLUSTER 1 & 2: Domínio Unificado de Seleção (Object / Vertex / Edge / Face) (P3D-015)
-        draw_selection_domain_cluster(ui, state);
-
-        cluster_sep(ui);
-
-        // CLUSTER 3: Menus Rápidos Padronizados com Ícones (View, Select, Add, Objeto/Malha)
-        draw_viewport_actions_cluster(ui, state);
-
-        if !hidden.contains(&BarCluster::Transform) {
-            cluster_sep(ui);
-            // CLUSTER 4: Orientação, Ponto de Pivô e Travamento de Eixos
-            draw_transform_cluster(ui, state);
-        }
-
-        if !hidden.contains(&BarCluster::SnapProp) {
-            cluster_sep(ui);
-            // CLUSTER 5: Snapping Magnético e Edição Proporcional
-            draw_snap_and_prop_cluster(ui, state);
-        }
-
-        if !hidden.is_empty() {
-            cluster_sep(ui);
-            draw_overflow_button(ui, state, &hidden);
-        }
-
-        // CLUSTERS 6 & 7 no mesmo fluxo centralizado (Overlays, X-Ray e
-        // Esferas de Sombreamento): nada ancorado à direita, sem vão morto.
-        cluster_sep(ui);
-        draw_display_toggles_cluster(ui, state);
-        ui.add_space(4.0);
-        draw_shading_spheres_cluster(ui, state);
-    });
+    let toolbar = PetuniaResponsiveToolbar::new(TOOLBAR_ID, &VIEWPORT_BAR);
+    toolbar.show(ui, &mut |ui, slot| draw_slot(ui, state, slot))
 }
 
-/// Separador entre clusters (espaço + linha + espaço).
-fn cluster_sep(ui: &mut Ui) {
-    ui.add_space(2.0);
-    ui.separator();
-    ui.add_space(2.0);
+/// Desenho de uma faixa declarada em [`VIEWPORT_BAR`].
+fn draw_slot(ui: &mut Ui, state: &mut AppState, slot: PetuniaToolbarSlot<'_>) {
+    match slot.id {
+        SLOT_DOMAIN => draw_selection_domain_cluster(ui, state),
+        SLOT_MENUS => draw_viewport_actions_cluster(ui, state),
+        SLOT_TRANSFORM => draw_transform_cluster(ui, state),
+        SLOT_SNAP_PROP => draw_snap_and_prop_cluster(ui, state),
+        SLOT_DISPLAY => draw_display_cluster(ui, state),
+        SLOT_OVERFLOW => draw_overflow_button(ui, state, slot.hidden),
+        _ => {}
+    }
 }
 
-/// Seta de overflow: clusters ocultos por falta de largura, sempre operáveis.
-fn draw_overflow_button(ui: &mut Ui, state: &mut AppState, hidden: &[BarCluster]) {
+/// Faixa de visualização: alternâncias de cena (Overlays, X-Ray) e as esferas
+/// de sombreamento como **uma** unidade de barra.
+fn draw_display_cluster(ui: &mut Ui, state: &mut AppState) {
+    draw_display_toggles_cluster(ui, state);
+    spacing::hspace(ui, spacing::RELATED);
+    draw_shading_spheres_cluster(ui, state);
+}
+
+/// Seta de overflow: faixas ocultas por falta de largura, sempre operáveis.
+fn draw_overflow_button(ui: &mut Ui, state: &mut AppState, hidden: &[PetuniaToolbarId]) {
     let tip = state.t("viewport.overflow");
     PetuniaMenuButton::chevron_only()
         .tooltip(&tip)
         .show(ui, |ui| {
             ui.set_min_width(168.0);
-            if hidden.contains(&BarCluster::SnapProp) {
+            if hidden.contains(&SLOT_SNAP_PROP) {
                 let snap_label = state.t("viewport.snap_tip");
                 if PetuniaMenuCheckboxItem::new(&snap_label, state.snap_enabled)
                     .show(ui)
@@ -232,7 +131,7 @@ fn draw_overflow_button(ui: &mut Ui, state: &mut AppState, hidden: &[BarCluster]
                 }
                 petunia_menu_separator(ui);
             }
-            if hidden.contains(&BarCluster::Transform) {
+            if hidden.contains(&SLOT_TRANSFORM) {
                 ui.label(
                     egui::RichText::new(state.t("viewport.orientation"))
                         .strong()
@@ -705,8 +604,8 @@ fn draw_viewport_actions_cluster(ui: &mut Ui, state: &mut AppState) {
         state.begin_primitive(kind, None);
     }
 
-    // Menu Contextual: Objeto (em Object Mode) ou Malha (em Edit Mode)
-    if state.mode == EditMode::Object {
+    // Menu contextual: domínio Object (objeto inteiro) ou domínio de componente (malha).
+    if state.edit_mode() == EditMode::Object {
         let object_label = state.t("modes.object");
         PetuniaMenuButton::new(&object_label).show(ui, |ui| {
             let sc_dup = state
@@ -1640,6 +1539,162 @@ mod tests {
     use super::*;
     use petunia_core::SelectMode;
 
+    /// Desenha a barra num retângulo de tamanho controlado e devolve o plano.
+    fn draw_in_rect(state: &mut AppState, size: egui::Vec2) -> (PetuniaToolbarPlan, egui::Rect) {
+        let ctx = egui::Context::default();
+        let mut plan = None;
+        let mut used = egui::Rect::NOTHING;
+        // Duas passagens: a primeira é a passagem de medida do `egui_taffy`.
+        for _ in 0..2 {
+            ctx.run_ui(egui::RawInput::default(), |ui| {
+                let mut bar = ui.new_child(
+                    egui::UiBuilder::new()
+                        .max_rect(egui::Rect::from_min_size(egui::Pos2::ZERO, size))
+                        .layout(egui::Layout::top_down(egui::Align::Min)),
+                );
+                plan = Some(draw(&mut bar, state));
+                used = bar.min_rect();
+            })
+            .textures_delta
+            .clear();
+        }
+        (plan.expect("barra sempre produz plano"), used)
+    }
+
+    #[test]
+    fn toolbar_keeps_the_core_visible_no_matter_how_narrow() {
+        let mut state = AppState::new("en");
+        for width in [180.0, 320.0, 520.0, 900.0, 1_600.0] {
+            let (plan, _) = draw_in_rect(&mut state, egui::vec2(width, 26.0));
+            for core in [SLOT_DOMAIN, SLOT_MENUS, SLOT_DISPLAY] {
+                assert!(
+                    plan.is_visible(core),
+                    "{core} é núcleo e sumiu numa barra de {width}px"
+                );
+            }
+            // Toda faixa do modelo aparece visível ou na seta — nunca no limbo.
+            let visible_clusters = plan
+                .visible(1)
+                .iter()
+                .filter(|id| **id != SLOT_OVERFLOW)
+                .count();
+            assert_eq!(
+                visible_clusters + plan.hidden(1).len(),
+                5,
+                "faixa perdida numa barra de {width}px"
+            );
+        }
+    }
+
+    #[test]
+    fn only_pinned_clusters_may_exceed_the_available_width() {
+        let mut state = AppState::new("en");
+        let mut previous = 0.0_f32;
+        for width in [420.0, 500.0, 640.0, 900.0, 1_600.0] {
+            let (plan, used) = draw_in_rect(&mut state, egui::vec2(width, 26.0));
+            assert!(
+                used.width() >= previous - 0.5,
+                "dar mais largura não pode encolher a barra ({}px)",
+                width
+            );
+            previous = used.width();
+
+            // O núcleo não pode ser ocultado: a única forma de a linha passar da
+            // largura é o próprio núcleo ser largo. Nenhuma faixa **ocultável**
+            // pode estar desenhada quando a linha estoura.
+            if used.width() > width + 0.5 {
+                for id in [SLOT_TRANSFORM, SLOT_SNAP_PROP] {
+                    assert!(
+                        !plan.visible(1).contains(&id),
+                        "{id} desenhado enquanto a barra estoura em {width}px"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn narrow_bar_moves_transform_and_snap_to_overflow() {
+        let mut state = AppState::new("en");
+        let (wide, _) = draw_in_rect(&mut state, egui::vec2(1_800.0, 26.0));
+        assert!(wide.visible(1).contains(&SLOT_TRANSFORM));
+        assert!(wide.visible(1).contains(&SLOT_SNAP_PROP));
+        assert!(!wide.has_hidden(), "com 1800px não cabe tudo?");
+
+        let (narrow, _) = draw_in_rect(&mut state, egui::vec2(420.0, 26.0));
+        assert!(narrow.has_hidden(), "420px não comporta a barra inteira");
+        for hidden in narrow.hidden_all() {
+            assert!(
+                hidden != SLOT_DOMAIN && hidden != SLOT_MENUS && hidden != SLOT_DISPLAY,
+                "só faixas de rank declarado podem cair"
+            );
+        }
+    }
+
+    #[test]
+    fn long_locale_pushes_more_clusters_to_overflow_than_en() {
+        // pt-BR tem rótulos mais longos que en: a barra precisa ceder para a seta
+        // em vez de cortar.
+        let mut en = AppState::new("en");
+        let mut pt = AppState::new("pt-BR");
+        let (en_plan, en_rect) = draw_in_rect(&mut en, egui::vec2(700.0, 26.0));
+        let (pt_plan, pt_rect) = draw_in_rect(&mut pt, egui::vec2(700.0, 26.0));
+
+        assert!(
+            pt_rect.width() >= en_rect.width() - 0.5,
+            "rótulos maiores encolheram a barra: en={:?} pt-BR={:?}",
+            en_rect.width(),
+            pt_rect.width()
+        );
+        assert!(
+            pt_plan.hidden_all().len() >= en_plan.hidden_all().len(),
+            "idioma longo precisa ceder para a seta, não caber por mágica"
+        );
+        for (locale, plan) in [("en", &en_plan), ("pt-BR", &pt_plan)] {
+            for core in [SLOT_DOMAIN, SLOT_MENUS, SLOT_DISPLAY] {
+                assert!(plan.is_visible(core), "[{locale}] {core} é núcleo");
+            }
+            if plan.has_hidden() {
+                assert!(
+                    plan.is_visible(SLOT_OVERFLOW),
+                    "[{locale}] ocultos sem seta de acesso: {:?}",
+                    plan.hidden_all()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn second_row_appears_only_when_the_measured_line_height_fits() {
+        let mut state = AppState::new("en");
+
+        let (one_row, used) = draw_in_rect(&mut state, egui::vec2(1_600.0, 26.0));
+        assert_eq!(one_row.rows(), 1);
+        assert!(
+            used.height() <= 30.0,
+            "uma linha de 22px não pode ocupar {}px",
+            used.height()
+        );
+
+        let (two_rows, used) = draw_in_rect(&mut state, egui::vec2(1_600.0, 60.0));
+        assert_eq!(two_rows.rows(), 2, "altura de sobra precisa virar 2 linhas");
+        assert!(
+            used.height() > 40.0,
+            "duas linhas desenhadas não podem medir {}px",
+            used.height()
+        );
+        assert!(
+            used.height() <= 60.0,
+            "duas linhas passaram da altura disponível: {}px",
+            used.height()
+        );
+
+        // Campo apertado entre 1 e 2 linhas: fica em uma, sem espremer a segunda.
+        let (tight, used) = draw_in_rect(&mut state, egui::vec2(1_600.0, 30.0));
+        assert_eq!(tight.rows(), 1, "30px não são duas linhas de 22px");
+        assert!(used.height() <= 34.0);
+    }
+
     #[test]
     fn primitive_menu_covers_all_ten_species_once() {
         let groups = primitive_menu_groups();
@@ -1669,11 +1724,25 @@ mod tests {
     }
 
     #[test]
+    fn snap_and_prop_stay_reachable_through_the_overflow_menu() {
+        // A seta precisa existir sempre que algo é ocultado — do contrário a
+        // ferramenta fica inalcançável numa tela pequena.
+        let mut state = AppState::new("en");
+        let (plan, _) = draw_in_rect(&mut state, egui::vec2(400.0, 26.0));
+        assert!(plan.has_hidden(), "400px não comporta a barra inteira");
+        assert!(
+            plan.overflow_visible(SLOT_OVERFLOW),
+            "algo oculto sem seta de acesso: {:?}",
+            plan.hidden_all()
+        );
+    }
+
+    #[test]
     fn test_selection_modes_toggle_via_bar() {
         let mut state = AppState::new("en");
-        assert_eq!(state.mode, EditMode::Object);
+        assert_eq!(state.edit_mode(), EditMode::Object);
 
-        state.mode = EditMode::Edit;
+        state.set_edit_mode(EditMode::Edit);
         state.select_mode = SelectMode::Vertex;
         assert_eq!(state.select_mode, SelectMode::Vertex);
 
@@ -1685,10 +1754,10 @@ mod tests {
     fn test_mode_and_target_separation() {
         let mut state = AppState::new("en");
         // Em Object Mode, alvos de seleção de malha não devem ser alterados
-        assert_eq!(state.mode, EditMode::Object);
+        assert_eq!(state.edit_mode(), EditMode::Object);
 
-        state.mode = EditMode::Edit;
-        assert_eq!(state.mode, EditMode::Edit);
+        state.set_edit_mode(EditMode::Edit);
+        assert_eq!(state.edit_mode(), EditMode::Edit);
         state.select_mode = SelectMode::Edge;
         assert_eq!(state.select_mode, SelectMode::Edge);
     }
@@ -1700,7 +1769,7 @@ mod tests {
 
         state.set_selection_domain(SelectionDomain::Vertex);
         assert_eq!(state.selection_domain(), SelectionDomain::Vertex);
-        assert_eq!(state.mode, EditMode::Edit);
+        assert_eq!(state.edit_mode(), EditMode::Edit);
         assert_eq!(state.select_mode, SelectMode::Vertex);
 
         state.cycle_selection_domain();

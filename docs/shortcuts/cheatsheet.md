@@ -1,75 +1,103 @@
-# Cheatsheet de Atalhos (Folha de Consulta Rápida)
-
-Guarde esta página nos seus favoritos ou imprima-a para ter sempre à mão!
-
+---
+title: Cheatsheet de Atalhos (Perfil Petunia)
+description: Atalhos do perfil canônico Petunia, gerados a partir do keymap (P3D-090, P3D-119)
 ---
 
-## 🧭 Navegação & Câmera
-- `MMB` (Arrastar): Órbita 3D
-- `Shift + MMB` (Arrastar): Panorâmica (Pan)
-- `Scroll`: Zoom
-- `Numpad 1`: Vista Frontal
-- `Numpad 3`: Vista Lateral Direita
-- `Numpad 7`: Vista Superior (Top)
-- `Numpad 9`: Inverter Vista Oposta
-- `Numpad 5`: Alternar Perspectiva / Ortográfica
-- `Numpad .`: Centralizar na Seleção
-- `Numpad /`: Isolar Seleção (Visão Local)
-- `Shift + C`: Centralizar 3D Cursor na Origem
+<!--
+  ARQUIVO GERADO AUTOMATICAMENTE — NÃO EDITE MANUALMENTE!
+  Gerado deterministicamente por `cargo xtask docs` (P3D-119).
+  Para atualizar execute: cargo run -p xtask -- docs
+-->
 
----
+# Cheatsheet de Atalhos — perfil `petunia-default`
 
-## 🎯 Seleção & Modos
-- `Tab`: Alternar entre Modo Objeto e Modo de Edição
-- `1`: Seleção de Vértices
-- `2`: Seleção de Arestas
-- `3`: Seleção de Faces
-- `A`: Selecionar Tudo
-- `Alt + A`: Desmarcar Tudo
-- `B`: Seleção por Caixa (Box Select)
-- `Ctrl + I`: Inverter Seleção
-- `Shift + RMB`: Posicionar 3D Cursor
+> **Perfil canônico:** `Petunia` é o preset default do produto. Os demais presets
+> oficiais são `Petunia Simple`, `Petunia Notebook`, `Blender-like`,
+> `Blender-like Notebook`, `Maya-like`, `3ds Max-like` e `Cinema 4D-like`.
+> A tabela completa de todos os perfis está em
+> [Catálogo de Perfis e Atalhos](../generated/KEYBINDS.md).
 
----
+> Nenhuma ferramenta depende de tecla física como regra de negócio: os binds
+> apontam para `CommandId` e podem ser remapeados por perfil, com detecção de
+> conflito e import/export em JSON versionado.
 
-## 🛠️ Transformações & Modelagem
-- `G`: Mover (Grab)
-- `R`: Rotacionar
-- `S`: Escalar
-- `E`: Extrusão de Região (Extrude Region)
-- `Alt + E`: Extrusão de Faces Individuais (Extrude Individual Faces)
-- `I`: Inserção (Inset)
-- `Ctrl + B`: Chanfro (Bevel)
-- `Ctrl + R`: Corte em Anel (Loop Cut)
-- `K`: Faca (Knife)
-- `Shift + P`: Push / Pull
-- `Shift + K`: Fatiamento (Slice)
-- `Ctrl + D`: Subdividir
-- `Shift + A`: Adicionar Primitiva
-- `Shift + I`: Imagem de Referência
-- `M`: Régua de Medição 3D
-- `D`: Lápis de Anotação 3D
+## Sistema & Arquivos
 
----
+| Ação | Atalho |
+| :--- | :---: |
+| `global.command_palette` | <kbd>Ctrl+P</kbd> |
+| `global.cycle_mode` | <kbd>Tab</kbd> |
+| `global.help` | <kbd>H</kbd> |
+| `global.redo` | <kbd>Ctrl+Shift+Z</kbd> |
+| `global.reset_camera` | <kbd>Home</kbd> |
+| `global.save_project` | <kbd>Ctrl+S</kbd> |
+| `global.toggle_projection` | <kbd>O</kbd> |
+| `global.toggle_wireframe` | <kbd>Z</kbd> |
+| `global.undo` | <kbd>Ctrl+Z</kbd> |
 
-## 🔒 Travamento de Eixos & Modificadores Modais
-- `X` / `Y` / `Z`: Travar no eixo cartesiano correspondente
-- `Shift + X`: Travar no Plano YZ
-- `Shift + Y`: Travar no Plano XZ
-- `Shift + Z`: Travar no Plano XY
-- `Ctrl` (Segurar): Ativar Snap Magnético (0.1m ou 15°)
-- `Enter` / `LMB`: Confirmar operação modal
-- `Escape` / `RMB`: Cancelar e restaurar geometria original
+## Modelagem & Transformação
 
----
+| Ação | Atalho |
+| :--- | :---: |
+| `model.bevel` | <kbd>Ctrl+B</kbd> |
+| `model.connect` | <kbd>Ctrl+J</kbd> |
+| `model.delete` | <kbd>Delete</kbd> |
+| `model.dissolve` | <kbd>X</kbd> |
+| `model.draw_profile` | <kbd>Shift+P</kbd> |
+| `model.duplicate` | <kbd>Shift+D</kbd> |
+| `model.extrude` | <kbd>E</kbd> |
+| `model.extrude_individual` | <kbd>Alt+E</kbd> |
+| `model.frame_selection` | <kbd>F</kbd> |
+| `model.inset` | <kbd>I</kbd> |
+| `model.invert_selection` | <kbd>Ctrl+I</kbd> |
+| `model.knife` | <kbd>K</kbd> |
+| `model.loop_cut` | <kbd>Ctrl+R</kbd> |
+| `model.merge` | <kbd>M</kbd> |
+| `model.move` | <kbd>G</kbd> |
+| `model.primitives` | <kbd>Shift+A</kbd> |
+| `model.push_pull` | <kbd>P</kbd> |
+| `model.rotate` | <kbd>R</kbd> |
+| `model.scale` | <kbd>S</kbd> |
+| `model.select_edge` | <kbd>2</kbd> |
+| `model.select_face` | <kbd>3</kbd> |
+| `model.select_linked` | <kbd>L</kbd> |
+| `model.select_object` | <kbd>0</kbd> |
+| `model.select_vertex` | <kbd>1</kbd> |
+| `model.slice` | <kbd>Shift+K</kbd> |
+| `model.subdivide` | <kbd>W</kbd> |
+| `model.transform` | <kbd>T</kbd> |
 
-## 📂 Sistema & Arquivos
-- `Ctrl + N`: Novo Projeto
-- `Ctrl + O`: Abrir Projeto
-- `Ctrl + S`: Salvar Projeto
-- `Ctrl + Shift + S`: Salvar Como...
-- `Ctrl + E`: Exportar
-- `Ctrl + Z`: Desfazer (Undo)
-- `Ctrl + Shift + Z`: Refazer (Redo)
-- `Ctrl + ,`: Configurações
-- `F1` .. `F4`: Alternar Workspaces (Model, Paint, UV, Animate)
+## Pintura
+
+| Ação | Atalho |
+| :--- | :---: |
+| `paint.paint` | <kbd>B</kbd> |
+
+## Visualização & Câmera
+
+| Ação | Atalho |
+| :--- | :---: |
+| `view.frame_all` | <kbd>Home</kbd> |
+| `view.frame_selection` | <kbd>F</kbd> |
+| `view.reset_camera` | <kbd>Shift+Home</kbd> |
+| `view.toggle_projection` | <kbd>O</kbd> |
+| `view.toggle_wireframe` | <kbd>Z</kbd> |
+| `view.toggle_xray` | <kbd>Alt+Z</kbd> |
+
+## Navegação e foco (contrato de input)
+
+Estas entradas são contrato da UI Baseline V1, não binds de keymap:
+
+| Entrada | Ação |
+| :--- | :--- |
+| `LMB` | selecionar/operar |
+| `Shift + LMB` | adicionar/alternar seleção |
+| `RMB` | context menu |
+| `MMB` | orbit |
+| `Shift + MMB` | pan |
+| wheel/pinch | zoom |
+| `Esc` | cancelar |
+| `Enter` | confirmar operação pendente |
+| `F6` / `Shift+F6` | navegar regiões principais |
+| `Tab` / `Shift+Tab` | navegar controles dentro da região |
+

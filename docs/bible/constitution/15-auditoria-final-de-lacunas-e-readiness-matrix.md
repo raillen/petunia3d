@@ -3,13 +3,13 @@
 <aside>
 🔎
 
-Auditoria documental final da Implementation Bible. O caderno é forte em visão, boundaries e backlog, mas a profundidade ainda é desigual: P3D-001–003 estão próximos de specification-ready; muitas P3D-004+ são contratos compactos que precisam ser aprofundados antes da implementação definitiva.
+Auditoria documental preservada e incorporada ao capítulo 39 do **Petunia3D — Livro Vivo**. A documentação é forte em visão, boundaries e backlog, mas a profundidade das P3Ds continua desigual: P3D-001–003 estão próximos de specification-ready; muitas P3D-004+ são contratos compactos que precisam ser aprofundados antes da implementação definitiva.
 
 </aside>
 
 # Resultado geral
 
-A arquitetura conceitual está bem definida: Constituição, Core agnóstico à UI, Commands, Tools, tokens, keymaps, docs e Gauntlet Loop são coerentes. A maior lacuna não é falta de ideias, mas **transformar contratos compactos em especificações implementation-ready antes de cada wave**.
+A arquitetura conceitual está bem definida no Livro Vivo unificado: Core agnóstico à UI, Commands, Tools, tokens, keymaps, documentação e Gauntlet Loop são coerentes. A maior lacuna não é falta de ideias, mas **transformar contratos compactos em especificações implementation-ready antes de cada wave**.
 
 # Lacunas P0 transversais encontradas
 

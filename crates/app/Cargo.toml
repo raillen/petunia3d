@@ -37,3 +37,8 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 notify = { workspace = true }
 flume = { workspace = true }
 thiserror = { workspace = true }
+
+[features]
+default = []
+# Workspace de animação de P3D-066 (P3). Fora da V1 congelada (capítulo 36).
+animation-workspace = ["petunia_ui/animation-workspace"]

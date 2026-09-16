@@ -1,16 +1,9 @@
 # P3D-117 — Changelog vivo
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 9
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementado via sincronização determinística no xtask e docs-check** · Prioridade: P1.
+Estado: **precisa confirmar integração no repo/site** · Prioridade: P1.
 
 </aside>
 

@@ -6,14 +6,13 @@ O **Manual do Usuário do Petunia3D** é a documentação canônica de referênc
 
 - **[Interface & Docking](./interface)**: Layout de tela, manipulação de painéis e personalização visual.
 - **[Viewport 3D & Câmera](./viewport)**: Navegação espacial, projeção ortográfica, esferas de sombreamento, modo Raio-X e o sistema de **Linhas-Guia de Travamento de Eixos**.
-- **[Modos de Seleção](./selection)**: Modos Objeto, Vértice (com demarcação visual de hover), Aresta e Face, além de seleção por caixa (`Box Select`).
+- **[Seleção](./selection)**: domínios unificados `Object`, `Face`, `Edge` e `Point`, com realce de hover, seleção por caixa e comandos de seleção.
 - **[Fluxo de Modelagem](./modeling)**: Filosofia shape-first, transformações modais atômicas (`G`, `R`, `S`) e histórico transacional de checkpoints com Undo/Redo (`Ctrl+Z` / `Ctrl+Shift+Z`).
-- **[Pintura & Cores](./paint)**: Pintura de vértices e texturas, pincéis com ajuste dinâmico de raio e paletas de cores.
-- **[Mapeamento UV](./uv)**: Projeções ortogonais e unwrapping UV para exportação game-ready.
-- **[Linha do Tempo](./animation)**: Linha do tempo de quadros-chave e controles de transporte.
+- **[Pintura & Cores](./paint)**: Paint on Model sobre Albedo, pincéis com raio dinâmico, paletas com import/export e camadas raster.
+- **[Mapeamento UV](./uv)**: Auto UV, `Project From Reference/View`, packing, texel density e avisos de stretch.
 - **[Biblioteca de Assets](./asset-library)**: A gaveta de modelos reutilizáveis, salvamento isolado de assets e instanciação rápida.
 - **[Projetos (.petunia)](./projects)**: Anatomia interna do formato de projeto e integridade de dados.
-- **[Exportação & Formatos](./export)**: Exportação otimizada para os motores Godot, Unity, Unreal Engine e Blender.
+- **[Exportação & Formatos](./export)**: `.glb` (principal) e `.obj` (secundário) para pipelines de jogos; FBX fora da V1.
 
 ---
 

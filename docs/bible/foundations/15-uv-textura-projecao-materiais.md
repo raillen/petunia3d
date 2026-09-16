@@ -1,6 +1,11 @@
 # 15 — UV, Textura, Projeção e Materiais — Arquitetura Fechada
 
-> O objetivo técnico do sistema de UV/textura é permitir que a maioria dos usuários pinte ou projete uma imagem sem precisar entender unwrap manual. O editor UV existe como correção/controle, não como rito obrigatório.
+<aside>
+🎨
+
+O objetivo técnico do sistema de UV/textura é permitir que a maioria dos usuários pinte ou projete uma imagem sem precisar entender unwrap manual. O editor UV existe como correção/controle, não como rito obrigatório.
+
+</aside>
 
 # Uma única UV principal na V1
 
@@ -26,7 +31,7 @@ Quando a imagem já é a referência de modelagem, reutilizar sua transformaçã
 
 ## 3. Generic Auto UV
 
-Meshes arbitrariamente editadas usam um `UVProvider` externo. O provider oficial inicial será **xatlas**, isolado atrás de interface própria. xatlas gera charts e packing e foi criado para produzir coordenadas UV únicas adequadas a texture painting. [xatlas](https://github.com/jpcy/xatlas)
+Meshes arbitrariamente editadas usam um `UVProvider` externo. O provider oficial inicial será **xatlas**, isolado atrás de interface própria. xatlas gera charts e packing e foi criado para produzir coordenadas UV únicas adequadas a texture painting.[[https://github.com/jpcy/xatlas](https://github.com/jpcy/xatlas)]
 
 A aplicação nunca depende de tipos xatlas fora do adapter.
 
@@ -107,7 +112,7 @@ Para manter implementação pequena, V1 não terá compositor procedural nem lay
 
 `TextureDocument` suporta fontes ordenadas simples:
 
-```plain text
+```
 RasterPaint
 PhotoProjection
 Decal (V1.x)
@@ -163,7 +168,7 @@ Height/Displacement pode existir como canal authoring opcional posterior, mas **
 
 Normals são derivados da geometria/sharp flags. Não armazenar custom split normals editáveis na V1.
 
-Tangents são gerados somente quando necessários por normal mapping, usando a crate Rust **`mikktspace`** ou implementação comprovadamente compatível atrás de adapter simples. Essa dependência é **condicional**: só entra quando normal mapping exigir tangents e não faz parte do caminho mínimo de Base Color/Unlit. [MikkTSpace](https://github.com/mmikk/MikkTSpace)
+Tangents são gerados somente quando necessários por normal mapping, usando a crate Rust **`mikktspace`** ou implementação comprovadamente compatível atrás de adapter simples. Essa dependência é **condicional**: só entra quando normal mapping exigir tangents e não faz parte do caminho mínimo de Base Color/Unlit.[[https://github.com/mmikk/MikkTSpace](https://github.com/mmikk/MikkTSpace)]
 
 # Regra final
 

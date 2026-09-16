@@ -64,7 +64,7 @@ pub fn draw(ui: &mut Ui, state: &mut AppState) {
 fn edit_guard(state: &AppState) -> Option<String> {
     if state.project.active_mesh().is_none() {
         Some(state.t("actions.no_mesh"))
-    } else if state.mode != EditMode::Edit {
+    } else if state.edit_mode() != EditMode::Edit {
         Some(state.t("actions.need_edit"))
     } else {
         None
@@ -463,7 +463,7 @@ mod tests {
             "revolve",
         ] {
             let mut state = AppState::new("en");
-            state.mode = EditMode::Edit;
+            state.set_edit_mode(EditMode::Edit);
             state.active_tool = id.to_owned();
             context
                 .run_ui(egui::RawInput::default(), |ui| draw(ui, &mut state))

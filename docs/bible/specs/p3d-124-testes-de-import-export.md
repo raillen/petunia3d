@@ -1,12 +1,5 @@
 # P3D-124 — Testes de import/export
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 8
-- **Status Canônico**: `COMPLIANT (Testes de Import/Export & Delivery Pipeline)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

@@ -76,6 +76,12 @@ bloqueia comandos concorrentes; `state.is_interacting()` desativa os painéis.
 `core::picking` usa triangulação e projeção coerente com a câmera para hover/pick.
 `mesh::{loop_cut,knife,bevel}` contém algoritmos sem dependência de UI.
 
-O manifesto contém **14 crates internos**, mais o pacote executável raiz;
-a referência anterior a 13 crates estava desatualizada. Não foram adicionados
-novos crates nem dependências externas nesta rodada.
+O manifesto declara **19 membros** no workspace (`core`, `mesh`, `commands`,
+`config`, `project`, `plugins`, `mcp`, `render`, `render-gl`, `render-wgpu`,
+`module-model`, `module-paint`, `module-uv`, `module-assets`, `ui`, `app`, `cli`,
+`ffi`, `xtask`), mais o pacote executável raiz. As contagens antigas (13, 14, 17)
+que circularam nesta documentação estavam desatualizadas.
+
+A autoridade do grafo de crates é o capítulo 28 do Livro Vivo
+(`docs/bible/foundations/28-arquitetura-rust-cargo-crates.md`), com o capítulo 34
+para representação, ownership e Rust safety.

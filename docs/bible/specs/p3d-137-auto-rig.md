@@ -1,16 +1,9 @@
 # P3D-137 — Auto-Rig
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementado via `auto_fit_humanoid` e `compute_auto_skin_weights` em `crates/project/src/animation.rs`** · Prioridade: P3.
+Novo item; implementar somente após Rig Core/Presets · Prioridade: P3.
 
 </aside>
 

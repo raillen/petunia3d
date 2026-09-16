@@ -21,6 +21,11 @@ pub const ACCENT_BLUE_HOVER: Color32 = Color32::from_rgb(0x47, 0x7c, 0xf5);
 pub const ACCENT_BORDER: Color32 = Color32::from_rgb(0x5b, 0x8e, 0xff);
 pub const ACCENT_GREEN: Color32 = Color32::from_rgb(0x2e, 0xcc, 0x71);
 pub const ACCENT_AMBER: Color32 = Color32::from_rgb(0xf3, 0x9c, 0x12);
+/// Semântica de **erro/validação** (Wave 7 — §51): campo inválido, não
+/// destrutivo. Antes era literal em cada tela de erro.
+pub const ACCENT_ERROR: Color32 = Color32::from_rgb(0xef, 0x53, 0x50);
+/// Fundo suave do mesmo erro (bloco de mensagens inline).
+pub const ACCENT_ERROR_SOFT: Color32 = Color32::from_rgba_premultiplied(0x18, 0x08, 0x08, 0x40);
 
 // ------------------------------------------------------------- Cores dos Modos
 pub const MODE_OBJECT: Color32 = Color32::from_rgb(0x34, 0x98, 0xdb);
@@ -48,8 +53,33 @@ pub const TOP_HEADER_HEIGHT: f32 = 28.0;
 pub const TOP_HEADER_MAX_HEIGHT: f32 = 72.0;
 pub const VIEWPORT_BAR_HEIGHT: f32 = 26.0;
 pub const VIEWPORT_BAR_MAX_HEIGHT: f32 = 56.0;
+/// Largura de um botão de ferramenta no modo compacto (ícone).
 pub const TOOLBAR_WIDTH: f32 = 40.0;
-pub const TOOLBAR_MIN_WIDTH: f32 = 48.0;
+/// Vão entre dois controles que dividem a linha da paleta (botão + seta).
+pub const TOOLBAR_CONTROL_GAP: f32 = 2.0;
+/// Largura reservada à seta do menu de um grupo (split button) da paleta.
+///
+/// Medido no tema padrão: o botão da seta ocupa 21.4px. O token declara 22px
+/// porque um piso precisa de folga — declarar **menos** que o medido é o que
+/// produz o controle cortado fora do paine.
+pub const TOOLBAR_CHEVRON_WIDTH: f32 = 22.0;
+/// Perda de largura entre a coluna de ferramentas e a célula da paleta.
+///
+/// São os dois respiros da moldura do paine (4 + 4) e o arredondamento do motor
+/// de layout. Medido: coluna de 74px ⇒ célula de 64px (= piso da linha de
+/// grupo). É o único jeito de o mínimo da coluna falar a língua da célula.
+pub const TOOLBAR_CHROME_WIDTH: f32 = 10.0;
+/// Menor largura em que a coluna de ferramentas é utilizável.
+///
+/// Derivada, não escolhida: é a linha de um **grupo** (botão compacto + vão +
+/// seta) mais a moldura. Com a coluna mais estreita que isto a seta do menu da
+/// família (Seleção/Transformação) sai do paine e o menu fica inalcançável pelo
+/// mouse — era exatamente o que acontecia com o piso herdado de 48px, que só
+/// cabia no ícone.
+pub const TOOLBAR_MIN_WIDTH: f32 =
+    TOOLBAR_WIDTH + TOOLBAR_CONTROL_GAP + TOOLBAR_CHEVRON_WIDTH + TOOLBAR_CHROME_WIDTH;
+/// Respiro lateral do conteúdo da paleta (moldura do paine).
+pub const TOOLBAR_PANEL_MARGIN: f32 = 4.0;
 pub const TOOLBAR_MAX_WIDTH: f32 = 240.0;
 pub const STATUS_BAR_HEIGHT: f32 = 24.0;
 pub const TIMELINE_HEIGHT: f32 = 56.0;

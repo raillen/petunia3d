@@ -1,0 +1,3262 @@
+{
+  "algorithm": "fnv1a64",
+  "description": "Hash dos arquivos do site público de documentação, congelado até o fim do projeto (AGENTS.md §1). Regenere com `cargo run -p xtask -- bible-lock` apenas após decisão explícita de descongelar.",
+  "files": [
+    {
+      "hash": "f3f08a6578824287",
+      "path": ".github/workflows/docs.yml"
+    },
+    {
+      "hash": "d22c3b9657c8aa4c",
+      "path": "docs/.vitepress/.env.local"
+    },
+    {
+      "hash": "34fc2a4d1bc2e64e",
+      "path": "docs/.vitepress/bibleSidebar.ts"
+    },
+    {
+      "hash": "d8c240ab86d29f16",
+      "path": "docs/.vitepress/config.mts"
+    },
+    {
+      "hash": "cb5f3e666f3356f3",
+      "path": "docs/.vitepress/modernizationSidebar.ts"
+    },
+    {
+      "hash": "533648a086b8474c",
+      "path": "docs/.vitepress/theme/custom.css"
+    },
+    {
+      "hash": "120c58fcaf9576e8",
+      "path": "docs/.vitepress/theme/index.ts"
+    },
+    {
+      "hash": "adfb155985177921",
+      "path": "docs/image-references/3d-view_bar.png"
+    },
+    {
+      "hash": "e89c75a1d3e7ea38",
+      "path": "docs/image-references/3d-view_bar.svg"
+    },
+    {
+      "hash": "32da444a72c50c7f",
+      "path": "docs/image-references/Blender.png"
+    },
+    {
+      "hash": "d5b229e1d5f38767",
+      "path": "docs/image-references/Blender.svg"
+    },
+    {
+      "hash": "869e88fb7fe3f2aa",
+      "path": "docs/image-references/README.md"
+    },
+    {
+      "hash": "baee45b13dd1615c",
+      "path": "docs/image-references/UI Buttons.png"
+    },
+    {
+      "hash": "d30b680a6d8e92db",
+      "path": "docs/image-references/UI Buttons.svg"
+    },
+    {
+      "hash": "e98adb874bfcc253",
+      "path": "docs/image-references/UI Elements.png"
+    },
+    {
+      "hash": "26ed13758e5f2518",
+      "path": "docs/image-references/UI Elements.svg"
+    },
+    {
+      "hash": "cc599cd0faa9a5ab",
+      "path": "docs/image-references/data_panel_vertical_menu.png"
+    },
+    {
+      "hash": "2cdc11fc88b0e6c8",
+      "path": "docs/image-references/data_panel_vertical_menu.svg"
+    },
+    {
+      "hash": "d8f74351fa2adc1b",
+      "path": "docs/image-references/extracted/3d-view_bar/CATALOG.md"
+    },
+    {
+      "hash": "d8f74351fa2adc1b",
+      "path": "docs/image-references/extracted/3d-view_bar/README.md"
+    },
+    {
+      "hash": "b63d1e91da86eb4d",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/README.md"
+    },
+    {
+      "hash": "e08cbd9b65bd4a04",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_001_51x17.png"
+    },
+    {
+      "hash": "9be030added7eb67",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_001_51x17.svg"
+    },
+    {
+      "hash": "7dd5c2019a827315",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_002_51x17.png"
+    },
+    {
+      "hash": "41607f7de94c1657",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_002_51x17.svg"
+    },
+    {
+      "hash": "663307345c8a59d3",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_003_38x17.png"
+    },
+    {
+      "hash": "a643898fb0bbd671",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_003_38x17.svg"
+    },
+    {
+      "hash": "1b79deba07dc2024",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_004_38x17.png"
+    },
+    {
+      "hash": "9113657fd5818f1f",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_004_38x17.svg"
+    },
+    {
+      "hash": "a5ff0fb75bccb5f3",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_005_98x17.png"
+    },
+    {
+      "hash": "f2f9d992e86364b8",
+      "path": "docs/image-references/extracted/3d-view_bar/buttons/button_005_98x17.svg"
+    },
+    {
+      "hash": "94a47ebf750e5603",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/README.md"
+    },
+    {
+      "hash": "dd8cca9a009dca42",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/icon_clip0_202_568.png"
+    },
+    {
+      "hash": "c3ae1077c6404792",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/icon_clip0_202_568.svg"
+    },
+    {
+      "hash": "982e3fcd3ff79c52",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/icon_clip1_202_568.png"
+    },
+    {
+      "hash": "c81d3066db6ece2a",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/icon_clip1_202_568.svg"
+    },
+    {
+      "hash": "26b5ffbd6e0c9fb1",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/icon_clip2_202_568.png"
+    },
+    {
+      "hash": "ce6ea90456708317",
+      "path": "docs/image-references/extracted/3d-view_bar/icons/icon_clip2_202_568.svg"
+    },
+    {
+      "hash": "cad8ac37b19b5e76",
+      "path": "docs/image-references/extracted/3d-view_bar/index.json"
+    },
+    {
+      "hash": "ce0032685e05a54b",
+      "path": "docs/image-references/extracted/Blender/CATALOG.md"
+    },
+    {
+      "hash": "ce0032685e05a54b",
+      "path": "docs/image-references/extracted/Blender/README.md"
+    },
+    {
+      "hash": "b505baaccd15cb9e",
+      "path": "docs/image-references/extracted/Blender/buttons/README.md"
+    },
+    {
+      "hash": "70a3f50d1283052d",
+      "path": "docs/image-references/extracted/Blender/buttons/button_001_102x20.png"
+    },
+    {
+      "hash": "27c8ec041cd76e82",
+      "path": "docs/image-references/extracted/Blender/buttons/button_001_102x20.svg"
+    },
+    {
+      "hash": "360dd2509fef03c4",
+      "path": "docs/image-references/extracted/Blender/buttons/button_002_118x20.png"
+    },
+    {
+      "hash": "b7f621a2d7e4d85e",
+      "path": "docs/image-references/extracted/Blender/buttons/button_002_118x20.svg"
+    },
+    {
+      "hash": "5a4b2874ff61c0d8",
+      "path": "docs/image-references/extracted/Blender/buttons/button_003_340x30.png"
+    },
+    {
+      "hash": "6a5ae8b9e6f8df46",
+      "path": "docs/image-references/extracted/Blender/buttons/button_003_340x30.svg"
+    },
+    {
+      "hash": "a3a2bafc08db9890",
+      "path": "docs/image-references/extracted/Blender/buttons/button_005_120x17.png"
+    },
+    {
+      "hash": "78de5f50f7f51bca",
+      "path": "docs/image-references/extracted/Blender/buttons/button_005_120x17.svg"
+    },
+    {
+      "hash": "28cd416c700178ff",
+      "path": "docs/image-references/extracted/Blender/embedded_png/README.md"
+    },
+    {
+      "hash": "e61d276bc51bde07",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image0_202_4.png"
+    },
+    {
+      "hash": "86c2afa14e963808",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image0_202_4.svg"
+    },
+    {
+      "hash": "cdd558687ef8e678",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image10_202_4.jpg"
+    },
+    {
+      "hash": "3b10fc135b272e1f",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image10_202_4.svg"
+    },
+    {
+      "hash": "be41b6ae8211c448",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image1_202_4.png"
+    },
+    {
+      "hash": "bfb7d42a6bb46acb",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image1_202_4.svg"
+    },
+    {
+      "hash": "9cfe3b291171320c",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image2_202_4.png"
+    },
+    {
+      "hash": "e06998c8697ffacb",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image2_202_4.svg"
+    },
+    {
+      "hash": "3f888bd2ed1cdafe",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image3_202_4.png"
+    },
+    {
+      "hash": "c4d8a2cdaa000253",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image3_202_4.svg"
+    },
+    {
+      "hash": "b1538d96e0a74888",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image4_202_4.png"
+    },
+    {
+      "hash": "4d472989d611ff5b",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image4_202_4.svg"
+    },
+    {
+      "hash": "0d03022863c59deb",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image5_202_4.png"
+    },
+    {
+      "hash": "b7a10a7fc4d2b28b",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image5_202_4.svg"
+    },
+    {
+      "hash": "1397039cd10c4f6b",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image6_202_4.png"
+    },
+    {
+      "hash": "82efac0e7d71049b",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image6_202_4.svg"
+    },
+    {
+      "hash": "3ef3b666b54a8bc2",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image7_202_4.png"
+    },
+    {
+      "hash": "efaad94d1943dc13",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image7_202_4.svg"
+    },
+    {
+      "hash": "f3190526cf5a9d72",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image8_202_4.png"
+    },
+    {
+      "hash": "65aa2c8b5c433fdb",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image8_202_4.svg"
+    },
+    {
+      "hash": "f5fc15d1c42d2585",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image9_202_4.png"
+    },
+    {
+      "hash": "519f14cc98e379c3",
+      "path": "docs/image-references/extracted/Blender/embedded_png/image9_202_4.svg"
+    },
+    {
+      "hash": "2846460997615378",
+      "path": "docs/image-references/extracted/Blender/icons/README.md"
+    },
+    {
+      "hash": "ee02ac09697c7d09",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip10_202_4.png"
+    },
+    {
+      "hash": "e86e5c60578db871",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip10_202_4.svg"
+    },
+    {
+      "hash": "422a35b4352b1cc5",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip11_202_4.png"
+    },
+    {
+      "hash": "5b582776d6a97a79",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip11_202_4.svg"
+    },
+    {
+      "hash": "f5a01b21473998f2",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip12_202_4.png"
+    },
+    {
+      "hash": "baa33fd851dbe01f",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip12_202_4.svg"
+    },
+    {
+      "hash": "793ee1311ea5e13b",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip13_202_4.png"
+    },
+    {
+      "hash": "4da1f558c09882c4",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip13_202_4.svg"
+    },
+    {
+      "hash": "422a35b4352b1cc5",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip14_202_4.png"
+    },
+    {
+      "hash": "53a47f5a16235ff3",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip14_202_4.svg"
+    },
+    {
+      "hash": "0213211c69845fdc",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip16_202_4.png"
+    },
+    {
+      "hash": "6a9fda5037f45f0e",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip16_202_4.svg"
+    },
+    {
+      "hash": "116cbdc619c95499",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip17_202_4.png"
+    },
+    {
+      "hash": "cd6c0656d51c64ac",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip17_202_4.svg"
+    },
+    {
+      "hash": "2628f7a694c7cd01",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip18_202_4.png"
+    },
+    {
+      "hash": "dd614f8967ce6265",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip18_202_4.svg"
+    },
+    {
+      "hash": "537fe03fc6a8e33f",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip19_202_4.png"
+    },
+    {
+      "hash": "b47c05f442865500",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip19_202_4.svg"
+    },
+    {
+      "hash": "3967dbad66ee2623",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip20_202_4.png"
+    },
+    {
+      "hash": "7151c2ec75c94dcd",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip20_202_4.svg"
+    },
+    {
+      "hash": "fe7015b7ea7dd6f8",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip21_202_4.png"
+    },
+    {
+      "hash": "6c6e1ca49a5009ad",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip21_202_4.svg"
+    },
+    {
+      "hash": "c5b594bc610aac51",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip22_202_4.png"
+    },
+    {
+      "hash": "45f2c7fae0d87a51",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip22_202_4.svg"
+    },
+    {
+      "hash": "0daa83d8621c42eb",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip23_202_4.png"
+    },
+    {
+      "hash": "e186fa2bb94e1394",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip23_202_4.svg"
+    },
+    {
+      "hash": "f201e9ee636f2ef6",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip24_202_4.png"
+    },
+    {
+      "hash": "2279b7acb94f8651",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip24_202_4.svg"
+    },
+    {
+      "hash": "d5e0fb4a12a038fa",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip25_202_4.png"
+    },
+    {
+      "hash": "9766d6b009d8eaeb",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip25_202_4.svg"
+    },
+    {
+      "hash": "7884be076a3abc87",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip26_202_4.png"
+    },
+    {
+      "hash": "b6c0b1cfac773f64",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip26_202_4.svg"
+    },
+    {
+      "hash": "4767b60de5c951b6",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip27_202_4.png"
+    },
+    {
+      "hash": "aa89b3cb5803d094",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip27_202_4.svg"
+    },
+    {
+      "hash": "64978a1c6eaafd80",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip28_202_4.png"
+    },
+    {
+      "hash": "fa7bfe862ddabb20",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip28_202_4.svg"
+    },
+    {
+      "hash": "08f516f55fa33c71",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip29_202_4.png"
+    },
+    {
+      "hash": "7073c78e82c16e7f",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip29_202_4.svg"
+    },
+    {
+      "hash": "2cba22e1bdca02fa",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip2_202_4.png"
+    },
+    {
+      "hash": "47c33a96b3119924",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip2_202_4.svg"
+    },
+    {
+      "hash": "3b30f05f876a7039",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip30_202_4.png"
+    },
+    {
+      "hash": "3f6deca89a89c380",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip30_202_4.svg"
+    },
+    {
+      "hash": "633f5c2997f4974e",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip31_202_4.png"
+    },
+    {
+      "hash": "382d8f3c096576c3",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip31_202_4.svg"
+    },
+    {
+      "hash": "ea6cbb1d32ff6b6a",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip32_202_4.png"
+    },
+    {
+      "hash": "6180a5624453c821",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip32_202_4.svg"
+    },
+    {
+      "hash": "ddc107d9c55bea41",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip33_202_4.png"
+    },
+    {
+      "hash": "250f090318c645e3",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip33_202_4.svg"
+    },
+    {
+      "hash": "3b30f05f876a7039",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip34_202_4.png"
+    },
+    {
+      "hash": "dfbe1727daab9ff0",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip34_202_4.svg"
+    },
+    {
+      "hash": "633f5c2997f4974e",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip35_202_4.png"
+    },
+    {
+      "hash": "53afe4b9beb741c7",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip35_202_4.svg"
+    },
+    {
+      "hash": "ea6cbb1d32ff6b6a",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip36_202_4.png"
+    },
+    {
+      "hash": "dd8be8a34fc0b6f0",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip36_202_4.svg"
+    },
+    {
+      "hash": "ce3be7c527cc84ea",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip37_202_4.png"
+    },
+    {
+      "hash": "a9aec169b627a028",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip37_202_4.svg"
+    },
+    {
+      "hash": "1dc8f6aa1571463e",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip38_202_4.png"
+    },
+    {
+      "hash": "86dc232601443074",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip38_202_4.svg"
+    },
+    {
+      "hash": "c63bced98d8d027c",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip3_202_4.png"
+    },
+    {
+      "hash": "8e0aa5750d928b75",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip3_202_4.svg"
+    },
+    {
+      "hash": "08f4c497f71aacb5",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip4_202_4.png"
+    },
+    {
+      "hash": "a8fff786a3575765",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip4_202_4.svg"
+    },
+    {
+      "hash": "2cf3ce736ab56b19",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip5_202_4.png"
+    },
+    {
+      "hash": "7400f8aceeeba58c",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip5_202_4.svg"
+    },
+    {
+      "hash": "ae477f8f98a290f2",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip6_202_4.png"
+    },
+    {
+      "hash": "6f82ac4b95042d2d",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip6_202_4.svg"
+    },
+    {
+      "hash": "7964a22ffeac1222",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip7_202_4.png"
+    },
+    {
+      "hash": "49540bcfb653c78b",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip7_202_4.svg"
+    },
+    {
+      "hash": "422a35b4352b1cc5",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip8_202_4.png"
+    },
+    {
+      "hash": "314a57cea4ed6ade",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip8_202_4.svg"
+    },
+    {
+      "hash": "55c694fd7fdce655",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip9_202_4.png"
+    },
+    {
+      "hash": "95257a702de21fa7",
+      "path": "docs/image-references/extracted/Blender/icons/icon_clip9_202_4.svg"
+    },
+    {
+      "hash": "f127661261b21f11",
+      "path": "docs/image-references/extracted/Blender/index.json"
+    },
+    {
+      "hash": "fb6fc040f1657ec6",
+      "path": "docs/image-references/extracted/README.md"
+    },
+    {
+      "hash": "b8f068f17906239f",
+      "path": "docs/image-references/extracted/UI_Buttons/CATALOG.md"
+    },
+    {
+      "hash": "b8f068f17906239f",
+      "path": "docs/image-references/extracted/UI_Buttons/README.md"
+    },
+    {
+      "hash": "805236043af083ae",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/README.md"
+    },
+    {
+      "hash": "025532d5b825a521",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_001_38x17.png"
+    },
+    {
+      "hash": "79e7aa64ab112e4f",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_001_38x17.svg"
+    },
+    {
+      "hash": "fec103b1a6d70e49",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_002_38x17.png"
+    },
+    {
+      "hash": "dbf2e69c055d1922",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_002_38x17.svg"
+    },
+    {
+      "hash": "c6ea513e0a77839f",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_003_51x17.png"
+    },
+    {
+      "hash": "4e50653fa5e1eb96",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_003_51x17.svg"
+    },
+    {
+      "hash": "7dd5c2019a827315",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_004_51x17.png"
+    },
+    {
+      "hash": "f9b9357046ecb048",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_004_51x17.svg"
+    },
+    {
+      "hash": "d3c3a6fea4da19ff",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_005_98x17.png"
+    },
+    {
+      "hash": "6f762429c4a85268",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_005_98x17.svg"
+    },
+    {
+      "hash": "c9ac46a570b99b19",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_006_100x17.png"
+    },
+    {
+      "hash": "3498a2e05500f98a",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_006_100x17.svg"
+    },
+    {
+      "hash": "0aab73fad1febf47",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_007_38x17.png"
+    },
+    {
+      "hash": "2ff814d8073e3580",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_007_38x17.svg"
+    },
+    {
+      "hash": "b5d9c24d7ad9bf59",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_008_38x17.png"
+    },
+    {
+      "hash": "3eb5d1504de06b10",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_008_38x17.svg"
+    },
+    {
+      "hash": "30844bf17e5fd1eb",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_009_51x17.png"
+    },
+    {
+      "hash": "a13618744f174358",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_009_51x17.svg"
+    },
+    {
+      "hash": "8cb79729ef589e71",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_010_51x17.png"
+    },
+    {
+      "hash": "37836ac1749df0c0",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_010_51x17.svg"
+    },
+    {
+      "hash": "7b282d975d4c1a03",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_011_98x17.png"
+    },
+    {
+      "hash": "080c36d27c2f4a1d",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_011_98x17.svg"
+    },
+    {
+      "hash": "1e27afe160ac2109",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_012_100x17.png"
+    },
+    {
+      "hash": "0cf35cdf8eb03606",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_012_100x17.svg"
+    },
+    {
+      "hash": "6687eb34bd44414a",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_013_98x17.png"
+    },
+    {
+      "hash": "b8041e41a8bfbccc",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_013_98x17.svg"
+    },
+    {
+      "hash": "38451082ca31df3d",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_014_100x17.png"
+    },
+    {
+      "hash": "58c3fc1687b33019",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_014_100x17.svg"
+    },
+    {
+      "hash": "5cda8a793b5199a2",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_015_38x17.png"
+    },
+    {
+      "hash": "f6e6681ed03ed8b6",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_015_38x17.svg"
+    },
+    {
+      "hash": "49eb5eba9d74501a",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_016_58x17.png"
+    },
+    {
+      "hash": "c2266799bb8e7f25",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_016_58x17.svg"
+    },
+    {
+      "hash": "06718655148e72db",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_017_38x17.png"
+    },
+    {
+      "hash": "1ba52adcdf40d70a",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_017_38x17.svg"
+    },
+    {
+      "hash": "bbf7066cdd7fb10a",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_018_98x17.png"
+    },
+    {
+      "hash": "516758d257ca106b",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_018_98x17.svg"
+    },
+    {
+      "hash": "1b782ce85a22829d",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_019_100x17.png"
+    },
+    {
+      "hash": "afd6e5d42f77a524",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_019_100x17.svg"
+    },
+    {
+      "hash": "4c822907ab323fee",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_020_100x17.png"
+    },
+    {
+      "hash": "5403a0dc756d0633",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_020_100x17.svg"
+    },
+    {
+      "hash": "d3e434812afd6d50",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_021_38x17.png"
+    },
+    {
+      "hash": "7e5bd68c0c85a064",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_021_38x17.svg"
+    },
+    {
+      "hash": "e48d705bffa0c448",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_022_58x17.png"
+    },
+    {
+      "hash": "e1f99aa4519383a3",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_022_58x17.svg"
+    },
+    {
+      "hash": "4da252b447de29a0",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_023_38x17.png"
+    },
+    {
+      "hash": "61cf51b4781397e5",
+      "path": "docs/image-references/extracted/UI_Buttons/buttons/button_023_38x17.svg"
+    },
+    {
+      "hash": "d065cb04621966e4",
+      "path": "docs/image-references/extracted/UI_Buttons/components/README.md"
+    },
+    {
+      "hash": "8c76eaac1a55abfd",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_01_77x93.png"
+    },
+    {
+      "hash": "3b716634f19a4aeb",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_01_77x93.svg"
+    },
+    {
+      "hash": "9dd4a15786b5c543",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_02_77x93.png"
+    },
+    {
+      "hash": "bf7c5ff55ec53d9e",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_02_77x93.svg"
+    },
+    {
+      "hash": "32ba497e758b626f",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_03_90x93.png"
+    },
+    {
+      "hash": "e881d85c969ccb4f",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_03_90x93.svg"
+    },
+    {
+      "hash": "093f1bf2583c0ea6",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_04_90x93.png"
+    },
+    {
+      "hash": "9959b8f13e3f8b62",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_04_90x93.svg"
+    },
+    {
+      "hash": "470f1281c4f6c525",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_05_59x93.png"
+    },
+    {
+      "hash": "31e5a382f4e53f5d",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_05_59x93.svg"
+    },
+    {
+      "hash": "fc4bb803e1819994",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_06_137x167.png"
+    },
+    {
+      "hash": "d3700f4d83c73b10",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_06_137x167.svg"
+    },
+    {
+      "hash": "27835b68e8ae2a41",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_07_77x93.png"
+    },
+    {
+      "hash": "e3dc54600aee2721",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_07_77x93.svg"
+    },
+    {
+      "hash": "6dd0184fc2335d45",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_08_49x79.png"
+    },
+    {
+      "hash": "9e9505886b289681",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_08_49x79.svg"
+    },
+    {
+      "hash": "1bb7778613ab0f01",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_09_97x93.png"
+    },
+    {
+      "hash": "a6871709b16e0224",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_09_97x93.svg"
+    },
+    {
+      "hash": "18cb069c0e2f1751",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_10_77x93.png"
+    },
+    {
+      "hash": "a9e1d7f417228f7e",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_10_77x93.svg"
+    },
+    {
+      "hash": "dab0f056468f7bae",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_11_139x204.png"
+    },
+    {
+      "hash": "94585ff2b11055d8",
+      "path": "docs/image-references/extracted/UI_Buttons/components/component_set_11_139x204.svg"
+    },
+    {
+      "hash": "67bfb517ec95e987",
+      "path": "docs/image-references/extracted/UI_Buttons/index.json"
+    },
+    {
+      "hash": "6f9acc9372f2fb98",
+      "path": "docs/image-references/extracted/UI_Elements/CATALOG.md"
+    },
+    {
+      "hash": "6f9acc9372f2fb98",
+      "path": "docs/image-references/extracted/UI_Elements/README.md"
+    },
+    {
+      "hash": "f72641403deec754",
+      "path": "docs/image-references/extracted/UI_Elements/components/README.md"
+    },
+    {
+      "hash": "d31d74cec991e721",
+      "path": "docs/image-references/extracted/UI_Elements/components/component_set_01_139x59.png"
+    },
+    {
+      "hash": "90a3e05a0312a831",
+      "path": "docs/image-references/extracted/UI_Elements/components/component_set_01_139x59.svg"
+    },
+    {
+      "hash": "41ac4e870cbe87e4",
+      "path": "docs/image-references/extracted/UI_Elements/components/component_set_02_139x79.png"
+    },
+    {
+      "hash": "999d80c4c6220b2f",
+      "path": "docs/image-references/extracted/UI_Elements/components/component_set_02_139x79.svg"
+    },
+    {
+      "hash": "3b45e307b0be880d",
+      "path": "docs/image-references/extracted/UI_Elements/embedded_png/README.md"
+    },
+    {
+      "hash": "cdd558687ef8e678",
+      "path": "docs/image-references/extracted/UI_Elements/embedded_png/image0_202_9.jpg"
+    },
+    {
+      "hash": "3b10fc135b272e1f",
+      "path": "docs/image-references/extracted/UI_Elements/embedded_png/image0_202_9.svg"
+    },
+    {
+      "hash": "382388d5dda59e3b",
+      "path": "docs/image-references/extracted/UI_Elements/index.json"
+    },
+    {
+      "hash": "a5fc7ef897139a10",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/CATALOG.md"
+    },
+    {
+      "hash": "a5fc7ef897139a10",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/README.md"
+    },
+    {
+      "hash": "8dc2fb2c49b8e4e6",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/README.md"
+    },
+    {
+      "hash": "065322fd29c07933",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip0_242_6715.png"
+    },
+    {
+      "hash": "3bb63f6c72b2d637",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip0_242_6715.svg"
+    },
+    {
+      "hash": "d75421f352ed29bd",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip10_242_6715.png"
+    },
+    {
+      "hash": "edc5eeea12c67105",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip10_242_6715.svg"
+    },
+    {
+      "hash": "11bea7dec78db730",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip11_242_6715.png"
+    },
+    {
+      "hash": "cc15b255790cfb0d",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip11_242_6715.svg"
+    },
+    {
+      "hash": "0d1ce177c84309dc",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip12_242_6715.png"
+    },
+    {
+      "hash": "73c7c9bb1c7852dc",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip12_242_6715.svg"
+    },
+    {
+      "hash": "7bb1c03dc80c216b",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip1_242_6715.png"
+    },
+    {
+      "hash": "1495a6c073352574",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip1_242_6715.svg"
+    },
+    {
+      "hash": "f1efa09e3d2fd8fa",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip2_242_6715.png"
+    },
+    {
+      "hash": "334f9be6e3e2d1f3",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip2_242_6715.svg"
+    },
+    {
+      "hash": "5ced5f203a275c4b",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip3_242_6715.png"
+    },
+    {
+      "hash": "9dee59bdf30efcbe",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip3_242_6715.svg"
+    },
+    {
+      "hash": "37f82eff548306a6",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip4_242_6715.png"
+    },
+    {
+      "hash": "07ee0e0c93cd9d43",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip4_242_6715.svg"
+    },
+    {
+      "hash": "3612451bfcd2d8d0",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip5_242_6715.png"
+    },
+    {
+      "hash": "b1716b3962191956",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip5_242_6715.svg"
+    },
+    {
+      "hash": "bf8cab2b7c8d0d15",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip6_242_6715.png"
+    },
+    {
+      "hash": "7048f77d288d799c",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip6_242_6715.svg"
+    },
+    {
+      "hash": "4af2fea89c5b3229",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip7_242_6715.png"
+    },
+    {
+      "hash": "31429f7bd52e9af5",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip7_242_6715.svg"
+    },
+    {
+      "hash": "2936ed5742a510e9",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip8_242_6715.png"
+    },
+    {
+      "hash": "90ed42d31641ed67",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip8_242_6715.svg"
+    },
+    {
+      "hash": "2ea0f4c6a40a07b2",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip9_242_6715.png"
+    },
+    {
+      "hash": "100b789196a55a24",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/icons/icon_clip9_242_6715.svg"
+    },
+    {
+      "hash": "ad021e7b63052173",
+      "path": "docs/image-references/extracted/data_panel_vertical_menu/index.json"
+    },
+    {
+      "hash": "48982d1a021a2078",
+      "path": "docs/image-references/extracted/header/CATALOG.md"
+    },
+    {
+      "hash": "48982d1a021a2078",
+      "path": "docs/image-references/extracted/header/README.md"
+    },
+    {
+      "hash": "448fd5515b341be5",
+      "path": "docs/image-references/extracted/header/buttons/README.md"
+    },
+    {
+      "hash": "70a3f50d1283052d",
+      "path": "docs/image-references/extracted/header/buttons/button_001_102x20.png"
+    },
+    {
+      "hash": "5f46196c0a88b6cf",
+      "path": "docs/image-references/extracted/header/buttons/button_001_102x20.svg"
+    },
+    {
+      "hash": "360dd2509fef03c4",
+      "path": "docs/image-references/extracted/header/buttons/button_002_118x20.png"
+    },
+    {
+      "hash": "edc24aea821de525",
+      "path": "docs/image-references/extracted/header/buttons/button_002_118x20.svg"
+    },
+    {
+      "hash": "271df983484cb89c",
+      "path": "docs/image-references/extracted/header/embedded_png/README.md"
+    },
+    {
+      "hash": "cdd558687ef8e678",
+      "path": "docs/image-references/extracted/header/embedded_png/image0_202_10.jpg"
+    },
+    {
+      "hash": "3b10fc135b272e1f",
+      "path": "docs/image-references/extracted/header/embedded_png/image0_202_10.svg"
+    },
+    {
+      "hash": "f54915c739f2ca73",
+      "path": "docs/image-references/extracted/header/icons/README.md"
+    },
+    {
+      "hash": "08f516f55fa33c71",
+      "path": "docs/image-references/extracted/header/icons/icon_clip0_202_10.png"
+    },
+    {
+      "hash": "bcfcda4438f26a34",
+      "path": "docs/image-references/extracted/header/icons/icon_clip0_202_10.svg"
+    },
+    {
+      "hash": "3b30f05f876a7039",
+      "path": "docs/image-references/extracted/header/icons/icon_clip1_202_10.png"
+    },
+    {
+      "hash": "a95ea95b881605fb",
+      "path": "docs/image-references/extracted/header/icons/icon_clip1_202_10.svg"
+    },
+    {
+      "hash": "633f5c2997f4974e",
+      "path": "docs/image-references/extracted/header/icons/icon_clip2_202_10.png"
+    },
+    {
+      "hash": "551d6a3f92c182f2",
+      "path": "docs/image-references/extracted/header/icons/icon_clip2_202_10.svg"
+    },
+    {
+      "hash": "ea6cbb1d32ff6b6a",
+      "path": "docs/image-references/extracted/header/icons/icon_clip3_202_10.png"
+    },
+    {
+      "hash": "2cf5bdecc7f3180e",
+      "path": "docs/image-references/extracted/header/icons/icon_clip3_202_10.svg"
+    },
+    {
+      "hash": "ddc107d9c55bea41",
+      "path": "docs/image-references/extracted/header/icons/icon_clip4_202_10.png"
+    },
+    {
+      "hash": "9530967a66f9b6d8",
+      "path": "docs/image-references/extracted/header/icons/icon_clip4_202_10.svg"
+    },
+    {
+      "hash": "3b30f05f876a7039",
+      "path": "docs/image-references/extracted/header/icons/icon_clip5_202_10.png"
+    },
+    {
+      "hash": "21d5bf53e5cf2977",
+      "path": "docs/image-references/extracted/header/icons/icon_clip5_202_10.svg"
+    },
+    {
+      "hash": "633f5c2997f4974e",
+      "path": "docs/image-references/extracted/header/icons/icon_clip6_202_10.png"
+    },
+    {
+      "hash": "402c9077fffd2766",
+      "path": "docs/image-references/extracted/header/icons/icon_clip6_202_10.svg"
+    },
+    {
+      "hash": "ea6cbb1d32ff6b6a",
+      "path": "docs/image-references/extracted/header/icons/icon_clip7_202_10.png"
+    },
+    {
+      "hash": "5b917d75dc647d2d",
+      "path": "docs/image-references/extracted/header/icons/icon_clip7_202_10.svg"
+    },
+    {
+      "hash": "ce3be7c527cc84ea",
+      "path": "docs/image-references/extracted/header/icons/icon_clip8_202_10.png"
+    },
+    {
+      "hash": "f0ebe04f1ab0f75d",
+      "path": "docs/image-references/extracted/header/icons/icon_clip8_202_10.svg"
+    },
+    {
+      "hash": "ff3115f49b298159",
+      "path": "docs/image-references/extracted/header/index.json"
+    },
+    {
+      "hash": "a50b882337288bb7",
+      "path": "docs/image-references/extracted/index.html"
+    },
+    {
+      "hash": "c02ca0e856f16046",
+      "path": "docs/image-references/extracted/outliner_panel_header/CATALOG.md"
+    },
+    {
+      "hash": "c02ca0e856f16046",
+      "path": "docs/image-references/extracted/outliner_panel_header/README.md"
+    },
+    {
+      "hash": "546573c6ca537f9f",
+      "path": "docs/image-references/extracted/outliner_panel_header/buttons/README.md"
+    },
+    {
+      "hash": "68d4392e5f12ba9c",
+      "path": "docs/image-references/extracted/outliner_panel_header/buttons/button_001_340x30.png"
+    },
+    {
+      "hash": "2bfd238f15aeb07a",
+      "path": "docs/image-references/extracted/outliner_panel_header/buttons/button_001_340x30.svg"
+    },
+    {
+      "hash": "9d031e50235e5adb",
+      "path": "docs/image-references/extracted/outliner_panel_header/buttons/button_002_120x17.png"
+    },
+    {
+      "hash": "3d39922cf715b947",
+      "path": "docs/image-references/extracted/outliner_panel_header/buttons/button_002_120x17.svg"
+    },
+    {
+      "hash": "efdd15beacbfa12d",
+      "path": "docs/image-references/extracted/outliner_panel_header/index.json"
+    },
+    {
+      "hash": "dd1f94b07cbafafc",
+      "path": "docs/image-references/extracted/properties/CATALOG.md"
+    },
+    {
+      "hash": "dd1f94b07cbafafc",
+      "path": "docs/image-references/extracted/properties/README.md"
+    },
+    {
+      "hash": "11027575c04a54b9",
+      "path": "docs/image-references/extracted/properties/buttons/README.md"
+    },
+    {
+      "hash": "147bac3e94f8a87a",
+      "path": "docs/image-references/extracted/properties/buttons/button_050_290x96.png"
+    },
+    {
+      "hash": "6b10c0143a702dc2",
+      "path": "docs/image-references/extracted/properties/buttons/button_050_290x96.svg"
+    },
+    {
+      "hash": "41626161d879d1aa",
+      "path": "docs/image-references/extracted/properties/buttons/button_053_290x108.png"
+    },
+    {
+      "hash": "a359851e15862a4d",
+      "path": "docs/image-references/extracted/properties/buttons/button_053_290x108.svg"
+    },
+    {
+      "hash": "4fef6de31ef3b6fb",
+      "path": "docs/image-references/extracted/properties/components/README.md"
+    },
+    {
+      "hash": "d2091ab9aff52a0c",
+      "path": "docs/image-references/extracted/properties/components/component_set_01_2899x715.png"
+    },
+    {
+      "hash": "7de7811d711f01dc",
+      "path": "docs/image-references/extracted/properties/components/component_set_01_2899x715.svg"
+    },
+    {
+      "hash": "620e1135882f38e8",
+      "path": "docs/image-references/extracted/properties/embedded_png/README.md"
+    },
+    {
+      "hash": "8bec812656721c01",
+      "path": "docs/image-references/extracted/properties/embedded_png/image0_305_947.png"
+    },
+    {
+      "hash": "594bcb6060847fc7",
+      "path": "docs/image-references/extracted/properties/embedded_png/image0_305_947.svg"
+    },
+    {
+      "hash": "f768b4e9ecb2acab",
+      "path": "docs/image-references/extracted/properties/icons/README.md"
+    },
+    {
+      "hash": "4767b60de5c951b6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip100_305_947.png"
+    },
+    {
+      "hash": "3e0590ee7eb15664",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip100_305_947.svg"
+    },
+    {
+      "hash": "64978a1c6eaafd80",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip101_305_947.png"
+    },
+    {
+      "hash": "d457add3b9bf4cd6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip101_305_947.svg"
+    },
+    {
+      "hash": "73c44dbf09a021c2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip102_305_947.png"
+    },
+    {
+      "hash": "ba172aaa15df93d0",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip102_305_947.svg"
+    },
+    {
+      "hash": "44a1cbfcf85cc77e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip104_305_947.png"
+    },
+    {
+      "hash": "3f96e263757463c7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip104_305_947.svg"
+    },
+    {
+      "hash": "f13319c75fa7b5a2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip105_305_947.png"
+    },
+    {
+      "hash": "b04ccb5c7c206d1d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip105_305_947.svg"
+    },
+    {
+      "hash": "2628f7a694c7cd01",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip106_305_947.png"
+    },
+    {
+      "hash": "850a2084634d6eaf",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip106_305_947.svg"
+    },
+    {
+      "hash": "4e5c17d77418969b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip107_305_947.png"
+    },
+    {
+      "hash": "2c8e031a1011ad1b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip107_305_947.svg"
+    },
+    {
+      "hash": "3967dbad66ee2623",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip108_305_947.png"
+    },
+    {
+      "hash": "e637ee5c5ae72496",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip108_305_947.svg"
+    },
+    {
+      "hash": "8f3f87134c7716d4",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip109_305_947.png"
+    },
+    {
+      "hash": "49818361a0c73eda",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip109_305_947.svg"
+    },
+    {
+      "hash": "a11b58e93bc42543",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip10_305_947.png"
+    },
+    {
+      "hash": "0eb907814cdc6f22",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip10_305_947.svg"
+    },
+    {
+      "hash": "c5b594bc610aac51",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip110_305_947.png"
+    },
+    {
+      "hash": "67aed3a2df47b86b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip110_305_947.svg"
+    },
+    {
+      "hash": "382b13dcb55c8d3f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip111_305_947.png"
+    },
+    {
+      "hash": "11015c67d2ed9b47",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip111_305_947.svg"
+    },
+    {
+      "hash": "f201e9ee636f2ef6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip112_305_947.png"
+    },
+    {
+      "hash": "0fcbec1a9c1d32b4",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip112_305_947.svg"
+    },
+    {
+      "hash": "80fc745831539a68",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip113_305_947.png"
+    },
+    {
+      "hash": "ebe3d4c87278a8a7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip113_305_947.svg"
+    },
+    {
+      "hash": "082c85e10772dd0e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip114_305_947.png"
+    },
+    {
+      "hash": "3977c4808bbc210f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip114_305_947.svg"
+    },
+    {
+      "hash": "4767b60de5c951b6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip115_305_947.png"
+    },
+    {
+      "hash": "90c6c715e6625bb4",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip115_305_947.svg"
+    },
+    {
+      "hash": "64978a1c6eaafd80",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip116_305_947.png"
+    },
+    {
+      "hash": "043c48b47f7248de",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip116_305_947.svg"
+    },
+    {
+      "hash": "73c44dbf09a021c2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip117_305_947.png"
+    },
+    {
+      "hash": "06a4968b4525e611",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip117_305_947.svg"
+    },
+    {
+      "hash": "8fa6ac75aa49f268",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip11_305_947.png"
+    },
+    {
+      "hash": "db21c12c7e502288",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip11_305_947.svg"
+    },
+    {
+      "hash": "11bea7dec78db730",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip12_305_947.png"
+    },
+    {
+      "hash": "93a1ba62954c169b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip12_305_947.svg"
+    },
+    {
+      "hash": "0d1ce177c84309dc",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip13_305_947.png"
+    },
+    {
+      "hash": "a424c3d5e1f33579",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip13_305_947.svg"
+    },
+    {
+      "hash": "f2e73c11df3ac0dd",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip15_305_947.png"
+    },
+    {
+      "hash": "2c7e8117a4a65002",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip15_305_947.svg"
+    },
+    {
+      "hash": "3aeba568189e9e11",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip16_305_947.png"
+    },
+    {
+      "hash": "c303683b0425a3b7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip16_305_947.svg"
+    },
+    {
+      "hash": "2f10ce1993b78d3c",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip17_305_947.png"
+    },
+    {
+      "hash": "829ae775d0a116dd",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip17_305_947.svg"
+    },
+    {
+      "hash": "f83c19268ee40e48",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip18_305_947.png"
+    },
+    {
+      "hash": "4554d7acfbb86b7f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip18_305_947.svg"
+    },
+    {
+      "hash": "a325406576c5afe2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip19_305_947.png"
+    },
+    {
+      "hash": "951f3bc3b5a15549",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip19_305_947.svg"
+    },
+    {
+      "hash": "5c3e7ee920fbf576",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip1_305_947.png"
+    },
+    {
+      "hash": "29a663ebfe32c4e3",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip1_305_947.svg"
+    },
+    {
+      "hash": "cb79f2c2e41e64de",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip20_305_947.png"
+    },
+    {
+      "hash": "36736e89d8b00b47",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip20_305_947.svg"
+    },
+    {
+      "hash": "88c2bf4a32f8f2c7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip21_305_947.png"
+    },
+    {
+      "hash": "aacade78d45d1cc7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip21_305_947.svg"
+    },
+    {
+      "hash": "0b7ac4259e1232a9",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip22_305_947.png"
+    },
+    {
+      "hash": "c6f621ffa4eeafc4",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip22_305_947.svg"
+    },
+    {
+      "hash": "060901946e3dfe56",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip23_305_947.png"
+    },
+    {
+      "hash": "08291cbfaed8d75a",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip23_305_947.svg"
+    },
+    {
+      "hash": "7dc9c49dbcd71ece",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip24_305_947.png"
+    },
+    {
+      "hash": "bb29da34471b96cc",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip24_305_947.svg"
+    },
+    {
+      "hash": "b0ab452ec1a0d2c0",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip25_305_947.png"
+    },
+    {
+      "hash": "877ae6a31bec3922",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip25_305_947.svg"
+    },
+    {
+      "hash": "89ceb869b0fd259e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip26_305_947.png"
+    },
+    {
+      "hash": "c3a64d3281da298d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip26_305_947.svg"
+    },
+    {
+      "hash": "c304b3a33077006c",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip27_305_947.png"
+    },
+    {
+      "hash": "0fc66ebfdd32a99b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip27_305_947.svg"
+    },
+    {
+      "hash": "73c44dbf09a021c2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip29_305_947.png"
+    },
+    {
+      "hash": "6a15371e907b8f4d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip29_305_947.svg"
+    },
+    {
+      "hash": "7bb1c03dc80c216b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip2_305_947.png"
+    },
+    {
+      "hash": "ad89d39ee2ca4b5d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip2_305_947.svg"
+    },
+    {
+      "hash": "6b8d34426df81eb2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip30_305_947.png"
+    },
+    {
+      "hash": "331bea7e387bd9ab",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip30_305_947.svg"
+    },
+    {
+      "hash": "8ec6283a962c74e8",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip31_305_947.png"
+    },
+    {
+      "hash": "b8135f3d37fb0f03",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip31_305_947.svg"
+    },
+    {
+      "hash": "2f10ce1993b78d3c",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip32_305_947.png"
+    },
+    {
+      "hash": "b25296a27b21be35",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip32_305_947.svg"
+    },
+    {
+      "hash": "561856308b9d49a0",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip33_305_947.png"
+    },
+    {
+      "hash": "38baadffa15f8999",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip33_305_947.svg"
+    },
+    {
+      "hash": "a325406576c5afe2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip34_305_947.png"
+    },
+    {
+      "hash": "2e9bc172069afa41",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip34_305_947.svg"
+    },
+    {
+      "hash": "cb79f2c2e41e64de",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip35_305_947.png"
+    },
+    {
+      "hash": "0cdf34faf4d59fff",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip35_305_947.svg"
+    },
+    {
+      "hash": "88c2bf4a32f8f2c7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip36_305_947.png"
+    },
+    {
+      "hash": "29f766078cb0ab07",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip36_305_947.svg"
+    },
+    {
+      "hash": "0b7ac4259e1232a9",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip37_305_947.png"
+    },
+    {
+      "hash": "3f6a5233b4b35954",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip37_305_947.svg"
+    },
+    {
+      "hash": "060901946e3dfe56",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip38_305_947.png"
+    },
+    {
+      "hash": "ebf8580d3836aa02",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip38_305_947.svg"
+    },
+    {
+      "hash": "7dc9c49dbcd71ece",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip39_305_947.png"
+    },
+    {
+      "hash": "fe09380047532f91",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip39_305_947.svg"
+    },
+    {
+      "hash": "9e420a43fed12f6d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip3_305_947.png"
+    },
+    {
+      "hash": "f9c6e3e4e50cbb6f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip3_305_947.svg"
+    },
+    {
+      "hash": "b0ab452ec1a0d2c0",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip40_305_947.png"
+    },
+    {
+      "hash": "c41dfebc00fd13da",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip40_305_947.svg"
+    },
+    {
+      "hash": "89ceb869b0fd259e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip41_305_947.png"
+    },
+    {
+      "hash": "305c59786f43ffad",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip41_305_947.svg"
+    },
+    {
+      "hash": "c304b3a33077006c",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip42_305_947.png"
+    },
+    {
+      "hash": "f5aaa0aea539ceb7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip42_305_947.svg"
+    },
+    {
+      "hash": "84b79e907565b188",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip44_305_947.png"
+    },
+    {
+      "hash": "e8a82ec9b6ab0df0",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip44_305_947.svg"
+    },
+    {
+      "hash": "f13319c75fa7b5a2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip45_305_947.png"
+    },
+    {
+      "hash": "7181b71b56c1222a",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip45_305_947.svg"
+    },
+    {
+      "hash": "2628f7a694c7cd01",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip46_305_947.png"
+    },
+    {
+      "hash": "2ebedf3449a63e01",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip46_305_947.svg"
+    },
+    {
+      "hash": "4e5c17d77418969b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip47_305_947.png"
+    },
+    {
+      "hash": "8b2658cc410335cc",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip47_305_947.svg"
+    },
+    {
+      "hash": "3967dbad66ee2623",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip48_305_947.png"
+    },
+    {
+      "hash": "2bc817de66a5b8ab",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip48_305_947.svg"
+    },
+    {
+      "hash": "24c96ea405d4069e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip49_305_947.png"
+    },
+    {
+      "hash": "ecf12ebc586e13ea",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip49_305_947.svg"
+    },
+    {
+      "hash": "56e7dd68537ff6c9",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip4_305_947.png"
+    },
+    {
+      "hash": "301704ed5d09b0fb",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip4_305_947.svg"
+    },
+    {
+      "hash": "c5b594bc610aac51",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip50_305_947.png"
+    },
+    {
+      "hash": "ded4f32ad6f85aed",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip50_305_947.svg"
+    },
+    {
+      "hash": "382b13dcb55c8d3f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip51_305_947.png"
+    },
+    {
+      "hash": "93fea3d40d754b35",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip51_305_947.svg"
+    },
+    {
+      "hash": "f201e9ee636f2ef6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip52_305_947.png"
+    },
+    {
+      "hash": "0d9c7fe64ee869e9",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip52_305_947.svg"
+    },
+    {
+      "hash": "80fc745831539a68",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip53_305_947.png"
+    },
+    {
+      "hash": "16b56234857ac639",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip53_305_947.svg"
+    },
+    {
+      "hash": "082c85e10772dd0e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip54_305_947.png"
+    },
+    {
+      "hash": "d5fb26b38cbcd206",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip54_305_947.svg"
+    },
+    {
+      "hash": "4767b60de5c951b6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip55_305_947.png"
+    },
+    {
+      "hash": "43f6001a262a0baa",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip55_305_947.svg"
+    },
+    {
+      "hash": "64978a1c6eaafd80",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip56_305_947.png"
+    },
+    {
+      "hash": "1b0acf92ff6b3c98",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip56_305_947.svg"
+    },
+    {
+      "hash": "73c44dbf09a021c2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip57_305_947.png"
+    },
+    {
+      "hash": "7c8ab6170c997e05",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip57_305_947.svg"
+    },
+    {
+      "hash": "84b79e907565b188",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip59_305_947.png"
+    },
+    {
+      "hash": "e3d550c198196445",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip59_305_947.svg"
+    },
+    {
+      "hash": "37f82eff548306a6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip5_305_947.png"
+    },
+    {
+      "hash": "ac06d40e5c25a691",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip5_305_947.svg"
+    },
+    {
+      "hash": "f13319c75fa7b5a2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip60_305_947.png"
+    },
+    {
+      "hash": "e805f1397a12d05b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip60_305_947.svg"
+    },
+    {
+      "hash": "2628f7a694c7cd01",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip61_305_947.png"
+    },
+    {
+      "hash": "76a7319fceea4bd7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip61_305_947.svg"
+    },
+    {
+      "hash": "4e5c17d77418969b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip62_305_947.png"
+    },
+    {
+      "hash": "34301f87d11367f9",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip62_305_947.svg"
+    },
+    {
+      "hash": "3967dbad66ee2623",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip63_305_947.png"
+    },
+    {
+      "hash": "609bca6b9c306d4c",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip63_305_947.svg"
+    },
+    {
+      "hash": "24c96ea405d4069e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip64_305_947.png"
+    },
+    {
+      "hash": "d0a439409ddb1b7d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip64_305_947.svg"
+    },
+    {
+      "hash": "c5b594bc610aac51",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip65_305_947.png"
+    },
+    {
+      "hash": "aa1e71268df94a87",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip65_305_947.svg"
+    },
+    {
+      "hash": "382b13dcb55c8d3f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip66_305_947.png"
+    },
+    {
+      "hash": "a5b1cf1bfeace6eb",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip66_305_947.svg"
+    },
+    {
+      "hash": "f201e9ee636f2ef6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip67_305_947.png"
+    },
+    {
+      "hash": "14eee5eb4b942e86",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip67_305_947.svg"
+    },
+    {
+      "hash": "80fc745831539a68",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip68_305_947.png"
+    },
+    {
+      "hash": "11df0d5e974decab",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip68_305_947.svg"
+    },
+    {
+      "hash": "082c85e10772dd0e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip69_305_947.png"
+    },
+    {
+      "hash": "27f4bb49154df8f5",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip69_305_947.svg"
+    },
+    {
+      "hash": "2beb14f0c7b9e4fb",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip6_305_947.png"
+    },
+    {
+      "hash": "c519e813535903ea",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip6_305_947.svg"
+    },
+    {
+      "hash": "4767b60de5c951b6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip70_305_947.png"
+    },
+    {
+      "hash": "4aae335663d24934",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip70_305_947.svg"
+    },
+    {
+      "hash": "64978a1c6eaafd80",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip71_305_947.png"
+    },
+    {
+      "hash": "8b9e48dc1bf06632",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip71_305_947.svg"
+    },
+    {
+      "hash": "73c44dbf09a021c2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip72_305_947.png"
+    },
+    {
+      "hash": "60607e04bbb29e32",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip72_305_947.svg"
+    },
+    {
+      "hash": "84b79e907565b188",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip74_305_947.png"
+    },
+    {
+      "hash": "2006e1803c3ab255",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip74_305_947.svg"
+    },
+    {
+      "hash": "f13319c75fa7b5a2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip75_305_947.png"
+    },
+    {
+      "hash": "e65d459002cb7b0b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip75_305_947.svg"
+    },
+    {
+      "hash": "2628f7a694c7cd01",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip76_305_947.png"
+    },
+    {
+      "hash": "01b7a3a9489791d7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip76_305_947.svg"
+    },
+    {
+      "hash": "4e5c17d77418969b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip77_305_947.png"
+    },
+    {
+      "hash": "eebbd217566e2109",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip77_305_947.svg"
+    },
+    {
+      "hash": "3967dbad66ee2623",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip78_305_947.png"
+    },
+    {
+      "hash": "a006258c50387b94",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip78_305_947.svg"
+    },
+    {
+      "hash": "24c96ea405d4069e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip79_305_947.png"
+    },
+    {
+      "hash": "08ace9cb2b6e7265",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip79_305_947.svg"
+    },
+    {
+      "hash": "bf8cab2b7c8d0d15",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip7_305_947.png"
+    },
+    {
+      "hash": "706fe84c99d65012",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip7_305_947.svg"
+    },
+    {
+      "hash": "c5b594bc610aac51",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip80_305_947.png"
+    },
+    {
+      "hash": "f80b56b7da764db7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip80_305_947.svg"
+    },
+    {
+      "hash": "382b13dcb55c8d3f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip81_305_947.png"
+    },
+    {
+      "hash": "0860a31992319efb",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip81_305_947.svg"
+    },
+    {
+      "hash": "f201e9ee636f2ef6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip82_305_947.png"
+    },
+    {
+      "hash": "0cc880734e1e5bfe",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip82_305_947.svg"
+    },
+    {
+      "hash": "80fc745831539a68",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip83_305_947.png"
+    },
+    {
+      "hash": "1c68c57556990863",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip83_305_947.svg"
+    },
+    {
+      "hash": "082c85e10772dd0e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip84_305_947.png"
+    },
+    {
+      "hash": "49ad8bf088631b9d",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip84_305_947.svg"
+    },
+    {
+      "hash": "4767b60de5c951b6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip85_305_947.png"
+    },
+    {
+      "hash": "99dc0e77511d67e4",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip85_305_947.svg"
+    },
+    {
+      "hash": "64978a1c6eaafd80",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip86_305_947.png"
+    },
+    {
+      "hash": "ea021678393ecd5a",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip86_305_947.svg"
+    },
+    {
+      "hash": "73c44dbf09a021c2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip87_305_947.png"
+    },
+    {
+      "hash": "b3cf2d0436651254",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip87_305_947.svg"
+    },
+    {
+      "hash": "44a1cbfcf85cc77e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip89_305_947.png"
+    },
+    {
+      "hash": "86dfff260d673f07",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip89_305_947.svg"
+    },
+    {
+      "hash": "28ea080a513eb433",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip8_305_947.png"
+    },
+    {
+      "hash": "be332d6ab1c37b93",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip8_305_947.svg"
+    },
+    {
+      "hash": "f13319c75fa7b5a2",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip90_305_947.png"
+    },
+    {
+      "hash": "986e46683da0f2d5",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip90_305_947.svg"
+    },
+    {
+      "hash": "2628f7a694c7cd01",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip91_305_947.png"
+    },
+    {
+      "hash": "065ed586da977ee7",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip91_305_947.svg"
+    },
+    {
+      "hash": "4e5c17d77418969b",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip92_305_947.png"
+    },
+    {
+      "hash": "e849d0ddec25f0fb",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip92_305_947.svg"
+    },
+    {
+      "hash": "3967dbad66ee2623",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip93_305_947.png"
+    },
+    {
+      "hash": "04f5d45d4f4a6946",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip93_305_947.svg"
+    },
+    {
+      "hash": "8f3f87134c7716d4",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip94_305_947.png"
+    },
+    {
+      "hash": "2592c5358970e1ca",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip94_305_947.svg"
+    },
+    {
+      "hash": "c5b594bc610aac51",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip95_305_947.png"
+    },
+    {
+      "hash": "911539f01136ff43",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip95_305_947.svg"
+    },
+    {
+      "hash": "382b13dcb55c8d3f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip96_305_947.png"
+    },
+    {
+      "hash": "5e887ff9b5e9c087",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip96_305_947.svg"
+    },
+    {
+      "hash": "f201e9ee636f2ef6",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip97_305_947.png"
+    },
+    {
+      "hash": "8a02ef54b4849f6c",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip97_305_947.svg"
+    },
+    {
+      "hash": "80fc745831539a68",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip98_305_947.png"
+    },
+    {
+      "hash": "bcdcd1a244d31c5f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip98_305_947.svg"
+    },
+    {
+      "hash": "082c85e10772dd0e",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip99_305_947.png"
+    },
+    {
+      "hash": "1ad4dc8a3c07537f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip99_305_947.svg"
+    },
+    {
+      "hash": "2936ed5742a510e9",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip9_305_947.png"
+    },
+    {
+      "hash": "5cac6678f059058f",
+      "path": "docs/image-references/extracted/properties/icons/icon_clip9_305_947.svg"
+    },
+    {
+      "hash": "00c83277c68d09c7",
+      "path": "docs/image-references/extracted/properties/index.json"
+    },
+    {
+      "hash": "8d49c8652c929945",
+      "path": "docs/image-references/extracted/properties_panel_header/CATALOG.md"
+    },
+    {
+      "hash": "8d49c8652c929945",
+      "path": "docs/image-references/extracted/properties_panel_header/README.md"
+    },
+    {
+      "hash": "1d492031adf0850e",
+      "path": "docs/image-references/extracted/properties_panel_header/buttons/README.md"
+    },
+    {
+      "hash": "217b8c51d1fb64d4",
+      "path": "docs/image-references/extracted/properties_panel_header/buttons/button_001_340x30.png"
+    },
+    {
+      "hash": "1c95731cbb6296a1",
+      "path": "docs/image-references/extracted/properties_panel_header/buttons/button_001_340x30.svg"
+    },
+    {
+      "hash": "e5b56e4d2cb9ead5",
+      "path": "docs/image-references/extracted/properties_panel_header/buttons/button_002_120x17.png"
+    },
+    {
+      "hash": "19da178ebf36888a",
+      "path": "docs/image-references/extracted/properties_panel_header/buttons/button_002_120x17.svg"
+    },
+    {
+      "hash": "29fee4e4e67d861e",
+      "path": "docs/image-references/extracted/properties_panel_header/index.json"
+    },
+    {
+      "hash": "054263b7047eb0b7",
+      "path": "docs/image-references/extracted/status_bar/CATALOG.md"
+    },
+    {
+      "hash": "054263b7047eb0b7",
+      "path": "docs/image-references/extracted/status_bar/README.md"
+    },
+    {
+      "hash": "008a3040916ac488",
+      "path": "docs/image-references/extracted/status_bar/index.json"
+    },
+    {
+      "hash": "f0fe793adc812655",
+      "path": "docs/image-references/extracted/timeline_cursor/CATALOG.md"
+    },
+    {
+      "hash": "f0fe793adc812655",
+      "path": "docs/image-references/extracted/timeline_cursor/README.md"
+    },
+    {
+      "hash": "911410642b0c039c",
+      "path": "docs/image-references/extracted/timeline_cursor/index.json"
+    },
+    {
+      "hash": "49719eed3c1b4192",
+      "path": "docs/image-references/extracted/timeline_list_panel/CATALOG.md"
+    },
+    {
+      "hash": "49719eed3c1b4192",
+      "path": "docs/image-references/extracted/timeline_list_panel/README.md"
+    },
+    {
+      "hash": "be3f04d185dde305",
+      "path": "docs/image-references/extracted/timeline_list_panel/buttons/README.md"
+    },
+    {
+      "hash": "c1700fc5a6351727",
+      "path": "docs/image-references/extracted/timeline_list_panel/buttons/button_001_160x20.png"
+    },
+    {
+      "hash": "74e94e197d6385b6",
+      "path": "docs/image-references/extracted/timeline_list_panel/buttons/button_001_160x20.svg"
+    },
+    {
+      "hash": "270763cf44abd802",
+      "path": "docs/image-references/extracted/timeline_list_panel/buttons/button_002_127x17.png"
+    },
+    {
+      "hash": "ee8c83aa96379f0a",
+      "path": "docs/image-references/extracted/timeline_list_panel/buttons/button_002_127x17.svg"
+    },
+    {
+      "hash": "6e4a3daac639f591",
+      "path": "docs/image-references/extracted/timeline_list_panel/index.json"
+    },
+    {
+      "hash": "959fc68b677bc5af",
+      "path": "docs/image-references/extracted/timeline_panel_header/CATALOG.md"
+    },
+    {
+      "hash": "959fc68b677bc5af",
+      "path": "docs/image-references/extracted/timeline_panel_header/README.md"
+    },
+    {
+      "hash": "d4091420270d4e84",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/README.md"
+    },
+    {
+      "hash": "5cda8a793b5199a2",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_001_38x17.png"
+    },
+    {
+      "hash": "d77406cac41dc8df",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_001_38x17.svg"
+    },
+    {
+      "hash": "c8cf4a34456e8b79",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_002_105x17.png"
+    },
+    {
+      "hash": "b795df16a420a52e",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_002_105x17.svg"
+    },
+    {
+      "hash": "6935eaeb949245a0",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_003_58x17.png"
+    },
+    {
+      "hash": "bd83b80939886c48",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_003_58x17.svg"
+    },
+    {
+      "hash": "cc33b30e31b232e7",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_004_38x17.png"
+    },
+    {
+      "hash": "0e105847b2d9e12f",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_004_38x17.svg"
+    },
+    {
+      "hash": "ffc7a3117d3610c9",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_005_60x17.png"
+    },
+    {
+      "hash": "b4c2cddcdd197be3",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_005_60x17.svg"
+    },
+    {
+      "hash": "68cd7d62fe760abe",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_006_136x17.png"
+    },
+    {
+      "hash": "dbadb50febeaed07",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_006_136x17.svg"
+    },
+    {
+      "hash": "1b79deba07dc2024",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_007_38x17.png"
+    },
+    {
+      "hash": "743b0284277eaee3",
+      "path": "docs/image-references/extracted/timeline_panel_header/buttons/button_007_38x17.svg"
+    },
+    {
+      "hash": "0b9fd03fb26a57b9",
+      "path": "docs/image-references/extracted/timeline_panel_header/index.json"
+    },
+    {
+      "hash": "14e87ad77c3f6f8e",
+      "path": "docs/image-references/extracted/toolbar/CATALOG.md"
+    },
+    {
+      "hash": "14e87ad77c3f6f8e",
+      "path": "docs/image-references/extracted/toolbar/README.md"
+    },
+    {
+      "hash": "61dd6414c7f4ea7b",
+      "path": "docs/image-references/extracted/toolbar/buttons/README.md"
+    },
+    {
+      "hash": "11f24a73f5967b26",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_01_select_box_40x40.png"
+    },
+    {
+      "hash": "51777cafaa39be94",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_01_select_box_40x40.svg"
+    },
+    {
+      "hash": "f629b0d915a0ed23",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_02_cursor_40x40.png"
+    },
+    {
+      "hash": "5dd45bf58a18aec0",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_02_cursor_40x40.svg"
+    },
+    {
+      "hash": "19855a9fe12bfd06",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_03_move_40x40.png"
+    },
+    {
+      "hash": "4501b9d4e7650015",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_03_move_40x40.svg"
+    },
+    {
+      "hash": "beeff36c3fa7d20c",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_04_rotate_40x40.png"
+    },
+    {
+      "hash": "683ed3d76d6e0021",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_04_rotate_40x40.svg"
+    },
+    {
+      "hash": "34b64884a1eb6358",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_05_scale_40x40.png"
+    },
+    {
+      "hash": "38219936c53ecf24",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_05_scale_40x40.svg"
+    },
+    {
+      "hash": "457efec43232364d",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_06_transform_40x40.png"
+    },
+    {
+      "hash": "6b965b467f56ccd7",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_06_transform_40x40.svg"
+    },
+    {
+      "hash": "386cd01486dfba38",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_07_annotate_40x40.png"
+    },
+    {
+      "hash": "9b88134bad8d58f5",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_07_annotate_40x40.svg"
+    },
+    {
+      "hash": "4ee14e5a42f4f617",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_08_measure_40x40.png"
+    },
+    {
+      "hash": "eb29e85e0851e4fa",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_08_measure_40x40.svg"
+    },
+    {
+      "hash": "1df742e960ea34fb",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_09_add_primitive_40x40.png"
+    },
+    {
+      "hash": "c6e63465da28ee4a",
+      "path": "docs/image-references/extracted/toolbar/buttons/tool_09_add_primitive_40x40.svg"
+    },
+    {
+      "hash": "24bed19e99c98c13",
+      "path": "docs/image-references/extracted/toolbar/components/README.md"
+    },
+    {
+      "hash": "0deb05306a4b16e0",
+      "path": "docs/image-references/extracted/toolbar/components/component_set_01_139x415.png"
+    },
+    {
+      "hash": "185587b24e008ba3",
+      "path": "docs/image-references/extracted/toolbar/components/component_set_01_139x415.svg"
+    },
+    {
+      "hash": "978f0b7bd5ebfcb4",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/README.md"
+    },
+    {
+      "hash": "be41b6ae8211c448",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image0_288_791.png"
+    },
+    {
+      "hash": "bfb7d42a6bb46acb",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image0_288_791.svg"
+    },
+    {
+      "hash": "9cfe3b291171320c",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image1_288_791.png"
+    },
+    {
+      "hash": "e06998c8697ffacb",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image1_288_791.svg"
+    },
+    {
+      "hash": "3f888bd2ed1cdafe",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image2_288_791.png"
+    },
+    {
+      "hash": "c4d8a2cdaa000253",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image2_288_791.svg"
+    },
+    {
+      "hash": "b1538d96e0a74888",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image3_288_791.png"
+    },
+    {
+      "hash": "4d472989d611ff5b",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image3_288_791.svg"
+    },
+    {
+      "hash": "0d03022863c59deb",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image4_288_791.png"
+    },
+    {
+      "hash": "b7a10a7fc4d2b28b",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image4_288_791.svg"
+    },
+    {
+      "hash": "1397039cd10c4f6b",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image5_288_791.png"
+    },
+    {
+      "hash": "82efac0e7d71049b",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image5_288_791.svg"
+    },
+    {
+      "hash": "3ef3b666b54a8bc2",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image6_288_791.png"
+    },
+    {
+      "hash": "efaad94d1943dc13",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image6_288_791.svg"
+    },
+    {
+      "hash": "f3190526cf5a9d72",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image7_288_791.png"
+    },
+    {
+      "hash": "65aa2c8b5c433fdb",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image7_288_791.svg"
+    },
+    {
+      "hash": "f5fc15d1c42d2585",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image8_288_791.png"
+    },
+    {
+      "hash": "519f14cc98e379c3",
+      "path": "docs/image-references/extracted/toolbar/embedded_png/image8_288_791.svg"
+    },
+    {
+      "hash": "474a652bce948c5c",
+      "path": "docs/image-references/extracted/toolbar/index.json"
+    },
+    {
+      "hash": "fb520b079b122b2c",
+      "path": "docs/image-references/extracted/windows_bar/CATALOG.md"
+    },
+    {
+      "hash": "fb520b079b122b2c",
+      "path": "docs/image-references/extracted/windows_bar/README.md"
+    },
+    {
+      "hash": "d7d100e08103f1ed",
+      "path": "docs/image-references/extracted/windows_bar/icons/README.md"
+    },
+    {
+      "hash": "1dc8f6aa1571463e",
+      "path": "docs/image-references/extracted/windows_bar/icons/icon_clip0_202_28.png"
+    },
+    {
+      "hash": "315cb5243e6aa0d1",
+      "path": "docs/image-references/extracted/windows_bar/icons/icon_clip0_202_28.svg"
+    },
+    {
+      "hash": "d8f5aaa7a885dcd5",
+      "path": "docs/image-references/extracted/windows_bar/index.json"
+    },
+    {
+      "hash": "696bde7cfd558052",
+      "path": "docs/image-references/figma_extracted_assets/ANALISE_E_CLASSIFICACAO.md"
+    },
+    {
+      "hash": "f6340eb046264ef1",
+      "path": "docs/image-references/figma_extracted_assets/README.md"
+    },
+    {
+      "hash": "d7d355289a07a8ab",
+      "path": "docs/image-references/figma_extracted_assets/components/README.md"
+    },
+    {
+      "hash": "64a4055759acc220",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/README.md"
+    },
+    {
+      "hash": "60041c363345da73",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/README.md"
+    },
+    {
+      "hash": "6cb82a85fa19c2f6",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_01.png"
+    },
+    {
+      "hash": "15b1d3cd006775c8",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_02.png"
+    },
+    {
+      "hash": "9e0b391c2431e8eb",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_03.png"
+    },
+    {
+      "hash": "d8957e7c2cd2483f",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_04.png"
+    },
+    {
+      "hash": "571e4c88a2ccf75a",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_05.png"
+    },
+    {
+      "hash": "090633352dc27f54",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_06.png"
+    },
+    {
+      "hash": "5aa2d79a22482b21",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_07.png"
+    },
+    {
+      "hash": "8e338d5e3d06e1d4",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_08.png"
+    },
+    {
+      "hash": "9303cd9991dbafaa",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_09.png"
+    },
+    {
+      "hash": "a7635f43d3dc6f02",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_10.png"
+    },
+    {
+      "hash": "003a63e42cdcf4c6",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/preview/component_set_11.png"
+    },
+    {
+      "hash": "6d113473c2a69d09",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/README.md"
+    },
+    {
+      "hash": "200bcfb548dabcb0",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_01.svg"
+    },
+    {
+      "hash": "23b248edf38b9a11",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_02.svg"
+    },
+    {
+      "hash": "80d002c8a1260e7d",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_03.svg"
+    },
+    {
+      "hash": "4d2468ed15b54d03",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_04.svg"
+    },
+    {
+      "hash": "23ff5faf7e799486",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_05.svg"
+    },
+    {
+      "hash": "8b119edbc8e0a41e",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_06.svg"
+    },
+    {
+      "hash": "454b3f04c819e9df",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_07.svg"
+    },
+    {
+      "hash": "248ff8ee2d4df7fb",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_08.svg"
+    },
+    {
+      "hash": "ce819e53c8092d34",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_09.svg"
+    },
+    {
+      "hash": "64a5a0acba2309e3",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_10.svg"
+    },
+    {
+      "hash": "6c5a3b47bc03510a",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Buttons/svg/component_set_11.svg"
+    },
+    {
+      "hash": "c6a265e6f3bf445a",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/README.md"
+    },
+    {
+      "hash": "210aa19876b245d5",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/preview/README.md"
+    },
+    {
+      "hash": "3324f9757daf3dc9",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/preview/avatar_large_variants.png"
+    },
+    {
+      "hash": "53034d2d2d08eeac",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/preview/avatar_small_variants.png"
+    },
+    {
+      "hash": "fbcc669d091ce1f3",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/svg/README.md"
+    },
+    {
+      "hash": "a9f41ce03d458109",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/svg/avatar_large_variants.svg"
+    },
+    {
+      "hash": "7fed8475b224832e",
+      "path": "docs/image-references/figma_extracted_assets/components/UI_Elements/svg/avatar_small_variants.svg"
+    },
+    {
+      "hash": "1beacf0341130d3f",
+      "path": "docs/image-references/figma_extracted_assets/embedded/3d-view_bar/README.md"
+    },
+    {
+      "hash": "c08e26082c3530dc",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/README.md"
+    },
+    {
+      "hash": "e61d276bc51bde07",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image0_202_4.png"
+    },
+    {
+      "hash": "cdd558687ef8e678",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image10_202_4.jpg"
+    },
+    {
+      "hash": "be41b6ae8211c448",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image1_202_4.png"
+    },
+    {
+      "hash": "9cfe3b291171320c",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image2_202_4.png"
+    },
+    {
+      "hash": "3f888bd2ed1cdafe",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image3_202_4.png"
+    },
+    {
+      "hash": "b1538d96e0a74888",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image4_202_4.png"
+    },
+    {
+      "hash": "0d03022863c59deb",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image5_202_4.png"
+    },
+    {
+      "hash": "1397039cd10c4f6b",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image6_202_4.png"
+    },
+    {
+      "hash": "3ef3b666b54a8bc2",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image7_202_4.png"
+    },
+    {
+      "hash": "f3190526cf5a9d72",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image8_202_4.png"
+    },
+    {
+      "hash": "f5fc15d1c42d2585",
+      "path": "docs/image-references/figma_extracted_assets/embedded/Blender(1)/image9_202_4.png"
+    },
+    {
+      "hash": "57788435073c4f7d",
+      "path": "docs/image-references/figma_extracted_assets/embedded/README.md"
+    },
+    {
+      "hash": "1f946e90648020ee",
+      "path": "docs/image-references/figma_extracted_assets/embedded/UI_Buttons/README.md"
+    },
+    {
+      "hash": "eb9380da275ad5c4",
+      "path": "docs/image-references/figma_extracted_assets/embedded/UI_Elements/README.md"
+    },
+    {
+      "hash": "cdd558687ef8e678",
+      "path": "docs/image-references/figma_extracted_assets/embedded/UI_Elements/image0_202_9.jpg"
+    },
+    {
+      "hash": "415fb176dce5796c",
+      "path": "docs/image-references/figma_extracted_assets/embedded/data_panel_vertical_menu/README.md"
+    },
+    {
+      "hash": "ba54dea883736a8f",
+      "path": "docs/image-references/figma_extracted_assets/embedded/header/README.md"
+    },
+    {
+      "hash": "cdd558687ef8e678",
+      "path": "docs/image-references/figma_extracted_assets/embedded/header/image0_202_10.jpg"
+    },
+    {
+      "hash": "3829be3c0397a751",
+      "path": "docs/image-references/figma_extracted_assets/embedded/outliner_panel_header/README.md"
+    },
+    {
+      "hash": "e4c7bc6cc348bd37",
+      "path": "docs/image-references/figma_extracted_assets/embedded/properties/README.md"
+    },
+    {
+      "hash": "8bec812656721c01",
+      "path": "docs/image-references/figma_extracted_assets/embedded/properties/image0_305_947.png"
+    },
+    {
+      "hash": "8bf55c27fc7b572e",
+      "path": "docs/image-references/figma_extracted_assets/embedded/properties_panel_header/README.md"
+    },
+    {
+      "hash": "560bf77c76213d32",
+      "path": "docs/image-references/figma_extracted_assets/embedded/status_bar/README.md"
+    },
+    {
+      "hash": "463a1368912dd93c",
+      "path": "docs/image-references/figma_extracted_assets/embedded/timeline_cursor/README.md"
+    },
+    {
+      "hash": "78a3db10e4a5d01b",
+      "path": "docs/image-references/figma_extracted_assets/embedded/timeline_list_panel/README.md"
+    },
+    {
+      "hash": "3393645dd706881c",
+      "path": "docs/image-references/figma_extracted_assets/embedded/timeline_panel_header/README.md"
+    },
+    {
+      "hash": "7df2eaaa73a81011",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/README.md"
+    },
+    {
+      "hash": "be41b6ae8211c448",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image0_288_791.png"
+    },
+    {
+      "hash": "9cfe3b291171320c",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image1_288_791.png"
+    },
+    {
+      "hash": "3f888bd2ed1cdafe",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image2_288_791.png"
+    },
+    {
+      "hash": "b1538d96e0a74888",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image3_288_791.png"
+    },
+    {
+      "hash": "0d03022863c59deb",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image4_288_791.png"
+    },
+    {
+      "hash": "1397039cd10c4f6b",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image5_288_791.png"
+    },
+    {
+      "hash": "3ef3b666b54a8bc2",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image6_288_791.png"
+    },
+    {
+      "hash": "f3190526cf5a9d72",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image7_288_791.png"
+    },
+    {
+      "hash": "f5fc15d1c42d2585",
+      "path": "docs/image-references/figma_extracted_assets/embedded/toolbar/image8_288_791.png"
+    },
+    {
+      "hash": "d32eec7674813185",
+      "path": "docs/image-references/figma_extracted_assets/embedded/windows_bar/README.md"
+    },
+    {
+      "hash": "5f3c78b87cd31f41",
+      "path": "docs/image-references/figma_extracted_assets/figma_svg_asset_extractor.py"
+    },
+    {
+      "hash": "56649d6d4027ddf2",
+      "path": "docs/image-references/figma_extracted_assets/manifest.json"
+    },
+    {
+      "hash": "2bf4ba872360b954",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/README.md"
+    },
+    {
+      "hash": "c0ccc86c49d9c1bf",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/README.md"
+    },
+    {
+      "hash": "7224854cf2b73519",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/collection.png"
+    },
+    {
+      "hash": "717d8421cce1e408",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/metadata.png"
+    },
+    {
+      "hash": "bc7e51d41aa0e360",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/output.png"
+    },
+    {
+      "hash": "c19e9ec3878de299",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/render.png"
+    },
+    {
+      "hash": "cf12ba944d887f73",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/scene.png"
+    },
+    {
+      "hash": "00241ae5081b7896",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/select_box_tool.png"
+    },
+    {
+      "hash": "c7ca950206d5f11d",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/view_layer.png"
+    },
+    {
+      "hash": "dcf664181a7359f4",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/preview/world.png"
+    },
+    {
+      "hash": "86fb1f3b3415a495",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/README.md"
+    },
+    {
+      "hash": "af3abe15de56d40f",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/collection.svg"
+    },
+    {
+      "hash": "25ad3ef99028305c",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/metadata.svg"
+    },
+    {
+      "hash": "3dbb87d779cb4ca0",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/output.svg"
+    },
+    {
+      "hash": "2427f9d88b022077",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/render.svg"
+    },
+    {
+      "hash": "ac9f8011f1b6201f",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/scene.svg"
+    },
+    {
+      "hash": "91f8e40322541e8b",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/select_box_tool.svg"
+    },
+    {
+      "hash": "edd65edc14065c35",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/view_layer.svg"
+    },
+    {
+      "hash": "2c88a70fa3cf4895",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels/svg/world.svg"
+    },
+    {
+      "hash": "51ea59700350a070",
+      "path": "docs/image-references/figma_extracted_assets/properties_panels_contact.png"
+    },
+    {
+      "hash": "d6867c9fb6f4b04b",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/README.md"
+    },
+    {
+      "hash": "3d890c12d5f815ac",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/README.md"
+    },
+    {
+      "hash": "fd509b11be8ee384",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_01.png"
+    },
+    {
+      "hash": "62b4d3015e6e6a7e",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_02.png"
+    },
+    {
+      "hash": "cca6f3d1e2bcddc2",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_03.png"
+    },
+    {
+      "hash": "606c7fa5d01b4ee7",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_04.png"
+    },
+    {
+      "hash": "6fc5b24837fe93c5",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_05.png"
+    },
+    {
+      "hash": "f1c01cdb6b419595",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_06.png"
+    },
+    {
+      "hash": "cc034fb8510560f8",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_07.png"
+    },
+    {
+      "hash": "284c6f539382b07c",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_08.png"
+    },
+    {
+      "hash": "056ca6b266569a6d",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_09.png"
+    },
+    {
+      "hash": "ca84690142152a5f",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_10.png"
+    },
+    {
+      "hash": "96bc817832fe8db2",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_11.png"
+    },
+    {
+      "hash": "f20593991ade4cff",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_12.png"
+    },
+    {
+      "hash": "2d68a103524970dc",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_13.png"
+    },
+    {
+      "hash": "63ff8829ed7a7ea1",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_14.png"
+    },
+    {
+      "hash": "76e6ed8ce7bbfb37",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/preview/data_tab_15.png"
+    },
+    {
+      "hash": "3b7cfd78e93fa98a",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/README.md"
+    },
+    {
+      "hash": "4cf9676872cf887b",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_01.svg"
+    },
+    {
+      "hash": "04f58d7e5b092476",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_02.svg"
+    },
+    {
+      "hash": "a47908284af573b2",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_03.svg"
+    },
+    {
+      "hash": "249ba6d4cccdfc9a",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_04.svg"
+    },
+    {
+      "hash": "ea9e58e7cb76d32b",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_05.svg"
+    },
+    {
+      "hash": "5f6c318116ca9759",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_06.svg"
+    },
+    {
+      "hash": "27df4074acc0cedd",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_07.svg"
+    },
+    {
+      "hash": "7a60750a6caa9833",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_08.svg"
+    },
+    {
+      "hash": "1b4602b43a70de00",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_09.svg"
+    },
+    {
+      "hash": "5741296ed9af6937",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_10.svg"
+    },
+    {
+      "hash": "45960be9f794ce02",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_11.svg"
+    },
+    {
+      "hash": "12ed05616fcba2b7",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_12.svg"
+    },
+    {
+      "hash": "4fc6baa4c63efb8c",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_13.svg"
+    },
+    {
+      "hash": "0c585e550d88c47e",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_14.svg"
+    },
+    {
+      "hash": "3da9cde9f6ee0fd7",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs/svg/data_tab_15.svg"
+    },
+    {
+      "hash": "50fc785bf151743b",
+      "path": "docs/image-references/figma_extracted_assets/properties_tabs_contact.png"
+    },
+    {
+      "hash": "17f32ac0b8d14672",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/README.md"
+    },
+    {
+      "hash": "18e96f5452e508bc",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/README.md"
+    },
+    {
+      "hash": "0f676baf9d33b547",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/README.md"
+    },
+    {
+      "hash": "21f495ddfaaf4ec8",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/add_primitive.png"
+    },
+    {
+      "hash": "297960caff271d8c",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/annotate.png"
+    },
+    {
+      "hash": "d4b7355b0f5e4bbc",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/cursor_3d.png"
+    },
+    {
+      "hash": "d91ac630ae2438aa",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/measure.png"
+    },
+    {
+      "hash": "64ca907f0be9b47b",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/move.png"
+    },
+    {
+      "hash": "f3b833cd0d1b1949",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/rotate.png"
+    },
+    {
+      "hash": "a835e3508de86e06",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/scale.png"
+    },
+    {
+      "hash": "e27712efc5525a9a",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/select_box.png"
+    },
+    {
+      "hash": "4507aec5a4f027da",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/preview/transform.png"
+    },
+    {
+      "hash": "a5a41464f54e5cad",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/README.md"
+    },
+    {
+      "hash": "3f8f5c21f326b1d3",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/add_primitive.svg"
+    },
+    {
+      "hash": "d387b254283a2a65",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/annotate.svg"
+    },
+    {
+      "hash": "6f43f69dbf1c1340",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/cursor_3d.svg"
+    },
+    {
+      "hash": "39caccfc22f104f0",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/measure.svg"
+    },
+    {
+      "hash": "f7abed8b197ea684",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/move.svg"
+    },
+    {
+      "hash": "5a1c3b9d1d5ab6b6",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/rotate.svg"
+    },
+    {
+      "hash": "481fdc3e664b6e88",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/scale.svg"
+    },
+    {
+      "hash": "74c499d91bd770d6",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/select_box.svg"
+    },
+    {
+      "hash": "b8c1e6c4692edc2d",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/buttons/svg/transform.svg"
+    },
+    {
+      "hash": "5f907699f236bdab",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/README.md"
+    },
+    {
+      "hash": "f5fc15d1c42d2585",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/add_primitive.png"
+    },
+    {
+      "hash": "3ef3b666b54a8bc2",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/annotate.png"
+    },
+    {
+      "hash": "9cfe3b291171320c",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/cursor_3d.png"
+    },
+    {
+      "hash": "f3190526cf5a9d72",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/measure.png"
+    },
+    {
+      "hash": "3f888bd2ed1cdafe",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/move.png"
+    },
+    {
+      "hash": "b1538d96e0a74888",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/rotate.png"
+    },
+    {
+      "hash": "0d03022863c59deb",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/scale.png"
+    },
+    {
+      "hash": "be41b6ae8211c448",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/select_box.png"
+    },
+    {
+      "hash": "1397039cd10c4f6b",
+      "path": "docs/image-references/figma_extracted_assets/toolbar/icons_exact_png/transform.png"
+    },
+    {
+      "hash": "7f4fe73bfdd50895",
+      "path": "docs/image-references/figma_extracted_assets/toolbar_buttons_contact.png"
+    },
+    {
+      "hash": "39efabb490441664",
+      "path": "docs/image-references/header.png"
+    },
+    {
+      "hash": "c0acd98fa0c77a38",
+      "path": "docs/image-references/header.svg"
+    },
+    {
+      "hash": "8a8b1c3923a23686",
+      "path": "docs/image-references/outliner_panel_header.png"
+    },
+    {
+      "hash": "be96e05788537992",
+      "path": "docs/image-references/outliner_panel_header.svg"
+    },
+    {
+      "hash": "6f9703b15283fe3f",
+      "path": "docs/image-references/properties.png"
+    },
+    {
+      "hash": "b0bdc2b35fe99747",
+      "path": "docs/image-references/properties.svg"
+    },
+    {
+      "hash": "7f8f2a9a72b86c18",
+      "path": "docs/image-references/properties_panel_header.png"
+    },
+    {
+      "hash": "f65acee1c0008121",
+      "path": "docs/image-references/properties_panel_header.svg"
+    },
+    {
+      "hash": "e50cf60f91131d77",
+      "path": "docs/image-references/status_bar.png"
+    },
+    {
+      "hash": "adf7e8e8c4ebb729",
+      "path": "docs/image-references/status_bar.svg"
+    },
+    {
+      "hash": "53ba72728f9adf8e",
+      "path": "docs/image-references/timeline_cursor.png"
+    },
+    {
+      "hash": "c0f5859a7a1c5862",
+      "path": "docs/image-references/timeline_cursor.svg"
+    },
+    {
+      "hash": "faf9cf0fc94280fb",
+      "path": "docs/image-references/timeline_list_panel.png"
+    },
+    {
+      "hash": "08414fa6e520fd75",
+      "path": "docs/image-references/timeline_list_panel.svg"
+    },
+    {
+      "hash": "1c0d76eadf47dae6",
+      "path": "docs/image-references/timeline_panel_header.png"
+    },
+    {
+      "hash": "9272a2d6a0a95536",
+      "path": "docs/image-references/timeline_panel_header.svg"
+    },
+    {
+      "hash": "26d4cda8dfb4ab99",
+      "path": "docs/image-references/toolbar.png"
+    },
+    {
+      "hash": "9a7d9578ccb4dd7c",
+      "path": "docs/image-references/toolbar.svg"
+    },
+    {
+      "hash": "854442fdf7f604ee",
+      "path": "docs/image-references/windows_bar.png"
+    },
+    {
+      "hash": "e7254a3b13adea8f",
+      "path": "docs/image-references/windows_bar.svg"
+    },
+    {
+      "hash": "cc4c1aaa074a5b64",
+      "path": "docs/index.md"
+    },
+    {
+      "hash": "d6ba420bcc1a1257",
+      "path": "docs/package.json"
+    },
+    {
+      "hash": "5f034a6954b38d42",
+      "path": "docs/public/assets/logo.svg"
+    },
+    {
+      "hash": "f95958116454ff55",
+      "path": "docs/public/ui-map.json"
+    },
+    {
+      "hash": "c210fac03a90d1bf",
+      "path": "docs/vercel.json"
+    }
+  ]
+}

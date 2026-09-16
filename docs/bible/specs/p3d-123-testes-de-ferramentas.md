@@ -1,12 +1,5 @@
 # P3D-123 — Testes de ferramentas
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 5
-- **Status Canônico**: `COMPLIANT (Testes de Ferramentas de Modelagem)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

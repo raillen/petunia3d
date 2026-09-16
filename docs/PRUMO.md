@@ -2,6 +2,20 @@
 
 Roteador central de intenção e mapa canônico de navegação do projeto **Petunia3D** para humanos e agentes autônomos.
 
+> 🧊 **Site público de documentação CONGELADO** até o fim do desenvolvimento do projeto
+> (`docs/.vitepress/**`, `docs/index.md`, `docs/public/**`, `docs/image-references/**`,
+> workflow de deploy). A fonte única da verdade é o **Livro Vivo** em
+> [`docs/bible/`](bible/index.md). Ver [`AGENTS.md`](../AGENTS.md) §1.
+
+---
+
+## 0. Fonte Canônica (Livro Vivo)
+
+- [Petunia3D — Livro Vivo](bible/index.md) — raiz canônica: visão, escopo, arquitetura, UI Baseline, stack e governança.
+- [Especificações P3D — Readiness e Gauntlet Waves](bible/especificacoes-p3d-readiness-gauntlet-waves.md) — catálogo P3D-001 a P3D-168, epics, readiness e waves.
+- [Status de implementação das especificações](bible/status/p3d-implementation-status.md) — artefato operacional (não é autoridade documental).
+- [Auditoria de conformidade documental](audits/bible-conformance/README.md) — o que em `docs/` divergia do caderno e as sessões de correção.
+
 ---
 
 ## Estado Operacional Canônico
@@ -41,15 +55,16 @@ Roteador central de intenção e mapa canônico de navegação do projeto **Petu
 - [Contrato de Clean Code](architecture/clean-code-contract.md) — Princípios de separação de responsabilidades
 - [Registros de Decisões Arquiteturais (ADRs)](architecture/adr/README.md):
   - [ADR 001: Linha de Base Arquitetural](architecture/adr/001-architecture-baseline.md)
-  - [ADR 032: Migração de Odin para Rust](petunia3d-livro-vivo/32-adr-odin-para-rust.md)
-- [Petunia3D Livro Vivo](petunia3d-livro-vivo/README.md) — 36 capítulos de especificações profundas:
-  - [Workflow Shape-First](petunia3d-livro-vivo/02-workflow-modelagem-shape-first.md)
-  - [Geometria e Topologia](petunia3d-livro-vivo/03-geometry-core-faces-topologia.md)
-  - [Operações de Fusão e Weld](petunia3d-livro-vivo/04-combine-fuse-weld-personagens.md)
-  - [Viewport e Shading](petunia3d-livro-vivo/05-viewport-shading-modos-visualizacao.md)
-  - [Arquitetura Modular Rust & Safety](petunia3d-livro-vivo/34-arquitetura-modular-rust-safety.md)
-  - [Design System & Tokens](petunia3d-livro-vivo/24-design-system-tokens-estados.md)
-  - [Integração MCP para Agentes](petunia3d-livro-vivo/11-mcp-api-automacao-agentes.md)
+  - [ADR 32: Migração da Baseline Odin para Rust](bible/foundations/32-adr-odin-para-rust.md)
+- [Petunia3D — Livro Vivo](bible/index.md) — 249 páginas canônicas (00–16, 01–44, P3D-001–168, seções A–O, adendos):
+  - [Workflow Shape-First](bible/foundations/02-workflow-modelagem-shape-first.md)
+  - [Geometria e Topologia](bible/foundations/03-geometry-core-faces-topologia.md)
+  - [Combine, Fuse, Weld e Personagens](bible/foundations/04-combine-fuse-weld-personagens.md)
+  - [Viewport, Shading e Modos de Visualização](bible/foundations/05-viewport-shading-modos-visualizacao.md)
+  - [Arquitetura Modular Explícita, Rust Safety](bible/foundations/34-arquitetura-modular-rust-safety.md)
+  - [Design System Visual: Tokens, Hierarquia e Estados](bible/foundations/24-design-system-tokens-estados.md)
+  - [UI Baseline Final V1, Temas e Plugin Panels](bible/foundations/36-ui-baseline-temas-plugin-panels.md)
+  - [MCP API, Automação e Integração com Agentes de IA](bible/foundations/11-mcp-api-automacao-agentes.md)
 
 ---
 

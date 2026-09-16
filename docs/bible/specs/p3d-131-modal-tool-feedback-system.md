@@ -1,12 +1,5 @@
 # P3D-131 — Modal Tool Feedback System
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 5
-- **Status Canônico**: `COMPLIANT (Modal Tool Feedback & Snapping)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

@@ -1,6 +1,11 @@
 # 32 — ADR: Migração da Baseline Odin para Rust
 
-> **Architecture Decision Record — 2026-09-10.** Esta decisão substitui a stack anterior baseada em Odin como baseline de implementação do Petunia3D. As decisões funcionais do produto não mudam; muda a plataforma usada para implementá-las.
+<aside>
+📝
+
+**Architecture Decision Record — 2026-09-10.** Esta decisão substitui a stack anterior baseada em Odin como baseline de implementação do Petunia3D. As decisões funcionais do produto não mudam; muda a plataforma usada para implementá-las.
+
+</aside>
 
 # Status
 
@@ -27,7 +32,7 @@ A pesquisa comparativa posterior colocou C++/Qt e uma stack Rust-native como fin
 
 Adotar como baseline de implementação:
 
-```plain text
+```
 Rust 2024
 + egui
 + eframe

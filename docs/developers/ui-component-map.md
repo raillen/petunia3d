@@ -83,15 +83,18 @@ ferramentas); tokens em `tokens.rs`; tradução por `TextId`.
 
 ## Revisão do shell (header/dock/responsivo)
 
-- **Header sem brand**: 3 colunas (menus | pills centralizadas | Config/Assets).
+- **Header sem brand**: três zonas medidas por `adapters::top_bar` — menus à
+  esquerda, pílulas de workspace no **centro geométrico**, ações globais à
+  direita (Assets/Config caem para a seta por rank quando falta largura).
 - **Setas vetoriais**: nenhum `menu_button("... ▾")`, `›`, `↑/↓`, `✕`, `✓`, `●`
   ou `│` em rótulo — tudo passa por `PetuniaMenuButton`/`paint_chevron`/
   `chevron_toggle(dir)`/`paint_check` ou ASCII/Latin-1 seguro (`×`, `•`, `|`).
   (Blender: fileiras com toggles de restrição sempre visíveis; Plasticity:
   minimalismo + dot de material por objeto + seções por tipo; C4D: dois
   "semáforos" visibilidade editor/render + Attribute Manager em abas.)
-- **Viewport medida, não estimada**: `measured_widths()` soma botões fixos +
-  galleys reais; fluxo único centralizado (sem vão à direita); overflow preciso.
+- **Viewport medida, não estimada**: `measured_widths()` foi **deletada** na
+  Wave 4; a barra declara faixas/ranks e o `adapters::toolbar` mede por sonda e
+  decide o overflow (rank menor cai primeiro).
 - **Outliner**: cabeçalho único com colapso (`Outliner (N)` + busca; dobra
   redundante com o dock removida); linhas só-nome (contagens no tooltip);
   delete sob demanda; dot de material → aba Material; rename de coleções +
@@ -106,11 +109,23 @@ ferramentas); tokens em `tokens.rs`; tradução por `TextId`.
   `FOOTER_RESERVE` + teste `shell_layout_tests` (3 resoluções × 4 configs de dock).
 - **Toolbar configurável**: `canonical_toolbar_entries()` + `UiState`
   (`toolbar_order/_hidden/_columns`); engrenagem no fim da barra (visibilidade,
-  ↑/↓, 1–2 colunas com fallback responsivo, Redefinir); inclui mirror/merge/
-  symmetrize; resets em `settings_modal`.
+  ↑/↓, 1–2 colunas, Redefinir); inclui mirror/merge/symmetrize; resets em
+  `settings_modal`. O teto de colunas é preferência; quantas colunas cabem e a
+  largura de cada célula vêm de `adapters::tool_grid` (Wave 6, §48) — o
+  "fallback responsivo" deixou de ser um `if` de largura no produto.
+- **Grupo split (Seleção/Transformação)**: `plan_group(cell_width)` decide o
+  arranjo; a seta só é desenhada quando cabe na célula, e o menu da família
+  continua acessível pelo clique secundário no botão. A coluna de ferramentas tem
+  mínimo derivado (`tokens::TOOLBAR_MIN_WIDTH` = ícone + vão + seta + moldura),
+  coberto por `tests/toolbar_fit.rs`: a paleta ocupa **no máximo** a própria
+  coluna.
 - **Dock completo**: lado (E/D) + orientação (empilhado/lado a lado) no
   cabeçalho do dock; mesma fração de split, mesmos slots de região; Scene
-  com altura AUTO/MANUAL; inspector contextual (sem rail).
+  com altura AUTO/MANUAL; inspector contextual (sem rail). O shell **usa** a
+  árvore desde a Wave 5b: `shell.rs` monta `PetuniaShellLayout` do estado,
+  registra as regiões dos retângulos que o adapter mediu e persiste só o que
+  mudou; os painéis de região (`toolbar`, `outliner`, `properties_panel`, barra
+  da viewport, timeline) desenham **conteúdo**, sem `Panel` próprio.
 - **Painéis por workspace**: rail e abas só no Model; Paint/UV/Animate rendem
   seu painel direto no inspector; memória de layout por workspace preservada.
 
@@ -143,25 +158,39 @@ ferramentas); tokens em `tokens.rs`; tradução por `TextId`.
   Aplicar/Cancelar reais; busca achata seções; vazios intencionais.
 - **Densidade**: `UiDensity` (Compacta 28 / Confortável 32 / Espaçosa 36) em
   `UiState` + seletor na Interface; linhas, tabs, seções e campos consomem.
-- **Sem dependências novas** (ltreeview já vendored; resto é egui built-in).
+## Avaliação de crates externos (revisada)
 
-## Avaliação de crates externos (decisão)
+> **Avaliação anterior: superada.** A convergência “built-in primeiro” descrita
+> abaixo foi **substituída** pela Egui Ecosystem Final Push Directive (§13, §15,
+> §21 e §43). Ela partia de premissas que não se sustentaram: tratar `egui_tiles`
+> como removido, `egui_dnd` como dispensável e Taffy como piloto opcional. O custo
+> real apareceu no product code — 24 usos de `available_width()`, 54 de
+> `spacing_mut()` e 33 de `allocate_exact_size` fora de foundation.
 
-Avaliados sem adicionar dependências: `egui_tiles` (removido na convergência —
-sistema de dock próprio de ~120 linhas atende com slots/gates existentes),
-`egui_dnd` (reordenação por ↑/↓ dispensa drag; sem custo de input),
-`egui_css`/`egui_taffy`/`egui_flex` (padrões desta revisão usam egui built-in:
-colunas, `horizontal_centered`, `Popup::menu`, `ScrollArea` limitado —
-suficiente para centro/espaçamento/grades simples; `egui_taffy` segue
-vendored para quando um grid complexo exigir), `egui-toast`/`egui-notify`
-(status bar + `set_status` cobrem feedback), `egui-modal` (modais próprios com
-`modal_sizes`), `egui-multiselect`/`egui_hotkey`/`egui-inspect` (cobertos por
-widgets/keybinds/devtools). Motivos: invariantes de manifesto do `arch-check`,
-risco de OOM de compilação e convergência (fronteira P0: cada dependência no
-dono canônico). Skill `egui-layout-patterns` (skills.rest, por hafley66):
-página pública consultada — conteúdo integral (GitHub) inacessível (404);
-diretrizes aplicadas a partir do resumo publicado (built-ins primeiro,
-terceiros só p/ flex avançado) + `UiBuilder`/`Layout` nativos.
+**Regra vigente:** raw egui para micro-layout simples; bibliotecas especializadas
+para problemas especializados; tipos de terceiros sempre confinados a adapters.
+
+| Crate | Classificação vigente | Papel |
+| --- | --- | --- |
+| `egui_taffy` | **P0 baseline** | `PetuniaTaffyLayout` — layout responsivo complexo, flex/wrap/grid |
+| `egui_tiles` | **P0 baseline** | `PetuniaLayoutAdapter` — macro-layout controlado, sem docking livre |
+| `egui_dnd` | **P0 baseline** | `PetuniaDragAdapter` — reorder por drag real |
+| `egui_animation` | P0 baseline | `PetuniaMotion` — motion centralizado |
+| `twill` (core) | foundation | adapter de tokens tipados |
+| `egui_ltreeview` | baseline | `PetuniaTreeAdapter` — árvore Parts/Scene |
+| `egui_inbox` | baseline | `PetuniaInboxAdapter` — async → UI |
+| `egui_table`, `egui_virtual_list`, `egui_suspense`, `egui_form`, `egui-notify` | P1 | adotar em product paths após o gate de compatibilidade (§18) |
+
+A compatibilidade segue a ordem normativa **release crates.io → upstream atual →
+revision pin → fork mínimo Petunia → implementação local/defer** (§18). A idade do
+release publicado, sozinha, não é evidência de incompatibilidade.
+
+Motivos que continuam válidos: fronteira P0 (cada dependência no dono canônico,
+verificada pelo `arch-check`), invariante de **uma única família egui** no shipping
+graph e limite de memória de compilação.
+
+Registro mecânico do estado atual: `cargo xtask ui-guard`; baseline em
+[`docs/audits/ui-ecosystem-final-push/00-baseline.md`](../audits/ui-ecosystem-final-push/00-baseline.md).
 
 ## Fluxos de interligação principais
 
@@ -173,8 +202,62 @@ terceiros só p/ flex avançado) + `UiBuilder`/`Layout` nativos.
 - **Workspace**: pílulas → `switch_workspace()` (memória de layout) → perfis recompõem shell.
 - **Render**: `viewport_rect` posiciona a superfície GPU; fingerprint evita rebuild.
 
+## Onde nasce um componente
+
+Componente reutilizável não nasce dentro de um painel. A ordem é (diretiva §38):
+
+```text
+1. procurar componente existente
+2. modificar o Component Gallery
+3. só depois usar no produto
+```
+
+```bash
+cargo run -p petunia_ui --example component_gallery
+```
+
+A gallery mostra, além dos componentes que existem: botões, icon buttons,
+pílulas de workspace, segmentados, campos, `Vector3Field`, sliders, seções,
+abas, clusters de toolbar, menus, layouts do adapter Taffy, os dois temas
+oficiais, os 3 presets de densidade e as 5 escalas da §39.
+
+Composição responsiva não se reimplementa: `columns` + `PetuniaColumnSpec`
+(colunas de largura igual, com a largura resolvida entregue ao componente),
+`responsive` (row/column/wrap) e `clamped_width` / `fill_remaining` (largura de
+controle que cede ao espaço). `Vector3Field` e `context_tabs` já são consumidores
+desse contrato — nenhum dos dois calcula breakpoint (Wave 3, §45).
+
+Grade de itens com contagem de colunas derivada usa `PetuniaToolGridSpec`
+(`adapters::tool_grid`): o produto declara a célula só-ícone e a célula que
+comporta o rótulo; o adapter devolve `PetuniaToolCell { width, columns, labeled }`
+(Wave 6, §48). Campo rotulado — rótulo com largura declarada e controle com o
+resto — usa `PetuniaForm` (`adapters::form`): `field`, `toggle`, `section`, com a
+decisão `Inline`/`Stacked` medida por `plan_row` e sem breakpoint (Wave 6, §48).
+A vitrine mostra as duas coisas: a paleta em cinco combinações de coluna × teto de
+colunas e o mesmo campo em três larguras, com o plano ao lado do desenho.
+
+Barra de faixas com overflow usa `PetuniaResponsiveToolbar` (`adapters::toolbar`):
+o produto declara as faixas (`pinned` / `overflowable { rank }`) e a faixa de
+acesso; o adapter mede, decide e desenha (Wave 4, §46). A **barra da viewport**
+(`viewport_bar.rs`) é o primeiro consumidor — o arquivo não tem mais nenhuma
+soma de largura nem limiar de altura. A vitrine mostra as mesmas faixas em quatro
+larguras (320/560/980px e 980×60) com o plano resultante, para comparar a decisão
+de overflow entre temas, densidades e idiomas.
+
+Três armadilhas do taffy que qualquer consumidor precisa respeitar: o `Ui` de
+cada item **herda o layout do pai** (declare
+`with_item_layout(PetuniaItemLayout::Row)` quando o item for um grupo horizontal);
+`flex_basis` percentual resolve para zero (use comprimento definido); e o
+callback de item de uma grade roda **mais de uma vez por item** (medida +
+desenho) — ele é um desenho, não um acumulador. Todas estão medidas em
+[`../dependencies/ui-ecosystem-lock.md`](../dependencies/ui-ecosystem-lock.md).
+
+O que ainda não existe como componente aparece como linha `pendente · <nome>`
+com o contrato que falta (constante `PENDING` em `crates/ui/src/gallery.rs`).
+Uma linha nessa lista é trabalho a fazer — não um componente escondido num painel.
+
 ## Manutenção
 
-- Novo componente visual → adicionar nó em `docs/public/ui-map.json`.
+- Novo componente visual → primeiro na gallery (`crates/ui/src/gallery.rs`), depois nó em `docs/public/ui-map.json`.
 - `cargo xtask ui-check` valida; `cargo xtask docs-check` exige o `.md` desta página + mapa válido.
 - Versão anterior congelada em `ui-component-map.legacy.md` (backup legado).

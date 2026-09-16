@@ -4,13 +4,12 @@
 
 Em 3D existem intenções diferentes quando o usuário diz que quer unir objetos. O Petunia3D deve traduzi-las para opções simples e previsíveis.
 
-<table>
-<tr><td>Ação</td><td>O que faz</td><td>Uso recomendado</td></tr>
-<tr><td>Keep Parts</td><td>Mantém objetos independentes dentro da composição sem alterar sua geometria.</td><td>Props compostos, roupas, acessórios e peças que devem continuar independentes.</td></tr>
-<tr><td>Join</td><td>Um MeshObject contendo várias ilhas desconectadas.</td><td>Exportar várias partes como um único asset sem alterar sua forma.</td></tr>
-<tr><td>Fuse</td><td>Fusão geométrica real. Semanticamente corresponde a Union quando volumes precisam virar uma única superfície externa.</td><td>Hard-surface, objetos rígidos e formas interpenetrantes. O termo Boolean permanece detalhe técnico, não requisito conceitual para o usuário.</td></tr>
-<tr><td>Connect</td><td>Cria continuidade topológica controlada; Bridge/Weld/Stitch são mecanismos internos/avançados.</td><td>Pescoço, ombro, quadril e regiões que precisam deformar.</td></tr>
-</table>
+| Ação | O que faz | Uso recomendado |
+| --- | --- | --- |
+| Keep Parts | Mantém objetos independentes dentro da composição sem alterar sua geometria. | Props compostos, roupas, acessórios e peças que devem continuar independentes. |
+| Join | Um MeshObject contendo várias ilhas desconectadas. | Exportar várias partes como um único asset sem alterar sua forma. |
+| Fuse | Fusão geométrica real. Semanticamente corresponde a Union quando volumes precisam virar uma única superfície externa. | Hard-surface, objetos rígidos e formas interpenetrantes. O termo Boolean permanece detalhe técnico, não requisito conceitual para o usuário. |
+| Connect | Cria continuidade topológica controlada; Bridge/Weld/Stitch são mecanismos internos/avançados. | Pescoço, ombro, quadril e regiões que precisam deformar. |
 
 # Exemplo: corpo criado em peças
 
@@ -34,7 +33,7 @@ Boolean não deve ser usado quando uma operação topológica local simples reso
 
 Ao selecionar múltiplas formas, `Combine` oferece exatamente quatro intenções em linguagem simples:
 
-```plain text
+```
 Keep Parts | Join | Fuse | Connect
 ```
 
@@ -72,7 +71,7 @@ O usuário escolhe duas regiões abertas — preferencialmente duas faces-cap ou
 
 Fluxo principal:
 
-```plain text
+```
 select part A + part B
         ↓
      Connect

@@ -8,7 +8,7 @@ A **Biblioteca de Assets** do Petunia3D funciona como uma gaveta retrátil dedic
 
 Quando você termina de modelar uma peça reutilizável (por exemplo, uma árvore, uma janela ou uma cerca):
 1. Selecione o objeto no Modo Objeto;
-2. Abra a Gaveta de Assets clicando no botão `📦 Biblioteca de Assets` na barra inferior ou no menu superior;
+2. Abra a **Asset Library** (região inferior do shell) ou acesse pelo menu superior;
 3. Clique em `💾 Salvar Seleção como Asset`;
 4. Defina um nome descritivo e uma categoria (ex: `Cenário / Props`);
 5. O modelo agora é parte do catálogo interno do projeto.

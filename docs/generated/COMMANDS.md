@@ -60,7 +60,7 @@ Total de comandos registrados no motor: **64**.
 | `select.domain_edge` | **Select Domain: Edge** | `Select` | Não | — | Switch interaction to Edge domain |
 | `select.domain_face` | **Select Domain: Face** | `Select` | Não | — | Switch interaction to Face domain |
 | `select.domain_object` | **Select Domain: Object** | `Select` | Não | — | Switch interaction to Object domain |
-| `select.domain_vertex` | **Select Domain: Vertex** | `Select` | Não | — | Switch interaction to Vertex domain |
+| `select.domain_vertex` | **Select Domain: Point** | `Select` | Não | — | Switch interaction to Point domain |
 | `select.invert` | **Invert Selection** | `Select` | Não | — | Invert geometry selection in active mesh |
 | `select.linked` | **Select Linked** | `Select` | Não | — | Select connected geometry elements |
 | `select.none` | **Deselect All** | `Select` | Não | — | Clear current geometry selection |

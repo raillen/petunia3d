@@ -9,4 +9,4 @@ Preserva o contexto histórico, as opções avaliadas, as consequências aceitas
 ## Inventário
 - [`001-architecture-baseline.md`](001-architecture-baseline.md): Decisão que estabelece a linha de base de Clean Architecture e separação de domínio.
 - [`002-rust-opengl-stack.md`](002-rust-opengl-stack.md): Escolha técnica da stack Rust, OpenGL 3.3 Core Profile (`glow`), fallback `wgpu` e interface `egui`.
-- [`../../petunia3d-livro-vivo/32-adr-odin-para-rust.md`](../../petunia3d-livro-vivo/32-adr-odin-para-rust.md): ADR histórica da transição de prototipagem em Odin para Rust.
+- [`../bible/foundations/32-adr-odin-para-rust.md`](../bible/foundations/32-adr-odin-para-rust.md): ADR histórica da transição de prototipagem em Odin para Rust (autoridade vigente de stack).

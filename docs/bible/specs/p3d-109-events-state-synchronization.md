@@ -1,12 +1,5 @@
 # P3D-109 — Events / State synchronization
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 1
-- **Status Canônico**: `COMPLIANT (Sincronização de Estado & EventBus)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

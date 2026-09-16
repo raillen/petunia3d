@@ -26,3 +26,19 @@ Render compositor, gameplay graphs, geometry nodes completos.
 ## Testes / DoD
 
 Graph deterministic, cycle/error handling, serialization e avaliação cacheável.
+
+## Adendo pós-V1 — Surface Recipes
+
+A direção foi aprofundada no capítulo `42 — Pós-V1: Nodes Simples, Recipes e Procedural Surface`.
+
+Regras adicionais:
+
+- o graph inicial passa a ser chamado conceitualmente de **Surface Recipe**;
+- presets/effects são a UX principal; edição de graph é Advanced;
+- nodes iniciais: Texture/Color/Value/UV, Tint, Brightness/Contrast, Hue/Saturation, Invert, Mix, Multiply, Threshold/Levels, Noise/Checker/Gradient, Mask e outputs de channels;
+- generators baseados em AO/Curvature/Position/Normal só entram quando a infraestrutura de baking correspondente existir;
+- graph é DAG; ciclos são rejeitados;
+- parâmetros podem ser explicitamente expostos pelo recipe;
+- recipes possuem schema versionado e cache/invalidation determinísticos;
+- não introduzir fields, loops, simulation zones, arbitrary attributes ou topology mutation genérica;
+- Generator Recipes geométricos são um sistema posterior separado e só podem compor operadores high-level aprovados do Spline/Modifier/Core.

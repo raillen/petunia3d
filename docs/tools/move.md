@@ -3,7 +3,7 @@
 A ferramenta **Mover** permite transladar objetos ou subcomponentes geométricos (vértices, arestas, faces) no espaço 3D.
 
 - **Atalho de Ativação**: `G` (Grab)
-- **Modos Suportados**: Modo Objeto e Modo de Edição.
+- **Disponível em**: seleção de `Object` e de componentes da malha.
 
 ## Como Usar
 1. Selecione os elementos que deseja transladar;

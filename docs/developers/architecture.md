@@ -1,8 +1,14 @@
 # Macroarquitetura de Crates
 
-O Petunia3D é construído sob uma arquitetura modular estrita em Cargo Workspace composta por **17 crates** altamente coesos e desacoplados, garantindo limites explícitos de domínio:
+O Petunia3D é construído sob uma arquitetura modular estrita em Cargo Workspace. O workspace declara **19 membros** em `Cargo.toml`:
 
-> Para a especificação canônica detalhada de invariantes e limites, consulte [Capítulo 04 da Bíblia de Implementação](/bible/constitution/04-invariantes-de-arquitetura-modularidade-e-co).
+`core`, `mesh`, `commands`, `config`, `project`, `plugins`, `mcp`, `render`, `render-gl`, `render-wgpu`, `module-model`, `module-paint`, `module-uv`, `module-assets`, `ui`, `app`, `cli`, `ffi`, `xtask`.
+
+> A autoridade sobre o grafo de crates, fronteiras e ownership é o capítulo 28 do Livro Vivo, com o capítulo 34 para representação/ownership/Rust safety:
+> [28 — Arquitetura Rust, Cargo Workspace e Fronteiras entre Crates](/bible/foundations/28-arquitetura-rust-cargo-crates) e
+> [34 — Arquitetura Modular Explícita, Rust Safety e Representação em Código](/bible/foundations/34-arquitetura-modular-rust-safety).
+>
+> Contagens antigas (13, 14, 17) nesta documentação estavam desatualizadas — o número válido é o do `Cargo.toml`.
 
 ```mermaid
 graph TD

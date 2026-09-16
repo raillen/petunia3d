@@ -1,12 +1,5 @@
 # P3D-130 — Customização sem quebrar Core
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Transversal
-- **Status Canônico**: `COMPLIANT (Invariantes de Filosofia do Projeto)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

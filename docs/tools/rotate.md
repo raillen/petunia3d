@@ -3,7 +3,7 @@
 A ferramenta **Rotacionar** gira a seleção em torno de um ponto de pivô.
 
 - **Atalho de Ativação**: `R`
-- **Modos Suportados**: Modo Objeto e Modo de Edição.
+- **Disponível em**: seleção de `Object` e de componentes da malha.
 
 ## Como Usar
 1. Selecione os elementos;

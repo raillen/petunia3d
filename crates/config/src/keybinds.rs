@@ -202,14 +202,16 @@ impl Keybinds {
         ]
     }
 
-    /// Carrega um perfil específico pelo ID buscando em assets/keymaps/{id}.toml.
+    /// Carrega um perfil específico pelo ID.
+    ///
+    /// Fonte canônica única: `assets/keymaps/{id}.toml` (P3D-090). O diretório
+    /// legado `assets/keybinds/` foi removido para não manter duas verdades de
+    /// keymap; perfis do usuário vivem no diretório de configuração do sistema.
     pub fn load_profile(profile_id: &str) -> Self {
         let mut kb = Self::defaults();
         let candidate_paths = [
             format!("assets/keymaps/{profile_id}.toml"),
             format!("keymaps/{profile_id}.toml"),
-            format!("assets/keybinds/{profile_id}.toml"),
-            format!("keybinds/{profile_id}.toml"),
         ];
 
         for path in candidate_paths {

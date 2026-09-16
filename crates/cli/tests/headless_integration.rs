@@ -92,7 +92,7 @@ fn test_headless_command_dispatch_and_history() {
     );
 
     // 5. DuplicateSelectionCmd em Edit Mode (duplica geometria)
-    state.mode = petunia_core::EditMode::Edit;
+    state.set_edit_mode(petunia_core::EditMode::Edit);
     state.select_mode = petunia_core::SelectMode::Vertex;
     let verts_before = state.project.active_mesh().unwrap().vert_count();
     state
@@ -127,7 +127,7 @@ fn test_headless_geometric_tools_execution() {
     ProjectService::new_project(&mut state);
 
     // Seleciona uma face para extrusão limpa
-    state.mode = petunia_core::EditMode::Edit;
+    state.set_edit_mode(petunia_core::EditMode::Edit);
     state.select_mode = petunia_core::SelectMode::Face;
     if let Some(m) = state.project.active_mesh_mut() {
         m.deselect_all();

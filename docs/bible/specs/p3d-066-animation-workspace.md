@@ -1,16 +1,9 @@
 # P3D-066 — Animation Workspace
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementado via `Workspace::Animate`, `animation_ui.rs` e shelf contextual** · Prioridade: P3.
+Escopo expandido; não tratar como feature monolítica · Prioridade: P3.
 
 </aside>
 

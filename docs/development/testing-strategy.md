@@ -26,17 +26,43 @@ Para aprovação de qualquer alteração no repositório:
 
 | Gate | Comando | Critério de Aceitação |
 |------|---------|------------------------|
-| **Testes da Workspace** | `cargo test --workspace` | 100% dos testes aprovados (mínimo 23 testes ativos). |
-| **Linter Estático** | `cargo clippy --workspace --all-targets` | 0 avisos (zero warnings tolerados). |
-| **Formatação Canônica** | `cargo fmt --all --check` | 100% de conformidade com as regras do `rustfmt`. |
+| **Testes da Workspace** | `cargo test --workspace` | 100% dos testes aprovados; a contagem mínima é a do build atual, nunca um número fixo no documento. |
+| **Check de Compilação** | `cargo check` | Sem erros em todo o workspace. |
+| **Linter Estático** | `cargo clippy --workspace --all-targets -- -D warnings` | 0 avisos (warnings são erro). |
+| **Formatação Canônica** | `cargo fmt --all --check` | 100% de conformidade com o `rustfmt`. |
 | **Trust Boundary Sanitization** | `cargo test -p petunia_project -p petunia_mesh` | Rejeição sem pânico de malhas degeneradas e arquivos malformados. |
+| **Caderno canônico** | `cargo run -p xtask -- bible-check` | Completude do Livro Vivo, links, vocabulário de usuário e site congelado. |
+| **Drift de referências** | `cargo run -p xtask -- docs-generate --check` | CommandIds, keybinds, IconIds, TextIds, ThemeTokens e changelog sem drift. |
+| **Mapa de UI** | `cargo run -p xtask -- ui-check` | `docs/public/ui-map.json` coerente com o código (ids, arquivos, símbolos, aciclicidade). |
+| **Architecture checks** | `cargo run -p xtask -- arch-check` | Auditoria arquitetural íntegra (P3D-122). |
 | **Prumo Governance** | `prumo validate . && prumo doctor .` | Validação estrutural de governança e diagnósticos sem erros. |
+
+### Gates de documentação e QA por feature (P3D-114–125)
+
+Além dos gates acima, a feature só é `DONE` quando estes itens aplicáveis existem e
+foram verificados:
+
+| P3D | Item | Evidência exigida |
+| :--- | :--- | :--- |
+| 114 | Tooltips completos | texto/atalho em todo controle relevante, via `TextId` |
+| 115 | Ajuda contextual `?` | tópico de ajuda alcançável do contexto atual |
+| 116 | Website de documentação | publicável a partir do repositório (site congelado na fase atual) |
+| 117 | Changelog vivo | `CHANGELOG.md` sincronizado com `docs/changelog/index.md` + migration notes |
+| 118 | Screenshots atualizados | **captura real da implementação**, nunca mockup |
+| 119 | Referência automática de tokens | catálogos gerados sem drift |
+| 120 | Docs Check | `docs-check` + `bible-check` verdes |
+| 121 | UI Regression Tests | testes de interação/foco e snapshots nos fluxos afetados |
+| 122 | Architecture Checks | fronteiras de crate e dependências validadas |
+| 123 | Testes de ferramentas | uma Tool nova entra com teste de comportamento e de undo |
+| 124 | Testes de import/export | fixtures de conformance por formato (`gltf`/OBJ) |
+| 125 | Asset/Icon caching | parse/rasterização cacheados, sem download em runtime |
 
 ---
 
 ## 3. Conformance Strategy (Estratégia de Conformidade)
 
-- **Padrão Gráfico**: Estrita aderência ao OpenGL 3.3 Core Profile e GLSL 330. Nenhuma extensão específica de vendedor é obrigatória.
+- **Padrão gráfico**: a stack final é **Rust 2024 + egui + eframe + egui-wgpu + wgpu** (capítulos 27 e 36). O viewport é integrado por `egui-wgpu` (custom callback/RenderPass) e o backend OpenGL existe apenas como caminho de compatibilidade — ele **não** é o baseline contratual.
+- **Vertical slice**: o recorte do capítulo 31 funciona como teste de conformance/integração da baseline; falha localizada corrige adapter/dependência/implementação, e só bloqueador estrutural comprovado dispara novo ADR.
 - **Exportação Game-Ready**: O formato glTF 2.0 (`.glb`) deve ser aceito sem avisos pelo validador oficial Khronos glTF Validator e importável diretamente na Godot Engine 4.x e Unity.
 - **Isolamento de Cfg/Plataforma**: Validação contínua do fallback de backend (`PETUNIA_BACKEND=gl` vs `PETUNIA_BACKEND=wgpu`).
 

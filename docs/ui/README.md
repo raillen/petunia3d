@@ -1,117 +1,228 @@
-# Documentação de Interface e Design System — Petunia3D (`docs/ui/`)
+# Interface e Design System — Petunia3D (`docs/ui/`)
 
-Especificação de fluxos de usuário, telas, estados de interação, tokens de design, acessibilidade e validação visual do Petunia3D.
+Documentação da **UI Baseline Final V1**, congelada no capítulo 36 do Livro Vivo
+([`docs/bible/foundations/36-ui-baseline-temas-plugin-panels.md`](../bible/foundations/36-ui-baseline-temas-plugin-panels.md)).
 
----
+> **Regra de leitura:** o capítulo 36 é a autoridade. Calibrações pequenas que
+> preservam contrato, hierarquia e acessibilidade são **tuning**. Mudanças de
+> toolkit, grafo do shell, docking irrestrito, acesso cru de plugins a UI/GPU e
+> invariantes de acessibilidade exigem decisão explícita/ADR.
 
-## 1. User Flows (Fluxos de Usuário)
+## 1. Modelo mental do usuário
 
-O fluxo primordial do Petunia3D é o **Shape-First 3D Asset Creation Flow**:
-
-```mermaid
-flowchart LR
-    A[1. Carregar Referência 2D] --> B[2. Desenhar Silhueta (Draw Profile)]
-    B --> C[3. Gerar Malha (Extrude/Revolve)]
-    C --> D[4. Refinar Topologia (Inset/Bevel)]
-    D --> E[5. Mapear UV e Ilhas]
-    E --> F[6. Vertex Paint / Textura]
-    F --> G[7. Validação e Exportação (OBJ/GLB)]
+```
+REFERENCE → DRAW/CREATE → SHAPE → PAINT/PROJECT → CHECK → EXPORT
 ```
 
-1. **Importação de Referências**: Imagens ortográficas (frente, lado, topo) são carregadas no viewport como guias de modelagem com transparência regulável.
-2. **Desenho de Perfil**: O usuário traça vértices sobre a imagem e aciona revolução radial (ex: garrafas, copos, rodas) ou extrusão ortogonal (ex: lâminas, prédios, móveis).
-3. **Refinamento**: Aplicação de operações fundamentais (Bevel em quinas, Inset para cavidades, Subdivisão para detalhe estruturado).
-4. **Pintura e Cores**: Aplicação de cores por vértice diretamente sobre as faces com paleta estilizada.
-5. **Exportação**: Inspeção de conformidade topológica e gravação do asset final para motores de jogo (Godot, Unity).
+Topologia, triangulação e UV continuam acessíveis como escape hatch e aprendizado
+progressivo — nunca como pré-requisito para o primeiro asset.
 
----
+## 2. Princípios congelados
 
-## 2. Screens and States (Telas e Estados de Usuário Suportados)
+- **viewport-first**: o viewport mantém ~`480 × 360` logical px antes de ceder espaço a painéis;
+- shell profissional simplificado — nunca "Blender amputado" nem aplicativo infantil;
+- `Parts` à esquerda, `Context` à direita, `Asset Library` inferior;
+- painéis semi-flutuantes, retráteis e redimensionáveis dentro de limites explícitos;
+- `MODEL / PAINT / UV` como workspaces V1;
+- toolbar contextual dentro do viewport;
+- seleção explícita `Object / Face / Edge / Point`;
+- `Wireframe / Solid / Textured / Silhouette` como modos-base; overlays são composição sobre o modo-base;
+- Command Registry como fonte única de ações, shortcuts, plugins e command palette;
+- Petunia Components como única linguagem visual pública;
+- AccessKit + keyboard/focus fazem parte do contrato, não são acabamento tardio;
+- **nenhum docking irrestrito na V1**.
 
-### Workspaces (Pílulas no Cabeçalho Superior)
-A aplicação apresenta uma barra de abas estilo "pílula" no topo que transiciona entre os quatro contextos operacionais:
-- **MODEL**: Focado no viewport 3D, ferramentas de topologia e árvore de assets da cena.
-- **PAINT**: Viewport configurado com shading de cores de vértice/albedo, seletor de paleta de cores, pincel e ferramentas de pintura 2D/3D.
-- **UV**: Layout bipartido (viewport 3D à esquerda e tela plana de projeção UV [0, 1] à direita sincronizada com a seleção).
-- **EXPORT**: Painel de conferência com contagem de polígonos, verificação de erros de malha e opções de exportação em lote.
+## 3. Shell e medidas de referência
 
-### Estados de Seleção e Ferramentas
-- **Modos de Sub-elementos**: `Vertex` (1), `Edge` (2) e `Face` (3).
-- **Estados de Interação**:
-  - `Idle`: Nenhum evento pendente; zero renderizações na GPU (consumo mínimo de energia e bateria).
-  - `Hovering`: Destaque visual em tempo real sob o cursor do mouse.
-  - `Active Transform`: Manipulação interativa de translação, rotação ou escala via atalhos e gizmos.
-  - `Camera Orbit / Pan / Zoom`: Transformações matriciais suaves sem stuttering.
+Valores em **logical px**, antes de UI scaling.
 
----
+| Elemento | Baseline | Regra |
+| :--- | :--- | :--- |
+| Top bar | `40` | menus/projeto à esquerda, workspace pills ao centro, ações globais à direita |
+| Parts | `248` default; `200–400` | recolhível, resize horizontal |
+| Context | `288` default; `240–440` | selection/tool-centric |
+| Asset Library | `176` default; `120–360` | resize vertical + collapse |
+| Panel Header | `28` | um contrato único |
+| Control | `28` | 30–32 apenas quando a hierarquia justificar |
+| Status Strip | `~22` | hints contextuais + stats/save/validation |
+| Gutter estrutural | `8` | `4` somente entre controles intimamente relacionados |
 
-## 3. Accessibility (Acessibilidade e Ergonomia)
+Breakpoints desktop: `≥ 1280` shell completo · `1024–1279` Asset Library inicia
+recolhida · `< 1024` Parts/Context podem atuar como drawers/overlays temporários.
 
-- **Contraste e Legibilidade**: Tema escuro com alto contraste nativo (dark mode contrastante) para prevenir fadiga visual prolongada.
-- **Navegação 100% por Teclado**: Todas as ferramentas e trocas de modo possuem atalhos dedicados mapeados e reconfiguráveis via `assets/keybinds/petunia.toml`.
-- **Dicas Visuais e Tooltips**: Cada botão da interface exibe seu nome, descrição breve e respectivo atalho de teclado entre parênteses ao passar o cursor.
+Estrutura de regiões:
 
----
+```
+Top Bar
+└ Main Workspace
+  ├ Left Region    → Parts + extension panels autorizados
+  ├ Center Region  → Viewport / workspace editor
+  ├ Right Region   → Context + extension panels autorizados
+  └ Bottom Region  → Asset Library + extension panels autorizados
+```
 
-## 4. Visual Validation (Validação Visual)
+Regras: core panels não podem ser removidos permanentemente por plugin · resize
+só em divisores autorizados · double-click no divisor restaura a medida default ·
+estado de layout é persistido por workspace · plugin panels entram apenas em
+**extension slots** controlados · nenhuma janela flutuante arbitrária na V1.
 
-- O projeto adota validações visuais contínuas registradas nos relatórios do Gauntlet ([`docs/GAUNTLET.md`](../GAUNTLET.md)):
-  - Inspeção visual de anti-aliasing e desenho de wireframe.
-  - Integridade visual de renderização de quads e triângulos sob iluminação Gouraud/flat.
-  - Sincronização em tempo real entre alterações na malha e na visualização da projeção UV.
+## 4. Design System Final V1
 
-## 5. Iconografia e tokens de interface
+**Tipografia:** `Caption 10` · `UI Small 11` · `UI Default 12` · `Panel/Strong 13` · `Exceptional 14`.
+Nunca usar 8 px como baseline de texto interativo.
 
-Os ícones de ferramentas são desenhos vetoriais de `crates/ui/src/icons.rs`, construídos em uma grade lógica de 24 pontos. Não dependem de símbolos Unicode ou fontes de ícones. A variante compacta usa alvo de 40 × 40 pontos; a variante ampla mantém o ícone e o nome na mesma linha. O nome completo permanece na informação acessível do botão em ambas as variantes; o chamador fornece tooltip e atalho.
+**UI scaling:** presets `100% / 125% / 150% / 175% / 200%`; escala do sistema/HiDPI respeitada; layout em unidades lógicas.
 
-O componente `tool_button(ui, id, label, selected, compact)` respeita estados habilitado, hover, seleção e foco de teclado. A seleção combina fundo e marcador lateral; o foco acrescenta contorno visível. A pintura isolada `icons::paint` permite reutilizar câmera, desfazer e refazer nos controles do editor.
+**Radius:** `control 4` · `segment 5` · `panel 8` · `window 10` · `pill full`.
 
-`assets/themes/dark.toml` é a fonte de configuração do tema, com defaults tipados em `crates/config/src/theme.rs`. As cores são semânticas: fundo, painel, superfície de controle, hover, seleção, texto, texto secundário, destaque e borda. A tipografia padrão é proporcional, com corpo e botões de 14 pontos, texto secundário de 12 e títulos de 18. A escala é em pontos egui e acompanha o DPI.
+**Accent:** violeta floral em torno de `#B58CFF` como ponto inicial. Accent significa
+`selected`, `active`, `current`, `focus emphasis`; warning/error/success têm famílias semânticas próprias.
 
-Os testes verificam contraste mínimo de 4,5:1 nos pares de texto efetivamente usados, estado/foco e ativação de botão por teclado. A validação visual com captura OpenGL continua necessária; esses testes não comprovam suporte a leitor de tela nem equivalência visual entre drivers.
+**Motion:** hover/menu ~`80–100 ms` · collapse/panel ~`140 ms` · transição estrutural
+máx. ~`180 ms` · **reduced-motion obrigatório** · nenhuma animação contínua decorativa.
 
----
+**Tema oficial:** **Dark** é o tema completo da V1. **High Contrast** é variação
+oficial de acessibilidade. Light pode surgir depois sem mudar arquitetura, porque
+todo estilo usa tokens semânticos.
 
-## 6. Referência Visual Premium Canônica (`Blender.svg`)
+Todos os valores acima são `ThemeToken` — nunca cor, espaçamento ou fonte hardcoded
+em widget.
 
-A interface final de produção do Petunia3D adota formalmente como **Golden Reference** o mockup de alta fidelidade especificado em [`docs/image-references/Blender.svg`](../../docs/image-references/Blender.svg) (e seu raster de visualização [`docs/image-references/Blender.png`](../../docs/image-references/Blender.png)).
-A composição espacial, dimensões nominais (1920 × 1080), painéis sanfonados, hierarquia e catálogo de ícones do Petunia3D convergem para este padrão de produção.
+## 5. Temas declarativos (Theme Extension API)
 
-### Especificação dos Painéis e Elementos
-1. **Top Application Header (y: 0–30px)**:
-   - Menus globais de sistema: `File`, `Edit`, `Render`, `Window`, `Help`.
-   - Barra de abas de Workspaces: `Layout`, `Modeling`, `Sculpting`, `UV Editing`, `Texture Paint`, `Shading`, `Animation`, `Rendering`, `Compositing`, `Geometry Nodes`, `Scripting`.
-   - Seletor de Cena e View Layer ativos.
-2. **Viewport Context & Shading Bar (y: 30–60px)**:
-   - Seletor de Modo de Operação: `Object Mode`, `Edit Mode`, `Sculpt Mode`, `Vertex Paint`, `Weight Paint`, `Texture Paint`.
-   - Menus de contexto do Viewport: `View`, `Select`, `Add`, `Mesh`.
-   - Seleção de Sub-elementos: Vértice (1), Aresta (2), Face (3).
-   - Orientação de Transformação (`Global`, `Local`, `Normal`, `Gimbal`, `View`, `Cursor`).
-   - Ponto de Pivô (`Bounding Box Center`, `3D Cursor`, `Individual Origins`, `Median Point`, `Active Element`).
-   - Snapping magnético e alvos de snap (Increment, Vertex, Edge, Face, Volume).
-   - Proportional Editing (ligado/desligado com curvas Smooth, Sphere, Root, Sharp, Linear, Constant, Random).
-   - Controles de Visibilidade e Shading: Toggles de Gizmos, Overlays e os 4 modos fundamentais de sombreamento (`Wireframe`, `Solid`, `Material Preview`, `Rendered`).
-3. **Left Toolbar (x: 0–45px)**:
-   - Coluna de ferramentas com alvos de clique ergonômicos de 40 × 40 px e sub-ferramentas integradas: Select Box/Circle/Lasso, Cursor 3D, Move, Rotate, Scale, Transform, Annotate, Measure, Add Primitive, Extrude Region, Inset Faces, Bevel, Loop Cut, Poly Build, Spin, Smooth, Edge Slide, Shrink/Fatten, Shear, Rip Region.
-4. **Central 3D Viewport**:
-   - Canvas isolado renderizado via [`PhysicalViewport`](../../crates/core/src/viewport.rs) com suporte a DPI e clipping exato.
-   - **Gizmo de Navegação de Eixos** interativo no canto superior direito: esfera de rotação com eixos ortogonais X/Y/Z clicáveis, botões de zoom interativo, pan e alternância de câmera orto/perspectiva.
-   - **3D Cursor**: Indicador de mira tridimensional para inserção de primitivas e definição de pivô.
-   - Grade tridimensional infinita com eixos coloridos (X vermelho, Y verde, Z azul).
-5. **Right Outliner (x: 1580–1920px, y: 30–450px)**:
-   - Árvore de coleções e nós de cena (`Scene Collection` → `Collection` → Objetos, Câmeras, Fontes de Luz).
-   - Busca instantânea e filtros por nome e tipo.
-   - Toggles contextuais por item: Ativo, Selecionável, Visível no Viewport (ícone do olho), Visível na Renderização (ícone de câmera).
-6. **Right Properties Panel (x: 1580–1920px, y: 450–1050px)**:
-   - Coluna vertical esquerda de navegação com 14 abas com ícones vetoriais dedicados: `Tool`, `Render`, `Output`, `View Layer`, `Scene`, `World`, `Collection`, `Object`, `Modifiers`, `Particles`, `Physics`, `Constraints`, `Data/Mesh`, `Material`, `Texture`.
-   - Painéis de parâmetros sanfonados e campos numéricos com arrasto horizontal (`tool_fields.rs`).
-7. **Bottom Timeline / Animation Bar (y: 850–1050px)**:
-   - Controles de transporte (Play, Pause, Step Next/Prev, Jump Start/End).
-   - Régua de quadros e marcadores de keyframe.
-8. **Bottom Status Bar (y: 1050–1080px)**:
-   - Dicas contextuais dinâmicas de mouse: `LMB: Select`, `MMB: Rotate View`, `RMB: Object Context Menu`.
-   - Telemetria de geometria em tempo real: contagem de Vértices, Faces, Triângulos, Objetos ativos, Consumo de Memória RAM/VRAM e versão da aplicação.
+Usuários criam, editam, importam, exportam e compartilham temas **sem escrever código**:
 
-### Extração de Assets Vetoriais
-A suíte completa com os 268 elementos vetoriais individuais de `Blender.svg` foi extraída de forma limpa pelo script [`scripts/extract_svg_elements.py`](../../scripts/extract_svg_elements.py) e está catalogada com previews e documentação em [`docs/image-references/extracted/README.md`](../../docs/image-references/extracted/README.md) e galeria visual interativa em [`docs/image-references/extracted/index.html`](../../docs/image-references/extracted/index.html).
+```
+my-theme.petunia-theme
+├ theme.toml
+├ tokens.json
+├ preview.png        opcional
+├ fonts/             opcional, sujeito a validação
+└ icons/             opcional, somente overrides theme-safe suportados
+```
 
+O `.petunia-theme` é um ZIP versionado **puramente declarativo** (não executa código
+durante a resolução de tokens) e herda de uma base (`petunia.dark`,
+`petunia.high_contrast` ou outro tema, quando disponível), com detecção de ciclos e
+dependências ausentes.
+
+**Tokens protegidos** — um tema não pode reduzir silenciosamente: minimum hit areas,
+semântica de foco, accessible names/roles, comportamento de teclado, topologia do
+shell, tamanho mínimo do viewport, contraste mínimo do modo High Contrast, indicadores
+de segurança e semântica de ações destrutivas.
+
+**Theme Manager** (`Settings → Appearance`): theme picker, preview, *Create Theme from
+Current*, duplicate/rename, edição de tokens semânticos, import/export
+`.petunia-theme`, reset de token, avisos de contraste/acessibilidade e live preview.
+Trocar de tema **nunca** altera o documento `.petunia`.
+
+## 6. Plugin Panels
+
+Community Plugins Lua podem registrar **painéis completos**, somente pela
+`Petunia UI Extension API`: sem acesso cru a `egui`, `wgpu`, `Painter`, raw input,
+ponteiros ou markup arbitrário.
+
+- **Panel Registry**: `panel_id`, `plugin_id`, `title`, `icon`, `preferred_region`,
+  `allowed_regions`, `minimum_size`, `preferred_size`, `singleton`,
+  `visible_by_default`, `context_requirements`, `help/manual id`.
+- **Regiões V1**: `left`, `right`, `bottom`. Substituir o viewport/centro e janelas
+  flutuantes arbitrárias **não** fazem parte da Community Plugin API V1.
+- **Event model**: o painel não varre o documento a cada frame; ele reage a eventos
+  após commit, atualiza seu estado e invalida o repaint.
+- **Capabilities**: `register_ui_panel`, `register_viewport_overlay`, `register_commands`,
+  `read_selection`, `read_document`, `edit_geometry`, `edit_uv`, `edit_materials`,
+  `import_files`, `export_files`, `filesystem`, `mcp_exposable`.
+- **Isolamento**: um Lua State por plugin, erros confinados ao painel, sem mutação do
+  documento durante render, unload remove painéis/commands/subscriptions.
+- **Acessibilidade e tema**: o host garante semantics, foco e herança automática do
+  tema atual. Plugins usam variants (`normal`, `accent`, `success`, `warning`,
+  `danger`, `muted`) — nunca RGB/hex local.
+
+## 7. Input, foco e acessibilidade
+
+| Entrada | Ação |
+| :--- | :--- |
+| `LMB` | selecionar/operar |
+| `Shift + LMB` | adicionar/alternar seleção |
+| `RMB` | context menu |
+| `MMB` | orbit |
+| `Shift + MMB` | pan |
+| wheel/pinch | zoom |
+| `Esc` | cancelar |
+| `Enter` | confirmar operação pendente |
+| `F6` / `Shift+F6` | navegar regiões principais |
+| `Tab` / `Shift+Tab` | navegar controles dentro da região |
+| setas | segmented/tree/navegação contextual |
+| `Space`/`Enter` | ativação acessível do controle focado |
+
+Clicar fora **nunca** confirma silenciosamente operação destrutiva. Foco visível,
+reduced-motion e semantics AccessKit são contrato, não polish.
+
+## 8. Temas, ícones e presets (estado do build)
+
+O contrato do caderno define: **Dark oficial** + **High Contrast** de acessibilidade;
+temas adicionais entram por `.petunia-theme`; e os pack oficiais de ícones são
+**Tabler, Iconoir, Phosphor, Lucide** mais **Petunia Custom Icons** para conceitos 3D
+sem representação adequada (P3D-087, P3D-088).
+
+> **Divergência registrada:** o build atual embarca temas extras (Light, Capuccino,
+> Tokyo Nights), um pack `future-dark` e um pack Petunia cuja linguagem foi derivada
+> de referência externa. Isso é `FUNCTIONAL_BUT_DIFFERENT` em relação ao capítulo 36 e
+> está registrado na [auditoria de conformidade](../audits/bible-conformance/README.md);
+> os valores válidos continuam sendo os tokens semânticos, não as paletas específicas.
+
+Presets de keymap: default **Petunia**, mais `Petunia Simple`, `Petunia Notebook`,
+`Blender-like`, `Blender-like Notebook`, `Maya-like`, `3ds Max-like` e `Cinema 4D-like`.
+Remapping é orientado por `CommandId`, com busca, captura de teclas, detecção de
+conflito, reset por command/categoria/preset e import/export em JSON versionado.
+
+## 9. Workspaces V1
+
+- **MODEL** — viewport dominante + Parts + Context + Asset Library.
+- **PAINT** — viewport 3D dominante; Context apresenta brush/material/texture. O
+  editor 2D de textura faz parte da V1 como painel/split **opcional, fechado por
+  padrão**, compartilhando a mesma TextureBitmap, palette, Pixel Grid e Undo/Redo do
+  Paint 3D — não é um editor de imagem generalista.
+- **UV** — split 2D + viewport 3D, default aproximado `55/45`, redimensionável e com
+  seleção sincronizada.
+
+Workspace não implementado **não aparece** como pill desabilitada.
+
+## 10. Viewport adapter
+
+```
+egui layout
+→ allocate viewport Rect/input/clip
+→ PetuniaViewportAdapter
+→ egui-wgpu custom callback / RenderPass
+→ PetuniaRenderer
+→ wgpu
+```
+
+`PetuniaRenderer` permanece sem dependência de egui; o adapter é a única fronteira
+que conhece ambos. Repaint é event-driven em idle e contínuo somente quando
+interação/motion/job visual exigir. A V1 tem **um** viewport 3D principal por
+workspace; multi-viewport/quad-view é evolução posterior.
+
+## 11. Testes e conformance da UI
+
+UI pronta significa, no mínimo: component semantic/interaction tests · keyboard/focus
+tests · AccessKit tree checks · snapshots visuais em `100/150/200%` · dark + high
+contrast · theme load/inheritance/invalid-token tests · plugin panel
+registration/unload/failure isolation · plugin panel accessibility · permissions/capability
+· layout persistence · screenshot visual regression · conformance Windows + Linux ·
+viewport integration/HiDPI/popups/input.
+
+Alteração de golden é mudança visual consciente — **nunca** atualização automática silenciosa.
+
+## 12. Referências visuais arquivadas (não normativas)
+
+`docs/image-references/` guarda mockups e capturas usados durante a fase de pesquisa
+(incluindo `Blender.svg` e os elementos vetoriais extraídos). Conforme o contrato
+documental, esses artefatos são **`FIGMA-CONFIRMED`: evidência visual observada, não
+requisito do produto**.
+
+> Mockup **não** constitui prova de implementação (P3D-118). Composição espacial,
+> menus e catálogo de ícones do Blender **não** definem a baseline — o capítulo 36
+> define. A lista de menus de um DCC genérico (Sculpting, Geometry Nodes, Compositing,
+> Particles, Physics, Constraints) está explicitamente fora do produto-base.

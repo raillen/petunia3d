@@ -10,7 +10,10 @@ Cada pacote de ícones reside em seu próprio subdiretório e contém:
 
 ### Pacotes Nativos Disponíveis
 
-1. **`petunia/`**: Pacote canônico oficial do Petunia3D, extraído da referência visual (`Blender.svg` e Figma design tokens).
+Apenas diretórios com `manifest.toml` são registrados (P3D-087/088).
+Arte de ícones não registrada fica em `assets/legacy-icon-art/`.
+
+1. **`petunia/`**: Pacote canônico oficial (Petunia Custom Icons), primeira arte do produto para conceitos 3D sem equivalente genérico (Extrude, Inset, Round Edge, Loop Cut, shading, pivot, entre outros).
 2. **`phosphor/`**: Pacote vetorial baseado nos ícones Phosphor.
 3. **`tabler/`**: Pacote vetorial baseado na suíte Tabler Icons.
 4. **`iconoir/`**: Pacote minimalista baseado na biblioteca Iconoir.

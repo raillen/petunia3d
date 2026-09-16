@@ -1,12 +1,17 @@
 # 24 — Design System Visual: Tokens, Hierarquia e Estados
 
-> Este capítulo transforma a análise do Figma em uma **estrutura de design tokens e regras visuais para Petunia3D**. Valores observados na referência são registrados separadamente de valores finais ainda sujeitos a validação de acessibilidade e protótipo.
+<aside>
+🧱
+
+Este capítulo transforma a análise do Figma em uma **estrutura de design tokens e regras visuais para Petunia3D**. Valores observados na referência são registrados separadamente de valores finais ainda sujeitos a validação de acessibilidade e protótipo.
+
+</aside>
 
 # Fonte de verdade
 
 Figma define intenção visual e medidas de referência. Notion define comportamento/semântica. O código implementa os componentes reais.
 
-```plain text
+```
 Figma = visual truth
 Notion = product/behavior truth
 Code = implementation truth
@@ -18,7 +23,7 @@ Nenhum componente principal deve depender de hex, radius e spacing espalhados. C
 
 Namespaces sugeridos:
 
-```plain text
+```
 surface.*
 border.*
 text.*
@@ -35,7 +40,7 @@ motion.*
 
 Base inicial derivada do Figma de referência:
 
-```plain text
+```
 surface.deep      ≈ #121212
 surface.field     ≈ #1D1D1D
 surface.chrome    ≈ #202020
@@ -48,7 +53,7 @@ Esses valores são **baseline visual de referência**, não compromisso irrevog�
 
 # Border tokens
 
-```plain text
+```
 border.subtle  ≈ #313131
 border.default ≈ #424242
 border.active  ≈ #5B8EFF na referência
@@ -60,7 +65,7 @@ Bordas geralmente têm 1 px e são parte fundamental da hierarquia. Evitar remov
 
 Referência:
 
-```plain text
+```
 text.secondary ≈ #D3D3D3
 text.primary   ≈ #FFFFFF
 ```
@@ -81,7 +86,7 @@ A baseline Petunia usa **violeta floral em torno de `#B58CFF`** como ponto inici
 
 A referência usa principalmente gaps pequenos e regulares. Escala inicial recomendada para protótipo:
 
-```plain text
+```
 2
 4
 6
@@ -100,7 +105,7 @@ Referência observada: ~4 px em controles e ~12 px no chrome externo da janela.
 
 Para Petunia, trabalhar com uma escala pequena:
 
-```plain text
+```
 radius.control
 radius.segment
 radius.panel
@@ -110,7 +115,7 @@ radius.pill
 
 Baseline V1:
 
-```plain text
+```
 radius.control = 4
 radius.segment = 5
 radius.panel   = 8
@@ -124,7 +129,7 @@ A regra permanece **radius discreto, não estética de card arredondado excessiv
 
 A referência estabelece níveis claros:
 
-```plain text
+```
 application chrome ~40
 main header ~37
 panel/editor header ~30
@@ -142,7 +147,7 @@ Decisão de Petunia: **não adotar 8 px como baseline de texto interativo**. A e
 
 Baseline V1 congelada:
 
-```plain text
+```
 Caption      10
 UI Small     11
 UI Default   12
@@ -170,7 +175,7 @@ Sombras devem ser raras e discretas, usadas para separar overlays/pills/popup me
 
 Separadores de 1 px e pequenos spacers verticais/horizontais são preferidos a caixas extras. Exemplo conceitual:
 
-```plain text
+```
 File Edit Help | Workspaces | Project status
 ```
 
@@ -178,7 +183,7 @@ File Edit Help | Workspaces | Project status
 
 Baseline visual:
 
-```plain text
+```
 Default: surface.control + border.default
 Hover:   leve aumento de contraste
 Active:  accent surface/border + glyph/text legível
@@ -192,7 +197,7 @@ Hover/focus/disabled não estavam completamente especificados no Figma analisado
 
 Todo componente interativo deve contemplar quando aplicável:
 
-```plain text
+```
 default
 hover
 pressed
@@ -208,7 +213,7 @@ Não implementar apenas Default/Active porque o concept Figma só apresenta esse
 
 Usar para estados mutuamente exclusivos e poucos:
 
-```plain text
+```
 [ Object | Face | Edge | Point ]
 [ Wire | Solid | Texture | Silhouette ]
 ```
@@ -219,7 +224,7 @@ Segmentos compartilham borda/estrutura visual. O estado atual deve ser evidente 
 
 Padrão oficial candidato para ação/toggle com opções secundárias:
 
-```plain text
+```
 [ Mirror ][▼]
 [ Snap   ][▼]
 [ Overlay][▼]
@@ -233,7 +238,7 @@ Controles pertencentes ao mesmo dado podem formar grupos segmentados, evitando e
 
 Exemplos:
 
-```plain text
+```
 [ X ][ Y ][ Z ][▼]
 [ Front ][ reference.png ][×]
 ```
@@ -253,7 +258,7 @@ Motion deve explicar transição e estado, não decorar.
 
 Baseline V1:
 
-```plain text
+```
 hover/menu       80–100 ms
 collapse/panel   ~140 ms
 structural       <= 180 ms

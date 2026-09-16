@@ -1,12 +1,17 @@
 # 35 — egui, Petunia Components, UI Adapters e Tooling de Desenvolvimento
 
-> Este capítulo define **como o Petunia3D usa egui sem deixar o toolkit dominar a arquitetura ou o visual do produto**. egui fornece fundação de interação/layout/accessibility; Petunia Components define identidade; crates auxiliares entram atrás de adapters quando resolvem infraestrutura real. Esta página complementa os capítulos 24–28 e 31.
+<aside>
+🧩
+
+Este capítulo define **como o Petunia3D usa egui sem deixar o toolkit dominar a arquitetura ou o visual do produto**. egui fornece fundação de interação/layout/accessibility; Petunia Components define identidade; crates auxiliares entram atrás de adapters quando resolvem infraestrutura real. Esta página complementa os capítulos 24–28 e 31.
+
+</aside>
 
 # Princípio central
 
 A cadeia normativa da UI é:
 
-```plain text
+```
 Petunia workspaces/screens
         ↓
 Petunia Components
@@ -51,7 +56,7 @@ Delegar ao egui:
 
 # Estrutura recomendada de `petunia-ui`
 
-```plain text
+```
 petunia-ui/
 ├ foundation/
 │  ├ tokens.rs
@@ -108,7 +113,7 @@ Uma dependency abandonada deve ser substituível principalmente dentro de `adapt
 
 Componentes fundamentais próprios:
 
-```plain text
+```
 PetuniaButton
 PetuniaIconButton
 PetuniaSplitButton
@@ -134,7 +139,7 @@ PetuniaCommandPalette
 
 Cada componente deve definir:
 
-```plain text
+```
 visual states
 semantic role
 accessible label/description contract
@@ -154,7 +159,7 @@ interaction tests
 
 Fluxo:
 
-```plain text
+```
 Figma/Notion tokens
       ↓
 PetuniaTokens
@@ -168,7 +173,7 @@ custom Petunia Components
 
 Tokens devem usar nomes semânticos, por exemplo:
 
-```plain text
+```
 surface.canvas
 surface.panel
 surface.panel_hover
@@ -200,30 +205,43 @@ Toda crate/projeto do ecossistema deve receber **uma classe de adoção explíci
 
 A classificação é de **adoção**, não de qualidade geral da biblioteca. `REFERENCE/MONITOR` e `REJECTED/NOT RELEVANT` podem continuar sendo fontes de estudo sem contaminar a stack.
 
-<table>
-<tr><td>Crate/projeto</td><td>Uso Petunia</td><td>Status</td></tr>
-<tr><td>`egui_extras`</td><td>image loaders, TableBuilder, layouts auxiliares</td><td>**BASELINE**</td></tr>
-<tr><td>`egui_ltreeview`</td><td>Parts tree hierárquica</td><td>**BASELINE**</td></tr>
-<tr><td>`egui_tiles`</td><td>engine de layout/painéis controlados</td><td>**BASELINE**</td></tr>
-<tr><td>`egui-file-dialog`</td><td>browser/dialogs customizados</td><td>**OPTIONAL**</td></tr>
-<tr><td>`egui_kittest`</td><td>semantic/interaction/snapshot UI tests</td><td>**DEV TOOL**</td></tr>
-<tr><td>`egui_inspection`</td><td>inspeção externa/accessibility tree/input/screenshot</td><td>**DEV TOOL**</td></tr>
-<tr><td>`egui_mcp`</td><td>controle da UI por agentes no ambiente de desenvolvimento</td><td>**DEV TOOL**</td></tr>
-<tr><td>`egui-lucide`</td><td>pack genérico principal; ícones de domínio permanecem próprios Petunia</td><td>**BASELINE**</td></tr>
-<tr><td>`egui-phosphor`</td><td>referência/alternativa de iconografia</td><td>**REFERENCE/MONITOR**</td></tr>
-<tr><td>`egui_animation`</td><td>motion/collapse/easing</td><td>OPTIONAL</td></tr>
-<tr><td>`egui_form`</td><td>forms/validation complexos</td><td>OPTIONAL</td></tr>
-<tr><td>`egui_dnd`</td><td>reorderable lists</td><td>OPTIONAL</td></tr>
-<tr><td>`egui_commonmark`</td><td>Markdown/help/release notes</td><td>OPTIONAL</td></tr>
-<tr><td>`egui_table`</td><td>tabelas grandes/virtualizadas</td><td>**OPTIONAL**</td></tr>
-<tr><td>`egui-data-table`</td><td>tabelas editáveis avançadas</td><td>**FUTURE**</td></tr>
-<tr><td>`egui-snarl`</td><td>node editor futuro</td><td>**FUTURE**</td></tr>
-<tr><td>`egui_json_tree`</td><td>diagnostics/JSON inspector</td><td>DEV TOOL</td></tr>
-<tr><td>`egui_probe`</td><td>painéis de debug derivados de structs</td><td>DEV TOOL</td></tr>
-<tr><td>`puffin_egui`</td><td>profiler embutido</td><td>**DEV TOOL**</td></tr>
-<tr><td>`tracing-egui`</td><td>viewer de tracing/logs</td><td>**DEV TOOL**</td></tr>
-<tr><td>`egui_code_editor`</td><td>futuro editor Lua/dev console</td><td>**FUTURE**</td></tr>
-</table>
+> **Revisão vigente.** A *Egui Ecosystem Final Push Directive* (§17, §21 e §43)
+> atualiza as classificações abaixo depois de medir o custo de resolver layout à
+> mão no product code: raw egui fica para **micro-layout simples**, e Taffy,
+> Tiles, DnD, Motion e o ecossistema de tabelas/forms/async passam a ter papel de
+> base nos product paths. A ordem normativa de compatibilidade é
+> **release crates.io → upstream atual → revision pin → fork mínimo Petunia →
+> implementação local/defer** (§18).
+
+| Crate/projeto | Uso Petunia | Status |
+| --- | --- | --- |
+| `egui_extras` | image loaders, TableBuilder, layouts auxiliares | **BASELINE** |
+| `egui_ltreeview` | Parts tree hierárquica | **BASELINE** |
+| `egui_tiles` | engine de macro-layout controlado (`PetuniaLayoutAdapter`, sem docking livre) | **BASELINE** |
+| `egui_taffy` | layout responsivo complexo / flex / wrap / grid (`PetuniaTaffyLayout`) | **BASELINE** |
+| `egui-file-dialog` | browser/dialogs customizados | **OPTIONAL** |
+| `egui_kittest` | semantic/interaction/snapshot UI tests | **DEV TOOL** |
+| `egui_inspection` | inspeção externa/accessibility tree/input/screenshot | **DEV TOOL** |
+| `egui_mcp` | controle da UI por agentes no ambiente de desenvolvimento | **DEV TOOL** |
+| `iconflow` | carga dos packs genéricos oficiais (`tabler`, `iconoir`, `phosphor`, `lucide`) atrás do `IconRegistry` | **BASELINE** |
+| pack **Petunia** | ícones de domínio 3D sem equivalente genérico (Extrude, Inset, Round Edge, Loop Cut, shading, pivot) | **BASELINE** |
+| `egui-lucide` | pack genérico isolado — superado por `iconflow` | **REFERENCE/MONITOR** |
+| `egui-phosphor` | referência/alternativa de iconografia | **REFERENCE/MONITOR** |
+| `egui_animation` | motion/collapse/easing (`PetuniaMotion`) | **BASELINE** |
+| `egui_dnd` | reorderable lists (`PetuniaDragAdapter`) | **BASELINE** |
+| `egui_form` | forms/validation complexos (`PetuniaFormAdapter` após gate) | **P1 — adotar em product paths** |
+| `egui_table` | tabelas (`PetuniaTableAdapter` após gate) | **P1 — adotar em product paths** |
+| `egui_virtual_list` | coleções grandes virtualizadas | **P1 — adotar em product paths** |
+| `egui_suspense` | estados async/loading declarativos | **P1 — adotar em product paths** |
+| `egui-notify` | notificações (fork mínimo Petunia, §19.3) | **P1-patched** |
+| `egui_commonmark` | Markdown/help/release notes | OPTIONAL |
+| `egui-data-table` | tabelas editáveis avançadas | **FUTURE** |
+| `egui-snarl` | node editor futuro | **FUTURE** |
+| `egui_json_tree` | diagnostics/JSON inspector | DEV TOOL |
+| `egui_probe` | painéis de debug derivados de structs | DEV TOOL |
+| `puffin_egui` | profiler embutido | **DEV TOOL** |
+| `tracing-egui` | viewer de tracing/logs | **DEV TOOL** |
+| `egui_code_editor` | futuro editor Lua/dev console | **FUTURE** |
 
 ## REFERENCE/MONITOR e rejeições explícitas
 
@@ -272,9 +290,19 @@ Seleção continua sendo estado da Application/UI e não propriedade persistente
 
 É **BASELINE** atrás de `PetuniaLayoutAdapter`. Foi escolhida sobre docking totalmente livre porque consegue representar containers horizontal/vertical/grid/tabs sem obrigar o Petunia a expor todos esses graus de liberdade ao usuário.
 
+> **Status (2026-09-16):** a crate ainda **não é dependência** do workspace e o
+> `PetuniaLayoutAdapter` ainda não existe — o macro-layout atual é o dock próprio
+> controlado. A integração está na Wave 2 da *Egui Ecosystem Final Push Directive*
+> (§22, §31, §44). O capítulo 36 registra a mesma decisão.
+
+O layout **dentro** de um painel ou painel-flutuante é problema separado: para
+além de micro-layout simples (colunas/linhas diretas permitidas em built-in),
+responsividade, flex, wrap e grid pertencem ao `PetuniaTaffyLayout`, nunca a
+`available_width()` comparado com um número em product code.
+
 Uso possível:
 
-```plain text
+```
 Parts | Viewport | Context
           ↓
       Asset Library
@@ -313,7 +341,7 @@ Ainda é permitido utilizar native OS file dialogs onde a experiência for melho
 
 `egui::DragValue` é a fundação preferida para `PetuniaNumberField` em parâmetros DCC:
 
-```plain text
+```
 click/type
 +
 horizontal drag to adjust
@@ -329,7 +357,7 @@ O wrapper Petunia adiciona tokens, label, units, reset/default, validation, acce
 
 Preferir widgets nativos egui quando suficientes e encapsular:
 
-```plain text
+```
 egui menu → PetuniaMenu
 egui Modal → PetuniaModal
 popup/context menu → PetuniaPopup/PetuniaContextMenu
@@ -343,7 +371,7 @@ Uma command palette pode usar `egui_palette` ou implementação pequena própria
 
 Regra:
 
-```plain text
+```
 fuzzy search result
 → CommandId
 → CommandDispatcher
@@ -404,7 +432,7 @@ Referência de mapping de paleta/semantic colors. Não usar como tema final.
 
 A estratégia é híbrida:
 
-```plain text
+```
 ícones genéricos
 → um pack permissivo selecionado
 
@@ -432,7 +460,7 @@ Toasts não substituem dialogs para decisões destrutivas/importantes.
 
 Hierarquia de escolha:
 
-```plain text
+```
 Tabela simples
 → egui_extras::TableBuilder
 
@@ -455,7 +483,7 @@ Possíveis usos futuros: Asset Library list mode, validator results, plugin mana
 
 Regra preferida:
 
-```plain text
+```
 PetuniaRenderer / GizmoRenderer
 → draw + hit test + snap
 ```
@@ -491,7 +519,7 @@ Pode apoiar validation de Settings, Export Settings e configuração de plugins,
 
 Permitido para developer/debug panels onde geração automática é desejável:
 
-```plain text
+```
 MeshDebugSettings
 RendererDebugSettings
 SnapDebugState
@@ -552,7 +580,7 @@ Todo wrapper customizado deve manter/inserir `WidgetInfo`/semântica equivalente
 
 Exemplo conceitual:
 
-```plain text
+```
 PetuniaIconButton
 ├ custom painter
 ├ hover/press visuals
@@ -582,7 +610,7 @@ Golden visual só muda por decisão explícita de Design System.
 
 Fluxo de agentes:
 
-```plain text
+```
 read Figma/Notion
 → implement Petunia Component
 → cargo xtask ui-test
@@ -609,7 +637,7 @@ Figma continua sendo visual truth; não há export de UI de produção.
 
 Pipeline:
 
-```plain text
+```
 Figma variables/styles/components
 → audited design tokens/component specs
 → source-controlled Rust tokens
@@ -640,7 +668,7 @@ Não adicionar 20 crates de UI de uma vez. O catálogo deste capítulo é uma **
 
 Baseline cresce por demanda real:
 
-```plain text
+```
 need tree
 → adopt tree adapter
 
@@ -654,6 +682,7 @@ need node graph
 # Regra final
 
 > **egui fornece infraestrutura; Petunia Components fornece identidade. Crates auxiliares resolvem problemas locais atrás de adapters e nunca definem o produto.**
+> 
 
 # Theme Extensions e Plugin Panels
 

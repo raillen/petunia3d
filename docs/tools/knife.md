@@ -3,7 +3,7 @@
 A ferramenta **Faca** permite realizar cortes topológicos livres desenhando novos vértices e arestas diretamente sobre as faces e arestas existentes.
 
 - **Atalho de Ativação**: `K`
-- **Modos Suportados**: Modo de Edição (`EditMode::Edit`).
+- **Disponível em**: componentes da malha (`Face` / `Edge` / `Point`); detalhe técnico: `EditMode::Edit`.
 
 ## Como Usar
 1. Pressione `K`;

@@ -1116,10 +1116,18 @@ Security considerations
 - **Required integration contract:** Use snapshots only for stable structured outputs: diagnostics, schemas, manifests, serialization samples, token references. Do not snapshot volatile noise.
 - **Definition of integrated:** dependency/version resolved; ownership boundary implemented; at least one real call path or intentionally default-off feature path compiles; relevant tests exist; architecture checks pass; documentation states why/where it is used; there is no unused dependency or direct third-party leakage across forbidden layers.
 
-### P1-15 — `egui_taffy`
+### P1-15 — `egui_taffy` (contrato revisado)
+
+> **Superseded (2026-09-16).** O contrato abaixo descrevia Taffy como piloto
+> condicional ("não substitui `egui_tiles` sem ADR"). A *Egui Ecosystem Final Push
+> Directive* (§14, §15, §17, §44) substitui essa leitura: Tiles faz macro-layout
+> controlado e Taffy faz layout responsivo dentro de um painel — são problemas
+> diferentes e **ambos** são baseline. Responsividade manual em product code é
+> proibida (§36) e medida por `cargo xtask ui-guard`.
+
 - **Adoption class:** BASELINE CANDIDATE / advanced responsive sublayout
 - **Intended owner/boundary:** `petunia-ui/adapters/layout`
-- **Required integration contract:** Pilot Flex/Grid/Block for complex responsive sublayouts. It must not replace egui_tiles as the controlled macro-layout engine unless an ADR proves the need.
+- **Required integration contract:** Flex/Block/Grid responsivo dentro de painéis e sublayouts complexos, atrás de `PetuniaTaffyLayout`. Micro-layout simples permanece em built-in. Não é alternativa a `egui_tiles`: é a camada de layout responsivo abaixo dela.
 - **Definition of integrated:** dependency/version resolved; ownership boundary implemented; at least one real call path or intentionally default-off feature path compiles; relevant tests exist; architecture checks pass; documentation states why/where it is used; there is no unused dependency or direct third-party leakage across forbidden layers.
 
 ### P1-16 — `egui_inbox`
@@ -2897,8 +2905,8 @@ Repository:
 - all workspace `Cargo.toml` files
 - `PROJECT_STATE.md`
 - `CHANGELOG.md`
-- `docs/petunia3d-livro-vivo/27-stack-rust-canonica.md`
-- `docs/petunia3d-livro-vivo/35-egui-components-adapters-tooling.md`
+- `docs/bible/foundations/27-stack-rust-canonica.md`
+- `docs/bible/foundations/35-egui-components-adapters-tooling.md`
 - current architecture audits
 - current implementation plans
 - relevant P3D specification mirrors in the repository

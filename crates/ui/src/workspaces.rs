@@ -1,9 +1,10 @@
 //! Perfis de composição por workspace (Wave 3 — §6).
 //!
-//! Fonte única da verdade sobre o que muda quando o usuário troca MODEL /
-//! PAINT / UV / ANIMATE. Workspaces compartilham projeto, seleção e undo;
-//! só a composição do shell muda: paleta de ferramentas, centro, painel
-//! inferior, aba padrão do inspector e overlays da viewport.
+//! Fonte única da verdade sobre o que muda quando o usuário troca de workspace.
+//! A V1 congela `MODEL / PAINT / UV` (capítulo 36); o workspace de animação de
+//! P3D-066 só entra com a feature `animation-workspace`. Workspaces compartilham
+//! projeto, seleção e undo; só a composição do shell muda: paleta de ferramentas,
+//! centro, painel inferior, aba padrão do inspector e overlays da viewport.
 
 use petunia_core::Workspace;
 
@@ -16,7 +17,8 @@ pub enum ToolPaletteKind {
     Paint,
     /// UV: seleção + projeção.
     Uv,
-    /// Animação: seleção + transform de pose.
+    /// Animação: seleção + transform de pose (feature `animation-workspace`).
+    #[allow(dead_code)]
     Animation,
 }
 
@@ -33,6 +35,8 @@ pub enum CenterKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BottomPaneKind {
     None,
+    /// Faixa de timeline (feature `animation-workspace`).
+    #[allow(dead_code)]
     Timeline,
 }
 
@@ -48,7 +52,7 @@ pub struct WorkspaceLayoutProfile {
     pub overlay_shelf: bool,
 }
 
-const PROFILES: [WorkspaceLayoutProfile; 4] = [
+const PROFILES: [WorkspaceLayoutProfile; Workspace::COUNT] = [
     WorkspaceLayoutProfile {
         id: Workspace::Model,
         left_tools: ToolPaletteKind::Modeling,
@@ -73,6 +77,7 @@ const PROFILES: [WorkspaceLayoutProfile; 4] = [
         default_inspector_tab: "object",
         overlay_shelf: false,
     },
+    #[cfg(feature = "animation-workspace")]
     WorkspaceLayoutProfile {
         id: Workspace::Animate,
         left_tools: ToolPaletteKind::Animation,
@@ -83,7 +88,7 @@ const PROFILES: [WorkspaceLayoutProfile; 4] = [
     },
 ];
 
-/// Perfil canônico do workspace (sempre existe: 4 workspaces, 4 perfis).
+/// Perfil canônico do workspace (existe um perfil para cada workspace compilado).
 pub fn profile_for(workspace: Workspace) -> &'static WorkspaceLayoutProfile {
     PROFILES
         .iter()
@@ -112,6 +117,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "animation-workspace")]
     #[test]
     fn animate_is_the_only_timeline_bottom() {
         for ws in Workspace::all() {
@@ -123,6 +129,20 @@ mod tests {
     }
 
     #[test]
+    fn v1_core_workspaces_are_always_present() {
+        // Contrato congelado do capítulo 36: MODEL / PAINT / UV sempre existem.
+        // O workspace de animação (P3D-066) só aparece com a feature.
+        let all = Workspace::all();
+        for ws in [Workspace::Model, Workspace::Paint, Workspace::Uv] {
+            assert!(all.contains(&ws), "{ws:?} deve existir na V1");
+        }
+        #[cfg(not(feature = "animation-workspace"))]
+        assert_eq!(all.len(), 3, "sem a feature, só os três workspaces da V1");
+        #[cfg(feature = "animation-workspace")]
+        assert_eq!(all.len(), 4, "com a feature, o workspace de animação entra");
+    }
+
+    #[test]
     fn tool_palettes_are_distinct_per_workspace() {
         let kinds: Vec<ToolPaletteKind> = Workspace::all()
             .iter()
@@ -131,6 +151,6 @@ mod tests {
         let mut sorted = kinds.clone();
         sorted.sort_by_key(|k| *k as u8);
         sorted.dedup_by_key(|k| *k as u8);
-        assert_eq!(sorted.len(), 4);
+        assert_eq!(sorted.len(), kinds.len());
     }
 }

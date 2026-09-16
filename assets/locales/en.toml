@@ -4,6 +4,7 @@
 title = "Petunia3D"
 
 [ui]
+more_actions = "More actions"
 tools = "Tools"
 assets = "Asset Library"
 search = "Search"
@@ -73,14 +74,12 @@ redo = "Redo"
 model = "MODEL"
 paint = "PAINT"
 uv = "UV"
-animate = "ANIMATE"
-export = "EXPORT"
 
 [modes]
 object = "Object"
 edit = "Edit"
 paint = "Texture Paint"
-vertex = "Vertex"
+vertex = "Point"
 edge = "Edge"
 face = "Face"
 
@@ -110,6 +109,7 @@ drop_to_instantiate = "Drop to Instantiate"
 
 [toolbar]
 configure = "Configure Toolbar"
+family_hint = "Right-click for the tool family menu"
 reset = "Reset toolbar"
 columns = "Columns"
 one_column = "1 column"
@@ -271,7 +271,7 @@ uv_project = "Project"
 uv_seam = "Seam"
 
 [hints]
-select = "Click to select. 1/2/3: vertex/edge/face."
+select = "Click to select. 1/2/3: point/edge/face."
 transform = "G/R/S: move, rotate, scale with mouse. Enter applies; Esc cancels."
 primitives = "A: add low-poly primitive."
 draw_profile = "Shift+P: click in ortho view to add points. Click near 1st to close."
@@ -330,12 +330,19 @@ slice_x = "Slice X"
 slice_y = "Slice Y"
 slice_z = "Slice Z"
 slice_cap = "Slice (Cap)"
-need_edit = "Requires Edit mode"
+need_edit = "Requires a component domain (Point / Edge / Face)"
 need_selection = "Select geometry first"
 no_mesh = "No active mesh"
 revolve_open_hint = "Angles below 360° leave the profile open."
 revolve_need_edges = "Select at least 2 connected edges first."
 cursor_to_origin = "Cursor to World Origin"
+cursor_to_origin_status = "3D Cursor centered on the origin"
+
+# Menu de contexto do viewport (RMB). O título do bloco vem de `[modes]`
+# (Object / Point / Edge / Face) — o domínio de seleção é a única autoridade.
+[ctx]
+extrude_region = "Extrude Region"
+separate = "Separate Selection"
 
 [tool_properties]
 title = "Tool Properties"
@@ -393,7 +400,7 @@ top_radius = "Top Radius"
 bottom_radius = "Bottom Radius"
 major_radius = "Major Radius"
 minor_radius = "Minor Radius"
-vertices = "Vertices"
+vertices = "Segments"
 fill = "Fill"
 cap = "Cap"
 subdivision = "Subdivision Level"
@@ -413,13 +420,13 @@ tip_major_radius = "Distance from the Torus center to the center of its tube."
 tip_minor_radius = "Radius of the Torus tube."
 tip_segments = "Segments around the shape. Fewer segments read more low-poly."
 tip_rings = "Rings from bottom to top. Fewer rings read more low-poly."
-tip_vertices = "Vertices around the circle."
+tip_vertices = "Segments around the circle."
 tip_fill = "Fill the circle with a triangle fan, or keep only the outline."
 tip_caps = "Close the top and bottom with flat caps."
 tip_body_length = "Length of the straight body between the rounded caps."
 
 [paint]
-vertex = "Vertex paint"
+vertex = "Paint on model"
 radius = "Radius"
 color = "Color"
 strength = "Strength"
@@ -603,3 +610,5 @@ pack_desc_lucide = "Refined 2px vector stroke"
 [keymap]
 capture = "capture…"
 unsupported_key = "Key not supported by the keymap"
+conflict_title = "Shortcut conflicts detected"
+conflict_shared = "shares the shortcut with"

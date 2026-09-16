@@ -3,7 +3,7 @@
 A ferramenta **Inserção** subdivide a face selecionada gerando um anel de novas faces recuadas paralelamente para dentro do polígono original.
 
 - **Atalho de Ativação**: `I`
-- **Modos Suportados**: Modo de Edição (`EditMode::Edit`).
+- **Disponível em**: componentes da malha (`Face` / `Edge` / `Point`); detalhe técnico: `EditMode::Edit`.
 
 ## Aplicações Práticas
 - Criação de molduras de portas, janelas e painéis metálicos;

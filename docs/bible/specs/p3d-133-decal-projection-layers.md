@@ -1,12 +1,5 @@
 # P3D-133 — Decal & Projection Layers
 
-::: warning STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 7
-- **Status Canônico**: `ACTIVE / PRÓXIMA (Decal & Projection Layers)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

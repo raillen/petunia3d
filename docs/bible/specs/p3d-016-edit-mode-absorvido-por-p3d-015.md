@@ -1,12 +1,5 @@
 # P3D-016 — Edit Mode — absorvido por P3D-015
 
-::: tip STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 5
-- **Status Canônico**: `COMPLIANT (Selection Domain, Transform & Modeling Core)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 

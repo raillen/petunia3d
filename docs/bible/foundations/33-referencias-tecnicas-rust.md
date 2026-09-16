@@ -1,6 +1,11 @@
 # 33 — Biblioteca de Referências Técnicas da Stack Rust
 
-> Biblioteca de referências técnicas usadas para fundamentar e implementar a working stack Rust do Petunia3D. Esta página é **fonte de pesquisa**, não substitui os contratos normativos dos capítulos 27–32, a arquitetura de código do capítulo 34 nem a arquitetura egui/Petunia Components do capítulo 35.
+<aside>
+📚
+
+Biblioteca de referências técnicas usadas para fundamentar e implementar a working stack Rust do Petunia3D. Esta página é **fonte de pesquisa**, não substitui os contratos normativos dos capítulos 27–32, a arquitetura de código do capítulo 34 nem a arquitetura egui/Petunia Components do capítulo 35.
+
+</aside>
 
 # UI — egui / eframe / egui-wgpu
 
@@ -146,7 +151,7 @@ Objetivo: property testing, benchmarks e fuzzing de inputs/boundaries.
 - [Rust API Guidelines — Future Proofing](https://rust-lang.github.io/api-guidelines/future-proofing.html)
 - [Cargo Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
 - [Cargo Resolver / Features](https://doc.rust-lang.org/cargo/reference/resolver.html)
-- [std::marker::Send](https://doc.rust-lang.org/std/marker/trait.Send.html)
+- [std:](https://doc.rust-lang.org/std/marker/trait.Send.html):marker:[:Send](https://doc.rust-lang.org/std/marker/trait.Send.html)
 - [Rust Design Patterns](https://rust-unofficial.github.io/patterns/patterns/)
 - [Borrow Clone anti-pattern](https://rust-unofficial.github.io/patterns/anti_patterns/borrow_clone.html)
 - [Miri](https://github.com/rust-lang/miri/)

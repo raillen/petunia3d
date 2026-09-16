@@ -421,8 +421,8 @@ impl CommandDispatcher {
         d.register_with_meta(
             CommandMetadata::new(
                 "select.domain_vertex",
-                "Select Domain: Vertex",
-                "Switch interaction to Vertex domain",
+                "Select Domain: Point",
+                "Switch interaction to Point domain",
                 CommandCategory::Select,
             ),
             SetSelectionDomainCmd(SelectionDomain::Vertex),
@@ -1159,7 +1159,7 @@ impl Command for DeleteSelectionCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode == EditMode::Object {
+        if state.edit_mode() == EditMode::Object {
             if state.project.assets.is_empty() {
                 Err("No active asset to delete")
             } else {
@@ -1173,7 +1173,7 @@ impl Command for DeleteSelectionCmd {
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
-        if state.mode == EditMode::Object {
+        if state.edit_mode() == EditMode::Object {
             let cmd = DeleteAssetCmd { asset_index: None };
             return cmd.execute(state);
         }
@@ -1197,7 +1197,7 @@ impl Command for DuplicateSelectionCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode == EditMode::Object {
+        if state.edit_mode() == EditMode::Object {
             if state.project.assets.is_empty() {
                 Err("No active asset to duplicate")
             } else {
@@ -1211,7 +1211,7 @@ impl Command for DuplicateSelectionCmd {
     }
 
     fn execute(&self, state: &mut AppState) -> Result<(), CommandError> {
-        if state.mode == EditMode::Object {
+        if state.edit_mode() == EditMode::Object {
             let cmd = DuplicateAssetCmd { asset_index: None };
             return cmd.execute(state);
         }
@@ -1442,7 +1442,7 @@ impl Command for SubdivideSelectionCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if state.selection.is_empty() {
             Err("Select geometry to subdivide")
@@ -1471,7 +1471,7 @@ impl Command for MergeCenterCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if state.selection.verts.len() < 2 {
             Err("Select at least 2 vertices")
@@ -1508,7 +1508,7 @@ impl Command for WeldCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if state.project.active_mesh().is_none() {
             Err("No active mesh")
@@ -1551,7 +1551,7 @@ impl Command for SymmetrizeCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if state.project.active_mesh().is_none() {
             Err("No active mesh")
@@ -1613,7 +1613,7 @@ impl Command for FlipDiagonalCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if state.selection.is_empty() {
             Err("Select quad or edge first")
@@ -1698,7 +1698,7 @@ impl Command for ExtrudeIndividualCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if !state.selection.faces.is_empty()
             || state
@@ -1739,7 +1739,7 @@ impl Command for SelectLinkedCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if state.selection.is_empty() {
             Err("Select at least one element first")
@@ -2152,7 +2152,7 @@ impl Command for ExtrudeSelectedCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if !state.selection.faces.is_empty()
             || state
@@ -2202,7 +2202,7 @@ impl Command for InsetFacesCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if !state.selection.faces.is_empty()
             || state
@@ -2252,7 +2252,7 @@ impl Command for BevelCmd {
     }
 
     fn can_execute(&self, state: &AppState) -> Result<(), &'static str> {
-        if state.mode != EditMode::Edit {
+        if state.edit_mode() != EditMode::Edit {
             Err("Requires Edit mode")
         } else if let Some(mesh) = state.project.active_mesh() {
             if mesh.selected_edges.is_empty() {

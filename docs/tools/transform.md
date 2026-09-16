@@ -3,7 +3,7 @@
 O **Gizmo Combinado de Transformação** reúne os manipuladores 3D de translação, rotação e escala em uma única interface sobreposta no viewport.
 
 - **Atalho de Ativação**: `T` (ou clique no ícone do Gizmo Combinado na Toolbar).
-- **Modos Suportados**: Modo Objeto e Modo de Edição.
+- **Disponível em**: seleção de `Object` e de componentes da malha.
 
 ## Anatomia do Gizmo
 - **Setas Vermelha, Verde e Azul**: Translação direta nos eixos X, Y e Z.

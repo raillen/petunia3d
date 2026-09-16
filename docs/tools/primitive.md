@@ -2,8 +2,8 @@
 
 O comando **Adicionar Primitiva** permite instanciar volumes geométricos básicos diretamente na cena.
 
-- **Atalho de Ativação**: `Shift+A` (ou botão `➕ Add+ ▾` na Viewport Bar).
-- **Modos Suportados**: Modo Objeto e Modo de Edição.
+- **Atalho de Ativação**: `Shift+A` (ou menu contextual **Add** do viewport).
+- **Disponível em**: seleção de `Object` e de componentes da malha.
 
 ## Primitivas Disponíveis
 - **Cubo (Cube)**: Caixa isométrica com 6 faces quadrangulares e dimensões unitárias `1m x 1m x 1m`.

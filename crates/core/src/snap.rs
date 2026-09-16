@@ -43,7 +43,7 @@ impl SnapTarget {
         match self {
             Self::Grid => "Grid",
             Self::Increment => "Increment",
-            Self::Vertex => "Vertex",
+            Self::Vertex => "Point",
             Self::Edge => "Edge",
             Self::Face => "Face",
         }

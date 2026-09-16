@@ -1,6 +1,11 @@
 # 36 — UI Baseline Final V1, Temas e Plugin Panels
 
-> Este capítulo congela a **UI Baseline Final V1** do Petunia3D e define duas superfícies oficiais de extensibilidade visual: **Theme Extensions declarativas** e **Plugin Panels Lua sobre Petunia Components**. Ajustes finos posteriores podem calibrar valores, mas não reabrem automaticamente a arquitetura, o layout principal ou a stack.
+<aside>
+🎨
+
+Este capítulo congela a **UI Baseline Final V1** do Petunia3D e define duas superfícies oficiais de extensibilidade visual: **Theme Extensions declarativas** e **Plugin Panels Lua sobre Petunia Components**. Ajustes finos posteriores podem calibrar valores, mas não reabrem automaticamente a arquitetura, o layout principal ou a stack.
+
+</aside>
 
 # Status
 
@@ -28,17 +33,16 @@ A stack `Rust 2024 + egui + eframe + egui-wgpu + wgpu` passa de working-validati
 
 Valores são em **logical px** antes de UI scaling.
 
-<table>
-<tr><td>Elemento</td><td>Baseline</td><td>Regra</td></tr>
-<tr><td>Top bar</td><td>40</td><td>menus/projeto à esquerda, workspace pills ao centro, ações globais à direita</td></tr>
-<tr><td>Parts</td><td>248 default; 200–400</td><td>recolhível e resize horizontal</td></tr>
-<tr><td>Context</td><td>288 default; 240–440</td><td>selection/tool-centric</td></tr>
-<tr><td>Asset Library</td><td>176 default; 120–360</td><td>resize vertical + collapse</td></tr>
-<tr><td>Panel Header</td><td>28</td><td>um contrato único</td></tr>
-<tr><td>Control</td><td>28</td><td>30–32 somente quando a hierarquia justificar</td></tr>
-<tr><td>Status Strip</td><td>~22</td><td>hints contextuais + stats/save/validation</td></tr>
-<tr><td>Gutter estrutural</td><td>8</td><td>4 apenas entre controles intimamente relacionados</td></tr>
-</table>
+| Elemento | Baseline | Regra |
+| --- | --- | --- |
+| Top bar | 40 | menus/projeto à esquerda, workspace pills ao centro, ações globais à direita |
+| Parts | 248 default; 200–400 | recolhível e resize horizontal |
+| Context | 288 default; 240–440 | selection/tool-centric |
+| Asset Library | 176 default; 120–360 | resize vertical + collapse |
+| Panel Header | 28 | um contrato único |
+| Control | 28 | 30–32 somente quando a hierarquia justificar |
+| Status Strip | ~22 | hints contextuais + stats/save/validation |
+| Gutter estrutural | 8 | 4 apenas entre controles intimamente relacionados |
 
 Preservar aproximadamente `480 × 360` logical px de viewport antes de ceder mais espaço a painéis.
 
@@ -52,11 +56,23 @@ Preservar aproximadamente `480 × 360` logical px de viewport antes de ceder mai
 
 `egui_tiles` é **BASELINE**, sempre atrás de `PetuniaLayoutAdapter`.
 
+> **Status de implementação (2026-09-16).** `egui_tiles` ainda **não é dependência**
+do workspace: o macro-layout hoje é o dock próprio controlado descrito abaixo, e
+nenhum `PetuniaLayoutAdapter` existe. A promoção para baseline real está na Wave 2
+da *Egui Ecosystem Final Push Directive* (§31, §43). Até lá, esta seção é a
+decisão arquitetural, não uma descrição do código.
+>
+> **Regra de layout derivada (§17 da diretriz):** raw egui para micro-layout
+> simples; bibliotecas especializadas para problemas especializados; tipos de
+> terceiros sempre confinados a adapters. Responsividade manual
+> (`available_width() < N`), divisão manual de largura e `spacing_mut()` fora de
+> foundation/adapter são proibidos em product code.
+
 O Petunia controla o grafo de regiões. Capacidade interna de tabs/tiles não implica docking livre ao usuário.
 
 Baseline:
 
-```plain text
+```
 Top Bar
 └ Main Workspace
   ├ Left Region    → Parts + extension panels autorizados
@@ -78,7 +94,7 @@ Regras:
 
 ## Tipografia
 
-```plain text
+```
 Caption      10
 UI Small     11
 UI Default   12
@@ -92,7 +108,7 @@ Nunca usar 8 px como baseline de texto interativo.
 
 Presets oficiais:
 
-```plain text
+```
 100%
 125%
 150%
@@ -104,7 +120,7 @@ A escala do sistema/HiDPI continua respeitada. Layout usa unidades lógicas.
 
 ## Radius
 
-```plain text
+```
 radius.control = 4
 radius.segment = 5
 radius.panel   = 8
@@ -118,7 +134,7 @@ Baseline Petunia usa **violeta floral** em torno de `#B58CFF` como ponto inicial
 
 Accent significa principalmente:
 
-```plain text
+```
 selected
 active
 current
@@ -145,7 +161,7 @@ Usuários podem **criar, editar, importar, exportar e compartilhar temas** sem e
 
 Formato compartilhável:
 
-```plain text
+```
 my-theme.petunia-theme
 ├ theme.toml
 ├ tokens.json
@@ -171,7 +187,7 @@ author = "..."
 
 Temas devem herdar de uma base:
 
-```plain text
+```
 petunia.dark
 petunia.high_contrast
 community.other_theme   optional when dependency is available
@@ -232,7 +248,7 @@ Um Community Plugin pode **bundlar** um `.petunia-theme` opcional ou registrar u
 
 Preferência:
 
-```plain text
+```
 pure theme → .petunia-theme
 functional extension + optional theme → .petunia-plugin containing theme package
 ```
@@ -244,12 +260,13 @@ Community Plugins podem criar **novos painéis completos**, porém somente atrav
 A regra anterior “sem UI nativa arbitrária” passa a significar:
 
 > **Sem acesso cru a egui, wgpu, Painter, raw input, ponteiros ou markup arbitrário.** Plugins podem compor interfaces ricas usando componentes públicos e estáveis do Petunia.
+> 
 
 # Panel Registry
 
 Plugin registra um descriptor:
 
-```plain text
+```
 panel_id
 plugin_id
 title
@@ -266,7 +283,7 @@ help/manual id
 
 Regiões V1 permitidas:
 
-```plain text
+```
 left
 right
 bottom
@@ -278,7 +295,7 @@ bottom
 
 Core regions fornecem slots controlados:
 
-```plain text
+```
 LEFT
   Parts
   Plugin Panel A
@@ -321,7 +338,7 @@ A sintaxe concreta pode evoluir; o contrato semântico é normativo.
 
 Plugin panels podem compor, quando aplicável:
 
-```plain text
+```
 Text / Label / Heading
 Icon / Image from packaged assets
 Divider / Spacer
@@ -347,7 +364,7 @@ Plugin panel não deve varrer o Document inteiro a cada frame.
 
 Fluxo preferido:
 
-```plain text
+```
 Document/selection event after commit
 → plugin subscription
 → plugin-scoped view state update
@@ -375,7 +392,7 @@ Nunca persiste raw handles internos como estado durável sem validação generac
 
 Capabilities passam a ser mais granulares:
 
-```plain text
+```
 register_ui_panel
 register_viewport_overlay
 register_commands
@@ -420,7 +437,7 @@ Plugin panels **herdam automaticamente o tema atual**.
 
 Plugin não escolhe RGB/hex local para componentes normais. Quando precisar expressar semântica, usa variants:
 
-```plain text
+```
 normal
 accent
 success
@@ -441,8 +458,11 @@ Após a decisão da UI baseline:
 
 - `egui_extras` → **BASELINE**;
 - `egui_ltreeview` → **BASELINE** atrás de `PetuniaTreeAdapter`;
-- `egui_tiles` → **BASELINE** atrás de `PetuniaLayoutAdapter`;
-- `egui-lucide` → **BASELINE** para ícones genéricos;
+- `egui_tiles` → **BASELINE** atrás de `PetuniaLayoutAdapter` (ainda não é dependência — Wave 2 da diretriz);
+- `egui_taffy` → **BASELINE** atrás de `PetuniaTaffyLayout` (hoje só piloto em `flex_layout.rs`);
+- `egui_dnd` → **BASELINE** atrás de `PetuniaDragAdapter`;
+- `egui_animation` → **BASELINE** atrás de `PetuniaMotion`;
+- ícones genéricos → **`iconflow`** com os packs oficiais `tabler`, `iconoir`, `phosphor`, `lucide` (`extended-icon-packs`) + o pack próprio **Petunia** para conceitos 3D. `egui-lucide`/`egui-phosphor` deixam de ser a rota de baseline;
 - `egui-phosphor` → **REFERENCE/MONITOR**;
 - `egui-file-dialog` → **OPTIONAL**, não default; usar dialogs nativos do SO no fluxo padrão;
 - `egui_kittest`, `egui_inspection`, `egui_mcp` → **DEV BASELINE**;
@@ -473,7 +493,7 @@ Preset default: **Petunia**.
 
 Presets oficiais adicionais:
 
-```plain text
+```
 Blender
 Blender — No Numpad
 Maya
@@ -501,7 +521,7 @@ Workspace não implementado não aparece como pill desabilitada.
 
 # Viewport adapter final
 
-```plain text
+```
 egui layout
 → allocate viewport Rect/input/clip
 → PetuniaViewportAdapter

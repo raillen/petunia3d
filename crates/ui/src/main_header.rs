@@ -1,17 +1,53 @@
 //! Cabeçalho superior principal do Petunia3D (`Main Header`).
 //! Menus do sistema (File, Edit, Render, Window, Help) e abas de Workspaces em pílulas arredondadas.
 
-use egui::{Color32, Ui, vec2};
+use egui::{Color32, Ui};
 use petunia_core::{AppState, DocsTopic, Workspace};
 
 use crate::UiAction;
+use crate::adapters::toolbar::{PetuniaToolbarCluster, PetuniaToolbarId};
+use crate::adapters::top_bar::{PetuniaTopBar, PetuniaTopBarSlot, PetuniaTopBarSpec};
+use crate::foundation::typography::TextRole;
 use crate::icon_registry::PetuniaIcon;
 use crate::tokens;
 use crate::widgets::{
-    self, PetuniaMenuCheckboxItem, PetuniaMenuItem, PetuniaMenuRadioItem, petunia_menu_separator,
+    self, PetuniaMenuButton, PetuniaMenuCheckboxItem, PetuniaMenuItem, PetuniaMenuRadioItem,
+    petunia_menu_separator,
+};
+
+/// Identificador da barra (raiz dos ids internos do adapter).
+const TOP_BAR_ID: &str = "main-header";
+
+/// Faixas da Top Bar (§25). O adapter mede e decide; aqui existe só a semântica
+/// de produto: quais zonas existem, quais ações podem cair e o que a seta
+/// esconde.
+const SLOT_MENUS: PetuniaToolbarId = "header.menus";
+const SLOT_WORKSPACES: PetuniaToolbarId = "header.workspaces";
+const SLOT_ASSETS: PetuniaToolbarId = "header.assets";
+const SLOT_SETTINGS: PetuniaToolbarId = "header.settings";
+const SLOT_OVERFLOW: PetuniaToolbarId = "header.overflow";
+
+/// Declaração da Top Bar: menus (navegação, nunca caem), pílulas de workspace
+/// (centro geométrico) e ações globais (caem para a seta por prioridade).
+///
+/// `settings` tem rank maior que `assets`: com a barra estreita é o painel de
+/// Assets que vai para a seta primeiro — configurações continuam a um clique.
+static TOP_BAR: PetuniaTopBarSpec = PetuniaTopBarSpec {
+    left: &[PetuniaToolbarCluster::pinned(SLOT_MENUS)],
+    center: &[PetuniaToolbarCluster::pinned(SLOT_WORKSPACES)],
+    right: &[
+        PetuniaToolbarCluster::overflowable(SLOT_ASSETS, 20),
+        PetuniaToolbarCluster::overflowable(SLOT_SETTINGS, 30),
+    ],
+    overflow: Some(SLOT_OVERFLOW),
 };
 
 /// Renderiza o cabeçalho superior completo da aplicação.
+///
+/// Três zonas medidas (§25): menus à esquerda, pílulas de workspace no **centro
+/// geométrico** e ações globais à direita. Sem brand: o header é navegação, não
+/// vitrine. Quem mede, decide o que cai e distribui é [`PetuniaTopBar`]; nenhuma
+/// coluna, espaçador ou largura é calculada aqui.
 pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
     let header_resp = egui::Panel::top("main_header")
         .default_size(tokens::TOP_HEADER_HEIGHT)
@@ -25,58 +61,8 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
         )
         .show(ui, |ui| {
             ui.add_enabled_ui(!state.is_interacting(), |ui| {
-                // Três colunas iguais: menus à esquerda, pills de workspace
-                // centralizadas, ações à direita. Sem brand: o header é
-                // navegação, não vitrine.
-                ui.columns(3, |cols| {
-                    cols[0].horizontal_centered(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-                        // 1. Menus do sistema (File, Edit, Window, Help)
-                        draw_menus(ui, state, action);
-                    });
-                    cols[1].horizontal_centered(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-                        // 2. Abas de Workspaces em pílulas (Model, Paint, UV, Animate)
-                        draw_workspace_pills(ui, state);
-                    });
-                    cols[2].horizontal_centered(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(6.0, 0.0);
-                        // 3. Lado direito: Assets e Configurações
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            let pref_resp = widgets::petunia_action_button(
-                                ui,
-                                Some(PetuniaIcon::Settings),
-                                "Config",
-                                false,
-                            );
-
-                            if pref_resp
-                                .on_hover_text(
-                                    "Preferências e Configurações (Tema, Ícones, Idioma, Teclas)",
-                                )
-                                .clicked()
-                            {
-                                state.ui.show_settings = !state.ui.show_settings;
-                                state.mark_dirty();
-                            }
-
-                            let asset_resp = widgets::petunia_action_button(
-                                ui,
-                                Some(PetuniaIcon::Folder),
-                                "Assets",
-                                false,
-                            );
-
-                            if asset_resp
-                                .on_hover_text("Alternar Painel de Assets do Projeto")
-                                .clicked()
-                            {
-                                state.ui.show_asset_browser = !state.ui.show_asset_browser;
-                                state.mark_dirty();
-                            }
-                        });
-                    });
-                });
+                let bar = PetuniaTopBar::new(TOP_BAR_ID, &TOP_BAR);
+                bar.show(ui, &mut |ui, slot| draw_slot(ui, state, action, slot));
             });
         });
     crate::regions::record(
@@ -84,6 +70,71 @@ pub fn draw(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
         crate::regions::RegionSlot::Header,
         header_resp.response.rect,
     );
+}
+
+/// Desenho de uma faixa declarada em [`TOP_BAR`].
+fn draw_slot(
+    ui: &mut Ui,
+    state: &mut AppState,
+    action: &mut UiAction,
+    slot: PetuniaTopBarSlot<'_>,
+) {
+    match slot.id {
+        SLOT_MENUS => draw_menus(ui, state, action),
+        SLOT_WORKSPACES => draw_workspace_pills(ui, state),
+        SLOT_ASSETS => draw_asset_toggle(ui, state),
+        SLOT_SETTINGS => draw_settings_toggle(ui, state),
+        SLOT_OVERFLOW => draw_overflow_menu(ui, state, slot.hidden),
+        _ => {}
+    }
+}
+
+/// Ação global: alterna o painel de Assets do projeto.
+fn draw_asset_toggle(ui: &mut Ui, state: &mut AppState) {
+    if widgets::petunia_action_button(ui, Some(PetuniaIcon::Folder), "Assets", false)
+        .on_hover_text("Alternar Painel de Assets do Projeto")
+        .clicked()
+    {
+        state.ui.show_asset_browser = !state.ui.show_asset_browser;
+        state.mark_dirty();
+    }
+}
+
+/// Ação global: preferências (tema, ícones, idioma, teclas).
+fn draw_settings_toggle(ui: &mut Ui, state: &mut AppState) {
+    if widgets::petunia_action_button(ui, Some(PetuniaIcon::Settings), "Config", false)
+        .on_hover_text("Preferências e Configurações (Tema, Ícones, Idioma, Teclas)")
+        .clicked()
+    {
+        state.ui.show_settings = !state.ui.show_settings;
+        state.mark_dirty();
+    }
+}
+
+/// Seta de acesso: ações que não couberam na barra continuam operáveis.
+fn draw_overflow_menu(ui: &mut Ui, state: &mut AppState, hidden: &[PetuniaToolbarId]) {
+    PetuniaMenuButton::chevron_only()
+        .tooltip(&state.t("ui.more_actions"))
+        .show(ui, |ui| {
+            ui.set_min_width(180.0);
+            if hidden.contains(&SLOT_ASSETS)
+                && PetuniaMenuCheckboxItem::new("Assets", state.ui.show_asset_browser)
+                    .show(ui)
+                    .clicked()
+            {
+                state.ui.show_asset_browser = !state.ui.show_asset_browser;
+                state.mark_dirty();
+            }
+            if hidden.contains(&SLOT_SETTINGS)
+                && PetuniaMenuItem::new(&state.t("menu.preferences"))
+                    .show(ui)
+                    .clicked()
+            {
+                state.ui.show_settings = !state.ui.show_settings;
+                state.mark_dirty();
+                ui.close();
+            }
+        });
 }
 
 fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
@@ -95,7 +146,7 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
 
     ui.style_mut().text_styles.insert(
         egui::TextStyle::Button,
-        egui::FontId::new(11.5, egui::FontFamily::Proportional),
+        egui::FontId::proportional(TextRole::Pill.size()),
     );
 
     // 1. FILE MENU
@@ -320,16 +371,15 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
             }
         });
 
-        // Theme Submenu
+        // Theme Submenu — lista derivada do registro de temas (oficiais V1 +
+        // packs externos do usuário). Nada de IDs hardcoded: um pack novo ou um
+        // tema renomeado aparece aqui automaticamente (P3D-085).
         ui.menu_button("Theme", |ui| {
-            for &(theme_id, label) in &[
-                ("petunia-dark", "Petunia Dark (Default)"),
-                ("petunia-light", "Petunia Light"),
-                ("capuccino", "Capuccino"),
-                ("tokyo-nights", "Tokyo Nights"),
-            ] {
+            let registry = petunia_config::theme::ThemeRegistry::global();
+            for manifest in registry.available() {
+                let theme_id = manifest.id.as_str();
                 let is_active = state.ui.active_theme_id == theme_id;
-                if PetuniaMenuRadioItem::new(label, is_active)
+                if PetuniaMenuRadioItem::new(&manifest.name, is_active)
                     .show(ui)
                     .clicked()
                 {
@@ -373,12 +423,12 @@ fn draw_menus(ui: &mut Ui, state: &mut AppState, action: &mut UiAction) {
 }
 
 fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
-    let canonical_workspaces = [
-        (Workspace::Model, state.t(Workspace::Model.key())),
-        (Workspace::Paint, state.t(Workspace::Paint.key())),
-        (Workspace::Uv, state.t(Workspace::Uv.key())),
-        (Workspace::Animate, state.t(Workspace::Animate.key())),
-    ];
+    // Derivado do enum de workspaces compilados: a lista de pílulas nunca
+    // diverge do contrato (V1 = MODEL / PAINT / UV).
+    let canonical_workspaces: Vec<(Workspace, String)> = Workspace::all()
+        .into_iter()
+        .map(|ws| (ws, state.t(ws.key())))
+        .collect();
 
     for (ws, label) in canonical_workspaces {
         let is_active = state.workspace == ws;
@@ -388,9 +438,13 @@ fn draw_workspace_pills(ui: &mut Ui, state: &mut AppState) {
             (Color32::TRANSPARENT, tokens::TEXT_SECONDARY)
         };
 
-        let button = egui::Button::new(egui::RichText::new(&label).size(11.5).color(fg))
-            .fill(bg)
-            .corner_radius(tokens::RADIUS_PILL);
+        let button = egui::Button::new(
+            egui::RichText::new(&label)
+                .size(TextRole::Pill.size())
+                .color(fg),
+        )
+        .fill(bg)
+        .corner_radius(tokens::RADIUS_PILL);
 
         if ui.add(button).clicked() {
             // Transição com memória de layout por workspace (Wave 3).

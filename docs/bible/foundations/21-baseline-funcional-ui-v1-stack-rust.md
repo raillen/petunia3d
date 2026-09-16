@@ -1,6 +1,11 @@
 # 21 — Baseline Funcional e UI V1 Congeladas, Stack Rust Final
 
-> O **escopo de produto V1**, o **comportamento funcional/core** e a **UI Baseline Final V1** do Petunia3D estão congelados. A stack **Rust 2024 + egui + eframe + egui-wgpu + wgpu** é a baseline final de implementação; o vertical slice do capítulo 31 passa a ser teste obrigatório de conformance/integração, não gate para escolher novamente a stack. O capítulo 34 rege a arquitetura Rust, o 35 rege Petunia Components/ecossistema egui e o **capítulo 36 rege a UI final, temas e Plugin Panels**.
+<aside>
+🔒
+
+O **escopo de produto V1**, o **comportamento funcional/core** e a **UI Baseline Final V1** do Petunia3D estão congelados. A stack **Rust 2024 + egui + eframe + egui-wgpu + wgpu** é a baseline final de implementação; o vertical slice do capítulo 31 passa a ser teste obrigatório de conformance/integração, não gate para escolher novamente a stack. O capítulo 34 rege a arquitetura Rust, o 35 rege Petunia Components/ecossistema egui e o **capítulo 36 rege a UI final, temas e Plugin Panels**.
+
+</aside>
 
 # Baseline funcional congelada
 
@@ -75,7 +80,7 @@ Usar os capítulos 22–26 como base de referência/design system e **36 como au
 
 Depois deste marco:
 
-```plain text
+```
 nova ideia técnica
 → verificar se resolve requisito existente
 → comparar com baseline

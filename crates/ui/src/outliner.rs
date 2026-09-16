@@ -3,11 +3,12 @@
 //! suporte a coleções/pastas de geometria, bloqueio de transformação, isolamento de visualização,
 //! imagens de referência e estatísticas.
 
+use crate::adapters::tree::{Action, NodeBuilder, TreeView, TreeViewSettings};
 use egui::{Color32, Id, Rect, Response, ScrollArea, Ui, vec2};
-use egui_ltreeview::{Action, NodeBuilder, TreeView, TreeViewSettings};
 use petunia_core::{AnnotationItem, AppState, DeleteAssetCmd, DuplicateAssetCmd, PrimitiveKind};
 use uuid::Uuid;
 
+use crate::foundation::motion::PetuniaMotion;
 use crate::icon_registry::{IconRegistry, PetuniaIcon};
 use crate::tokens;
 use crate::widgets;
@@ -271,7 +272,10 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
         return;
     }
     // Busca inline expansível (revelação progressiva, sem linha permanente).
-    if state.ui.scene_search_open {
+    // Wave 7 (§49): o campo **abre** em vez de aparecer de uma vez — a altura
+    // é interpolada pelo motion do sistema.
+    let search_open = state.ui.scene_search_open;
+    PetuniaMotion::section(ui, "outliner-search", search_open, |ui| {
         ui.add_space(2.0);
         let search_hint = state.t("scene.search");
         ui.horizontal(|ui| {
@@ -293,7 +297,7 @@ fn draw_outliner_header(ui: &mut Ui, state: &mut AppState) {
                 state.mark_dirty();
             }
         });
-    }
+    });
 }
 
 /// Menu do funil: filtros de seção/estado + retorno ao tamanho automático.
@@ -658,7 +662,8 @@ fn draw_tree_nodes(ui: &mut Ui, state: &mut AppState) {
         .allow_drag_and_drop(false)
         .allow_multi_selection(false);
 
-    if let Some(mut tree_state) = egui_ltreeview::TreeViewState::<OutlinerNodeId>::load(ui, tree_id)
+    if let Some(mut tree_state) =
+        crate::adapters::tree::TreeViewState::<OutlinerNodeId>::load(ui, tree_id)
         && let Some(active_asset) = state.project.assets.get(active_idx)
     {
         let target = OutlinerNodeId::Asset(active_asset.id);

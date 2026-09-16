@@ -7,7 +7,9 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+mod bible;
 mod generator;
+mod ui_guard;
 use generator::GeneratedCatalog;
 
 fn main() -> Result<()> {
@@ -16,10 +18,27 @@ fn main() -> Result<()> {
 
     match command.as_str() {
         "docs" => task_docs()?,
-        "docs-generate" => task_docs_generate()?,
+        "docs-generate" => {
+            let check_only = args.any(|a| a == "--check");
+            task_docs_generate(check_only)?;
+        }
         "docs-check" => task_docs_check()?,
+        "bible-check" => bible::check(&root_dir(), false)?,
+        "bible-lock" => bible::check(&root_dir(), true)?,
         "arch-check" => task_arch_check()?,
         "ui-check" => task_ui_check()?,
+        "ui-guard" => {
+            let rest: Vec<String> = args.collect();
+            let strict = rest.iter().any(|a| a == "--strict");
+            let baseline = rest.iter().any(|a| a == "--baseline");
+            let report = ui_guard::run(&root_dir(), strict)?;
+            if baseline {
+                println!(
+                    "\n---8<--- 00-baseline.md (colar em docs/audits/ui-ecosystem-final-push/) ---\n"
+                );
+                print!("{}", ui_guard::markdown(&report));
+            }
+        }
         "help" | "--help" | "-h" => print_help(),
         other => {
             eprintln!("Comando desconhecido: {other}\n");
@@ -41,9 +60,16 @@ USO:
 COMANDOS:
     docs          Gera referências técnicas e compila o site estático com VitePress
     docs-generate Gera exclusivamente os catálogos e referências em docs/generated/
+                  (use --check para validar drift sem escrever nada)
     docs-check    Valida integridade, ausência de drift em docs/generated/ e build sem erros
+    bible-check   Valida o caderno canônico (docs/bible/), links, vocabulário e congelamento do site
+    bible-lock    Regenera o lock do site congelado (somente após decisão explícita de descongelar)
     arch-check    Valida a integridade dos relatórios da auditoria arquitetural
     ui-check      Valida o mapa de componentes UI (docs/public/ui-map.json) contra o código
+    ui-guard      Guarda de arquitetura da UI (§36/§37 da diretiva Egui Ecosystem Final Push)
+                  Reporta, por regra, ocorrências em product code versus foundation/adapter.
+                  --strict    falha se um tipo de biblioteca auxiliar escapar do adapter
+                  --baseline  imprime a tabela de baseline em Markdown
     help          Exibe esta mensagem de ajuda
 "#
     );
@@ -57,30 +83,40 @@ fn root_dir() -> PathBuf {
         .to_path_buf()
 }
 
-fn task_docs_generate() -> Result<()> {
-    println!("⚙️ Gerando referências técnicas a partir do código-fonte (P3D-119)...");
+fn task_docs_generate(check_only: bool) -> Result<()> {
+    if check_only {
+        println!("⚙️ Validando drift das referências técnicas geradas (P3D-119/P3D-120)...");
+    } else {
+        println!("⚙️ Gerando referências técnicas a partir do código-fonte (P3D-119)...");
+    }
     let root = root_dir();
-    let gen_dir = root.join("docs").join("generated");
+    let docs_dir = root.join("docs");
+    let gen_dir = docs_dir.join("generated");
     std::fs::create_dir_all(&gen_dir)
         .with_context(|| format!("falha ao criar pasta {}", gen_dir.display()))?;
 
     let catalog = GeneratedCatalog::generate(&root)?;
 
-    std::fs::write(gen_dir.join("COMMANDS.md"), &catalog.commands_md)?;
-    std::fs::write(gen_dir.join("KEYBINDS.md"), &catalog.keybinds_md)?;
-    std::fs::write(gen_dir.join("ICON_TOKENS.md"), &catalog.icon_tokens_md)?;
-    std::fs::write(gen_dir.join("TEXT_TOKENS.md"), &catalog.text_tokens_md)?;
-    std::fs::write(gen_dir.join("THEME_TOKENS.md"), &catalog.theme_tokens_md)?;
-    std::fs::write(
-        gen_dir.join("SUPPORTED_FORMATS.md"),
-        &catalog.supported_formats_md,
-    )?;
-    std::fs::write(gen_dir.join("index.md"), &catalog.index_md)?;
-    std::fs::write(gen_dir.join("manifest.json"), &catalog.manifest_json)?;
+    // Caminhos são relativos a `docs/` (alguns derivados vivem fora de docs/generated/).
+    let files: [(&str, &str); 9] = [
+        ("generated/COMMANDS.md", &catalog.commands_md),
+        ("generated/KEYBINDS.md", &catalog.keybinds_md),
+        ("generated/ICON_TOKENS.md", &catalog.icon_tokens_md),
+        ("generated/TEXT_TOKENS.md", &catalog.text_tokens_md),
+        ("generated/THEME_TOKENS.md", &catalog.theme_tokens_md),
+        (
+            "generated/SUPPORTED_FORMATS.md",
+            &catalog.supported_formats_md,
+        ),
+        ("generated/index.md", &catalog.index_md),
+        ("generated/manifest.json", &catalog.manifest_json),
+        ("shortcuts/cheatsheet.md", &catalog.cheatsheet_md),
+    ];
 
     // Sincroniza CHANGELOG.md com docs/changelog/index.md (P3D-117)
     let changelog_src = root.join("CHANGELOG.md");
-    if changelog_src.exists() {
+    let changelog_dest = root.join("docs/changelog/index.md");
+    let changelog = if changelog_src.exists() && changelog_dest.exists() {
         let content = std::fs::read_to_string(&changelog_src)?;
         let mut synced = String::from("# Histórico de Versões (Changelog)\n\n");
         if let Some(pos) = content.find("\n\n") {
@@ -88,18 +124,61 @@ fn task_docs_generate() -> Result<()> {
         } else {
             synced.push_str(&content);
         }
-        let changelog_dest = root.join("docs/changelog/index.md");
+        Some(synced)
+    } else {
+        None
+    };
+
+    if check_only {
+        let mut drift = Vec::new();
+        for (relative, expected) in files {
+            match std::fs::read_to_string(docs_dir.join(relative)) {
+                Ok(disk) if disk == *expected => {}
+                Ok(_) => drift.push(format!("docs/{relative}")),
+                Err(_) => drift.push(format!("docs/{relative} (ausente)")),
+            }
+        }
+        if let Some(expected) = &changelog {
+            match std::fs::read_to_string(&changelog_dest) {
+                Ok(disk) if disk == *expected => {}
+                Ok(_) => drift.push("docs/changelog/index.md".to_string()),
+                Err(_) => drift.push("docs/changelog/index.md (ausente)".to_string()),
+            }
+        }
+        if !drift.is_empty() {
+            for file in &drift {
+                eprintln!("  ✖ drift detectado: {file}");
+            }
+            bail!(
+                "{} arquivo(s) gerado(s) desatualizados; rode `cargo run -p xtask -- docs-generate`",
+                drift.len()
+            );
+        }
+        println!("✅ Nenhuma divergência (drift) nos catálogos gerados nem no changelog vivo.");
+        return Ok(());
+    }
+
+    for (relative, content) in files {
+        let target = docs_dir.join(relative);
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("falha ao criar {}", parent.display()))?;
+        }
+        std::fs::write(&target, content)
+            .with_context(|| format!("falha ao escrever {}", target.display()))?;
+    }
+    if let Some(synced) = changelog {
         std::fs::write(&changelog_dest, &synced)
             .with_context(|| format!("falha ao escrever {}", changelog_dest.display()))?;
     }
 
-    println!("✅ 7 arquivos canônicos gerados com sucesso em docs/generated/!");
+    println!("✅ 8 arquivos canônicos gerados (docs/generated/ + docs/shortcuts/cheatsheet.md)!");
     println!("✅ docs/changelog/index.md sincronizado com CHANGELOG.md (P3D-117)!");
     Ok(())
 }
 
 fn task_docs() -> Result<()> {
-    task_docs_generate()?;
+    task_docs_generate(false)?;
 
     println!("📦 Compilando documentação oficial do Petunia3D (VitePress)...");
     let root = root_dir();
@@ -125,6 +204,9 @@ fn task_docs_check() -> Result<()> {
     let root = root_dir();
     let docs_dir = root.join("docs");
     let gen_dir = docs_dir.join("generated");
+
+    // 0. Conformidade do caderno canônico e congelamento do site (AGENTS.md §1).
+    bible::check(&root, false)?;
 
     // 1. Verificar existência de arquivos canônicos
     let required_files = [

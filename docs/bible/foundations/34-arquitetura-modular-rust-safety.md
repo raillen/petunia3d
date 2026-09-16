@@ -1,6 +1,11 @@
 # 34 — Arquitetura Modular Explícita, Rust Safety e Representação em Código
 
-> Este capítulo é **normativo para a implementação Rust**. Ele define como representar entidades, recursos, topologia, funcionalidades e fronteiras do Petunia3D em código. A meta é maximizar simplicidade, Rust safety, modularidade real, interoperabilidade entre ferramentas e capacidade de evolução sem transformar o projeto em uma hierarquia de abstrações ou em um ECS universal.
+<aside>
+🧱
+
+Este capítulo é **normativo para a implementação Rust**. Ele define como representar entidades, recursos, topologia, funcionalidades e fronteiras do Petunia3D em código. A meta é maximizar simplicidade, Rust safety, modularidade real, interoperabilidade entre ferramentas e capacidade de evolução sem transformar o projeto em uma hierarquia de abstrações ou em um ECS universal.
+
+</aside>
 
 # Filosofia arquitetural
 
@@ -23,6 +28,7 @@ Ela combina:
 A diretriz central é:
 
 > **Data-oriented where data wants it. Domain-oriented where the problem wants it.**
+> 
 
 Não adotar uma única técnica como resposta para todos os subsistemas.
 
@@ -30,7 +36,7 @@ Não adotar uma única técnica como resposta para todos os subsistemas.
 
 A ordem de preferência arquitetural é:
 
-```plain text
+```
 1. concrete data
 2. explicit ownership
 3. simple functions
@@ -47,13 +53,12 @@ A ordem de preferência arquitetural é:
 
 # Quatro estilos internos, não um único framework
 
-<table>
-<tr><td>Área</td><td>Representação predominante</td><td>Rationale</td></tr>
-<tr><td>Document / Scene</td><td>Entidades e recursos explícitos + stores tipados</td><td>Relacionamentos legíveis, persistência simples e sem necessidade de scheduler ECS.</td></tr>
-<tr><td>Geometry Core</td><td>Half-edge própria + stores/data-oriented attributes</td><td>Topologia exige estrutura especializada e operações locais eficientes.</td></tr>
-<tr><td>Renderer / Painting</td><td>Buffers contíguos, snapshots e dirty regions</td><td>Hot paths beneficiam cache locality e batch processing.</td></tr>
-<tr><td>Funcionalidades</td><td>Algorithm → Command → Tool/Adapter</td><td>Permite reutilização pela UI, Lua, MCP e testes sem dependência entre ferramentas interativas.</td></tr>
-</table>
+| Área | Representação predominante | Rationale |
+| --- | --- | --- |
+| Document / Scene | Entidades e recursos explícitos + stores tipados | Relacionamentos legíveis, persistência simples e sem necessidade de scheduler ECS. |
+| Geometry Core | Half-edge própria + stores/data-oriented attributes | Topologia exige estrutura especializada e operações locais eficientes. |
+| Renderer / Painting | Buffers contíguos, snapshots e dirty regions | Hot paths beneficiam cache locality e batch processing. |
+| Funcionalidades | Algorithm → Command → Tool/Adapter | Permite reutilização pela UI, Lua, MCP e testes sem dependência entre ferramentas interativas. |
 
 # Política de ECS
 
@@ -88,22 +93,21 @@ Forçar tudo para `Entity + Component + System` esconderia essas diferenças e a
 
 # Taxonomia de coisas do Petunia
 
-<table>
-<tr><td>Conceito</td><td>Categoria arquitetural</td><td>Exemplo de representação</td></tr>
-<tr><td>Objeto/parte na cena</td><td>Document Entity</td><td>`SceneObject` identificado por `ObjectId`</td></tr>
-<tr><td>Mesh</td><td>Resource</td><td>`PetuniaMesh` em `MeshStore`</td></tr>
-<tr><td>Profile</td><td>Resource</td><td>`Profile` em `ProfileStore`</td></tr>
-<tr><td>Material</td><td>Resource</td><td>`Material` em `MaterialStore`</td></tr>
-<tr><td>Texture</td><td>Resource</td><td>`TextureAsset` / `TextureBitmap`</td></tr>
-<tr><td>Reference Image</td><td>Resource + document placement</td><td>`ReferenceImage` • `ReferenceView`</td></tr>
-<tr><td>Vertex/Edge/Face/HalfEdge</td><td>Topology Element</td><td>generational handle mesh-scoped</td></tr>
-<tr><td>Extrude</td><td>Geometry Algorithm + Application Command</td><td>`extrude_faces` • `ExtrudeCommand`</td></tr>
-<tr><td>Extrude com mouse</td><td>Interactive Tool</td><td>`ExtrudeTool`</td></tr>
-<tr><td>Boolean</td><td>Provider boundary</td><td>`BooleanProvider`</td></tr>
-<tr><td>GLB</td><td>I/O Adapter</td><td>`GltfExporter`</td></tr>
-<tr><td>Lua plugin</td><td>Runtime Extension</td><td>`PluginHost` • command registrations</td></tr>
-<tr><td>MCP</td><td>External Adapter</td><td>MCP ↔ Command Registry</td></tr>
-</table>
+| Conceito | Categoria arquitetural | Exemplo de representação |
+| --- | --- | --- |
+| Objeto/parte na cena | Document Entity | `SceneObject` identificado por `ObjectId` |
+| Mesh | Resource | `PetuniaMesh` em `MeshStore` |
+| Profile | Resource | `Profile` em `ProfileStore` |
+| Material | Resource | `Material` em `MaterialStore` |
+| Texture | Resource | `TextureAsset` / `TextureBitmap` |
+| Reference Image | Resource + document placement | `ReferenceImage`  • `ReferenceView` |
+| Vertex/Edge/Face/HalfEdge | Topology Element | generational handle mesh-scoped |
+| Extrude | Geometry Algorithm + Application Command | `extrude_faces`  • `ExtrudeCommand` |
+| Extrude com mouse | Interactive Tool | `ExtrudeTool` |
+| Boolean | Provider boundary | `BooleanProvider` |
+| GLB | I/O Adapter | `GltfExporter` |
+| Lua plugin | Runtime Extension | `PluginHost`  • command registrations |
+| MCP | External Adapter | MCP ↔ Command Registry |
 
 Nunca adotar a regra “tudo é entidade”. Cada conceito deve receber a representação mais simples que preserve suas invariantes.
 
@@ -193,7 +197,7 @@ pub struct PetuniaMesh {
 
 Sempre que isso simplificar lifecycle e locality, atributos ficam em stores separados:
 
-```plain text
+```
 Topology
 Vertex → outgoing HalfEdge
 HalfEdge → origin/twin/next/previous/face/edge
@@ -216,7 +220,7 @@ Aplicar Data-Oriented Design quando houver processamento em lote ou hot path com
 
 Renderer não deve navegar a half-edge mesh viva.
 
-```plain text
+```
 PetuniaMesh
     ↓ triangulation/cache extraction
 RenderSnapshot
@@ -232,7 +236,7 @@ O renderer trabalha sobre estruturas preparadas para leitura/batch. IDs de orige
 
 A regra normativa é:
 
-```plain text
+```
 INPUT
   ↓
 TOOL
@@ -289,7 +293,7 @@ pub struct ExtrudeCommand {
 
 A Tool contém somente estado de interação e preview necessário para converter input humano em command:
 
-```plain text
+```
 pointer down
 → picking
 → drag
@@ -304,13 +308,13 @@ Tool não implementa novamente a geometria.
 
 Proibido formar dependências como:
 
-```plain text
+```
 BevelTool → ExtrudeTool → SelectionTool
 ```
 
 Quando duas tools precisam da mesma capacidade, ambas dependem do mesmo command/algorithm/domain service:
 
-```plain text
+```
 Tool A ─┐
         ├→ Common Command / Domain Operation
 Tool B ─┘
@@ -322,7 +326,7 @@ Remover uma tool da UI não pode quebrar outra funcionalidade de domínio.
 
 UI, atalhos, menus, Lua, MCP e testes usam os mesmos Commands:
 
-```plain text
+```
 egui/Petunia UI ─────┐
 Keyboard shortcut ───┤
 Lua plugin ──────────┤
@@ -359,7 +363,7 @@ Argumentos JSON/Serde/Schemars só existem nas fronteiras dinâmicas.
 
 O Command Registry descreve capabilities externas sem transformar o core em JSON:
 
-```plain text
+```
 command_id
 label_key
 description_key
@@ -377,29 +381,27 @@ A implementação Rust tipada é a fonte semântica; adapters produzem schemas/b
 
 # SOLID adaptado a Rust
 
-<table>
-<tr><td>Princípio</td><td>Interpretação Petunia/Rust</td></tr>
-<tr><td>Single Responsibility</td><td>Type/module/function possui responsabilidade de domínio clara e uma razão coerente para mudar.</td></tr>
-<tr><td>Open/Closed</td><td>Extension points apenas onde substituição real existe; não criar trait antecipadamente para todo tipo.</td></tr>
-<tr><td>Liskov</td><td>Providers substituíveis precisam passar a mesma conformance suite e manter invariantes/resultados contratuais.</td></tr>
-<tr><td>Interface Segregation</td><td>Traits pequenas e focadas em capabilities concretas; consumidores não dependem de métodos irrelevantes.</td></tr>
-<tr><td>Dependency Inversion</td><td>Domínio/application define os contratos; egui/eframe, Manifold, xatlas, Lua, MCP e formatos externos adaptam-se a eles.</td></tr>
-</table>
+| Princípio | Interpretação Petunia/Rust |
+| --- | --- |
+| Single Responsibility | Type/module/function possui responsabilidade de domínio clara e uma razão coerente para mudar. |
+| Open/Closed | Extension points apenas onde substituição real existe; não criar trait antecipadamente para todo tipo. |
+| Liskov | Providers substituíveis precisam passar a mesma conformance suite e manter invariantes/resultados contratuais. |
+| Interface Segregation | Traits pequenas e focadas em capabilities concretas; consumidores não dependem de métodos irrelevantes. |
+| Dependency Inversion | Domínio/application define os contratos; egui/eframe, Manifold, xatlas, Lua, MCP e formatos externos adaptam-se a eles. |
 
 SOLID não autoriza criar `Manager → Service → Repository → Factory → Controller` para cada conceito.
 
 # Quando usar struct, enum, trait e dyn Trait
 
-<table>
-<tr><td>Situação</td><td>Escolha padrão</td></tr>
-<tr><td>dados concretos</td><td>`struct`</td></tr>
-<tr><td>conjunto fechado de estados/alternativas</td><td>`enum`</td></tr>
-<tr><td>implementação realmente substituível</td><td>`trait`</td></tr>
-<tr><td>runtime plugin/provider heterogêneo</td><td>`dyn Trait` na fronteira</td></tr>
-<tr><td>hot path polimórfico conhecido em compile time</td><td>generic somente se benefício concreto justificar</td></tr>
-<tr><td>encapsular implementação</td><td>module + private fields antes de inventar trait</td></tr>
-<tr><td>identidade</td><td>newtype ID</td></tr>
-</table>
+| Situação | Escolha padrão |
+| --- | --- |
+| dados concretos | `struct` |
+| conjunto fechado de estados/alternativas | `enum` |
+| implementação realmente substituível | `trait` |
+| runtime plugin/provider heterogêneo | `dyn Trait` na fronteira |
+| hot path polimórfico conhecido em compile time | generic somente se benefício concreto justificar |
+| encapsular implementação | module + private fields antes de inventar trait |
+| identidade | newtype ID |
 
 Exemplo de conjunto fechado:
 
@@ -425,7 +427,7 @@ Traits são permitidas quando há pelo menos uma destas necessidades:
 
 Exemplos válidos:
 
-```plain text
+```
 BooleanProvider
 UvUnwrapProvider
 Exporter
@@ -441,7 +443,7 @@ Quando consumidores externos **não** devem implementar uma trait pública, cons
 
 Não estruturar a aplicação como:
 
-```plain text
+```
 Application<Geometry, Renderer, Document, Plugins, Materials, ...>
 ```
 
@@ -485,7 +487,7 @@ Resolver IDs em borrows curtos no ponto de uso.
 
 O documento mutável principal possui um único escritor lógico, normalmente Application/Main thread.
 
-```plain text
+```
 Application/Main
       ↓
    Document
@@ -494,7 +496,7 @@ Application/Main
 
 Trabalhos pesados recebem snapshots imutáveis:
 
-```plain text
+```
 Document revision 42
       ↓ snapshot
 Worker / Rayon
@@ -510,7 +512,7 @@ Não compartilhar `Arc<Mutex<Document>>` entre UI, renderer, jobs, plugins e MCP
 
 # Ordem de preferência para compartilhamento
 
-```plain text
+```
 explicit ownership
     > message passing
     > immutable snapshot
@@ -526,7 +528,7 @@ Tokio/async permanece restrito a MCP, network ou I/O que realmente necessite `aw
 
 Não tornar Geometry/Application APIs assíncronas por contaminação:
 
-```plain text
+```
 MCP Tokio runtime
       ↓ channel/request
 synchronous Application Core
@@ -585,7 +587,7 @@ A Application traduz isso para error code/context estruturado. UI escolhe texto 
 
 A interpretação oficial de Clean Code é:
 
-```plain text
+```
 explicit > magical
 domain name > obscure abbreviation
 data flow > service locator
@@ -600,13 +602,13 @@ owned/immutable snapshot > shared mutable graph
 
 Evitar abreviações internas obscuras como:
 
-```plain text
+```
 ctx mgr svc cfg doc rev obj geom tex sel cmd
 ```
 
 quando um nome completo cabe naturalmente:
 
-```plain text
+```
 context configuration document revision object geometry texture selection command
 ```
 
@@ -635,7 +637,7 @@ Uma nova crate precisa justificar pelo menos um:
 
 Dentro de `petunia-geometry`, por exemplo, usar modules:
 
-```plain text
+```
 mesh/
 profile/
 extrude/
@@ -652,7 +654,7 @@ sem transformar cada pasta em crate.
 
 Camadas internas não podem depender de adapters externos. As setas abaixo são **lógicas**; `domain/core` e `application` podem residir fisicamente na mesma crate `petunia-core` enquanto preservarem módulos e dependências internas claras:
 
-```plain text
+```
 domain/core ← application ← UI/Lua/MCP
 petunia-geometry ← application orchestration
 petunia-render ← RenderSnapshot adapter
@@ -660,7 +662,7 @@ petunia-render ← RenderSnapshot adapter
 
 Proibições exemplares:
 
-```plain text
+```
 domain → egui/eframe
 geometry → egui/eframe
 geometry → MCP
@@ -717,7 +719,7 @@ Para uma feature ser considerada modular:
 
 Nunca tratá-las como o mesmo nível de estabilidade:
 
-```plain text
+```
 Internal Rust API
     → evolui com refactors controlados
 
@@ -749,20 +751,19 @@ Para APIs externas:
 
 Cada feature precisa ser testável sem egui/eframe.
 
-<table>
-<tr><td>Camada</td><td>Estratégia obrigatória</td></tr>
-<tr><td>Tipos/Math</td><td>unit tests</td></tr>
-<tr><td>Geometry algorithms</td><td>unit + fixtures + property tests</td></tr>
-<tr><td>Half-edge</td><td>invariant/property tests</td></tr>
-<tr><td>Commands</td><td>transaction + errors + Undo/Redo</td></tr>
-<tr><td>Providers</td><td>conformance suites independentes do vendor</td></tr>
-<tr><td>I/O</td><td>round-trip + migration + golden</td></tr>
-<tr><td>Plugins</td><td>capability/sandbox/lifecycle</td></tr>
-<tr><td>MCP</td><td>schema + command conformance</td></tr>
-<tr><td>Renderer</td><td>render snapshots/fixtures + visual tests quando viável</td></tr>
-<tr><td>UI</td><td>interaction + accessibility + screenshots</td></tr>
-<tr><td>Workflows</td><td>integration/end-to-end</td></tr>
-</table>
+| Camada | Estratégia obrigatória |
+| --- | --- |
+| Tipos/Math | unit tests |
+| Geometry algorithms | unit + fixtures + property tests |
+| Half-edge | invariant/property tests |
+| Commands | transaction + errors + Undo/Redo |
+| Providers | conformance suites independentes do vendor |
+| I/O | round-trip + migration + golden |
+| Plugins | capability/sandbox/lifecycle |
+| MCP | schema + command conformance |
+| Renderer | render snapshots/fixtures + visual tests quando viável |
+| UI | interaction + accessibility + screenshots |
+| Workflows | integration/end-to-end |
 
 # Interoperabilidade precisa de testes próprios
 
@@ -770,7 +771,7 @@ Uma feature não está pronta apenas porque seu unit test passa.
 
 Criar workflows de composição como:
 
-```plain text
+```
 Primitive
 → Extrude
 → Bevel
@@ -785,7 +786,7 @@ Primitive
 
 e:
 
-```plain text
+```
 Reference
 → Profile
 → Extrude
@@ -802,7 +803,7 @@ Testes de interoperabilidade protegem contratos que unit tests isolados não enx
 
 Por isso Rust safety é combinada com:
 
-```plain text
+```
 compiler
 + clippy
 + invariants
@@ -836,7 +837,7 @@ Não criar um `AGENTS.md` gigantesco contendo toda a especificação do Petunia.
 
 Usar um mapa hierárquico:
 
-```plain text
+```
 AGENTS.md
     → architecture map
     → commands para build/test
@@ -896,7 +897,7 @@ O Prumo e CI devem tratar estas regras como invariants:
 
 Evitar deliberadamente:
 
-```plain text
+```
 Arc<Mutex<ApplicationState>> como estado global
 Rc<RefCell<Everything>> como escape de ownership
 giant generic Application<T...>
@@ -917,7 +918,7 @@ macros/metaprogramming para esconder fluxo essencial
 
 # Fluxo de referência: Extrude
 
-```plain text
+```
 Petunia ExtrudeTool (egui presentation)
     ↓
 preview state
@@ -941,7 +942,7 @@ O mesmo `ExtrudeCommand` pode vir de Lua, MCP, shortcut ou teste.
 
 # Fluxo de referência: job pesado
 
-```plain text
+```
 FuseCommand
     ↓
 Document snapshot + base revision
@@ -989,7 +990,7 @@ Estas fontes orientaram a política, mas não substituem os contratos Petunia:
 - [Rust API Guidelines — Future Proofing](https://rust-lang.github.io/api-guidelines/future-proofing.html)
 - [Cargo Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
 - [Cargo Resolver / Features](https://doc.rust-lang.org/cargo/reference/resolver.html)
-- [std::marker::Send](https://doc.rust-lang.org/std/marker/trait.Send.html)
+- [std:](https://doc.rust-lang.org/std/marker/trait.Send.html):marker:[:Send](https://doc.rust-lang.org/std/marker/trait.Send.html)
 - [Rust Design Patterns](https://rust-unofficial.github.io/patterns/patterns/)
 - [Borrow clone anti-pattern](https://rust-unofficial.github.io/patterns/anti_patterns/borrow_clone.html)
 - [rust-analyzer architecture](https://rust-analyzer.github.io/book/contributing/architecture.html)
@@ -1005,3 +1006,4 @@ Estas fontes orientaram a política, mas não substituem os contratos Petunia:
 # Regra final
 
 > **O Petunia deve ser composto por dados explícitos e operações explícitas. Ferramentas interativas são clientes do domínio, não o domínio. Abstrações existem para preservar uma fronteira real, não para demonstrar sofisticação.**
+>

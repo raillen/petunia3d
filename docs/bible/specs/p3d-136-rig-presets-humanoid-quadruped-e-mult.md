@@ -1,16 +1,9 @@
 # P3D-136 — Rig Presets — Humanoid, Quadruped e Multi-Leg
 
-::: info STATUS DA ESPECIFICAÇÃO — SINGLE SOURCE OF TRUTH
-- **Wave do Gauntlet**: Wave 10 (Pós-GA)
-- **Status Canônico**: `COMPLIANT (Implementado e Verificado)`
-- **Contrato**: Verificado contra a suíte de testes automatizados e o código-fonte canônico.
-:::
-
-
 <aside>
 🧩
 
-Estado: **implementado via `RigPreset::humanoid`, `RigPreset::quadruped` e `RigPreset::multi_leg` em `crates/project/src/animation.rs`** · Prioridade: P3.
+Novo item · Prioridade: P3.
 
 </aside>
 

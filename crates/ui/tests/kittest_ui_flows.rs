@@ -12,7 +12,7 @@ fn test_kittest_toolbar_flow() {
     let tools = ToolRegistry::new();
 
     let mut harness = Harness::builder().build_ui(|ui| {
-        toolbar::draw(ui, &mut state, &tools);
+        toolbar::draw_contents(ui, &mut state, &tools);
     });
 
     harness.run();
@@ -31,7 +31,7 @@ fn test_kittest_main_header_flow() {
 
     harness.run();
     drop(harness);
-    assert_eq!(state.mode, EditMode::Object);
+    assert_eq!(state.edit_mode(), EditMode::Object);
 }
 
 #[test]
@@ -126,7 +126,7 @@ fn test_kittest_right_panel_docked_and_detached_flow() {
     // 1. Docked mode
     state.ui.inspector_detached = false;
     let mut harness_docked = Harness::builder().build_ui(|ui| {
-        petunia_ui::right_panel(ui, &mut state, &tools, &mut registry);
+        petunia_ui::shell::draw(ui, &mut state, &tools, &mut registry);
     });
     harness_docked.run_steps(2);
     drop(harness_docked);
@@ -134,7 +134,7 @@ fn test_kittest_right_panel_docked_and_detached_flow() {
     // 2. Detached floating window mode
     state.ui.inspector_detached = true;
     let mut harness_detached = Harness::builder().build_ui(|ui| {
-        petunia_ui::right_panel(ui, &mut state, &tools, &mut registry);
+        petunia_ui::shell::draw(ui, &mut state, &tools, &mut registry);
     });
     harness_detached.run_steps(2);
     drop(harness_detached);
@@ -237,7 +237,7 @@ fn test_kittest_detached_inspector_multi_frame_stability() {
     let mut registry = petunia_core::ModuleRegistry::new();
 
     let mut harness = Harness::builder().build_ui(|ui| {
-        petunia_ui::right_panel(ui, &mut state, &tools, &mut registry);
+        petunia_ui::shell::draw(ui, &mut state, &tools, &mut registry);
     });
 
     harness.run_steps(10);
@@ -308,7 +308,7 @@ fn test_kittest_inspector_layer_collision_prevention() {
     // Verifies that toggling inspector_detached inside right_panel closure
     // cleanly snapshots was_detached and never double-renders or causes layer collision.
     let mut harness = Harness::builder().build_ui(|ui| {
-        petunia_ui::right_panel(ui, &mut state, &tools, &mut registry);
+        petunia_ui::shell::draw(ui, &mut state, &tools, &mut registry);
         state.ui.inspector_detached = !state.ui.inspector_detached;
     });
     harness.run_steps(6);
@@ -320,16 +320,16 @@ fn test_kittest_selection_modes_and_edit_mode_flow() {
     let mut state = AppState::new("en");
 
     // 1. Object Mode
-    state.mode = EditMode::Object;
+    state.set_edit_mode(EditMode::Object);
     let mut harness = Harness::builder().build_ui(|ui| {
         viewport_bar::draw(ui, &mut state);
     });
     harness.run_steps(2);
     drop(harness);
-    assert_eq!(state.mode, EditMode::Object);
+    assert_eq!(state.edit_mode(), EditMode::Object);
 
     // 2. Edit Mode - Vertex Selection
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
     state.select_mode = SelectMode::Vertex;
     let mut harness_vertex = Harness::builder().build_ui(|ui| {
         viewport_bar::draw(ui, &mut state);
@@ -364,7 +364,7 @@ fn test_kittest_contextual_shelf_across_all_workspaces() {
 
     // 1. Model Workspace — Object Mode
     state.workspace = Workspace::Model;
-    state.mode = EditMode::Object;
+    state.set_edit_mode(EditMode::Object);
     let mut harness_obj = Harness::builder().build_ui(|ui| {
         let shelf_rect = contextual_shelf::draw(ui, &mut state, fake_rect);
         assert!(shelf_rect.is_some());
@@ -373,7 +373,7 @@ fn test_kittest_contextual_shelf_across_all_workspaces() {
     drop(harness_obj);
 
     // 2. Model Workspace — Edit Mode
-    state.mode = EditMode::Edit;
+    state.set_edit_mode(EditMode::Edit);
     let mut harness_edit = Harness::builder().build_ui(|ui| {
         let shelf_rect = contextual_shelf::draw(ui, &mut state, fake_rect);
         assert!(shelf_rect.is_some());
@@ -399,14 +399,18 @@ fn test_kittest_contextual_shelf_across_all_workspaces() {
     harness_uv.run_steps(2);
     drop(harness_uv);
 
-    // 5. Animate Workspace
-    state.workspace = Workspace::Animate;
-    let mut harness_anim = Harness::builder().build_ui(|ui| {
-        let shelf_rect = contextual_shelf::draw(ui, &mut state, fake_rect);
-        assert!(shelf_rect.is_some());
-    });
-    harness_anim.run_steps(2);
-    drop(harness_anim);
+    // 5. Animate Workspace — fora da V1 congelada (capítulo 36), só compila
+    // com a feature `animation-workspace`.
+    #[cfg(feature = "animation-workspace")]
+    {
+        state.workspace = Workspace::Animate;
+        let mut harness_anim = Harness::builder().build_ui(|ui| {
+            let shelf_rect = contextual_shelf::draw(ui, &mut state, fake_rect);
+            assert!(shelf_rect.is_some());
+        });
+        harness_anim.run_steps(2);
+        drop(harness_anim);
+    }
 
     // 6. Narrow Viewport — Wave 4: pílula "Tools…" em vez de sumir, sem clippar.
     let narrow_rect = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(300.0, 600.0));
@@ -521,16 +525,29 @@ fn test_kittest_dock_split_fraction_resizes_sections() {
                 .borrow_mut()
                 .push(petunia_ui::regions::load(ui.ctx()));
         });
-    state.borrow_mut().ui.right_dock_split = 0.3;
     state.borrow_mut().ui.scene_split_auto = false;
+
+    // Não indexa frame por número: o componente de layout (taffy) pode pedir um
+    // frame extra por reflow, e a asserção é sobre o **último** frame de cada
+    // configuração — nunca sobre a contagem de frames.
+    state.borrow_mut().ui.right_dock_split = 0.3;
     harness.run_steps(6);
+    let narrow = seen
+        .borrow()
+        .last()
+        .and_then(|frame| frame.clone())
+        .expect("regions narrow");
+
     state.borrow_mut().ui.right_dock_split = 0.7;
     harness.run_steps(6);
+    let wide = seen
+        .borrow()
+        .last()
+        .and_then(|frame| frame.clone())
+        .expect("regions wide");
+
     drop(harness);
 
-    let frames = seen.borrow();
-    let narrow = frames[5].clone().expect("regions narrow");
-    let wide = frames[11].clone().expect("regions wide");
     let narrow_h = narrow.right_outliner.unwrap().height();
     let wide_h = wide.right_outliner.unwrap().height();
     assert!(
@@ -601,12 +618,7 @@ fn test_kittest_workspace_switch_preserves_dock_layout() {
             );
             *seen_clone.borrow_mut() = petunia_ui::regions::load(ui.ctx());
         });
-    for workspace in [
-        Workspace::Model,
-        Workspace::Paint,
-        Workspace::Uv,
-        Workspace::Animate,
-    ] {
+    for workspace in Workspace::all() {
         state.borrow_mut().workspace = workspace;
         harness.run_steps(3);
     }
@@ -624,12 +636,16 @@ fn test_kittest_workspace_switch_preserves_dock_layout() {
 #[test]
 fn test_kittest_workspace_profiles_compose_shell() {
     // Cada workspace compõe o shell de forma visivelmente distinta (§6.5).
-    for (workspace, expect_bottom, expect_uv) in [
+    #[allow(unused_mut)]
+    let mut cases = vec![
         (Workspace::Model, false, false),
         (Workspace::Paint, false, false),
         (Workspace::Uv, false, true),
-        (Workspace::Animate, true, false),
-    ] {
+    ];
+    #[cfg(feature = "animation-workspace")]
+    cases.push((Workspace::Animate, true, false));
+
+    for (workspace, expect_bottom, expect_uv) in cases {
         let state = std::rc::Rc::new(std::cell::RefCell::new(AppState::new("en")));
         state.borrow_mut().workspace = workspace;
         let tools = ToolRegistry::new();
@@ -738,6 +754,7 @@ fn test_kittest_uv_narrow_window_toggles_editor_or_preview() {
     assert!(regions2.uv_editor.is_some());
 }
 
+#[cfg(feature = "animation-workspace")]
 #[test]
 fn test_kittest_animate_toolbar_has_pose_tools() {
     // A toolbar do Animate não é mais vazia: seleção + trio de pose.
@@ -746,7 +763,7 @@ fn test_kittest_animate_toolbar_has_pose_tools() {
     let tools = ToolRegistry::new();
 
     let mut harness = Harness::builder().build_ui(|ui| {
-        petunia_ui::toolbar::draw(ui, &mut state, &tools);
+        petunia_ui::toolbar::draw_contents(ui, &mut state, &tools);
     });
     harness.run_steps(2);
     drop(harness);
@@ -986,7 +1003,7 @@ fn test_shelf_commands_all_have_tooltips() {
         let mut state = AppState::new("en");
         state.workspace = workspace;
         for mode in [EditMode::Object, EditMode::Edit] {
-            state.mode = mode;
+            state.set_edit_mode(mode);
             let mut harness = Harness::builder().build_ui(|ui| {
                 let rect = ui.max_rect();
                 let _ = petunia_ui::contextual_shelf::draw(ui, &mut state, rect);
@@ -1087,6 +1104,7 @@ fn test_kittest_primitive_card_pseudo_and_narrow() {
     }
 }
 
+#[cfg(feature = "animation-workspace")]
 #[test]
 fn test_kittest_animation_workspace_and_rig_panel() {
     let mut state = AppState {

@@ -13,6 +13,47 @@
 
 ---
 
+## Reconciliação de estado (2026-09-16)
+
+Este documento foi escrito como **plano de execução** em 2026-09-14 e segue válido
+como registro do que foi decidido. O "estado auditado" abaixo é a fotografia
+daquele momento, não a descrição do repositório hoje. Nada foi reescrito: esta
+seção apenas reconcilia o plano com o que existe agora.
+
+| Dimensão | Alvo do plano | Estado real hoje |
+| --- | --- | --- |
+| Crates do workspace | — | **19** (`crates/*` no `Cargo.toml` raiz) |
+| Rust / Edition | 1.98.1 / 2024 | **1.98.1 / 2024** (`rust-version`, `edition`) |
+| egui / eframe / egui-wgpu | 0.36.2 | **0.36.2** |
+| Renderer canônico | wgpu primário | **wgpu** (`egui-wgpu`, `wgpu 30.0.1`); `render-gl` é fallback atrás da fronteira de host |
+| Workspaces de UI (V1) | — | **3** — `MODEL / PAINT / UV` (cap. 36); animação atrás da feature `animation-workspace` |
+| Temas oficiais | — | **2** — `petunia-dark` (default) e `petunia-high-contrast`; demais são packs externos |
+| Packs de ícones | `egui-lucide` baseline | **`iconflow`** (`tabler`, `iconoir`, `phosphor`, `lucide`) + pack próprio **Petunia** |
+| Caderno canônico | pasta antiga do Livro Vivo | **`docs/bible/`** (250 páginas) — a pasta antiga foi migrada |
+
+### Supersessão parcial
+
+A parte deste plano que trata de **layout e adoção de bibliotecas de UI** foi
+substituída pela `PETUNIA3D_EGUI_ECOSYSTEM_FINAL_PUSH_DIRECTIVE.md` (§0, §15,
+§43): a política antiga de "built-in primeiro", "Taffy somente piloto" e
+"`egui_tiles` removido" **não vale mais**. Os títulos de renderer, host,
+toolchain, dependências P0–P3 e Gauntlet Loop continuam válidos.
+
+### Gates disponíveis hoje
+
+O `cargo xtask ui-audit` sugerido na §UI foi implementado como `ui-guard`:
+
+```bash
+cargo run -p xtask -- docs-generate --check   # drift dos catálogos gerados
+cargo run -p xtask -- docs-check              # integridade da documentação
+cargo run -p xtask -- bible-check             # caderno canônico: completude, links, vocabulário
+cargo run -p xtask -- bible-lock              # lock do site congelado
+cargo run -p xtask -- arch-check              # fronteiras P0/P1 do workspace
+cargo run -p xtask -- ui-check                # mapa de componentes UI vs código
+cargo run -p xtask -- ui-guard                # §36/§37: layout manual e confinamento de adapters
+cargo run -p xtask -- ui-guard --strict       # falha se um tipo auxiliar escapar do adapter
+```
+
 ## 0. Authoritative target verified on 2026-09-14
 
 Use these as the initial modernization target unless the repository has changed after this document was generated and a newer compatible stable patch release is available:
@@ -2897,8 +2938,8 @@ Repository:
 - all workspace `Cargo.toml` files
 - `PROJECT_STATE.md`
 - `CHANGELOG.md`
-- `docs/petunia3d-livro-vivo/27-stack-rust-canonica.md`
-- `docs/petunia3d-livro-vivo/35-egui-components-adapters-tooling.md`
+- `docs/bible/foundations/27-stack-rust-canonica.md`
+- `docs/bible/foundations/35-egui-components-adapters-tooling.md`
 - current architecture audits
 - current implementation plans
 - relevant P3D specification mirrors in the repository

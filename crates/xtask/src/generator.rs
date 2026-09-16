@@ -15,6 +15,7 @@ use petunia_project::pipeline::{DeliveryPipeline, FileFormat};
 pub struct GeneratedCatalog {
     pub commands_md: String,
     pub keybinds_md: String,
+    pub cheatsheet_md: String,
     pub icon_tokens_md: String,
     pub text_tokens_md: String,
     pub theme_tokens_md: String,
@@ -27,6 +28,7 @@ impl GeneratedCatalog {
     pub fn generate(root_dir: &Path) -> Result<Self> {
         let commands_md = generate_commands_md()?;
         let keybinds_md = generate_keybinds_md(root_dir)?;
+        let cheatsheet_md = generate_cheatsheet_md()?;
         let icon_tokens_md = generate_icon_tokens_md(root_dir)?;
         let text_tokens_md = generate_text_tokens_md(root_dir)?;
         let theme_tokens_md = generate_theme_tokens_md()?;
@@ -48,6 +50,7 @@ impl GeneratedCatalog {
         Ok(Self {
             commands_md,
             keybinds_md,
+            cheatsheet_md,
             icon_tokens_md,
             text_tokens_md,
             theme_tokens_md,
@@ -127,8 +130,13 @@ fn generate_commands_md() -> Result<String> {
 
 fn generate_keybinds_md(root_dir: &Path) -> Result<String> {
     let profiles = Keybinds::available_profiles();
-    let default_kb = Keybinds::default();
-    let default_bindings = default_kb.all_bindings();
+    // O preset canônico vive em `assets/keymaps/petunia-default.toml`; o fallback
+    // interno (`Keybinds::default()`) pode estar vazio, então carregamos o perfil
+    // do disco para que o catálogo nunca publique uma tabela canônica vazia (P3D-119).
+    let mut default_bindings = Keybinds::default().all_bindings();
+    if default_bindings.is_empty() {
+        default_bindings = Keybinds::load_profile("petunia-default").all_bindings();
+    }
 
     let mut out = String::new();
     out.push_str("---\n");
@@ -176,6 +184,10 @@ fn generate_keybinds_md(root_dir: &Path) -> Result<String> {
         }
         profile_files.sort();
         for id in profile_files {
+            // `petunia-default` já é publicado como tabela canônica acima.
+            if id == "petunia-default" {
+                continue;
+            }
             let loaded = Keybinds::load_profile(&id);
             let bindings = loaded.all_bindings();
             out.push_str(&format!(
@@ -190,6 +202,81 @@ fn generate_keybinds_md(root_dir: &Path) -> Result<String> {
             out.push('\n');
         }
     }
+
+    Ok(out)
+}
+
+/// Gera o cheatsheet de atalhos a partir do perfil canônico `petunia-default`.
+///
+/// O arquivo deixa de ser curado à mão: assim ele não pode divergir do keymap
+/// canônico (P3D-090/P3D-119) e a CI detecta drift.
+pub fn generate_cheatsheet_md() -> Result<String> {
+    let mut bindings = Keybinds::load_profile("petunia-default").all_bindings();
+    if bindings.is_empty() {
+        bindings = Keybinds::default().all_bindings();
+    }
+
+    let categories = [
+        ("global", "Sistema & Arquivos"),
+        ("select", "Seleção"),
+        ("model", "Modelagem & Transformação"),
+        ("paint", "Pintura"),
+        ("uv", "UV"),
+        ("view", "Visualização & Câmera"),
+    ];
+
+    let mut out = String::new();
+    out.push_str("---\n");
+    out.push_str("title: Cheatsheet de Atalhos (Perfil Petunia)\n");
+    out.push_str("description: Atalhos do perfil canônico Petunia, gerados a partir do keymap (P3D-090, P3D-119)\n");
+    out.push_str("---\n\n");
+    out.push_str(AUTOGEN_HEADER);
+    out.push_str("\n\n# Cheatsheet de Atalhos — perfil `petunia-default`\n\n");
+    out.push_str(
+        "> **Perfil canônico:** `Petunia` é o preset default do produto. Os demais presets\n\
+         > oficiais são `Petunia Simple`, `Petunia Notebook`, `Blender-like`,\n\
+         > `Blender-like Notebook`, `Maya-like`, `3ds Max-like` e `Cinema 4D-like`.\n\
+         > A tabela completa de todos os perfis está em\n\
+         > [Catálogo de Perfis e Atalhos](../generated/KEYBINDS.md).\n\n",
+    );
+    out.push_str(
+        "> Nenhuma ferramenta depende de tecla física como regra de negócio: os binds\n\
+         > apontam para `CommandId` e podem ser remapeados por perfil, com detecção de\n\
+         > conflito e import/export em JSON versionado.\n\n",
+    );
+
+    for (prefix, label) in categories {
+        let entries: Vec<&(String, String)> = bindings
+            .iter()
+            .filter(|(action, _)| action.starts_with(&format!("{prefix}.")))
+            .collect();
+        if entries.is_empty() {
+            continue;
+        }
+        out.push_str(&format!(
+            "## {label}\n\n| Ação | Atalho |\n| :--- | :---: |\n"
+        ));
+        for (action, shortcut) in entries {
+            out.push_str(&format!("| `{action}` | <kbd>{shortcut}</kbd> |\n"));
+        }
+        out.push('\n');
+    }
+
+    out.push_str(
+        "## Navegação e foco (contrato de input)\n\n\
+         Estas entradas são contrato da UI Baseline V1, não binds de keymap:\n\n\
+         | Entrada | Ação |\n| :--- | :--- |\n\
+         | `LMB` | selecionar/operar |\n\
+         | `Shift + LMB` | adicionar/alternar seleção |\n\
+         | `RMB` | context menu |\n\
+         | `MMB` | orbit |\n\
+         | `Shift + MMB` | pan |\n\
+         | wheel/pinch | zoom |\n\
+         | `Esc` | cancelar |\n\
+         | `Enter` | confirmar operação pendente |\n\
+         | `F6` / `Shift+F6` | navegar regiões principais |\n\
+         | `Tab` / `Shift+Tab` | navegar controles dentro da região |\n\n",
+    );
 
     Ok(out)
 }
@@ -469,12 +556,10 @@ fn generate_theme_tokens_md() -> Result<String> {
         ),
     ];
 
-    let theme_ids = [
-        "petunia-dark",
-        "petunia-light",
-        "petunia-capuccino",
-        "petunia-tokyo-nights",
-    ];
+    // Apenas os temas oficiais de V1 (capítulo 36) entram no catálogo canônico:
+    // Petunia Dark (default) e Petunia High Contrast (acessibilidade). Temas de
+    // usuário são declarações externas e não fazem parte do contrato de tokens.
+    let theme_ids = petunia_config::theme::ThemeRegistry::OFFICIAL_V1_THEME_IDS;
     let loaded_themes: Vec<(String, Theme)> = theme_ids
         .iter()
         .map(|id| (id.to_string(), Theme::load_by_id(id)))
@@ -492,8 +577,11 @@ fn generate_theme_tokens_md() -> Result<String> {
     out.push_str("e garantir contraste, acessibilidade e flexibilidade estética.\n\n");
 
     out.push_str("## Matriz Comparativa de Cores por Tema\n\n");
-    out.push_str("| Token Semântico | Função no Design | Petunia Dark | Petunia Light | Capuccino | Tokyo Nights |\n");
-    out.push_str("| :--- | :--- | :---: | :---: | :---: | :---: |\n");
+    out.push_str("> Temas oficiais de V1 (capítulo 36): **Petunia Dark** (completo, default) e ");
+    out.push_str("**Petunia High Contrast** (variação oficial de acessibilidade). ");
+    out.push_str("Temas adicionais são packs declarativos do usuário (`themes/<id>/` ou `.petunia-theme`).\n\n");
+    out.push_str("| Token Semântico | Função no Design | Petunia Dark | Petunia High Contrast |\n");
+    out.push_str("| :--- | :--- | :---: | :---: |\n");
 
     for (token, desc) in tokens {
         let mut row = format!("| `ThemeToken::{token:?}` | {desc} |");
@@ -736,8 +824,13 @@ mod tests {
         assert!(cat.theme_tokens_md.contains("`ThemeToken::BgCanvas`"));
         assert!(cat.theme_tokens_md.contains("`ThemeToken::AccentBlue`"));
         assert!(cat.theme_tokens_md.contains("`ThemeToken::StatusSuccess`"));
+        // Catálogo canônico cobre apenas os temas oficiais de V1 (cap. 36).
         assert!(cat.theme_tokens_md.contains("Petunia Dark"));
-        assert!(cat.theme_tokens_md.contains("Petunia Light"));
+        assert!(cat.theme_tokens_md.contains("Petunia High Contrast"));
+        assert!(
+            !cat.theme_tokens_md.contains("Petunia Light"),
+            "temas não oficiais não entram no catálogo de tokens"
+        );
     }
 
     #[test]

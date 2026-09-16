@@ -120,6 +120,14 @@ pub struct RenderStats {
     pub draws: usize,
 }
 
+/// Visão **derivada** do estado de edição (P3D-015).
+///
+/// Não é estado próprio e não pode ser escrita: a autoridade semântica é
+/// [`SelectionDomain`] (Object / Point / Edge / Face) e o estado de pintura é
+/// [`Workspace::Paint`]. Este enum existe apenas como leitura conveniente para
+/// renderer, consultas e telemetria — trocá-lo é o mesmo que trocar o domínio de
+/// seleção ou o workspace (ver `EditorSession::edit_mode` e
+/// `AppState::set_edit_mode`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum EditMode {
     #[default]
@@ -508,7 +516,6 @@ impl Default for GridSettings {
 /// 3. SESSÃO DO EDITOR: câmera, seleção, modos e viewport settings.
 pub struct EditorSession {
     pub selection: Selection,
-    pub mode: EditMode,
     pub workspace: Workspace,
     pub select_mode: SelectMode,
     pub selection_domain: SelectionDomain,
@@ -568,7 +575,6 @@ impl EditorSession {
     pub fn new() -> Self {
         Self {
             selection: Selection::default(),
-            mode: EditMode::Object,
             workspace: Workspace::Model,
             select_mode: SelectMode::Vertex,
             selection_domain: SelectionDomain::Object,
@@ -599,6 +605,21 @@ impl EditorSession {
             tools: ToolState::new(),
             primitive_session: None,
             last_primitive: None,
+        }
+    }
+
+    /// Visão derivada do estado de edição (P3D-015).
+    ///
+    /// Não existe campo `mode` em `EditorSession`: o valor é calculado a partir
+    /// do domínio de seleção e do workspace ativo, eliminando o estado duplicado
+    /// que competia com `SelectionDomain`.
+    pub fn edit_mode(&self) -> EditMode {
+        if self.workspace == Workspace::Paint {
+            EditMode::TexturePaint
+        } else if self.selection_domain.is_component() {
+            EditMode::Edit
+        } else {
+            EditMode::Object
         }
     }
 
@@ -669,6 +690,20 @@ impl EditorSession {
     }
 }
 
+/// Largura inicial da coluna de ferramentas (logical px).
+///
+/// Espelha `petunia_ui::tokens::TOOLBAR_MIN_WIDTH` — o design system continua
+/// dono dos tokens, e um teste na UI garante que os dois valores não divergem.
+///
+/// O valor é derivado (ícone + vão + seta + moldura): com o piso herdado de
+/// 48px a seta do menu da família saía do paine e o menu ficava inalcançável
+/// pelo mouse.
+pub const TOOLBAR_DEFAULT_WIDTH: f32 = 74.0;
+/// Largura inicial do dock de contexto (logical px).
+///
+/// Espelha `petunia_ui::tokens::PROPERTIES_DEFAULT_WIDTH`.
+pub const PROPERTIES_DEFAULT_WIDTH: f32 = 290.0;
+
 /// 4. ESTADO DE APRESENTAÇÃO E WIDGETS UI: campos visuais, abas, pesquisas e preferências.
 pub struct UiState {
     pub viewport_rect: Option<crate::viewport::LogicalRect>,
@@ -701,7 +736,7 @@ pub struct UiState {
     pub inspector_collapsed: bool,
     /// Memória de layout por workspace (Wave 3): voltar a um workspace restaura
     /// seu split, aba do inspector e colapsos. Indexada por `workspace_index`.
-    pub workspace_memory: [WorkspaceUiMemory; 4],
+    pub workspace_memory: [WorkspaceUiMemory; Workspace::COUNT],
     /// No workspace UV estreito, alterna entre editor UV e prévia 3D (Wave 3).
     pub uv_show_preview: bool,
     /// Exibe a shelf contextual sobre a viewport (Wave 5: preferência real).
@@ -731,6 +766,11 @@ pub struct UiState {
     pub dock_side: DockSide,
     /// Disposição dos painéis do dock (empilhados ou lado a lado).
     pub dock_orientation: DockOrientation,
+    /// Largura da coluna de ferramentas (Wave 5b): a geometria do shell vive no
+    /// `PetuniaShellLayout` e o dono do valor persistido é este campo.
+    pub left_width: f32,
+    /// Largura do dock de contexto (Wave 5b). Ver [`Self::left_width`].
+    pub right_width: f32,
     pub timeline_frame: i32,
     pub timeline_start: i32,
     pub timeline_end: i32,
@@ -784,6 +824,8 @@ impl UiState {
             toolbar_columns: 1,
             dock_side: DockSide::Right,
             dock_orientation: DockOrientation::Stacked,
+            left_width: TOOLBAR_DEFAULT_WIDTH,
+            right_width: PROPERTIES_DEFAULT_WIDTH,
             timeline_frame: 1,
             timeline_start: 1,
             timeline_end: 250,
@@ -936,6 +978,10 @@ pub struct WorkspaceUiMemory {
     pub inspector_tab: String,
     pub outliner_collapsed: bool,
     pub inspector_collapsed: bool,
+    /// Larguras do shell por workspace (Wave 5b, §47): voltar a um workspace
+    /// restaura a composição, não só a divisão do dock.
+    pub left_width: f32,
+    pub right_width: f32,
 }
 
 impl Default for WorkspaceUiMemory {
@@ -945,11 +991,13 @@ impl Default for WorkspaceUiMemory {
             inspector_tab: "object".to_string(),
             outliner_collapsed: false,
             inspector_collapsed: false,
+            left_width: TOOLBAR_DEFAULT_WIDTH,
+            right_width: PROPERTIES_DEFAULT_WIDTH,
         }
     }
 }
 
-/// Índice da memória de layout para um workspace (enum sem payload: 0..4).
+/// Índice da memória de layout para um workspace (enum sem payload: `0..Workspace::COUNT`).
 pub fn workspace_index(workspace: Workspace) -> usize {
     workspace as usize
 }
@@ -1277,12 +1325,16 @@ impl AppState {
             inspector_tab: self.ui.properties_tab.clone(),
             outliner_collapsed: self.ui.outliner_collapsed,
             inspector_collapsed: self.ui.inspector_collapsed,
+            left_width: self.ui.left_width,
+            right_width: self.ui.right_width,
         };
         let restored = self.ui.workspace_memory[workspace_index(next)].clone();
         self.ui.right_dock_split = restored.dock_split;
         self.ui.properties_tab = restored.inspector_tab;
         self.ui.outliner_collapsed = restored.outliner_collapsed;
         self.ui.inspector_collapsed = restored.inspector_collapsed;
+        self.ui.left_width = restored.left_width;
+        self.ui.right_width = restored.right_width;
         self.session.workspace = next;
         self.mark_dirty();
     }
@@ -1424,23 +1476,42 @@ impl AppState {
         self.session.selection_domain
     }
 
-    /// Define o domínio de seleção (Object, Vertex, Edge, Face) e sincroniza sub-estados.
+    /// Define o estado de edição por via semântica (P3D-015).
+    ///
+    /// `EditMode` é derivado, então escrever nele significa:
+    /// `Object` → domínio `Object`; `Edit` → último domínio de componente;
+    /// `TexturePaint` → workspace PAINT. Não há estado paralelo a manter.
+    pub fn set_edit_mode(&mut self, mode: EditMode) {
+        match mode {
+            EditMode::Object => self.set_selection_domain(SelectionDomain::Object),
+            EditMode::Edit => {
+                let target = self.session.last_component_domain;
+                self.set_selection_domain(if target.is_component() {
+                    target
+                } else {
+                    SelectionDomain::Vertex
+                });
+            }
+            EditMode::TexturePaint => self.switch_workspace(Workspace::Paint),
+        }
+    }
+
+    /// Define o domínio de seleção (Object, Point, Edge, Face) e sincroniza sub-estados.
+    ///
+    /// `EditMode` é derivado deste estado — não existe escrita separada de modo.
     pub fn set_selection_domain(&mut self, domain: SelectionDomain) {
         self.session.selection_domain = domain;
         if domain.is_component() {
             self.session.last_component_domain = domain;
-            self.mode = EditMode::Edit;
             if let Some(mode) = domain.as_select_mode() {
                 self.select_mode = mode;
             }
-        } else {
-            self.mode = EditMode::Object;
         }
         self.sync_selection();
         self.mark_dirty();
     }
 
-    /// Alterna entre Object Mode e o último domínio de componente utilizado via Tab (P3D-015).
+    /// Alterna entre o domínio Object e o último domínio de componente usado (Tab, P3D-015).
     pub fn cycle_selection_domain(&mut self) {
         if self.session.selection_domain == SelectionDomain::Object {
             let target = self.session.last_component_domain;
@@ -1887,9 +1958,13 @@ mod workspace_memory_tests {
 
     #[test]
     fn workspace_index_covers_all_workspaces() {
-        let mut seen = [false; 4];
+        // A memória de layout é dimensionada por `Workspace::COUNT`: um workspace
+        // novo não pode gerar índice fora do array.
+        let mut seen = [false; Workspace::COUNT];
         for ws in Workspace::all() {
-            seen[workspace_index(ws)] = true;
+            let idx = workspace_index(ws);
+            assert!(idx < Workspace::COUNT, "índice {idx} fora da memória de UI");
+            seen[idx] = true;
         }
         assert!(seen.iter().all(|s| *s));
     }

@@ -138,7 +138,7 @@ fn overlay_hash(state: &petunia_core::AppState) -> u64 {
     h = mix(h, state.show_xray as u64);
     h = mix(
         h,
-        match state.mode {
+        match state.edit_mode() {
             petunia_core::EditMode::Object => 0,
             petunia_core::EditMode::Edit => 1,
             petunia_core::EditMode::TexturePaint => 2,
@@ -429,7 +429,7 @@ impl GlRenderer {
                 xray: state.show_xray,
                 show_triangulation: state.show_triangulation,
                 textured: state.textured,
-                edit_mode_is_edit: state.mode == petunia_core::EditMode::Edit,
+                edit_mode_is_edit: state.edit_mode() == petunia_core::EditMode::Edit,
                 show_wireframe_overlay: state.show_wireframe_overlay,
             },
         );
@@ -758,7 +758,7 @@ impl GlRenderer {
                 xray: state.show_xray,
                 show_triangulation: state.show_triangulation,
                 textured: state.textured,
-                edit_mode_is_edit: state.mode == petunia_core::EditMode::Edit,
+                edit_mode_is_edit: state.edit_mode() == petunia_core::EditMode::Edit,
                 show_wireframe_overlay: state.show_wireframe_overlay,
             },
         );
@@ -780,8 +780,9 @@ impl GlRenderer {
             return;
         }
         let wire = state.shading == Shading::Wireframe;
-        let show_edges =
-            wire || state.mode == petunia_core::EditMode::Edit || state.show_wireframe_overlay;
+        let show_edges = wire
+            || state.edit_mode() == petunia_core::EditMode::Edit
+            || state.show_wireframe_overlay;
         let mut data: Vec<f32> = Vec::new();
         for obj in &state.project.assets {
             if !obj.visible {
@@ -911,7 +912,7 @@ impl GlRenderer {
                 xray: state.show_xray,
                 show_triangulation: state.show_triangulation,
                 textured: state.textured,
-                edit_mode_is_edit: state.mode == petunia_core::EditMode::Edit,
+                edit_mode_is_edit: state.edit_mode() == petunia_core::EditMode::Edit,
                 show_wireframe_overlay: state.show_wireframe_overlay,
             },
         );

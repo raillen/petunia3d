@@ -1,6 +1,11 @@
 # 09 — Arquitetura, Princípios de Decisão e Governança Técnica
 
-> Este capítulo é **normativo**. Em caso de dúvida arquitetural, suas regras têm precedência sobre preferências de implementação locais. O objetivo é impedir que o Petunia3D cresça por acúmulo de complexidade e preservar sua promessa central: modelagem low-poly extremamente fácil para o usuário e sustentável para um projeto pequeno.
+<aside>
+🏛️
+
+Este capítulo é **normativo**. Em caso de dúvida arquitetural, suas regras têm precedência sobre preferências de implementação locais. O objetivo é impedir que o Petunia3D cresça por acúmulo de complexidade e preservar sua promessa central: modelagem low-poly extremamente fácil para o usuário e sustentável para um projeto pequeno.
+
+</aside>
 
 # Autoridade de decisão
 
@@ -87,7 +92,7 @@ Preferir bibliotecas externas maduras para problemas geometricamente difíceis q
 
 Exemplo normativo:
 
-```plain text
+```
 Fuse command
     ↓
 BooleanService
@@ -103,7 +108,7 @@ O usuário nunca precisa conhecer o provider.
 
 Toda operação que altera documento ou geometria deve passar por uma **transaction**.
 
-```plain text
+```
 beginEdit("nome da operação")
     ↓
 alterações temporárias
@@ -123,7 +128,7 @@ APIs públicas usam **IDs/handles opacos e validados**, nunca ponteiros ou refer
 
 Tipos conceituais:
 
-```plain text
+```
 ObjectId
 MeshId
 FaceId
@@ -168,3 +173,38 @@ O core deve permanecer implementável/testável sem depender da interface. Depen
 **Simplicidade é requisito arquitetural, não preferência estética.** Se uma nova arquitetura torna o usuário ou o código responsáveis por entender mais conceitos sem entregar ganho proporcional, ela deve ser rejeitada.
 
 Para implementação Rust, a ordem normativa complementar é: concrete data → explicit ownership → simple functions → cohesive modules → typed commands → traits apenas em boundaries reais → dynamic dispatch apenas onde dinamismo existe → concorrência apenas quando útil → `unsafe` apenas em fronteiras auditadas → abstração apenas após variação/repetição real.
+
+# Consolidação — Reconciliação entre especificação e código
+
+Esta seção absorve as regras não redundantes da antiga Constituição/Implementation Bible e torna explícito o contrato entre documentação e implementação.
+
+## Evidência do estado real
+
+A documentação define intenção e contrato; **código, testes e comportamento executável são a evidência do estado atual**. Antes de refactor ou implementação significativa, decompor o requisito e produzir uma **Implementation-vs-Spec Gap Matrix**.
+
+Classificações canônicas:
+
+`COMPLIANT`, `PARTIALLY_COMPLIANT`, `FUNCTIONAL_BUT_DIFFERENT`, `RUDIMENTARY`, `STUB`, `BROKEN`, `DUPLICATED`, `MISSING`, `OBSOLETE`.
+
+- `COMPLIANT`: preservar; não reimplementar por preferência.
+- `PARTIALLY_COMPLIANT`: corrigir apenas a lacuna comprovada.
+- `FUNCTIONAL_BUT_DIFFERENT`: comparar comportamento, arquitetura, UX, performance e manutenção; alterar somente com justificativa técnica concreta.
+- `DUPLICATED`: consolidar em um caminho canônico.
+- `OBSOLETE`: remover somente após provar ausência de consumidores e existir cobertura/rollback adequado.
+- Rewrite total exige evidência de que a arquitetura atual impede atingir o contrato incrementalmente ou possui risco maior que a substituição.
+
+## State ownership matrix
+
+Todo estado deve pertencer explicitamente a uma destas categorias:
+
+- **Project/Document State:** persistente, versionado e participante de dirty/save.
+- **Editor/Application State:** seleção, tool ativa, history/session lógica e estado operacional não persistente no asset.
+- **UI State:** focus, popup, scroll, tamanho/visibilidade de painel e layout visual.
+- **Cache/Derived State:** reconstruível e nunca fonte de verdade.
+- **Infrastructure State:** GPU, jobs, filesystem, handles externos e serviços.
+
+Um campo não muda de categoria por conveniência de implementação. UI solicita mutações por Commands/Application API e consome queries/read models; não navega ou altera estruturas profundas arbitrariamente.
+
+## Regra de delta mínimo
+
+A meta do agente não é fazer o código “parecer com a documentação”; é **preservar o que já satisfaz o contrato e modificar apenas a diferença necessária**. Big-bang rewrites permanecem proibidos salvo evidência explícita.

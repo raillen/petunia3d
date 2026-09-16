@@ -3,7 +3,7 @@
 A ferramenta **Escalar** redimensiona os elementos selecionados a partir do ponto de pivô.
 
 - **Atalho de Ativação**: `S`
-- **Modos Suportados**: Modo Objeto e Modo de Edição.
+- **Disponível em**: seleção de `Object` e de componentes da malha.
 
 ## Como Usar
 1. Selecione os elementos;

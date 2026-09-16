@@ -1,12 +1,17 @@
 # 16 — Documento, Formato de Projeto, Undo, Autosave e Recovery
 
-> O formato do projeto e o sistema de histórico priorizam robustez e simplicidade. Como o foco é low-poly, preferimos snapshots claros a sistemas complexos de event sourcing ou bancos de dados internos.
+<aside>
+💾
+
+O formato do projeto e o sistema de histórico priorizam robustez e simplicidade. Como o foco é low-poly, preferimos snapshots claros a sistemas complexos de event sourcing ou bancos de dados internos.
+
+</aside>
 
 # Documento em memória
 
 Um `Document` possui IDs estáveis e domínios independentes:
 
-```plain text
+```
 Document
 ├ Objects
 ├ Meshes
@@ -42,7 +47,7 @@ V1 usa um **container ZIP versionado** para portabilidade.
 
 Estrutura conceitual:
 
-```plain text
+```
 project.petunia
 ├ manifest.json
 ├ document.json
@@ -74,7 +79,7 @@ V1 embute referências e texturas por padrão para o arquivo ser portátil. Link
 
 Loader:
 
-```plain text
+```
 read manifest
 → validate version
 → migrate older schema step-by-step
@@ -116,7 +121,7 @@ History possui orçamento de memória configurável e remove entradas mais antig
 
 Salvar de forma atômica:
 
-```plain text
+```
 serialize
 → write temporary file
 → flush/close

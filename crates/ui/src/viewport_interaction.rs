@@ -124,22 +124,21 @@ pub fn draw(
         return true;
     }
 
-    let paint = state.workspace == Workspace::Paint
-        || state.mode == EditMode::TexturePaint
-        || state.active_tool == "paint";
+    // Pintura é decidida pelo workspace/pela tool — nunca por um "modo" paralelo.
+    let paint = state.workspace == Workspace::Paint || state.active_tool == "paint";
     if paint {
         return paint_preview(ctx, state, rect, painter, response);
     }
     if state.workspace != Workspace::Model || state.active_tool == "draw_profile" {
         return false;
     }
-    let mode = if state.mode == EditMode::Object {
+    let mode = if state.edit_mode() == EditMode::Object {
         SelectMode::Face
     } else {
         state.select_mode
     };
-    // No Modo de Edição com seleção de vértices, demarca visualmente todos os vértices disponíveis
-    if state.mode == EditMode::Edit
+    // No domínio Point, demarca visualmente todos os pontos disponíveis para seleção.
+    if state.edit_mode() == EditMode::Edit
         && state.select_mode == SelectMode::Vertex
         && let Some(mesh) = state.project.active_mesh()
     {
