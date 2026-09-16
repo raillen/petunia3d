@@ -3,18 +3,53 @@
 
 use egui::{Color32, Pos2, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType, vec2};
 
-/// Renderiza um ícone vetorial numa grade lógica de 24 pontos dentro do retângulo especificado.
-pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color32) {
-    // Calcula escala e centraliza a grade 24x24 dentro de target_rect
+/// Grade lógica de 24 pontos centralizada no retângulo alvo.
+fn icon_grid(target_rect: Rect) -> Rect {
     let side = target_rect.width().min(target_rect.height()).min(24.0);
     let min_x = target_rect.min.x + (target_rect.width() - side) * 0.5;
     let min_y = target_rect.min.y + (target_rect.height() - side) * 0.5;
-    let grid_rect = Rect::from_min_size(Pos2::new(min_x, min_y), vec2(side, side));
+    Rect::from_min_size(Pos2::new(min_x, min_y), vec2(side, side))
+}
 
+/// Renderiza um ícone vetorial numa grade lógica de 24 pontos dentro do retângulo especificado.
+/// Sem arte específica, desenha o losango neutro (nunca tofu silencioso).
+pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color32) {
+    if try_paint(painter, id, target_rect, color) {
+        return;
+    }
+    // Fallback genérico: losango geométrico
+    let grid_rect = icon_grid(target_rect);
+    let c_neutral = Color32::from_rgb(180, 190, 200)
+        .linear_multiply((color.a() as f32 / 255.0).clamp(0.2, 1.0));
     let p = |gx: f32, gy: f32| -> Pos2 {
         Pos2::new(
             grid_rect.min.x + (gx / 24.0) * grid_rect.width(),
             grid_rect.min.y + (gy / 24.0) * grid_rect.height(),
+        )
+    };
+    let stroke = Stroke::new(2.0_f32, c_neutral);
+    let top = p(12.0, 4.0);
+    let right = p(20.0, 12.0);
+    let bottom = p(12.0, 20.0);
+    let left = p(4.0, 12.0);
+    painter.line_segment([top, right], stroke);
+    painter.line_segment([right, bottom], stroke);
+    painter.line_segment([bottom, left], stroke);
+    painter.line_segment([left, top], stroke);
+}
+
+/// Desenha a arte Petunia (estilo próprio) do id.
+///
+/// `false` = id sem arte específica; o chamador decide o fallback (`paint`
+/// desenha o losango neutro; `IconRegistry` prefere o glifo do pacote antes).
+pub fn try_paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color32) -> bool {
+    let grid_rect = icon_grid(target_rect);
+    let side = grid_rect.width();
+
+    let p = |gx: f32, gy: f32| -> Pos2 {
+        Pos2::new(
+            grid_rect.min.x + (gx / 24.0) * side,
+            grid_rect.min.y + (gy / 24.0) * side,
         )
     };
 
@@ -1309,19 +1344,189 @@ pub fn paint(painter: &egui::Painter, id: &str, target_rect: Rect, color: Color3
             painter.rect_filled(bar1, 1.0, c_neutral);
             painter.rect_filled(bar2, 1.0, c_neutral);
         }
-        _ => {
-            // Fallback genérico: losango geométrico
-            let top = p(12.0, 4.0);
-            let right = p(20.0, 12.0);
-            let bottom = p(12.0, 20.0);
-            let left = p(4.0, 12.0);
-            let stroke = Stroke::new(2.0_f32, c_neutral);
-            painter.line_segment([top, right], stroke);
-            painter.line_segment([right, bottom], stroke);
-            painter.line_segment([bottom, left], stroke);
-            painter.line_segment([left, top], stroke);
+        "paint_brush" => {
+            // Pincel: cabo diagonal neutro, virola e cerdas laranja
+            painter.line_segment(
+                [p(5.0, 19.0), p(12.5, 10.5)],
+                Stroke::new(2.6_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(12.5, 10.5), p(14.0, 9.0)],
+                Stroke::new(3.4_f32, c_orange),
+            );
+            let bristles = vec![p(13.0, 8.0), p(19.0, 3.0), p(21.0, 6.0), p(16.0, 11.0)];
+            painter.add(egui::Shape::convex_polygon(
+                bristles,
+                c_orange.linear_multiply(0.55),
+                Stroke::new(1.2_f32, c_orange),
+            ));
         }
+        "paint_eraser" => {
+            // Borracha: bloco inclinado com faixa de desgaste
+            let body = vec![p(4.0, 14.0), p(10.0, 8.0), p(18.0, 16.0), p(12.0, 22.0)];
+            painter.add(egui::Shape::convex_polygon(
+                body,
+                c_neutral.linear_multiply(0.18),
+                Stroke::new(1.8_f32, c_neutral),
+            ));
+            painter.line_segment(
+                [p(7.0, 11.0), p(15.0, 19.0)],
+                Stroke::new(1.6_f32, c_orange),
+            );
+        }
+        "paint_fill" => {
+            // Balde inclinado com gota
+            let bucket = vec![p(5.0, 11.0), p(12.0, 4.0), p(19.0, 11.0), p(12.0, 18.0)];
+            painter.add(egui::Shape::convex_polygon(
+                bucket,
+                c_neutral.linear_multiply(0.18),
+                Stroke::new(1.8_f32, c_neutral),
+            ));
+            painter.line_segment([p(12.0, 4.0), p(9.0, 1.5)], Stroke::new(1.8_f32, c_neutral));
+            painter.circle_filled(p(18.0, 17.0), 2.2, c_cyan);
+            painter.line_segment([p(18.0, 14.6), p(18.0, 12.0)], Stroke::new(1.4_f32, c_cyan));
+        }
+        "paint_picker" => {
+            // Conta-gotas: corpo diagonal + ponteira e bulbo
+            painter.line_segment(
+                [p(7.0, 17.0), p(15.0, 9.0)],
+                Stroke::new(2.6_f32, c_neutral),
+            );
+            let head = Rect::from_min_max(p(14.0, 5.0), p(19.0, 10.0));
+            painter.rect_filled(head, 1.5, c_orange);
+            painter.rect_stroke(
+                head,
+                1.5,
+                Stroke::new(1.2_f32, c_dark),
+                egui::StrokeKind::Inside,
+            );
+            painter.circle_filled(p(5.5, 18.5), 2.0, c_cyan);
+            painter.line_segment([p(6.0, 18.0), p(9.0, 15.0)], Stroke::new(1.6_f32, c_cyan));
+        }
+        "paint_line" => {
+            // Linha com extremidades marcadas
+            painter.line_segment(
+                [p(5.0, 19.0), p(19.0, 5.0)],
+                Stroke::new(2.0_f32, c_neutral),
+            );
+            painter.circle_filled(p(5.0, 19.0), 2.4, c_cyan);
+            painter.circle_filled(p(19.0, 5.0), 2.4, c_orange);
+        }
+        "paint_rect" => {
+            // Retângulo tracejado (forma)
+            let dashes = [
+                (p(4.0, 5.0), p(10.0, 5.0)),
+                (p(14.0, 5.0), p(20.0, 5.0)),
+                (p(20.0, 6.0), p(20.0, 12.0)),
+                (p(20.0, 14.0), p(20.0, 19.0)),
+                (p(14.0, 19.0), p(20.0, 19.0)),
+                (p(4.0, 19.0), p(10.0, 19.0)),
+                (p(4.0, 6.0), p(4.0, 12.0)),
+                (p(4.0, 14.0), p(4.0, 19.0)),
+            ];
+            for (a, b) in dashes {
+                painter.line_segment([a, b], Stroke::new(2.0_f32, c_orange));
+            }
+        }
+        "pin" => {
+            // Alfinete: cabeça, haste e base
+            painter.circle_filled(p(12.0, 7.0), 3.2, c_orange);
+            painter.circle_stroke(p(12.0, 7.0), 3.2, Stroke::new(1.2_f32, c_dark));
+            painter.line_segment(
+                [p(12.0, 10.2), p(12.0, 19.0)],
+                Stroke::new(1.8_f32, c_neutral),
+            );
+            painter.line_segment(
+                [p(7.0, 20.0), p(17.0, 20.0)],
+                Stroke::new(1.8_f32, c_neutral),
+            );
+        }
+        "step_forward" => {
+            let tri = vec![p(7.0, 5.0), p(7.0, 19.0), p(16.0, 12.0)];
+            painter.add(egui::Shape::convex_polygon(
+                tri,
+                c_green,
+                Stroke::new(1.1_f32, c_dark),
+            ));
+            painter.rect_filled(
+                Rect::from_min_max(p(17.5, 5.0), p(20.0, 19.0)),
+                1.0,
+                c_neutral,
+            );
+        }
+        "step_backward" => {
+            let tri = vec![p(17.0, 5.0), p(17.0, 19.0), p(8.0, 12.0)];
+            painter.add(egui::Shape::convex_polygon(
+                tri,
+                c_green,
+                Stroke::new(1.1_f32, c_dark),
+            ));
+            painter.rect_filled(
+                Rect::from_min_max(p(4.0, 5.0), p(6.5, 19.0)),
+                1.0,
+                c_neutral,
+            );
+        }
+        "jump_start" => {
+            painter.rect_filled(
+                Rect::from_min_max(p(4.0, 5.0), p(6.5, 19.0)),
+                1.0,
+                c_neutral,
+            );
+            let tri = vec![p(20.0, 5.0), p(20.0, 19.0), p(9.0, 12.0)];
+            painter.add(egui::Shape::convex_polygon(
+                tri,
+                c_neutral.linear_multiply(0.25),
+                Stroke::new(1.6_f32, c_neutral),
+            ));
+        }
+        "jump_end" => {
+            painter.rect_filled(
+                Rect::from_min_max(p(17.5, 5.0), p(20.0, 19.0)),
+                1.0,
+                c_neutral,
+            );
+            let tri = vec![p(4.0, 5.0), p(4.0, 19.0), p(15.0, 12.0)];
+            painter.add(egui::Shape::convex_polygon(
+                tri,
+                c_neutral.linear_multiply(0.25),
+                Stroke::new(1.6_f32, c_neutral),
+            ));
+        }
+        "view_perspective" => {
+            // Caixa em perspectiva: trapézio + fuga central
+            let outer = vec![p(3.0, 20.0), p(21.0, 20.0), p(16.5, 6.0), p(7.5, 6.0)];
+            painter.add(egui::Shape::convex_polygon(
+                outer,
+                Color32::TRANSPARENT,
+                Stroke::new(1.8_f32, c_neutral),
+            ));
+            let vp = p(12.0, 13.5);
+            for corner in [p(3.0, 20.0), p(21.0, 20.0), p(7.5, 6.0), p(16.5, 6.0)] {
+                painter.line_segment([corner, vp], Stroke::new(1.2_f32, c_orange));
+            }
+        }
+        "view_orthographic" => {
+            // Vista ortográfica: grade frontal
+            let frame = Rect::from_min_max(p(4.0, 4.0), p(20.0, 20.0));
+            painter.rect_stroke(
+                frame,
+                1.0,
+                Stroke::new(1.8_f32, c_neutral),
+                egui::StrokeKind::Inside,
+            );
+            painter.line_segment(
+                [p(12.0, 4.0), p(12.0, 20.0)],
+                Stroke::new(1.2_f32, c_orange),
+            );
+            painter.line_segment(
+                [p(4.0, 12.0), p(20.0, 12.0)],
+                Stroke::new(1.2_f32, c_orange),
+            );
+        }
+        _ => return false,
     }
+    true
 }
 
 /// Botão de ferramenta com suporte a layout compacto (40x40) ou expandido com rótulo.
