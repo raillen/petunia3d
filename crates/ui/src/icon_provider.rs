@@ -189,10 +189,14 @@ pub fn install_fonts(fonts: &mut egui::FontDefinitions) {
 
 /// Ícones utilitários/chrome que seguem o pacote genérico (Wave 6).
 ///
-/// Ferramentas de domínio (move/rotate/extrude/…), abas de properties, shading,
-/// gizmos e overlays de viewport permanecem Petunia-owned em todos os pacotes:
-/// trocar o pacote muda o glifo, nunca o significado — e o sistema vetorial
-/// desenhado do Petunia não regride para glifo monocromático.
+/// Ferramentas de domínio (move/rotate/extrude/paint/…), abas de properties,
+/// shading, gizmos e overlays de viewport permanecem Petunia-owned em todos os
+/// pacotes: trocar o pacote muda o glifo, nunca o significado — e o sistema
+/// vetorial desenhado do Petunia não regride para glifo monocromático.
+///
+/// Pintura fica fora de propósito: o Iconoir não tem pincel/balde próprios e o
+/// único candidato ("design-pencil") é um lápis sobre círculo ilegível a 14px,
+/// que lia como "Ⓐ". Esses seis caem no glifo Phosphor (fonte sempre presente).
 pub fn is_pack_owned(icon: crate::icon_registry::PetuniaIcon) -> bool {
     use crate::icon_registry::PetuniaIcon as P;
     matches!(
@@ -234,12 +238,8 @@ pub fn is_pack_owned(icon: crate::icon_registry::PetuniaIcon) -> bool {
             | P::SelectVertex
             | P::SelectEdge
             | P::SelectFace
-            | P::PaintBrush
-            | P::PaintEraser
-            | P::PaintFill
-            | P::PaintPicker
-            | P::PaintLine
-            | P::PaintRect
+            | P::ViewPerspective
+            | P::ViewOrthographic
     )
 }
 
@@ -308,15 +308,13 @@ pub fn utility_candidates(icon: crate::icon_registry::PetuniaIcon) -> &'static [
         P::ObjectMesh => &["box", "cube", "package"],
         P::ModeObject => &["box", "cube", "package"],
         P::ModeEdit => &["pencil", "edit", "edit-pencil", "pencil-simple"],
-        P::SelectVertex => &["circle-dot", "circle", "dot"],
-        P::SelectEdge => &["minus", "slash"],
-        P::SelectFace => &["square", "box"],
-        P::PaintBrush => &["design-pencil", "edit-pencil", "brush", "paintbrush"],
-        P::PaintEraser => &["erase", "eraser"],
-        P::PaintFill => &["fill-color", "paint-bucket", "bucket"],
-        P::PaintPicker => &["color-picker", "pipette", "dropper"],
-        P::PaintLine => &["slash", "line", "minus"],
-        P::PaintRect => &["square", "rectangle"],
+        // Iconoir tem ícones 3D-específicos de seleção; os genéricos ficam de
+        // reserva (Lucide resolve por eles).
+        P::SelectVertex => &["select-point-3d", "circle-dot", "circle", "dot"],
+        P::SelectEdge => &["select-edge-3d", "minus", "slash"],
+        P::SelectFace => &["select-face-3d", "square", "box"],
+        P::ViewPerspective => &["perspective-view", "view", "camera"],
+        P::ViewOrthographic => &["orthogonal-view", "view", "cube"],
         _ => &[],
     }
 }

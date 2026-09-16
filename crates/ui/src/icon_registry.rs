@@ -73,6 +73,8 @@ pub enum PetuniaIcon {
     Overlays,
     OrientationGlobal,
     PivotMedian,
+    ViewPerspective,
+    ViewOrthographic,
     ObjectMesh,
     ReferenceImage,
     Collection,
@@ -181,6 +183,8 @@ impl PetuniaIcon {
             PetuniaIcon::Overlays => "overlays".into(),
             PetuniaIcon::OrientationGlobal => "orientation_global".into(),
             PetuniaIcon::PivotMedian => "pivot_median".into(),
+            PetuniaIcon::ViewPerspective => "view_perspective".into(),
+            PetuniaIcon::ViewOrthographic => "view_orthographic".into(),
             PetuniaIcon::ObjectMesh => "object_mesh".into(),
             PetuniaIcon::ReferenceImage => "reference_image".into(),
             PetuniaIcon::Collection => "collection".into(),
@@ -278,6 +282,8 @@ impl PetuniaIcon {
             PetuniaIcon::Overlays,
             PetuniaIcon::OrientationGlobal,
             PetuniaIcon::PivotMedian,
+            PetuniaIcon::ViewPerspective,
+            PetuniaIcon::ViewOrthographic,
             PetuniaIcon::ObjectMesh,
             PetuniaIcon::ReferenceImage,
             PetuniaIcon::Collection,
@@ -365,6 +371,8 @@ impl PetuniaIcon {
             PetuniaIcon::Overlays => Some(egui_phosphor::regular::STACK),
             PetuniaIcon::OrientationGlobal => Some(egui_phosphor::regular::COMPASS),
             PetuniaIcon::PivotMedian => Some(egui_phosphor::regular::DOTS_NINE),
+            PetuniaIcon::ViewPerspective => Some(egui_phosphor::regular::PERSPECTIVE),
+            PetuniaIcon::ViewOrthographic => Some(egui_phosphor::regular::CUBE),
             PetuniaIcon::ObjectMesh => Some(egui_phosphor::regular::CUBE),
             PetuniaIcon::ReferenceImage => Some(egui_phosphor::regular::IMAGE),
             PetuniaIcon::Collection => Some(egui_phosphor::regular::FOLDER_NOTCH_OPEN),
@@ -407,6 +415,135 @@ impl PetuniaIcon {
 // ---------------------------------------------------------------- Cache Global de Texturas GPU
 static TEXTURE_CACHE: LazyLock<RwLock<HashMap<String, TextureHandle>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
+
+// -------------------------------------------------- Tema padrão Petunia (v0.1)
+// Arte curada do pack `petunia-icons-v0.1` (Iconoir primário; Tabler/Heroicons
+// como reserva aprovada). Cada entrada liga um `PetuniaIcon` ao SVG embutido,
+// com o crédito upstream preservado em `assets/ui/icons/petunia/mapping.csv`.
+// O tema é o caminho canônico do pacote "petunia" (padrão do produto).
+mod petunia_theme {
+    /// (id do `PetuniaIcon`, SVG embutido, origem) do tema Petunia v0.1.
+    pub const ICONS: &[(&str, &str, &str)] = &[
+        (
+            "mode_object",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/box-3d-center.svg"),
+            "Iconoir box-3d-center (MIT)",
+        ),
+        (
+            // Mesma arte do modo object: o outliner representa o mesmo conceito.
+            "object_mesh",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/box-3d-center.svg"),
+            "Iconoir box-3d-center (MIT)",
+        ),
+        (
+            "select_face",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/select-face-3d.svg"),
+            "Iconoir select-face-3d (MIT)",
+        ),
+        (
+            "select_edge",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/select-edge-3d.svg"),
+            "Iconoir select-edge-3d (MIT)",
+        ),
+        (
+            "select_vertex",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/select-point-3d.svg"),
+            "Iconoir select-point-3d (MIT)",
+        ),
+        (
+            "extrude",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/extrude.svg"),
+            "Iconoir extrude (MIT)",
+        ),
+        (
+            "bevel",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/fillet-3d.svg"),
+            "Iconoir fillet-3d (MIT)",
+        ),
+        (
+            "knife",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/cube-cut-with-curve.svg"),
+            "Iconoir cube-cut-with-curve (MIT)",
+        ),
+        (
+            "rotate",
+            include_str!("../../../assets/ui/icons/petunia/tabler/rotate-3d.svg"),
+            "Tabler rotate-3d (MIT)",
+        ),
+        (
+            "orientation_global",
+            include_str!("../../../assets/ui/icons/petunia/tabler/gizmo.svg"),
+            "Tabler gizmo (MIT)",
+        ),
+        (
+            "xray",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/xray-view.svg"),
+            "Iconoir xray-view (MIT)",
+        ),
+        (
+            "view_perspective",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/perspective-view.svg"),
+            "Iconoir perspective-view (MIT)",
+        ),
+        (
+            "view_orthographic",
+            include_str!("../../../assets/ui/icons/petunia/iconoir/orthogonal-view.svg"),
+            "Iconoir orthogonal-view (MIT)",
+        ),
+        (
+            "paint_brush",
+            include_str!("../../../assets/ui/icons/petunia/heroicons/paint-brush.svg"),
+            "Heroicons paint-brush (MIT)",
+        ),
+    ];
+
+    /// SVG do tema para um id de ícone, se o pack cobrir esse ícone.
+    pub fn svg_for(id: &str) -> Option<&'static str> {
+        ICONS
+            .iter()
+            .find(|(icon_id, _, _)| *icon_id == id)
+            .map(|(_, svg, _)| *svg)
+    }
+}
+
+fn rasterize_svg_mask(svg: &str, size: u32) -> Option<ColorImage> {
+    // Mesmo pipeline do rasterize_svg, mas o resultado vira máscara branca:
+    // a arte do tema é monocromática (`currentColor` → preto no resvg) e o
+    // tingimento do egui multiplica a textura — preto * tint = preto.
+    let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).ok()?;
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size)?;
+    let source = tree.size();
+    let scale = (size as f32 / source.width()).min(size as f32 / source.height());
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixmap.as_mut(),
+    );
+    let mut raw = Vec::with_capacity((size * size * 4) as usize);
+    for px in pixmap.data().as_chunks::<4>().0 {
+        raw.extend_from_slice(&[255, 255, 255, px[3]]);
+    }
+    Some(ColorImage::from_rgba_unmultiplied(
+        [size as usize, size as usize],
+        &raw,
+    ))
+}
+
+/// Textura do tema Petunia (arte curada) para um id, com cache por contexto.
+fn get_or_load_theme_icon(ctx: &Context, id: &str) -> Option<TextureHandle> {
+    let cache_key = format!("theme-petunia:{id}");
+    if let Ok(cache) = TEXTURE_CACHE.read()
+        && let Some(handle) = cache.get(&cache_key)
+    {
+        return Some(handle.clone());
+    }
+    let image = rasterize_svg_mask(petunia_theme::svg_for(id)?, 64)?;
+    let handle = ctx.load_texture(cache_key.clone(), image, TextureOptions::LINEAR);
+    if let Ok(mut cache) = TEXTURE_CACHE.write() {
+        cache.insert(cache_key, handle.clone());
+    }
+    Some(handle)
+}
 
 // -------------------------------------------------- Golden Reference SVG toolbar assets
 // NOTA: os SVGs da toolbar são tiles Figma com fundo escuro embutido —
@@ -614,9 +751,11 @@ fn discover_icon_packs() -> Vec<IconPackManifest> {
         IconPackManifest {
             id: "petunia".into(),
             name: "Petunia (Arte própria)".into(),
-            version: "1.0.0".into(),
+            version: "0.1.0".into(),
             author: Some("Petunia3D Team".into()),
-            description: Some("Ícones nativos com estilo Blender e renderização vetorial".into()),
+            description: Some(
+                "Tema padrão curado (Iconoir + Tabler/Heroicons) com arte vetorial Petunia".into(),
+            ),
         },
         IconPackManifest {
             id: "phosphor".into(),
@@ -803,6 +942,7 @@ impl IconRegistry {
     /// ```text
     /// PetuniaIcon
     ///   ├── pacote genérico + ícone utilitário → glifo real do pacote (iconflow)
+    ///   ├── pacote Petunia → tema padrão Petunia v0.1 (arte curada embutida)
     ///   ├── ferramenta/domínio Petunia → arte vetorial/PNG própria (todos os pacotes)
     ///   ├── fallback → glifo Phosphor (fonte sempre instalada)
     ///   └── último recurso → losango vetorial (nunca tofu silencioso)
@@ -853,6 +993,17 @@ impl IconRegistry {
                     eprintln!("petunia icons: '{key}' sem glifo no pacote — fallback Petunia");
                 }
             }
+        }
+
+        // 1.5. Tema padrão Petunia v0.1 (arte curada): vale para o pacote
+        // "petunia" — é a arte canônica do produto. Outros pacotes mantêm o
+        // próprio glifo (a troca de pacote muda o desenho, nunca o significado).
+        if pack == "petunia"
+            && let Some(texture) = get_or_load_theme_icon(ctx, &id)
+        {
+            let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
+            painter.image(texture.id(), target_rect, uv, tint);
+            return;
         }
 
         // 2. Arte de domínio Petunia (ferramentas, vetores, PNGs Figma): vale para
@@ -1034,6 +1185,68 @@ mod tests {
             let image = decode_png_to_alpha_mask(bytes).expect("must decode valid alpha mask");
             assert_eq!(image.size, [22, 22]);
         }
+    }
+
+    #[test]
+    fn test_petunia_theme_svgs_rasterize_with_ink() {
+        // O tema padrão é arte real: cada SVG embutido precisa rasterizar com
+        // cobertura visível (alpha > 0). Um SVG sem traço (currentColor não
+        // resolvido, path vazio) falharia aqui em vez de virar ícone invisível.
+        assert!(
+            petunia_theme::ICONS.len() >= 12,
+            "tema Petunia v0.1 deve cobrir os ícones de domínio"
+        );
+        for (id, svg, credit) in petunia_theme::ICONS {
+            let image = rasterize_svg_mask(svg, 32)
+                .unwrap_or_else(|| panic!("tema: '{id}' ({credit}) não rasterizou"));
+            assert_eq!(image.size, [32, 32]);
+            let ink = image.pixels.iter().filter(|p| p.a() > 0).count();
+            assert!(
+                ink > 8,
+                "tema: '{id}' ({credit}) rasterizou vazio ({ink} px com tinta)"
+            );
+        }
+    }
+
+    #[test]
+    fn test_petunia_theme_ids_are_unique_and_valid() {
+        let mut seen = std::collections::HashSet::new();
+        for (id, _, credit) in petunia_theme::ICONS {
+            assert!(seen.insert(*id), "tema: id duplicado '{id}'");
+            assert!(!credit.is_empty(), "tema: '{id}' sem crédito upstream");
+            // O id do tema precisa existir como ícone conhecido do registro.
+            let known = PetuniaIcon::all().iter().any(|icon| icon.id() == *id);
+            assert!(known, "tema: '{id}' não corresponde a nenhum PetuniaIcon");
+        }
+    }
+
+    #[test]
+    fn test_petunia_pack_paints_theme_art_for_domain_tools() {
+        // O pacote padrão é "petunia" e ele desenha o tema curado: a textura do
+        // tema entra no cache durante o paint (prova do caminho 1.5 ativo).
+        let default_pack = petunia_core::AppState::new("en").ui.active_icon_pack_id;
+        assert_eq!(default_pack, "petunia");
+        let ctx = egui::Context::default();
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
+                for icon in [PetuniaIcon::Extrude, PetuniaIcon::PaintBrush] {
+                    let (rect, _) = ui.allocate_exact_size(vec2(20.0, 20.0), egui::Sense::hover());
+                    IconRegistry::paint_pack(
+                        &ctx,
+                        ui.painter(),
+                        &icon,
+                        rect,
+                        tokens::TEXT_ACTIVE,
+                        &default_pack,
+                    );
+                }
+            });
+        })
+        .textures_delta
+        .clear();
+        let cache = TEXTURE_CACHE.read().expect("cache de texturas");
+        assert!(cache.contains_key("theme-petunia:extrude"));
+        assert!(cache.contains_key("theme-petunia:paint_brush"));
     }
 
     #[test]

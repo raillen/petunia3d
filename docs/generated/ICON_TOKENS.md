@@ -14,7 +14,7 @@ description: Catálogo canônico de identificadores de ícones IconId (P3D-119)
 > **Single Source of Truth (P3D-086, P3D-119)**
 > Ícones no Petunia3D são estritamente endereçados por tokens semânticos (`IconId`), permitindo substituição de pacotes gráficos em tempo de execução sem afetar a lógica.
 
-Total de tokens declarados em `PetuniaIcon`: **85**.
+Total de tokens declarados em `PetuniaIcon`: **87**.
 
 | Token Enum | Identificador Textual (`IconId`) | Grupo Semântico |
 | :--- | :--- | :--- |
@@ -40,6 +40,8 @@ Total de tokens declarados em `PetuniaIcon`: **85**.
 | `PetuniaIcon::ProportionalEditing` | `proportional_editing` | Auxiliares de Viewport e Cena |
 | `PetuniaIcon::ReferenceImage` | `reference_image` | Auxiliares de Viewport e Cena |
 | `PetuniaIcon::SnapMagnet` | `snap_magnet` | Auxiliares de Viewport e Cena |
+| `PetuniaIcon::ViewOrthographic` | `view_orthographic` | Auxiliares de Viewport e Cena |
+| `PetuniaIcon::ViewPerspective` | `view_perspective` | Auxiliares de Viewport e Cena |
 | `PetuniaIcon::XRay` | `x_ray` | Auxiliares de Viewport e Cena |
 | `PetuniaIcon::Custom` | `custom` | Customizado por ID |
 | `PetuniaIcon::Bevel` | `bevel` | Ferramentas de Modelagem Poligonal |

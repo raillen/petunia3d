@@ -14,7 +14,7 @@ description: Catálogo canônico de chaves de internacionalização TextId (P3D-
 > **Single Source of Truth (P3D-088, P3D-119)**
 > A UI do Petunia3D é 100% internacionalizada. Nenhuma string do usuário é hardcoded; todas as mensagens passam pelo motor `I18n` com fallback seguro em inglês.
 
-Total de chaves de localização cadastradas: **480**.
+Total de chaves de localização cadastradas: **524**.
 
 | Chave (`TextId`) | Inglês (`en.toml`) | Português (`pt-BR.toml`) |
 | :--- | :--- | :--- |
@@ -212,19 +212,35 @@ Total de chaves de localização cadastradas: **480**.
 | `modifiers.remove` | Remove modifier | Remover modificador |
 | `modifiers.title` | Modifiers | Modificadores |
 | `paint.brush` | Brush | Pincel |
+| `paint.brush_eraser` | Eraser | Borracha |
+| `paint.brush_fill` | Fill | Preencher |
+| `paint.brush_line` | Line | Linha |
+| `paint.brush_picker` | Color picker | Conta-gotas |
+| `paint.brush_pixel` | Pixel | Pixel |
+| `paint.brush_rect` | Rectangle | Retângulo |
+| `paint.brush_soft` | Soft | Suave |
 | `paint.canvas` | Albedo canvas | Canvas albedo |
 | `paint.canvas_hint` | Drag to paint. Ctrl+drag erases. Wheel over UV scales it. | Arraste p/ pintar. Ctrl+arraste apaga. Scroll no UV escala. |
 | `paint.canvas_resize` | Resize (keeps content) | Redimensionar (mantém conteúdo) |
 | `paint.canvas_size` | Texture size | Tamanho da textura |
 | `paint.channel` | Channel | Canal |
 | `paint.channel_albedo` | Albedo (Base Color) | Albedo (Cor Base) |
+| `paint.channel_emission` | Emission | Emissão |
+| `paint.channel_height` | Height | Altura |
 | `paint.channel_locked_tip` | V1 paints Albedo only. Other channels arrive in V1.x (P3D-062). | V1 pinta só Albedo. Outros canais chegam na V1.x (P3D-062). |
+| `paint.channel_metallic` | Metallic | Metálico |
+| `paint.channel_normal` | Normal | Normal |
+| `paint.channel_roughness` | Roughness | Rugosidade |
 | `paint.clear` | Clear | Limpar |
 | `paint.color` | Color | Cor |
 | `paint.eraser` | Eraser (hold Ctrl) | Borracha (segure Ctrl) |
 | `paint.eraser_hint` | Hold Ctrl while painting to erase | Segure Ctrl pintando p/ apagar |
 | `paint.fill` | Fill | Preencher |
+| `paint.fill_done` | filled {n} faces | {n} faces preenchidas |
 | `paint.fill_sel` | Fill sel | Preencher sel |
+| `paint.isolate_faces` | Isolate faces (mask) | Isolar faces (máscara) |
+| `paint.isolate_faces_tip` | Confine 3D strokes to the selected faces only | Confinar traço 3D exclusivamente às faces selecionadas |
+| `paint.layer_default_name` | Layer {n} | Camada {n} |
 | `paint.layer_delete` | Delete layer | Apagar camada |
 | `paint.layer_down` | Move down | Descer |
 | `paint.layer_empty` | Single base layer. Add layers for non-destructive detail. | Camada base única. Adicione camadas p/ detalhe não destrutivo. |
@@ -233,9 +249,20 @@ Total de chaves de localização cadastradas: **480**.
 | `paint.layer_up` | Move up | Subir |
 | `paint.layers` | Layers | Camadas |
 | `paint.new_canvas` | New 256² | Novo 256² |
+| `paint.palette_add` | Add | Adicionar |
+| `paint.palette_add_tip` | Add current color to palette | Adicionar a cor atual à paleta |
+| `paint.palette_clear` | Clear | Limpar |
+| `paint.palette_export` | Export | Exportar |
+| `paint.palette_export_tip` | Export palette to .gpl | Exportar paleta p/ .gpl |
+| `paint.palette_import` | Import | Importar |
+| `paint.palette_import_tip` | Import .hex or .gpl palette | Importar paleta .hex ou .gpl |
+| `paint.palette_loaded_gameboy` | Game Boy palette loaded | Paleta Game Boy carregada |
+| `paint.palette_loaded_pico8` | PICO-8 palette loaded | Paleta PICO-8 carregada |
 | `paint.pick` | Pick? | Pegar? |
 | `paint.pick_hint` | Alt+click the mesh to pick a color | Alt+clique na malha p/ pegar cor |
 | `paint.picked` | color picked | cor capturada |
+| `paint.pixel_grid` | Pixel grid | Grade de pixels |
+| `paint.pixel_grid_tip` | Pixel grid on the 2D canvas (only when zoomed in) | Grade de pixels no canvas 2D (só com zoom suficiente) |
 | `paint.radius` | Radius | Raio |
 | `paint.size` | Size px | Tam px |
 | `paint.strength` | Strength | Força |
@@ -357,13 +384,30 @@ Total de chaves de localização cadastradas: **480**.
 | `selection.selected` | selected | selecionados |
 | `settings.appearance` | Appearance | Aparência |
 | `settings.density` | Interface density | Densidade da interface |
-| `settings.export_glb` | GLB export format (off exports OBJ) | Exportar em GLB (desligado exporta OBJ) |
+| `settings.examples` | Examples: | Exemplos: |
+| `settings.export_glb` | GLB export format (off exports OBJ) | Formato de exportação GLB (desligado exporta OBJ) |
 | `settings.export_glb_hint` | Default format for the export dialog | Formato padrão do diálogo de exportação |
 | `settings.icons` | Icons | Ícones |
+| `settings.icons_desc` | The pack changes the interface icons (menus, panels, transport); the 3D tools keep Petunia vector art. Custom packs arrive through plugins. | O pacote muda os ícones de interface (menus, painéis, transporte); as ferramentas 3D mantêm a arte vetorial Petunia. Pacotes personalizados entram pela via de plugins. |
+| `settings.icons_title` | Icon packs | Pacotes de Ícones |
 | `settings.import_export` | Import / Export | Importar / Exportar |
 | `settings.interface` | Interface | Interface |
 | `settings.keymap` | Keymap | Atalhos |
 | `settings.language` | Language | Idioma |
+| `settings.pack_active` | • Active | • Ativo |
+| `settings.pack_desc_iconoir` | Minimalist, geometric look | Visual minimalista e geométrico |
+| `settings.pack_desc_lucide` | Refined 2px vector stroke | Traço vetorial refinado de 2px |
+| `settings.pack_desc_petunia` | Native icons with Blender style and vector rendering | Ícones nativos com estilo Blender e renderização vetorial |
+| `settings.pack_desc_phosphor` | Clean, modern and balanced lines | Linhas limpas, modernas e equilibradas |
+| `settings.pack_desc_tabler` | Consistent, technical 24x24 grid | Grade 24x24 consistente e técnica |
+| `settings.pack_name_iconoir` | Iconoir (default) | Iconoir (Padrão) |
+| `settings.pack_name_lucide` | Lucide Icons | Lucide Icons |
+| `settings.pack_name_petunia` | Petunia (own art) | Petunia (Arte própria) |
+| `settings.pack_name_phosphor` | Phosphor Icons | Phosphor Icons |
+| `settings.pack_name_tabler` | Tabler Icons | Tabler Icons |
+| `settings.pack_not_compiled` | · build without extended-icon-packs | · build sem extended-icon-packs |
+| `settings.pack_selected` | ✔ Selected | ✔ Selecionado |
+| `settings.pack_use` | Use this pack | Usar este pacote |
 | `settings.reset_all_layouts` | Reset All UI Layouts | Redefinir Todos os Layouts |
 | `settings.reset_workspace` | Reset Current Workspace Layout | Redefinir Layout do Workspace Atual |
 | `settings.show_shelf` | Contextual shelf over the viewport | Barra contextual sobre a viewport |

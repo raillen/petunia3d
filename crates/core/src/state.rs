@@ -761,7 +761,7 @@ impl UiState {
             command_palette_query: String::new(),
             command_palette_selected_index: 0,
             active_theme_id: "petunia-dark".to_string(),
-            active_icon_pack_id: "iconoir".to_string(),
+            active_icon_pack_id: "petunia".to_string(),
             active_keymap_id: "petunia-default".to_string(),
             asset_thumbnail_size: 64.0,
             inspector_detached: false,

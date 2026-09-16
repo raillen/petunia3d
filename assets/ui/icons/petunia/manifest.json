@@ -1,0 +1,354 @@
+{
+  "name": "Petunia Icons Research Pack",
+  "version": "0.1.0",
+  "date": "2026-09-15",
+  "bundled_count": 23,
+  "candidate_count": 15,
+  "policy": "Iconoir-first; permissive fallbacks; Petunia custom only when necessary.",
+  "bundled": [
+    {
+      "petunia_id": "model.object_mode",
+      "function": "Seleção — Object",
+      "source": "Iconoir",
+      "icon": "box-3d-center",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/box-3d-center.svg"
+    },
+    {
+      "petunia_id": "model.face_mode",
+      "function": "Seleção — Face",
+      "source": "Iconoir",
+      "icon": "select-face-3d",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/select-face-3d.svg"
+    },
+    {
+      "petunia_id": "model.edge_mode",
+      "function": "Seleção — Edge",
+      "source": "Iconoir",
+      "icon": "select-edge-3d",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/select-edge-3d.svg"
+    },
+    {
+      "petunia_id": "model.point_mode",
+      "function": "Seleção — Point/Vertex",
+      "source": "Iconoir",
+      "icon": "select-point-3d",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/select-point-3d.svg"
+    },
+    {
+      "petunia_id": "model.extrude",
+      "function": "Model — Extrude",
+      "source": "Iconoir",
+      "icon": "extrude",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/extrude.svg"
+    },
+    {
+      "petunia_id": "model.bevel",
+      "function": "Model — Bevel/Chamfer",
+      "source": "Iconoir",
+      "icon": "fillet-3d",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/fillet-3d.svg"
+    },
+    {
+      "petunia_id": "model.cut",
+      "function": "Model — Cut",
+      "source": "Iconoir",
+      "icon": "cube-cut-with-curve",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/cube-cut-with-curve.svg"
+    },
+    {
+      "petunia_id": "model.bridge",
+      "function": "Model — Bridge",
+      "source": "Iconoir",
+      "icon": "bridge-3d",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/bridge-3d.svg"
+    },
+    {
+      "petunia_id": "model.connect",
+      "function": "Model — Connect",
+      "source": "Iconoir",
+      "icon": "bridge-surface",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/bridge-surface.svg"
+    },
+    {
+      "petunia_id": "viewport.perspective",
+      "function": "Viewport — Perspective",
+      "source": "Iconoir",
+      "icon": "perspective-view",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/perspective-view.svg"
+    },
+    {
+      "petunia_id": "viewport.orthographic",
+      "function": "Viewport — Orthographic",
+      "source": "Iconoir",
+      "icon": "orthogonal-view",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/orthogonal-view.svg"
+    },
+    {
+      "petunia_id": "viewport.xray",
+      "function": "Viewport — X-Ray",
+      "source": "Iconoir",
+      "icon": "xray-view",
+      "license": "MIT",
+      "status": "approved",
+      "svg": "svg/iconoir/xray-view.svg"
+    },
+    {
+      "petunia_id": "transform.rotate",
+      "function": "Transform — Rotate 3D",
+      "source": "Tabler",
+      "icon": "rotate-3d",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/rotate-3d.svg"
+    },
+    {
+      "petunia_id": "viewport.gizmo",
+      "function": "Viewport — Gizmo",
+      "source": "Tabler",
+      "icon": "gizmo",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/gizmo.svg"
+    },
+    {
+      "petunia_id": "viewport.grid",
+      "function": "Viewport — Grid",
+      "source": "Tabler",
+      "icon": "grid-pattern",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/grid-pattern.svg"
+    },
+    {
+      "petunia_id": "uv.pack",
+      "function": "UV — Pack",
+      "source": "Tabler",
+      "icon": "layout-grid",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/layout-grid.svg"
+    },
+    {
+      "petunia_id": "surface.decal",
+      "function": "Pós-GA — Decals/Surface Details",
+      "source": "Tabler",
+      "icon": "sticker",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/sticker.svg"
+    },
+    {
+      "petunia_id": "derived.bake_flatten",
+      "function": "Pós-GA — Bake/Flatten",
+      "source": "Tabler",
+      "icon": "layers-union",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/layers-union.svg"
+    },
+    {
+      "petunia_id": "surface.recipes",
+      "function": "Pós-GA — Surface Recipes/Simple Nodes",
+      "source": "Tabler",
+      "icon": "schema",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/schema.svg"
+    },
+    {
+      "petunia_id": "parts.hierarchy",
+      "function": "Pós-GA — Parts Hierarchy",
+      "source": "Tabler",
+      "icon": "hierarchy",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/hierarchy.svg"
+    },
+    {
+      "petunia_id": "parts.linked_instances",
+      "function": "Pós-GA — Linked Instances",
+      "source": "Tabler",
+      "icon": "layers-linked",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/tabler/layers-linked.svg"
+    },
+    {
+      "petunia_id": "animation.skeleton",
+      "function": "Futuro — Skeleton/Rig",
+      "source": "Lucide",
+      "icon": "bone",
+      "license": "ISC",
+      "status": "approved_fallback",
+      "svg": "svg/lucide/bone.svg"
+    },
+    {
+      "petunia_id": "paint.brush",
+      "function": "Paint — Brush / Workspace Paint",
+      "source": "Heroicons",
+      "icon": "paint-brush",
+      "license": "MIT",
+      "status": "approved_fallback",
+      "svg": "svg/heroicons/paint-brush.svg"
+    }
+  ],
+  "pending_candidates": [
+    {
+      "petunia_id": "transform.move",
+      "function": "Transform — Move 3D",
+      "source": "Hugeicons",
+      "icon": "3d-move",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/hugeicons/3d-move/"
+    },
+    {
+      "petunia_id": "transform.scale",
+      "function": "Transform — Scale 3D",
+      "source": "Hugeicons",
+      "icon": "3d-scale",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/hugeicons/3d-scale/"
+    },
+    {
+      "petunia_id": "workspace.uv",
+      "function": "Workspace — UV",
+      "source": "Hugeicons",
+      "icon": "uv-01",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/hugeicons/uv-01/"
+    },
+    {
+      "petunia_id": "uv.unwrap",
+      "function": "UV — Unwrap",
+      "source": "Hugeicons",
+      "icon": "uv-02",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/hugeicons/uv-02/"
+    },
+    {
+      "petunia_id": "model.polygon",
+      "function": "Profile — Polygon",
+      "source": "MDI",
+      "icon": "vector-polygon",
+      "license": "Apache-2.0",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/mdi/vector-polygon/"
+    },
+    {
+      "petunia_id": "uv.checker",
+      "function": "UV — Checker",
+      "source": "MDI",
+      "icon": "checkerboard",
+      "license": "Apache-2.0",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/mdi/checkerboard/"
+    },
+    {
+      "petunia_id": "reference.photo_projection",
+      "function": "Reference — Photo Projection",
+      "source": "MDI",
+      "icon": "image-filter-center-focus",
+      "license": "Apache-2.0",
+      "status": "candidate_not_bundled",
+      "url": "https://pictogrammers.com/library/mdi/icon/image-filter-center-focus/"
+    },
+    {
+      "petunia_id": "game.collision",
+      "function": "Pós-GA — Collision Authoring",
+      "source": "Phosphor",
+      "icon": "bounding-box-thin",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/ph/bounding-box-thin/"
+    },
+    {
+      "petunia_id": "modifier.stack",
+      "function": "Pós-GA — Modifier Stack",
+      "source": "Phosphor",
+      "icon": "stack",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/ph/stack/"
+    },
+    {
+      "petunia_id": "spline.core",
+      "function": "Pós-GA — Spline Core",
+      "source": "MDI",
+      "icon": "vector-curve",
+      "license": "Apache-2.0",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/mdi/vector-curve/"
+    },
+    {
+      "petunia_id": "morph.targets",
+      "function": "Pós-GA — Simple Morph Targets",
+      "source": "Phosphor",
+      "icon": "shapes",
+      "license": "MIT",
+      "status": "candidate_not_bundled",
+      "url": "https://icon-sets.iconify.design/ph/shapes/"
+    },
+    {
+      "petunia_id": "model.push_pull",
+      "function": "Model — Push/Pull",
+      "source": "Petunia Domain",
+      "icon": "custom",
+      "license": "project",
+      "status": "custom_required",
+      "url": ""
+    },
+    {
+      "petunia_id": "model.weld",
+      "function": "Model — Weld",
+      "source": "Petunia Domain",
+      "icon": "custom",
+      "license": "project",
+      "status": "custom_required",
+      "url": ""
+    },
+    {
+      "petunia_id": "model.dissolve",
+      "function": "Model — Dissolve",
+      "source": "Petunia Domain",
+      "icon": "custom",
+      "license": "project",
+      "status": "custom_required",
+      "url": ""
+    },
+    {
+      "petunia_id": "hair.designer",
+      "function": "Pós-GA — Low-Poly Hair Designer",
+      "source": "Petunia Domain",
+      "icon": "custom",
+      "license": "project",
+      "status": "custom_required",
+      "url": ""
+    }
+  ]
+}

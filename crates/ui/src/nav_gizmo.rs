@@ -3,7 +3,7 @@
 
 #![forbid(unsafe_code)]
 
-use egui::{Color32, PointerButton, Pos2, Rect, Stroke, StrokeKind, Vec2};
+use egui::{Color32, PointerButton, Pos2, Rect, Stroke, Vec2};
 use glam::Vec3;
 use petunia_core::{
     AppState, DuplicateSelectionCmd, EditMode, FlipNormalsCmd, ModalKind, Projection, SelectMode,
@@ -332,13 +332,15 @@ pub fn draw_nav_gizmo(
         },
         Stroke::new(1.0_f32, Color32::from_white_alpha(50)),
     );
-    // Draw cube/grid icon
-    painter.rect_stroke(
-        Rect::from_center_size(ortho_center, Vec2::splat(8.0)),
-        1.0_f32,
-        Stroke::new(1.4_f32, Color32::WHITE),
-        StrokeKind::Inside,
-    );
+    // Ícone do tema Petunia (arte curada): perspectiva/ortográfica conforme o
+    // estado real da câmera — nunca um quadrado genérico.
+    let proj_icon = if is_ortho {
+        PetuniaIcon::ViewOrthographic
+    } else {
+        PetuniaIcon::ViewPerspective
+    };
+    let proj_rect = Rect::from_center_size(ortho_center, Vec2::splat(button_radius * 1.15));
+    crate::icon_registry::IconRegistry::paint(ctx, painter, &proj_icon, proj_rect, Color32::WHITE);
     if ortho_hovered && ctx.input(|i| i.pointer.button_clicked(PointerButton::Primary)) {
         state.camera_frame = None;
         let new_proj = if is_ortho {

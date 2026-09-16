@@ -368,13 +368,13 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
     let packs = IconRegistry::available_packs();
 
     ui.label(
-        RichText::new("Pacotes de Ícones")
+        RichText::new(state.t("settings.icons_title"))
             .strong()
             .size(13.0)
             .color(tokens::TEXT_PRIMARY),
     );
     ui.label(
-        RichText::new("O pacote muda os ícones de interface (menus, painéis, transporte); as ferramentas 3D mantêm a arte vetorial Petunia. Pacotes personalizados entram pela via de plugins.")
+        RichText::new(state.t("settings.icons_desc"))
             .size(11.0)
             .color(tokens::TEXT_SECONDARY),
     );
@@ -397,6 +397,13 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                 } else {
                     (tokens::BG_SURFACE, tokens::BORDER_SUBTLE)
                 };
+                // Nome/descrição do manifest são dados; o locale pode traduzir
+                // por id e o valor do manifest fica de reserva (pacotes de disco).
+                let pack_name = pack_text(state, "pack_name", &pack.id, &pack.name);
+                let pack_desc = pack
+                    .description
+                    .as_ref()
+                    .map(|d| pack_text(state, "pack_desc", &pack.id, d));
 
                 egui::Frame::new()
                     .fill(card_bg)
@@ -408,27 +415,27 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                             ui.vertical(|ui| {
                                 ui.horizontal(|ui| {
                                     ui.label(
-                                        RichText::new(&pack.name)
+                                        RichText::new(&pack_name)
                                             .strong()
                                             .size(13.0)
                                             .color(tokens::TEXT_PRIMARY),
                                     );
                                     if is_active {
                                         ui.label(
-                                            RichText::new("• Ativo")
+                                            RichText::new(state.t("settings.pack_active"))
                                                 .size(10.5)
                                                 .color(tokens::ACCENT_BLUE),
                                         );
                                     }
                                     if !compiled {
                                         ui.label(
-                                            RichText::new("· build sem extended-icon-packs")
+                                            RichText::new(state.t("settings.pack_not_compiled"))
                                                 .size(10.5)
                                                 .color(tokens::TEXT_MUTED),
                                         );
                                     }
                                 });
-                                if let Some(ref desc) = pack.description {
+                                if let Some(desc) = &pack_desc {
                                     ui.label(
                                         RichText::new(desc)
                                             .size(11.0)
@@ -440,7 +447,9 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 if !is_active && compiled {
                                     if ui
-                                        .button(RichText::new("Usar este Pacote").size(11.0))
+                                        .button(
+                                            RichText::new(state.t("settings.pack_use")).size(11.0),
+                                        )
                                         .clicked()
                                     {
                                         state.ui.active_icon_pack_id = pack.id.clone();
@@ -448,7 +457,8 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                                     }
                                 } else if is_active {
                                     ui.label(
-                                        RichText::new("✔ Selecionado").color(tokens::ACCENT_BLUE),
+                                        RichText::new(state.t("settings.pack_selected"))
+                                            .color(tokens::ACCENT_BLUE),
                                     );
                                 }
                             });
@@ -460,7 +470,7 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                         ui.add_space(6.0);
                         ui.horizontal(|ui| {
                             ui.label(
-                                RichText::new("Exemplos:")
+                                RichText::new(state.t("settings.examples"))
                                     .size(10.5)
                                     .color(tokens::TEXT_MUTED),
                             );
@@ -495,6 +505,19 @@ fn draw_icons_tab(ui: &mut Ui, state: &mut AppState) {
                 ui.add_space(6.0);
             }
         });
+}
+
+/// Texto localizado de pacote por id (`settings.<kind>_<id>`), com o valor do
+/// manifest como reserva. `t()` devolve a própria chave quando falta — é esse
+/// sentinela que distingue "traduzido" de "sem tradução".
+fn pack_text(state: &AppState, kind: &str, id: &str, fallback: &str) -> String {
+    let key = format!("settings.{kind}_{id}");
+    let value = state.t(&key);
+    if value == key {
+        fallback.to_string()
+    } else {
+        value
+    }
 }
 
 // ---------------------------------------------------------------- Aba 3: Idioma e Tradução

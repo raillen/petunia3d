@@ -5,7 +5,14 @@ O formato baseia-se no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 
 ## [Unreleased] — UI/UX, Responsiveness, Performance & Architecture Remediation (Waves 0–9)
 
+### Adicionado
+- **Tema padrão Petunia v0.1**: pack curado (`assets/ui/icons/petunia/`, Iconoir primário; Tabler/Heroicons como reservas aprovadas) embutido e rasterizado como máscara tingível em `petunia_theme::ICONS`; o pacote `petunia` volta a ser o padrão do produto e o tema é consultado entre o glifo de pacote e a arte vetorial antiga — Object/Mesh (box-3d-center), seleção Point/Edge/Face 3D, Extrude, Bevel, Cut, Rotate 3D, Gizmo, X-Ray, Perspective/Orthographic e Paint Brush; `ViewPerspective`/`ViewOrthographic` entram no registro (persp/orto do nav gizmo deixa de ser um quadrado genérico); proveniência em `mapping.csv`/`manifest.json`/`licenses/` e testes de tinta rasterizada, ids únicos e cobertura.
+
 ### Corrigido & Aprimorado
+- **Pintura — UI e arte**: pincéis em linhas de largura total com `PetuniaToolbarButton` (ícone dentro da seleção; o `horizontal` aninhado em `horizontal_wrapped` escondia Linha/Retângulo); ícones de pintura saem do glifo de pacote (o candidato Iconoir `design-pencil` lia como "Ⓐ") e caem no Phosphor legível; i18n completo do painel (paleta, pincéis, canais, máscara, grade, nome de camada e status) com paridade en/pt-BR; canais PBR nomeados nos dois locales.
+- **Render GL**: textura de asset preta — `let h = fnv1a(...)` sombreava a altura e o `tex_sub_image_2d` subia com altura-lixo; upload agora via `tex_image_2d` com dados após o hash renomeado.
+- **Toolbar**: PNGs transparentes voltam a ser a arte canônica das ferramentas (os SVGs Figma carregam fundo escuro embutido, ilegíveis a 20px).
+- **Settings — Ícones**: aba localizada (título, descrição, badges, botão e exemplos) com nomes/descrições de pacote traduzíveis por id e fallback para o manifest.
 - **Renderers por revisão (Wave 1)**: buffers WGPU/OpenGL só reconstróem com mudança de geometria (fingerprint de cena); órbita de câmera atualiza só uniforms; VBOs GL persistentes por asset; sem create/delete por draw; contadores de telemetria e escopos puffin.
 - **Dock direito dividido (Wave 2)**: Outliner e Inspector independentes com divisor arrastável persistente, colapso independente e `UiRegions` como fonte única de retângulos do shell.
 - **Workspaces reais (Wave 3)**: perfis de composição Model/Paint/UV/Animate (paletas, centro split no UV, Timeline no Animate), transição com memória de layout e paleta de pose no Animate.

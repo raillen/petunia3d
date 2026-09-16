@@ -17,7 +17,10 @@ fn save_creates_exact_tree() {
     assert!(target.path().is_file());
     let bytes = std::fs::read(target.path()).unwrap();
     assert!(bytes.starts_with(b"PETUNIA\0"));
-    insta::assert_debug_snapshot!(bytes.len(), @"1181");
+    // Guarda de tamanho: cresceu 1181 → 1183 com a pilha de pintura opcional
+    // (`Asset::paint_stack`, P3D-061) — mudança de formato intencional e
+    // coberta pelo roundtrip em `format::tests`.
+    insta::assert_debug_snapshot!(bytes.len(), @"1183");
 }
 
 #[test]

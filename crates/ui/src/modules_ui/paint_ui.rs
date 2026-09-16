@@ -43,37 +43,44 @@ pub fn draw_paint_panel(
                 }
             });
             ui.horizontal_wrapped(|ui| {
+                let add_label = state.t("paint.palette_add");
                 if ui
-                    .small_button("+ Add")
-                    .on_hover_text("Add current color to palette")
+                    .small_button(&add_label)
+                    .on_hover_text(state.t("paint.palette_add_tip"))
                     .clicked()
                 {
                     let c = state.paint_color;
                     PaintModule::push_palette(state, c);
                 }
-                if ui.small_button("Clear").clicked() {
+                let clear_label = state.t("paint.palette_clear");
+                if ui.small_button(&clear_label).clicked() {
                     PaintModule::set_palette(state, Vec::new());
                 }
+                // Marcas registradas: sem tradução.
                 if ui.small_button("PICO-8").clicked() {
                     PaintModule::set_palette(state, petunia_project::preset_pico8());
-                    state.set_status("Loaded PICO-8 palette");
+                    let msg = state.t("paint.palette_loaded_pico8");
+                    state.set_status(&msg);
                 }
                 if ui.small_button("GameBoy").clicked() {
                     PaintModule::set_palette(state, petunia_project::preset_gameboy());
-                    state.set_status("Loaded Game Boy palette");
+                    let msg = state.t("paint.palette_loaded_gameboy");
+                    state.set_status(&msg);
                 }
+                let import_label = state.t("paint.palette_import");
                 if ui
-                    .small_button("Import")
-                    .on_hover_text("Import .hex or .gpl palette")
+                    .small_button(&import_label)
+                    .on_hover_text(state.t("paint.palette_import_tip"))
                     .clicked()
                 {
                     state
                         .events
                         .emit(petunia_core::AppEvent::RequestImportPalette);
                 }
+                let export_label = state.t("paint.palette_export");
                 if ui
-                    .small_button("Export")
-                    .on_hover_text("Export palette to .gpl")
+                    .small_button(&export_label)
+                    .on_hover_text(state.t("paint.palette_export_tip"))
                     .clicked()
                 {
                     state
@@ -96,7 +103,8 @@ pub fn draw_paint_panel(
             ui.horizontal(|ui| {
                 if ui.button(l_fill).clicked() {
                     let n = PaintModule::fill_selection(state);
-                    state.set_status(format!("fill {n}"));
+                    let msg = state.t("paint.fill_done").replace("{n}", &n.to_string());
+                    state.set_status(&msg);
                     state.sync_selection();
                 }
                 if ui.button(l_pick).clicked() {
@@ -136,51 +144,63 @@ pub fn draw_paint_panel(
             // Pincéis em linhas de largura total (uma por pincel): `horizontal`
             // aninhado dentro de `horizontal_wrapped` nunca quebra linha e os
             // últimos pincéis transbordavam invisíveis além do painel.
-            // Layout vertical não tem esse modo de falha em nenhuma largura.
+            // `PetuniaToolbarButton` (não compacto) dá o mesmo contrato visual
+            // da toolbar: ícone+rótulo, seleção, hover e anel de foco.
             let brushes = [
-                (0, "Pixel", crate::icon_registry::PetuniaIcon::PaintBrush),
-                (1, "Soft", crate::icon_registry::PetuniaIcon::PaintBrush),
+                (
+                    0,
+                    "paint.brush_pixel",
+                    crate::icon_registry::PetuniaIcon::PaintBrush,
+                ),
+                (
+                    1,
+                    "paint.brush_soft",
+                    crate::icon_registry::PetuniaIcon::PaintBrush,
+                ),
                 (
                     2,
-                    "Borracha",
+                    "paint.brush_eraser",
                     crate::icon_registry::PetuniaIcon::PaintEraser,
                 ),
-                (3, "Preencher", crate::icon_registry::PetuniaIcon::PaintFill),
+                (
+                    3,
+                    "paint.brush_fill",
+                    crate::icon_registry::PetuniaIcon::PaintFill,
+                ),
                 (
                     4,
-                    "Conta-gotas",
+                    "paint.brush_picker",
                     crate::icon_registry::PetuniaIcon::PaintPicker,
                 ),
-                (5, "Linha", crate::icon_registry::PetuniaIcon::PaintLine),
-                (6, "Retângulo", crate::icon_registry::PetuniaIcon::PaintRect),
+                (
+                    5,
+                    "paint.brush_line",
+                    crate::icon_registry::PetuniaIcon::PaintLine,
+                ),
+                (
+                    6,
+                    "paint.brush_rect",
+                    crate::icon_registry::PetuniaIcon::PaintRect,
+                ),
             ];
-            for (kind, label, icon) in brushes {
-                let sel = state.paint_brush_kind == kind;
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing = egui::vec2(6.0, 0.0);
-                    let (icon_rect, _) =
-                        ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
-                    crate::icon_registry::IconRegistry::paint(
-                        ui.ctx(),
-                        ui.painter(),
-                        &icon,
-                        icon_rect,
-                        if sel {
-                            crate::tokens::TEXT_ACTIVE
-                        } else {
-                            crate::tokens::TEXT_SECONDARY
-                        },
-                    );
-                    if ui.selectable_label(sel, label).clicked() {
-                        state.paint_brush_kind = kind;
-                    }
-                });
+            for (kind, key, icon) in brushes {
+                let label = state.t(key);
+                if crate::widgets::PetuniaToolbarButton::new(icon, &label)
+                    .selected(state.paint_brush_kind == kind)
+                    .compact(false)
+                    .show(ui)
+                    .clicked()
+                {
+                    state.paint_brush_kind = kind;
+                }
             }
 
-            ui.checkbox(&mut state.paint_isolate_selection, "Isolar Faces (Mask)")
-                .on_hover_text("Confinar traço 3D exclusivamente às faces selecionadas");
-            ui.checkbox(&mut state.paint_pixel_grid, "Pixel Grid")
-                .on_hover_text("Grade de pixels no canvas 2D (só com zoom suficiente)");
+            let isolate_label = state.t("paint.isolate_faces");
+            ui.checkbox(&mut state.paint_isolate_selection, isolate_label)
+                .on_hover_text(state.t("paint.isolate_faces_tip"));
+            let grid_label = state.t("paint.pixel_grid");
+            ui.checkbox(&mut state.paint_pixel_grid, grid_label)
+                .on_hover_text(state.t("paint.pixel_grid_tip"));
 
             // Canal alvo (V1: Albedo; resto desabilitado com motivo — P3D-062).
             ui.horizontal(|ui| {
@@ -198,7 +218,14 @@ pub fn draw_paint_panel(
                             petunia_project::TextureChannel::Albedo,
                             albedo_label,
                         );
-                        for label in ["Normal", "Roughness", "Metallic", "Emission", "Height"] {
+                        for key in [
+                            "paint.channel_normal",
+                            "paint.channel_roughness",
+                            "paint.channel_metallic",
+                            "paint.channel_emission",
+                            "paint.channel_height",
+                        ] {
+                            let label = state.t(key);
                             ui.add_enabled_ui(false, |ui| {
                                 let _ = ui.selectable_label(false, label);
                             });
@@ -430,6 +457,13 @@ pub fn draw_paint_panel(
         });
 }
 
+/// Nome padrão de camada nova, localizado (`{n}` = ordinal da pilha).
+fn default_layer_name(state: &AppState, n: usize) -> String {
+    state
+        .t("paint.layer_default_name")
+        .replace("{n}", &n.to_string())
+}
+
 /// Painel de camadas (P3D-061): lista compacta com ativa/visibilidade/
 /// opacidade, add/delete/rename/reorder. Tudo com checkpoint próprio.
 fn draw_layers_panel(ui: &mut Ui, state: &mut AppState) {
@@ -456,16 +490,19 @@ fn draw_layers_panel(ui: &mut Ui, state: &mut AppState) {
                     .and_then(|o| o.texture.as_ref())
                     .map(|c| (c.w, c.h))
                     .unwrap_or((256, 256));
+                let next_n = state
+                    .project
+                    .assets
+                    .get(active)
+                    .and_then(|o| o.paint_stack.as_ref())
+                    .map(|s| s.layers.len() + 1)
+                    .unwrap_or(2);
+                // Nome resolvido antes do borrow mutável (i18n fora do empréstimo).
+                let name = default_layer_name(state, next_n);
                 if let Some(o) = state.project.assets.get_mut(active)
                     && let Some(stack) = o.paint_stack.as_mut()
                 {
-                    let n = stack.layers.len() + 1;
-                    stack.add_layer(petunia_project::PaintLayer::new(
-                        format!("Layer {n}"),
-                        w,
-                        h,
-                        [0, 0, 0, 0],
-                    ));
+                    stack.add_layer(petunia_project::PaintLayer::new(name, w, h, [0, 0, 0, 0]));
                 }
                 PaintModule::composite_active(state);
             }
